@@ -642,27 +642,72 @@ function buildCurrentAffairs(): CurrentAffair[] {
 }
 
 function buildMistakes(): Mistake[] {
-  const data: { subj: string; topic: string; type: Mistake["type"]; desc: string; corr: string }[] = [
-    { subj: "polity", topic: "Anti-Defection Law", type: "Conceptual", desc: "Confused the role of the Speaker vs Governor in disqualification.", corr: "Speaker/Chairman decides under 10th Schedule; subject to judicial review." },
-    { subj: "environment", topic: "Wetlands", type: "Factual", desc: "Misremembered the number of Ramsar sites in India.", corr: "Track the latest count from PIB; revise list of recent additions." },
-    { subj: "economy", topic: "Inflation Indices", type: "Conceptual", desc: "Mixed up WPI base year and CPI components.", corr: "WPI base 2011-12; CPI weights differ for rural/urban." },
-    { subj: "csat", topic: "Time-Speed-Distance", type: "Silly", desc: "Calculation slip under time pressure.", corr: "Re-check unit conversions; mark and return." },
-    { subj: "modern-history", topic: "Congress Sessions", type: "Factual", desc: "Wrong president-session pairing.", corr: "Make a one-page chronological table; revise weekly." },
-    { subj: "geography", topic: "Ocean Currents", type: "Misreading", desc: "Read 'warm' as 'cold' current in the question.", corr: "Underline qualifiers while reading the stem." },
-    { subj: "polity", topic: "Emergency Provisions", type: "Conceptual", desc: "Article 352 vs 356 grounds confused.", corr: "352 — war/armed rebellion; 356 — failure of constitutional machinery." },
-    { subj: "economy", topic: "Banking", type: "Time Management", desc: "Spent too long on a single data-heavy question.", corr: "60-second rule: skip and flag." },
+  const tpl: {
+    subj: string;
+    topic: string;
+    category: Mistake["category"];
+    q: string;
+    you: string;
+    ans: string;
+    exp: string;
+    source: string;
+  }[] = [
+    // ── recurring cluster: Polity / Anti-Defection ──
+    { subj: "polity", topic: "Anti-Defection Law", category: "Conceptual", q: "Who decides on disqualification under the Tenth Schedule?", you: "The Governor", ans: "The Speaker / Chairman of the House", exp: "The presiding officer decides; the decision is subject to judicial review (Kihoto Hollohan)." , source: "Prelims FLT #12" },
+    { subj: "polity", topic: "Anti-Defection Law", category: "Revision Failure", q: "Does the Tenth Schedule apply to a member voluntarily giving up party membership?", you: "Only on cross-voting", ans: "Yes — voluntarily giving up membership is itself a ground", exp: "Disqualification arises on voluntarily giving up membership OR defying a whip. Revise the grounds.", source: "Daily Quiz" },
+    // ── recurring cluster: Economy / Inflation ──
+    { subj: "economy", topic: "Inflation Indices", category: "Conceptual", q: "Which index does the RBI primarily target for monetary policy?", you: "WPI", ans: "CPI (Combined)", exp: "RBI's flexible inflation targeting is anchored to CPI, not WPI. WPI base year is 2011-12.", source: "Prelims FLT #14" },
+    { subj: "economy", topic: "Inflation Indices", category: "Careless", q: "Core inflation excludes which components?", you: "Marked 'fuel only'", ans: "Food and fuel", exp: "Core inflation strips out both food and fuel. Read all options before marking.", source: "Sectional" },
+    // ── recurring cluster: Environment / Protected Areas ──
+    { subj: "environment", topic: "Protected Areas", category: "Factual", q: "How many biosphere reserves in India are part of the UNESCO MAB network?", you: "18", ans: "12", exp: "India has 18 biosphere reserves; 12 are in the UNESCO World Network. Track the latest count.", source: "Prelims FLT #11" },
+    { subj: "environment", topic: "Protected Areas", category: "Revision Failure", q: "Which protected-area category allows limited human activity?", you: "National Park", ans: "Wildlife Sanctuary / Conservation Reserve", exp: "National Parks are most restrictive; sanctuaries allow regulated activity. Revise IUCN categories.", source: "Revision" },
+    // ── recurring cluster: Modern History / Congress Sessions ──
+    { subj: "modern-history", topic: "Congress Sessions", category: "Factual", q: "Who presided over the 1929 Lahore session?", you: "Motilal Nehru", ans: "Jawaharlal Nehru", exp: "Lahore 1929 (Purna Swaraj) — Jawaharlal Nehru. Build a one-page president↔session table.", source: "Daily Quiz" },
+    { subj: "modern-history", topic: "Congress Sessions", category: "Guessing", q: "Which session first demanded Poorna Swaraj formally?", you: "Guessed Calcutta 1928", ans: "Lahore 1929", exp: "Stop guessing chronology — anchor each session to its year and key resolution.", source: "Prelims FLT #13" },
+    // ── singletons across categories/subjects ──
+    { subj: "geography", topic: "Ocean Currents", category: "Careless", q: "The Benguela current is warm or cold?", you: "Warm", ans: "Cold", exp: "Misread the qualifier. Underline warm/cold while reading the stem.", source: "Sectional" },
+    { subj: "csat", topic: "Time-Speed-Distance", category: "Time Pressure", q: "Two trains problem (relative speed).", you: "Left blank", ans: "Option C", exp: "Spent 4 minutes and abandoned. Apply the 90-second rule: set up the equation or skip.", source: "CSAT Practice #4" },
+    { subj: "polity", topic: "Emergency Provisions", category: "Conceptual", q: "Article 352 can be invoked on which grounds?", you: "Failure of constitutional machinery", ans: "War, external aggression or armed rebellion", exp: "352 = national emergency; 356 = failure of constitutional machinery in a state. Don't conflate.", source: "Prelims FLT #10" },
+    { subj: "sci-tech", topic: "Space Missions", category: "Guessing", q: "Aditya-L1 is placed at which Lagrange point?", you: "Guessed L2", ans: "L1", exp: "Aditya-L1 → Sun-Earth L1 (the name says it). Avoid 50-50 guesses on factual space items.", source: "Daily Quiz" },
+    { subj: "ir", topic: "Groupings", category: "Factual", q: "Which country is NOT a member of the Quad?", you: "Marked Japan", ans: "Japan IS a member", exp: "Quad = India, US, Japan, Australia. Misremembered membership — revise groupings table.", source: "Prelims FLT #9" },
+    { subj: "current-affairs", topic: "Government Schemes", category: "Revision Failure", q: "Which ministry runs the PM-eBus Sewa scheme?", you: "Couldn't recall", ans: "Ministry of Housing & Urban Affairs", exp: "Map every scheme to its ministry in your monthly CA compilation.", source: "Monthly CA Test" },
+    { subj: "economy", topic: "Banking", category: "Time Pressure", q: "Data-heavy MCQ on SLR/CRR computation.", you: "Over-invested time", ans: "Option B", exp: "Spent 3+ minutes on one data question. Flag and return at the end.", source: "Sectional" },
+    { subj: "environment", topic: "Climate Agreements", category: "Factual", q: "The Kigali Amendment relates to which substances?", you: "CO2", ans: "HFCs (hydrofluorocarbons)", exp: "Kigali Amendment to the Montreal Protocol phases down HFCs, not CO2.", source: "Prelims FLT #12" },
+    { subj: "society", topic: "Census & Demography", category: "Conceptual", q: "Demographic dividend depends primarily on?", you: "Total population size", ans: "Share of working-age population", exp: "It's about age structure (working-age share), not absolute size.", source: "Daily Quiz" },
+    { subj: "ethics", topic: "Thinkers", category: "Revision Failure", q: "Whose idea is the 'veil of ignorance'?", you: "Couldn't recall", ans: "John Rawls", exp: "Rawls — Theory of Justice. Keep a thinker↔concept flashcard deck.", source: "Mains Test" },
+    { subj: "sociology", topic: "Sociological Thinkers", category: "Conceptual", q: "Whose concept is 'verstehen' (interpretive understanding)?", you: "Durkheim", ans: "Max Weber", exp: "Verstehen → Weber. Durkheim → social facts. Core optional distinction.", source: "Optional Test" },
   ];
-  return data.map((d, i) => ({
-    id: `mis-${i}`,
-    date: agoISO(randInt(2, 60)),
-    subjectId: d.subj,
-    topic: d.topic,
-    type: d.type,
-    description: d.desc,
-    correction: d.corr,
-    status: pick<Mistake["status"]>(["Open", "Reviewing", "Resolved", "Resolved"]),
-    source: pick(["Prelims FLT", "Sectional", "Daily Quiz", "Revision"]),
-  }));
+
+  const intervals = [1, 3, 7, 16, 35];
+  return tpl.map((d, i) => {
+    const reviewCount = randInt(0, 3);
+    const status: Mistake["status"] =
+      reviewCount >= 3 ? "Mastered" : reviewCount > 0 ? "Reviewing" : "Open";
+    const interval = intervals[Math.min(reviewCount, intervals.length - 1)];
+    const due = chance(0.4);
+    return {
+      id: `mis-${i}`,
+      date: agoISO(randInt(3, 90)),
+      subjectId: d.subj,
+      topic: d.topic,
+      category: d.category,
+      question: d.q,
+      userAnswer: d.you,
+      correctAnswer: d.ans,
+      explanation: d.exp,
+      source: d.source,
+      status,
+      reviewCount,
+      lastReviewed: reviewCount > 0 ? agoISO(randInt(1, interval + 4)) : undefined,
+      nextReview:
+        status === "Mastered"
+          ? aheadISO(randInt(20, 60))
+          : due
+            ? agoISO(randInt(0, 4))
+            : aheadISO(randInt(1, Math.max(2, interval))),
+      intervalDays: interval,
+    };
+  });
 }
 
 function buildHabits(): Habit[] {

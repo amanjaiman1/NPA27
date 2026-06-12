@@ -228,24 +228,38 @@ export interface CurrentAffair {
 
 /* ── Mistake Tracker ─────────────────────────────────────────── */
 
-export type MistakeType =
+/** The six UPSC error categories — every mistake is one of these. */
+export type MistakeCategory =
   | "Conceptual"
-  | "Silly"
   | "Factual"
-  | "Time Management"
-  | "Misreading";
-export type MistakeStatus = "Open" | "Reviewing" | "Resolved";
+  | "Guessing"
+  | "Revision Failure"
+  | "Time Pressure"
+  | "Careless";
+
+/** Review lifecycle: a mistake graduates to "Mastered" after repeated recall. */
+export type MistakeStatus = "Open" | "Reviewing" | "Mastered";
 
 export interface Mistake {
   id: string;
-  date: ISODate;
+  date: ISODate; // when the mistake was made
   subjectId: string;
   topic: string;
-  type: MistakeType;
-  description: string;
-  correction?: string;
-  status: MistakeStatus;
+  category: MistakeCategory;
+
+  /* the learning asset */
+  question?: string;
+  userAnswer?: string;
+  correctAnswer?: string;
+  explanation?: string;
   source?: string;
+
+  /* spaced-repetition review workflow */
+  status: MistakeStatus;
+  reviewCount: number;
+  lastReviewed?: ISODate;
+  nextReview: ISODate;
+  intervalDays: number;
 }
 
 /* ── Habits / Sleep / Exercise ───────────────────────────────── */

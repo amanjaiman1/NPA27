@@ -208,3 +208,26 @@ export function todayEntry(
 ): JournalEntry | undefined {
   return journal.find((e) => e.date === today);
 }
+
+
+/** Build heat cells from arbitrary per-day counts (e.g. mistakes logged).
+ *  `level` scales by count: 0, 1, 2, 3, 4+. */
+export function buildHeatFromCounts(
+  counts: Map<string, number>,
+  days = 119,
+  endDate = new Date(),
+): HeatCell[] {
+  const cells: HeatCell[] = [];
+  const end = new Date(endDate);
+  end.setHours(0, 0, 0, 0);
+  for (let i = days; i >= 0; i--) {
+    const d = new Date(end);
+    d.setDate(d.getDate() - i);
+    const iso = toISODate(d);
+    const c = counts.get(iso) ?? 0;
+    const level: HeatCell["level"] =
+      c <= 0 ? 0 : c < 2 ? 1 : c < 3 ? 2 : c < 4 ? 3 : 4;
+    cells.push({ date: iso, hours: c, level });
+  }
+  return cells;
+}

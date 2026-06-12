@@ -20,11 +20,17 @@ export function Heatmap({
   className,
   cellSize = 12,
   gap = 3,
+  formatTooltip,
+  legendLow = "Less",
+  legendHigh = "More",
 }: {
   cells: HeatCell[];
   className?: string;
   cellSize?: number;
   gap?: number;
+  formatTooltip?: (cell: HeatCell) => { primary: string; secondary: string };
+  legendLow?: string;
+  legendHigh?: string;
 }) {
   const [hover, setHover] = useState<{
     cell: HeatCell;
@@ -128,14 +134,14 @@ export function Heatmap({
 
       {/* Legend */}
       <div className="mt-3 flex items-center gap-1.5 text-[0.6rem] text-paper/40">
-        <span>Less</span>
+        <span>{legendLow}</span>
         {LEVEL_BG.map((bg, i) => (
           <span
             key={i}
             className={cn("h-2.5 w-2.5 rounded-[3px]", bg)}
           />
         ))}
-        <span>More</span>
+        <span>{legendHigh}</span>
       </div>
 
       {/* Tooltip */}
@@ -145,10 +151,16 @@ export function Heatmap({
           style={{ left: hover.x, top: hover.y - 8 }}
         >
           <p className="tabular text-xs font-semibold text-paper">
-            {hover.cell.hours > 0 ? formatHours(hover.cell.hours) : "Rest day"}
+            {formatTooltip
+              ? formatTooltip(hover.cell).primary
+              : hover.cell.hours > 0
+                ? formatHours(hover.cell.hours)
+                : "Rest day"}
           </p>
           <p className="whitespace-nowrap text-[0.6rem] text-paper/50">
-            {formatDate(hover.cell.date)}
+            {formatTooltip
+              ? formatTooltip(hover.cell).secondary
+              : formatDate(hover.cell.date)}
           </p>
         </div>
       )}

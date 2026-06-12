@@ -11,6 +11,7 @@ import type {
   MockTest,
   Mistake,
   MistakeStatus,
+  MistakeCategory,
   Goal,
   Milestone,
   Reflection,
@@ -55,6 +56,7 @@ interface ChronicleState extends ChronicleData {
   /* mistakes */
   upsertMistake: (m: Mistake) => void;
   setMistakeStatus: (id: string, status: MistakeStatus) => void;
+  reviewMistake: (id: string, gotItRight: boolean) => void;
   deleteMistake: (id: string) => void;
 
   /* goals */
@@ -90,6 +92,7 @@ interface ChronicleState extends ChronicleData {
 }
 
 const SR_INTERVALS = [1, 3, 7, 14, 30, 60];
+const MISTAKE_INTERVALS = [1, 3, 7, 16, 35];
 
 const STATUS_CONF: Record<TopicStatus, number> = {
   untouched: 10,
@@ -254,6 +257,28 @@ export const useChronicle = create<ChronicleState>()(
         set((s) => ({
           mistakes: s.mistakes.map((m) => (m.id === id ? { ...m, status } : m)),
         })),
+      reviewMistake: (id, gotItRight) =>
+        set((s) => ({
+          mistakes: s.mistakes.map((m): Mistake => {
+            if (m.id !== id) return m;
+            const reviewCount = gotItRight ? m.reviewCount + 1 : 0;
+            const interval = gotItRight
+              ? MISTAKE_INTERVALS[Math.min(reviewCount, MISTAKE_INTERVALS.length - 1)]
+              : 1;
+            const next = new Date();
+            next.setDate(next.getDate() + interval);
+            const status: MistakeStatus =
+              gotItRight && reviewCount >= 3 ? "Mastered" : "Reviewing";
+            return {
+              ...m,
+              reviewCount,
+              intervalDays: interval,
+              lastReviewed: toISODate(new Date()),
+              nextReview: toISODate(next),
+              status,
+            };
+          }),
+        })),
       deleteMistake: (id) =>
         set((s) => ({ mistakes: s.mistakes.filter((m) => m.id !== id) })),
 
@@ -392,7 +417,7 @@ export const useChronicle = create<ChronicleState>()(
     }),
     {
       name: "upsc-chronicle-store",
-      version: 3,
+      version: 4,
       storage: createJSONStorage(() => localStorage),
       migrate: (persisted, version) => {
         const state = persisted as Partial<ChronicleState> | undefined;
@@ -420,6 +445,52 @@ export const useChronicle = create<ChronicleState>()(
             state.topicLinks = createSeedData().topicLinks;
           }
           delete (state as Record<string, unknown>).graph;
+        }
+        // v3 -> v4: upgrade mistakes into review-workflow learning assets
+        // (new error categories, Q/answer/explanation, spaced repetition).
+        if (state && version < 4 && Array.isArray(state.mistakes)) {
+          const catMap: Record<string, MistakeCategory> = {
+            Conceptual: "Conceptual",
+            Factual: "Factual",
+            Guessing: "Guessing",
+            Silly: "Careless",
+            Careless: "Careless",
+            Misreading: "Careless",
+            "Time Management": "Time Pressure",
+            "Time Pressure": "Time Pressure",
+            "Revision Failure": "Revision Failure",
+          };
+          const today = toISODate(new Date());
+          type LegacyMistake = Partial<Mistake> & {
+            type?: string;
+            description?: string;
+            correction?: string;
+          };
+          state.mistakes = (state.mistakes as LegacyMistake[]).map((m) => {
+            const cat = String(m.category ?? m.type ?? "Conceptual");
+            const status: MistakeStatus =
+              m.status === ("Resolved" as MistakeStatus)
+                ? "Mastered"
+                : (m.status ?? "Open");
+            const reviewCount = m.reviewCount ?? (status === "Mastered" ? 3 : 0);
+            return {
+              id: m.id ?? `mis-${Math.random().toString(36).slice(2, 8)}`,
+              date: m.date ?? today,
+              subjectId: m.subjectId ?? "",
+              topic: m.topic ?? "",
+              category: catMap[cat] ?? "Conceptual",
+              question: m.question,
+              userAnswer: m.userAnswer,
+              correctAnswer: m.correctAnswer,
+              explanation: m.explanation ?? m.correction ?? m.description,
+              source: m.source,
+              status,
+              reviewCount,
+              lastReviewed: m.lastReviewed,
+              nextReview: m.nextReview ?? m.date ?? today,
+              intervalDays: m.intervalDays ?? 1,
+            } as Mistake;
+          });
         }
         return state as ChronicleState;
       },
