@@ -643,6 +643,10 @@ export function groupIntoChapters(
    ════════════════════════════════════════════════════════════════ */
 
 export function legacyNarration(stats: LegacyStats, profile: Profile): string {
+  // Fresh start — the story hasn't been written yet.
+  if (stats.journeyDays === 0 && stats.totalHours === 0) {
+    return `Today, the journey to ${profile.mission ?? profile.targetExam} begins. From here, every hour at the desk, every mock, every book closed and every milestone will be recorded — a documentary written one day at a time. This is Day Zero.`;
+  }
   const parts = [
     `${commas(stats.journeyDays)} days ago, a decision was made.`,
     `Since then: ${commas(stats.totalHours)} hours at the desk across ${commas(

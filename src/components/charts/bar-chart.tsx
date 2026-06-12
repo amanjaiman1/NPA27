@@ -3,6 +3,15 @@
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 
+const BLOOM = [
+  "var(--bloom-rose)",
+  "var(--bloom-lilac)",
+  "var(--bloom-sky)",
+  "var(--bloom-mint)",
+  "var(--bloom-marigold)",
+  "var(--bloom-peach)",
+];
+
 export interface BarDatum {
   label: string;
   value: number;
@@ -45,6 +54,7 @@ export function BarChart({
         {data.map((d, i) => {
           const pct = (d.value / max) * 100;
           const isLast = i === data.length - 1;
+          const color = BLOOM[i % BLOOM.length];
           return (
             <div
               key={i}
@@ -53,12 +63,12 @@ export function BarChart({
               onMouseLeave={() => setHover(null)}
             >
               <div
-                className={cn(
-                  "w-full rounded-t-[4px] transition-all duration-300",
-                  isLast ? "bg-accent" : "bg-paper/25 group-hover:bg-paper/45",
-                  hover === i && !isLast && "bg-paper/55",
-                )}
-                style={{ height: `${Math.max(pct, 1.5)}%` }}
+                className="w-full rounded-t-[4px] transition-all duration-300"
+                style={{
+                  height: `${Math.max(pct, 1.5)}%`,
+                  backgroundColor: `rgb(${color})`,
+                  opacity: hover === i || isLast ? 1 : 0.78,
+                }}
               />
               {hover === i && (
                 <div className="pointer-events-none absolute -top-1 left-1/2 z-10 -translate-x-1/2 -translate-y-full whitespace-nowrap rounded-lg border border-paper/15 bg-ink px-2 py-1 text-center shadow-glow">

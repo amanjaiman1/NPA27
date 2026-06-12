@@ -8,7 +8,16 @@ export interface DonutSegment {
   value: number;
 }
 
-/** Grayscale donut chart. Segments are shaded from bright to dim by order. */
+/** Floral donut chart. Segments cycle through the bloom palette. */
+const BLOOM = [
+  "var(--bloom-rose)",
+  "var(--bloom-lilac)",
+  "var(--bloom-sky)",
+  "var(--bloom-mint)",
+  "var(--bloom-marigold)",
+  "var(--bloom-peach)",
+];
+
 export function Donut({
   segments,
   size = 160,
@@ -33,11 +42,10 @@ export function Donut({
     return segments.map((s, i) => {
       const frac = s.value / total;
       const len = frac * c;
-      const opacity = 0.9 - (i / Math.max(segments.length, 1)) * 0.62;
       const arc = {
         dasharray: `${len} ${c - len}`,
         dashoffset: -offset,
-        opacity: Math.max(opacity, 0.18),
+        color: BLOOM[i % BLOOM.length],
         ...s,
         pct: Math.round(frac * 100),
       };
@@ -65,8 +73,7 @@ export function Donut({
               cy={size / 2}
               r={r}
               fill="none"
-              stroke="rgb(var(--accent))"
-              strokeOpacity={a.opacity}
+              stroke={`rgb(${a.color})`}
               strokeWidth={thickness}
               strokeDasharray={a.dasharray}
               strokeDashoffset={a.dashoffset}
@@ -96,8 +103,8 @@ export function Donut({
         {arcs.slice(0, 6).map((a, i) => (
           <li key={i} className="flex items-center gap-2 text-xs">
             <span
-              className="h-2.5 w-2.5 shrink-0 rounded-sm bg-accent"
-              style={{ opacity: a.opacity }}
+              className="h-2.5 w-2.5 shrink-0 rounded-sm"
+              style={{ backgroundColor: `rgb(${a.color})` }}
             />
             <span className="min-w-0 flex-1 truncate text-paper/70">
               {a.label}

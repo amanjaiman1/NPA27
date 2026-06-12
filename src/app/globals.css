@@ -10,29 +10,51 @@
 
 :root,
 [data-theme="dark"] {
-  --ink: 14 15 19; /* page background — softly tinted charcoal, easier on eyes than pure black */
-  --paper: 230 232 237; /* foreground — gentle off-white to cut glare */
-  /* A calm, desaturated palette. Indigo leads; semantics stay muted. */
-  --accent: 132 142 236; /* periwinkle indigo */
-  --accent-fg: 12 13 18; /* readable text on the (light-ish) accent */
-  --positive: 122 186 142; /* sage */
-  --warning: 222 176 104; /* warm amber */
-  --danger: 224 130 116; /* soft clay */
-  --info: 124 170 226; /* quiet sky */
-  --selection: 132 142 236;
+  --ink: 17 15 23; /* deep plum-charcoal — warmer than black, lets colour glow */
+  --paper: 233 231 240; /* soft off-white */
+
+  /* A blooming bouquet palette (inspired by floral mother's-day art). */
+  --bloom-rose: 240 110 170;
+  --bloom-lilac: 178 140 246;
+  --bloom-sky: 120 162 250;
+  --bloom-mint: 92 214 166;
+  --bloom-marigold: 245 186 80;
+  --bloom-peach: 251 148 120;
+
+  /* Rose leads as the signature accent. */
+  --accent: 240 110 170;
+  --accent-fg: 28 14 24; /* dark plum text reads cleanly on the bright accent */
+
+  /* Semantics borrow from the bouquet so status colour feels native. */
+  --positive: 92 214 166;
+  --warning: 245 186 80;
+  --danger: 242 108 108;
+  --info: 120 162 250;
+
+  --selection: 240 110 170;
   color-scheme: dark;
 }
 
 [data-theme="light"] {
-  --ink: 250 250 248; /* page background — warm bone white */
-  --paper: 24 24 28; /* foreground — near black */
-  --accent: 82 90 210; /* deeper indigo for contrast on light */
-  --accent-fg: 248 249 255;
-  --positive: 46 122 80;
-  --warning: 166 118 34;
-  --danger: 190 74 60;
-  --info: 48 104 178;
-  --selection: 82 90 210;
+  --ink: 253 249 251; /* blush cream */
+  --paper: 30 22 32; /* deep plum near-black text */
+
+  --bloom-rose: 209 60 130;
+  --bloom-lilac: 124 86 214;
+  --bloom-sky: 54 110 216;
+  --bloom-mint: 28 150 110;
+  --bloom-marigold: 198 138 26;
+  --bloom-peach: 222 106 82;
+
+  --accent: 205 50 122;
+  --accent-fg: 255 246 250;
+
+  --positive: 28 150 110;
+  --warning: 184 128 24;
+  --danger: 198 58 54;
+  --info: 48 104 200;
+
+  --selection: 205 50 122;
   color-scheme: light;
 }
 
