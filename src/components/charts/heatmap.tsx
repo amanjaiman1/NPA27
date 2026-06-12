@@ -14,6 +14,7 @@ const LEVEL_BG = [
 ];
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const WEEKDAY_LABELS = ["", "Mon", "", "Wed", "", "Fri", ""];
 
 export function Heatmap({
   cells,
@@ -26,6 +27,8 @@ export function Heatmap({
 }: {
   cells: HeatCell[];
   className?: string;
+  /** Treated as the *maximum* column size on wide screens. The grid shrinks
+   *  fluidly to fit narrower containers so it never scrolls horizontally. */
   cellSize?: number;
   gap?: number;
   formatTooltip?: (cell: HeatCell) => { primary: string; secondary: string };
@@ -62,73 +65,74 @@ export function Heatmap({
     return { weeks, monthLabels };
   }, [cells]);
 
-  const colWidth = cellSize + gap;
+  // Cap the grid width on wide screens; below that it fills 100% of its
+  // container, so the squares scale down instead of overflowing.
+  const maxGridWidth = weeks.length * (cellSize + gap);
 
   return (
-    <div className={cn("relative", className)}>
-      <div className="overflow-x-auto no-scrollbar pb-1">
-        <div className="inline-block">
-          {/* Month labels */}
-          <div
-            className="relative mb-1.5 h-3"
-            style={{ marginLeft: cellSize + gap + 4 }}
-          >
-            {monthLabels.map((m) => (
-              <span
-                key={`${m.col}-${m.label}`}
-                className="absolute text-[0.6rem] text-paper/35"
-                style={{ left: m.col * colWidth }}
-              >
-                {m.label}
-              </span>
-            ))}
-          </div>
-
-          <div className="flex gap-[3px]">
-            {/* Weekday labels */}
-            <div
-              className="mr-1 flex flex-col"
-              style={{ gap }}
+    <div className={cn("relative w-full overflow-hidden", className)}>
+      {/* Month labels — aligned over the columns area */}
+      <div className="mb-1 flex h-3">
+        <div className="mr-1 hidden w-5 shrink-0 sm:block" />
+        <div
+          className="relative flex-1 text-[0.6rem] text-paper/35"
+          style={{ maxWidth: maxGridWidth }}
+        >
+          {monthLabels.map((m) => (
+            <span
+              key={`${m.col}-${m.label}`}
+              className="absolute whitespace-nowrap"
+              style={{ left: `${(m.col / weeks.length) * 100}%` }}
             >
-              {["", "Mon", "", "Wed", "", "Fri", ""].map((d, i) => (
-                <span
-                  key={i}
-                  className="text-[0.55rem] leading-none text-paper/30"
-                  style={{ height: cellSize, lineHeight: `${cellSize}px` }}
-                >
-                  {d}
-                </span>
-              ))}
-            </div>
+              {m.label}
+            </span>
+          ))}
+        </div>
+      </div>
 
-            {/* Week columns */}
-            {weeks.map((week, ci) => (
-              <div key={ci} className="flex flex-col" style={{ gap }}>
-                {week.map((cell, ri) =>
-                  cell ? (
-                    <div
-                      key={cell.date}
-                      onMouseEnter={(e) => {
-                        const r = e.currentTarget.getBoundingClientRect();
-                        setHover({ cell, x: r.left + r.width / 2, y: r.top });
-                      }}
-                      onMouseLeave={() => setHover(null)}
-                      className={cn(
-                        "rounded-[3px] transition-colors duration-150 hover:ring-1 hover:ring-accent/50",
-                        LEVEL_BG[cell.level],
-                      )}
-                      style={{ width: cellSize, height: cellSize }}
-                    />
-                  ) : (
-                    <div
-                      key={`empty-${ci}-${ri}`}
-                      style={{ width: cellSize, height: cellSize }}
-                    />
-                  ),
-                )}
-              </div>
-            ))}
-          </div>
+      <div className="flex">
+        {/* Weekday labels — hidden on phones to free up width */}
+        <div className="mr-1 hidden w-5 shrink-0 flex-col gap-[2px] sm:flex sm:gap-[3px]">
+          {WEEKDAY_LABELS.map((d, i) => (
+            <span
+              key={i}
+              className="flex flex-1 items-center text-[0.55rem] leading-none text-paper/30"
+            >
+              {d}
+            </span>
+          ))}
+        </div>
+
+        {/* Week columns — flex so they fill the available width and stay square */}
+        <div
+          className="flex flex-1 gap-[2px] sm:gap-[3px]"
+          style={{ maxWidth: maxGridWidth }}
+        >
+          {weeks.map((week, ci) => (
+            <div key={ci} className="flex flex-1 flex-col gap-[2px] sm:gap-[3px]">
+              {week.map((cell, ri) =>
+                cell ? (
+                  <div
+                    key={cell.date}
+                    onMouseEnter={(e) => {
+                      const r = e.currentTarget.getBoundingClientRect();
+                      setHover({ cell, x: r.left + r.width / 2, y: r.top });
+                    }}
+                    onMouseLeave={() => setHover(null)}
+                    className={cn(
+                      "aspect-square w-full rounded-[2px] transition-colors duration-150 hover:ring-1 hover:ring-accent/50",
+                      LEVEL_BG[cell.level],
+                    )}
+                  />
+                ) : (
+                  <div
+                    key={`empty-${ci}-${ri}`}
+                    className="aspect-square w-full"
+                  />
+                ),
+              )}
+            </div>
+          ))}
         </div>
       </div>
 
