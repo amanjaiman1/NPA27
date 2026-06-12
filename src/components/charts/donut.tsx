@@ -10,12 +10,12 @@ export interface DonutSegment {
 
 /** Floral donut chart. Segments cycle through the bloom palette. */
 const BLOOM = [
-  "var(--bloom-rose)",
-  "var(--bloom-lilac)",
-  "var(--bloom-sky)",
-  "var(--bloom-mint)",
-  "var(--bloom-marigold)",
-  "var(--bloom-peach)",
+  "var(--bloom-1)",
+  "var(--bloom-2)",
+  "var(--bloom-3)",
+  "var(--bloom-4)",
+  "var(--bloom-5)",
+  "var(--bloom-6)",
 ];
 
 export function Donut({

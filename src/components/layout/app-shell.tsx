@@ -6,11 +6,13 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Sidebar } from "./sidebar";
 import { Topbar } from "./topbar";
 import { CommandPalette } from "./command-palette";
+import { AppearanceModal } from "./appearance";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [appearanceOpen, setAppearanceOpen] = useState(false);
   const pathname = usePathname();
 
   // restore collapse preference
@@ -51,12 +53,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div className="absolute inset-0 bg-bloom-field" />
         <div className="absolute inset-0 bg-grid bg-grid opacity-40 [mask-image:radial-gradient(ellipse_70%_60%_at_50%_0%,black,transparent)]" />
         {/* drifting petal-glows */}
-        <div className="absolute -left-24 top-[-6rem] h-80 w-80 animate-bloom-float rounded-full bg-bloom-rose/25 blur-[90px]" />
-        <div className="absolute right-[-5rem] top-10 h-72 w-72 animate-bloom-float-2 rounded-full bg-bloom-lilac/25 blur-[90px]" />
-        <div className="absolute bottom-[-6rem] right-1/4 h-96 w-96 animate-bloom-drift rounded-full bg-bloom-sky/20 blur-[110px]" />
-        <div className="absolute bottom-4 left-[-4rem] h-72 w-72 animate-bloom-float rounded-full bg-bloom-mint/20 blur-[90px] [animation-delay:-6s]" />
-        <div className="absolute left-1/3 top-1/3 h-64 w-64 animate-bloom-drift rounded-full bg-bloom-marigold/15 blur-[100px] [animation-delay:-12s]" />
-        <div className="absolute right-1/3 top-2/3 h-60 w-60 animate-bloom-float-2 rounded-full bg-bloom-peach/20 blur-[90px] [animation-delay:-9s]" />
+        <div className="absolute -left-24 top-[-6rem] h-80 w-80 animate-bloom-float rounded-full bg-bloom-1/25 blur-[90px]" />
+        <div className="absolute right-[-5rem] top-10 h-72 w-72 animate-bloom-float-2 rounded-full bg-bloom-2/25 blur-[90px]" />
+        <div className="absolute bottom-[-6rem] right-1/4 h-96 w-96 animate-bloom-drift rounded-full bg-bloom-3/20 blur-[110px]" />
+        <div className="absolute bottom-4 left-[-4rem] h-72 w-72 animate-bloom-float rounded-full bg-bloom-4/20 blur-[90px] [animation-delay:-6s]" />
+        <div className="absolute left-1/3 top-1/3 h-64 w-64 animate-bloom-drift rounded-full bg-bloom-5/15 blur-[100px] [animation-delay:-12s]" />
+        <div className="absolute right-1/3 top-2/3 h-60 w-60 animate-bloom-float-2 rounded-full bg-bloom-6/20 blur-[90px] [animation-delay:-9s]" />
         {/* Dark mode: a 90% ink scrim keeps the canvas dominant, leaving the blooms as a subtle wash. */}
         <div className="bloom-scrim absolute inset-0" />
       </div>
@@ -67,6 +69,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           collapsed={collapsed}
           onToggleCollapse={toggleCollapse}
           onOpenPalette={() => setPaletteOpen(true)}
+          onOpenAppearance={() => setAppearanceOpen(true)}
         />
       </div>
 
@@ -96,6 +99,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   setDrawerOpen(false);
                   setPaletteOpen(true);
                 }}
+                onOpenAppearance={() => {
+                  setDrawerOpen(false);
+                  setAppearanceOpen(true);
+                }}
               />
             </motion.div>
           </>
@@ -107,6 +114,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <Topbar
           onOpenDrawer={() => setDrawerOpen(true)}
           onOpenPalette={() => setPaletteOpen(true)}
+          onOpenAppearance={() => setAppearanceOpen(true)}
         />
         <main className="no-scrollbar relative flex-1 overflow-y-auto">
           <div className="mx-auto w-full max-w-[1200px] px-4 py-8 sm:px-6 lg:px-10 lg:py-10">
@@ -116,6 +124,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </div>
 
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
+      <AppearanceModal
+        open={appearanceOpen}
+        onClose={() => setAppearanceOpen(false)}
+      />
     </div>
   );
 }

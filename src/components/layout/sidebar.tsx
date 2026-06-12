@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { PanelLeftClose, Search, Moon, Sun } from "lucide-react";
+import { PanelLeftClose, Search, Palette } from "lucide-react";
 import { navGroups } from "@/lib/nav";
 import { cn } from "@/lib/utils";
 import { Logo } from "./logo";
@@ -15,16 +15,16 @@ export function Sidebar({
   onToggleCollapse,
   onNavigate,
   onOpenPalette,
+  onOpenAppearance,
 }: {
   collapsed: boolean;
   onToggleCollapse: () => void;
   onNavigate?: () => void;
   onOpenPalette: () => void;
+  onOpenAppearance: () => void;
 }) {
   const pathname = usePathname();
   const profile = useChronicle((s) => s.profile);
-  const theme = useChronicle((s) => s.theme);
-  const toggleTheme = useChronicle((s) => s.toggleTheme);
   const mounted = useMounted();
 
   const daysLeft = mounted
@@ -160,15 +160,12 @@ export function Sidebar({
           )}
           {!collapsed && (
             <button
-              onClick={toggleTheme}
+              onClick={onOpenAppearance}
               className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-paper/45 transition-colors hover:bg-paper/[0.06] hover:text-paper"
-              aria-label="Toggle theme"
+              aria-label="Appearance settings"
+              title="Appearance"
             >
-              {mounted && theme === "dark" ? (
-                <Sun className="h-4 w-4" />
-              ) : (
-                <Moon className="h-4 w-4" />
-              )}
+              <Palette className="h-4 w-4" />
             </button>
           )}
         </div>

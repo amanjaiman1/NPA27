@@ -44,15 +44,17 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-// Set theme before paint to avoid a flash of the wrong theme.
+// Apply the chosen appearance before paint to avoid a flash of the wrong look.
 const themeScript = `
 (function(){
   try {
-    var t = localStorage.getItem('upsc-chronicle-theme');
-    if (!t) { t = 'dark'; }
-    document.documentElement.setAttribute('data-theme', t);
+    var s = localStorage.getItem('upsc-chronicle-surface') || 'black';
+    var p = localStorage.getItem('upsc-chronicle-palette') || 'rose';
+    document.documentElement.setAttribute('data-surface', s);
+    document.documentElement.setAttribute('data-palette', p);
   } catch (e) {
-    document.documentElement.setAttribute('data-theme','dark');
+    document.documentElement.setAttribute('data-surface','black');
+    document.documentElement.setAttribute('data-palette','rose');
   }
 })();
 `;
@@ -61,7 +63,7 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" data-theme="dark" suppressHydrationWarning>
+    <html lang="en" data-surface="black" data-palette="rose" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>

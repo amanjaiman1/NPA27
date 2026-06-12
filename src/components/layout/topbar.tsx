@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, Search, Plus, Moon, Sun, CalendarClock } from "lucide-react";
+import { Menu, Search, Plus, Palette, CalendarClock } from "lucide-react";
 import { findNavItem } from "@/lib/nav";
 import { Logo } from "./logo";
 import { useChronicle } from "@/lib/store";
@@ -13,15 +13,15 @@ import { cn } from "@/lib/utils";
 export function Topbar({
   onOpenDrawer,
   onOpenPalette,
+  onOpenAppearance,
 }: {
   onOpenDrawer: () => void;
   onOpenPalette: () => void;
+  onOpenAppearance: () => void;
 }) {
   const pathname = usePathname();
   const current = findNavItem(pathname);
   const profile = useChronicle((s) => s.profile);
-  const theme = useChronicle((s) => s.theme);
-  const toggleTheme = useChronicle((s) => s.toggleTheme);
   const mounted = useMounted();
   const daysLeft = mounted
     ? daysBetween(toISODate(new Date()), profile.examDate)
@@ -71,21 +71,17 @@ export function Topbar({
       </button>
 
       <button
-        onClick={toggleTheme}
+        onClick={onOpenAppearance}
         className="grid h-9 w-9 place-items-center rounded-lg text-paper/60 transition-colors hover:bg-paper/[0.06] hover:text-paper lg:hidden"
-        aria-label="Toggle theme"
+        aria-label="Appearance settings"
       >
-        {mounted && theme === "dark" ? (
-          <Sun className="h-5 w-5" />
-        ) : (
-          <Moon className="h-5 w-5" />
-        )}
+        <Palette className="h-5 w-5" />
       </button>
 
       <Link
         href="/journal?new=1"
         className={cn(
-          "hidden items-center gap-2 rounded-full bg-paper px-4 py-2 text-sm font-medium text-ink transition-all hover:opacity-90 hover:-translate-y-px sm:flex",
+          "hidden items-center gap-2 rounded-full bg-accent px-4 py-2 text-sm font-medium text-accent-fg shadow-soft transition-all hover:opacity-90 hover:-translate-y-px sm:flex",
         )}
       >
         <Plus className="h-4 w-4" />

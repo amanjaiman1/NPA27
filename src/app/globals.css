@@ -3,71 +3,132 @@
 @tailwind utilities;
 
 /* ───────────────────────────────────────────────────────────
-   The UPSC Chronicle — Design Tokens
-   A two-token black & white system: --ink (surface) + --paper (ink).
-   Dark is the default. Light is opt-in via [data-theme="light"].
+   Appearance system — two independent dimensions:
+     • data-surface  → the canvas      (white · black · navy)
+     • data-palette  → internal colour (the bloom bouquet)
    ─────────────────────────────────────────────────────────── */
 
-:root,
-[data-theme="dark"] {
-  --ink: 17 15 23; /* deep plum-charcoal — warmer than black, lets colour glow */
-  --paper: 233 231 240; /* soft off-white */
-
-  /* A blooming bouquet palette (inspired by floral mother's-day art). */
-  --bloom-rose: 240 110 170;
-  --bloom-lilac: 178 140 246;
-  --bloom-sky: 120 162 250;
-  --bloom-mint: 92 214 166;
-  --bloom-marigold: 245 186 80;
-  --bloom-peach: 251 148 120;
-
-  /* Rose leads as the signature accent. */
-  --accent: 240 110 170;
-  --accent-fg: 28 14 24; /* dark plum text reads cleanly on the bright accent */
-
-  /* Semantics borrow from the bouquet so status colour feels native. */
+:root {
+  /* Fallback before the inline script runs = Monochrome Black + Rosé. */
+  --ink: 9 9 11;
+  --paper: 234 235 240;
+  --accent-fg: 26 14 22; /* dark text reads cleanly on the vivid accents */
   --positive: 92 214 166;
   --warning: 245 186 80;
   --danger: 242 108 108;
   --info: 120 162 250;
-
-  --selection: 240 110 170;
+  --accent: 240 90 156;
+  --selection: 240 90 156;
+  --bloom-1: 240 110 170;
+  --bloom-2: 178 140 246;
+  --bloom-3: 120 162 250;
+  --bloom-4: 92 214 166;
+  --bloom-5: 245 186 80;
+  --bloom-6: 251 148 120;
   color-scheme: dark;
 }
 
-[data-theme="light"] {
-  --ink: 253 249 251; /* blush cream */
-  --paper: 30 22 32; /* deep plum near-black text */
-
-  --bloom-rose: 209 60 130;
-  --bloom-lilac: 124 86 214;
-  --bloom-sky: 54 110 216;
-  --bloom-mint: 28 150 110;
-  --bloom-marigold: 198 138 26;
-  --bloom-peach: 222 106 82;
-
-  --accent: 205 50 122;
-  --accent-fg: 255 246 250;
-
+/* ── Backgrounds ─────────────────────────────────────────── */
+[data-surface="black"] {
+  --ink: 9 9 11;
+  --paper: 234 235 240;
+  --positive: 92 214 166;
+  --warning: 245 186 80;
+  --danger: 242 108 108;
+  --info: 120 162 250;
+  color-scheme: dark;
+}
+[data-surface="navy"] {
+  --ink: 12 18 38;
+  --paper: 223 229 245;
+  --positive: 96 216 168;
+  --warning: 247 190 92;
+  --danger: 244 112 112;
+  --info: 132 172 252;
+  color-scheme: dark;
+}
+[data-surface="white"] {
+  --ink: 253 250 251;
+  --paper: 28 24 32;
   --positive: 28 150 110;
-  --warning: 184 128 24;
+  --warning: 176 122 24;
   --danger: 198 58 54;
-  --info: 48 104 200;
-
-  --selection: 205 50 122;
+  --info: 56 104 200;
   color-scheme: light;
+}
+
+/* ── Internal colouring (bloom palettes) ─────────────────── */
+[data-palette="rose"] {
+  --accent: 240 90 156;
+  --selection: 240 90 156;
+  --bloom-1: 240 110 170;
+  --bloom-2: 178 140 246;
+  --bloom-3: 120 162 250;
+  --bloom-4: 92 214 166;
+  --bloom-5: 245 186 80;
+  --bloom-6: 251 148 120;
+}
+[data-palette="sunset"] {
+  --accent: 244 124 72;
+  --selection: 244 124 72;
+  --bloom-1: 251 146 96;
+  --bloom-2: 246 172 78;
+  --bloom-3: 240 110 142;
+  --bloom-4: 226 104 184;
+  --bloom-5: 250 200 96;
+  --bloom-6: 245 132 110;
+}
+[data-palette="lagoon"] {
+  --accent: 28 188 176;
+  --selection: 28 188 176;
+  --bloom-1: 46 202 190;
+  --bloom-2: 96 200 250;
+  --bloom-3: 104 168 250;
+  --bloom-4: 126 222 184;
+  --bloom-5: 158 212 124;
+  --bloom-6: 112 152 246;
+}
+[data-palette="orchid"] {
+  --accent: 158 110 248;
+  --selection: 158 110 248;
+  --bloom-1: 178 132 250;
+  --bloom-2: 142 122 250;
+  --bloom-3: 212 116 236;
+  --bloom-4: 124 152 250;
+  --bloom-5: 240 124 202;
+  --bloom-6: 162 182 252;
+}
+[data-palette="meadow"] {
+  --accent: 52 196 128;
+  --selection: 52 196 128;
+  --bloom-1: 96 206 132;
+  --bloom-2: 176 216 96;
+  --bloom-3: 92 202 182;
+  --bloom-4: 214 202 96;
+  --bloom-5: 120 200 240;
+  --bloom-6: 244 184 96;
+}
+[data-palette="ember"] {
+  --accent: 238 102 84;
+  --selection: 238 102 84;
+  --bloom-1: 240 112 92;
+  --bloom-2: 246 162 76;
+  --bloom-3: 236 92 112;
+  --bloom-4: 250 200 104;
+  --bloom-5: 212 122 92;
+  --bloom-6: 246 142 132;
 }
 
 * {
   border-color: rgb(var(--paper) / 0.1);
 }
 
-/* Dark mode: hold the background at 90% opacity so the floral field reads as
-   a quiet wash rather than competing with content. Light mode keeps it clear. */
+/* Dark surfaces hold the canvas at 90% opacity so the floral field reads as a
+   quiet wash rather than competing with content. White keeps it clear. */
 .bloom-scrim {
   background-color: rgb(var(--ink) / 0.9);
 }
-[data-theme="light"] .bloom-scrim {
+[data-surface="white"] .bloom-scrim {
   background-color: transparent;
 }
 
