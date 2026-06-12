@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { Menu, Search, Plus, Palette, CalendarClock } from "lucide-react";
 import { findNavItem } from "@/lib/nav";
 import { Logo } from "./logo";
+import { SyncStatus } from "./sync-status";
 import { useChronicle } from "@/lib/store";
 import { useMounted } from "@/lib/hooks";
 import { daysBetween, toISODate } from "@/lib/utils";
@@ -77,6 +78,8 @@ export function Topbar({
       >
         <Palette className="h-5 w-5" />
       </button>
+
+      <SyncStatus />
 
       <Link
         href="/journal?new=1"

@@ -3,6 +3,9 @@ import localFont from "next/font/local";
 import { Fraunces } from "next/font/google";
 import "./globals.css";
 import { AppShell } from "@/components/layout/app-shell";
+import { AuthProvider } from "@/components/auth/auth-provider";
+import { SyncProvider } from "@/components/auth/sync-provider";
+import { AuthGate } from "@/components/auth/auth-gate";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -70,7 +73,13 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${fraunces.variable} grain antialiased`}
       >
-        <AppShell>{children}</AppShell>
+        <AuthProvider>
+          <SyncProvider>
+            <AuthGate>
+              <AppShell>{children}</AppShell>
+            </AuthGate>
+          </SyncProvider>
+        </AuthProvider>
       </body>
     </html>
   );

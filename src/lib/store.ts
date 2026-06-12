@@ -41,6 +41,8 @@ interface ChronicleState extends ChronicleData {
   setSurface: (s: Surface) => void;
   setPalette: (p: Palette) => void;
   resetData: () => void;
+  /** Replace all synced data with a snapshot pulled from the cloud. */
+  applyCloudSnapshot: (snap: Partial<CloudSnapshot>) => void;
   updateProfile: (patch: Partial<ChronicleData["profile"]>) => void;
 
   /* journal */
@@ -101,6 +103,36 @@ interface ChronicleState extends ChronicleData {
   upsertLifeEntry: (entry: LifeEntry) => void;
 }
 
+/**
+ * The set of state keys that are persisted *and* synced to the cloud — all
+ * logged data plus appearance. Transient bits (hydration flag, action fns)
+ * are excluded. Keep this in sync with the `ChronicleData` shape.
+ */
+export const SNAPSHOT_KEYS = [
+  "profile",
+  "subjects",
+  "journal",
+  "mocks",
+  "revisions",
+  "currentAffairs",
+  "mistakes",
+  "habits",
+  "sleep",
+  "exercise",
+  "lifeLog",
+  "goals",
+  "books",
+  "milestones",
+  "reflections",
+  "reviews",
+  "topicLinks",
+  "selection",
+  "surface",
+  "palette",
+] as const;
+
+export type CloudSnapshot = Pick<ChronicleState, (typeof SNAPSHOT_KEYS)[number]>;
+
 const SR_INTERVALS = [1, 3, 7, 14, 30, 60];
 const MISTAKE_INTERVALS = [1, 3, 7, 16, 35];
 
@@ -150,6 +182,21 @@ export const useChronicle = create<ChronicleState>()(
         set({ palette: p });
       },
       resetData: () => set({ ...createFreshData() }),
+      applyCloudSnapshot: (snap) =>
+        set(() => {
+          const next: Record<string, unknown> = {};
+          for (const k of SNAPSHOT_KEYS) {
+            if (snap[k] !== undefined) next[k] = snap[k];
+          }
+          // Re-apply appearance attributes so a pulled theme takes effect.
+          if (typeof document !== "undefined") {
+            if (snap.surface)
+              document.documentElement.setAttribute("data-surface", snap.surface);
+            if (snap.palette)
+              document.documentElement.setAttribute("data-palette", snap.palette);
+          }
+          return next as Partial<ChronicleState>;
+        }),
       updateProfile: (patch) =>
         set((s) => ({ profile: { ...s.profile, ...patch } })),
 
@@ -568,4 +615,12 @@ export const useChronicle = create<ChronicleState>()(
 /** True only after the persisted store has hydrated on the client. */
 export function useHasHydrated(): boolean {
   return useChronicle((s) => s._hasHydrated);
+}
+
+/** Read the current synced slice of state (data + appearance) for the cloud. */
+export function readCloudSnapshot(): CloudSnapshot {
+  const s = useChronicle.getState();
+  const snap: Record<string, unknown> = {};
+  for (const k of SNAPSHOT_KEYS) snap[k] = s[k];
+  return snap as CloudSnapshot;
 }
