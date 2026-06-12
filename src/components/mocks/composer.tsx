@@ -7,7 +7,7 @@ import { useChronicle } from "@/lib/store";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select } from "@/components/ui/form";
-import { round, sum } from "@/lib/utils";
+import { cn, round, sum } from "@/lib/utils";
 
 const TYPES: MockType[] = [
   "Prelims GS",
@@ -65,6 +65,45 @@ function normalize(sections: MockSection[], type: MockType): MockSection[] {
         timeSpent: Number(s.timeSpent) || 0,
       };
     });
+}
+
+/**
+ * A single labelled number box used inside a section card. Each box carries an
+ * explicit, human-readable label (so no more guessing what "Att" or "Min"
+ * meant) plus a `title` tooltip with a fuller explanation on hover.
+ */
+function NumField({
+  label,
+  hint,
+  value,
+  onChange,
+  decimal = false,
+}: {
+  label: string;
+  hint: string;
+  value: number;
+  onChange: (n: number) => void;
+  decimal?: boolean;
+}) {
+  return (
+    <label className="block min-w-0" title={hint}>
+      <span className="mb-1 block truncate text-[0.62rem] font-medium uppercase tracking-wide text-paper/45">
+        {label}
+      </span>
+      <input
+        type="number"
+        inputMode={decimal ? "decimal" : "numeric"}
+        min={0}
+        step={decimal ? "0.1" : "1"}
+        value={value || ""}
+        onChange={(e) =>
+          onChange((decimal ? parseFloat(e.target.value) : parseInt(e.target.value)) || 0)
+        }
+        placeholder="0"
+        className="tabular w-full rounded-lg border border-paper/12 bg-paper/[0.03] px-2 py-2 text-center text-sm text-paper placeholder:text-paper/25 transition-colors focus:border-accent/50 focus:outline-none focus:ring-1 focus:ring-accent/30"
+      />
+    </label>
+  );
 }
 
 export function MockComposer({
@@ -143,9 +182,6 @@ export function MockComposer({
     });
     onClose();
   }
-
-  const numInput =
-    "w-full rounded-lg border border-paper/12 bg-paper/[0.03] px-2 py-1.5 text-sm text-paper tabular focus:border-paper/30 focus:outline-none";
 
   return (
     <Modal
@@ -229,85 +265,91 @@ export function MockComposer({
           </div>
 
           {sections.length > 0 && (
-            <div className="space-y-1.5">
-              {/* header */}
-              <div className="flex items-center gap-1.5 px-1 text-[0.6rem] uppercase tracking-wider text-paper/30">
-                <span className="flex-1">Section</span>
-                {mains ? (
-                  <>
-                    <span className="w-14 text-center">Score</span>
-                    <span className="w-14 text-center">Max</span>
-                  </>
-                ) : (
-                  <>
-                    <span className="w-12 text-center">Qs</span>
-                    <span className="w-12 text-center">Att</span>
-                    <span className="w-12 text-center">Corr</span>
-                  </>
-                )}
-                <span className="w-12 text-center">Min</span>
-                <span className="w-6" />
-              </div>
+            <div className="space-y-2">
               {sections.map((s, i) => (
-                <div key={i} className="flex items-center gap-1.5">
-                  <input
-                    value={s.name}
-                    onChange={(e) => setSection(i, { name: e.target.value })}
-                    placeholder="Section"
-                    className={numInput + " flex-1 text-left"}
-                  />
-                  {mains ? (
-                    <>
-                      <input
-                        type="number"
-                        value={s.score || ""}
-                        onChange={(e) => setSection(i, { score: parseFloat(e.target.value) || 0 })}
-                        className={numInput + " w-14 text-center"}
-                      />
-                      <input
-                        type="number"
-                        value={s.max || ""}
-                        onChange={(e) => setSection(i, { max: parseFloat(e.target.value) || 0 })}
-                        className={numInput + " w-14 text-center"}
-                      />
-                    </>
-                  ) : (
-                    <>
-                      <input
-                        type="number"
-                        value={s.questions || ""}
-                        onChange={(e) => setSection(i, { questions: parseInt(e.target.value) || 0 })}
-                        className={numInput + " w-12 text-center"}
-                      />
-                      <input
-                        type="number"
-                        value={s.attempted || ""}
-                        onChange={(e) => setSection(i, { attempted: parseInt(e.target.value) || 0 })}
-                        className={numInput + " w-12 text-center"}
-                      />
-                      <input
-                        type="number"
-                        value={s.correct || ""}
-                        onChange={(e) => setSection(i, { correct: parseInt(e.target.value) || 0 })}
-                        className={numInput + " w-12 text-center"}
-                      />
-                    </>
-                  )}
-                  <input
-                    type="number"
-                    value={s.timeSpent || ""}
-                    onChange={(e) => setSection(i, { timeSpent: parseInt(e.target.value) || 0 })}
-                    className={numInput + " w-12 text-center"}
-                  />
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setDraft({ ...draft, sections: sections.filter((_, k) => k !== i) })
-                    }
-                    className="grid h-7 w-6 place-items-center rounded text-paper/30 hover:text-paper"
+                <div
+                  key={i}
+                  className="rounded-xl border border-paper/10 bg-paper/[0.02] p-2.5 sm:p-3"
+                >
+                  {/* name + remove */}
+                  <div className="flex items-center gap-2">
+                    <input
+                      value={s.name}
+                      onChange={(e) => setSection(i, { name: e.target.value })}
+                      placeholder="Section name"
+                      className="min-w-0 flex-1 rounded-lg border border-paper/12 bg-paper/[0.03] px-3 py-2 text-sm text-paper placeholder:text-paper/30 transition-colors focus:border-accent/50 focus:outline-none focus:ring-1 focus:ring-accent/30"
+                    />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setDraft({ ...draft, sections: sections.filter((_, k) => k !== i) })
+                      }
+                      aria-label="Remove section"
+                      className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-paper/35 transition-colors hover:bg-paper/[0.06] hover:text-rose-300"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+
+                  {/* labelled number boxes */}
+                  <div
+                    className={cn(
+                      "mt-2.5 grid gap-2",
+                      mains ? "grid-cols-3" : "grid-cols-2 sm:grid-cols-4",
+                    )}
                   >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
+                    {mains ? (
+                      <>
+                        <NumField
+                          label="Score"
+                          hint="Net marks you scored in this section"
+                          value={s.score}
+                          onChange={(n) => setSection(i, { score: n })}
+                          decimal
+                        />
+                        <NumField
+                          label="Max marks"
+                          hint="Maximum marks this section is out of"
+                          value={s.max}
+                          onChange={(n) => setSection(i, { max: n })}
+                          decimal
+                        />
+                        <NumField
+                          label="Time (min)"
+                          hint="Minutes you spent on this section"
+                          value={s.timeSpent ?? 0}
+                          onChange={(n) => setSection(i, { timeSpent: n })}
+                        />
+                      </>
+                    ) : (
+                      <>
+                        <NumField
+                          label="Questions"
+                          hint="Total number of questions in this section"
+                          value={s.questions ?? 0}
+                          onChange={(n) => setSection(i, { questions: n })}
+                        />
+                        <NumField
+                          label="Attempted"
+                          hint="How many questions you actually attempted"
+                          value={s.attempted}
+                          onChange={(n) => setSection(i, { attempted: n })}
+                        />
+                        <NumField
+                          label="Correct"
+                          hint="How many of your attempts were correct"
+                          value={s.correct}
+                          onChange={(n) => setSection(i, { correct: n })}
+                        />
+                        <NumField
+                          label="Time (min)"
+                          hint="Minutes you spent on this section"
+                          value={s.timeSpent ?? 0}
+                          onChange={(n) => setSection(i, { timeSpent: n })}
+                        />
+                      </>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
