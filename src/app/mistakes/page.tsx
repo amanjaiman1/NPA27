@@ -23,6 +23,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Chip, EmptyState } from "@/components/ui/misc";
 import { Modal } from "@/components/ui/modal";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import { Field, Input, Textarea, Select } from "@/components/ui/form";
 import { Heatmap } from "@/components/charts/heatmap";
 import { MatrixHeatmap } from "@/components/charts/matrix";
@@ -188,6 +189,7 @@ export default function MistakesPage() {
   const review = useChronicle((s) => s.reviewMistake);
   const setStatus = useChronicle((s) => s.setMistakeStatus);
   const remove = useChronicle((s) => s.deleteMistake);
+  const confirm = useConfirm();
 
   const [catFilter, setCatFilter] = useState<MistakeCategory | "all">("all");
   const [subjFilter, setSubjFilter] = useState("all");
@@ -597,7 +599,17 @@ export default function MistakesPage() {
                           <div className="flex items-center gap-2 text-[0.7rem] text-paper/35">
                             <span>{m.source}</span>
                             <button
-                              onClick={() => remove(m.id)}
+                              onClick={async () => {
+                                if (
+                                  await confirm({
+                                    title: "Delete this mistake?",
+                                    description:
+                                      "It will be removed from your log and review queue.",
+                                    confirmLabel: "Delete",
+                                  })
+                                )
+                                  remove(m.id);
+                              }}
                               className="text-paper/30 transition-colors hover:text-paper"
                             >
                               <Trash2 className="h-4 w-4" />
@@ -632,10 +644,20 @@ export default function MistakesPage() {
               Cancel
             </Button>
             <Button
-              onClick={() => {
+              onClick={async () => {
                 if (!draft.topic.trim() && !draft.question?.trim()) return;
-                upsert(draft);
-                setOpen(false);
+                if (
+                  await confirm({
+                    title: "Save this mistake?",
+                    description:
+                      "It will be logged as a learning asset and scheduled for review.",
+                    tone: "default",
+                    confirmLabel: "Save mistake",
+                  })
+                ) {
+                  upsert(draft);
+                  setOpen(false);
+                }
               }}
             >
               Save mistake

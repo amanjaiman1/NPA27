@@ -32,6 +32,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { EmptyState } from "@/components/ui/misc";
 import { JournalComposer } from "@/components/journal/composer";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import { AttachmentGallery } from "@/components/journal/attachments";
 import {
   emptyEntry,
@@ -122,6 +123,7 @@ export default function JournalDayPage() {
   const subjects = useChronicle((s) => s.subjects);
   const profile = useChronicle((s) => s.profile);
   const deleteJournal = useChronicle((s) => s.deleteJournal);
+  const confirm = useConfirm();
 
   const date = String(params?.date ?? "");
   const entry = useMemo(
@@ -204,9 +206,18 @@ export default function JournalDayPage() {
             </Button>
             <Button
               variant="ghost"
-              onClick={() => {
-                deleteJournal(entry.id);
-                router.push("/journal");
+              onClick={async () => {
+                if (
+                  await confirm({
+                    title: "Delete this journal entry?",
+                    description:
+                      "This day's entry will be permanently removed from your Chronicle.",
+                    confirmLabel: "Delete entry",
+                  })
+                ) {
+                  deleteJournal(entry.id);
+                  router.push("/journal");
+                }
               }}
             >
               <Trash2 className="h-4 w-4" />

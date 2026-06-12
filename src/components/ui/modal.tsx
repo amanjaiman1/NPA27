@@ -7,6 +7,21 @@ import { X } from "lucide-react";
 import { useMounted } from "@/lib/hooks";
 import { cn } from "@/lib/utils";
 
+/**
+ * A shared stack of open modals so that nested/stacked dialogs cooperate:
+ *  - the body scroll-lock is reference-counted (it only releases once the
+ *    last open modal closes), and
+ *  - the Escape key only closes the top-most modal.
+ */
+const modalStack: object[] = [];
+
+function lockScroll() {
+  if (modalStack.length === 1) document.body.style.overflow = "hidden";
+}
+function unlockScroll() {
+  if (modalStack.length === 0) document.body.style.overflow = "";
+}
+
 export function Modal({
   open,
   onClose,
@@ -28,12 +43,21 @@ export function Modal({
 
   useEffect(() => {
     if (!open) return;
-    const handler = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    const token = {};
+    modalStack.push(token);
+    lockScroll();
+    const handler = (e: KeyboardEvent) => {
+      // Only the top-most modal reacts to Escape.
+      if (e.key !== "Escape") return;
+      if (modalStack[modalStack.length - 1] !== token) return;
+      onClose();
+    };
     window.addEventListener("keydown", handler);
-    document.body.style.overflow = "hidden";
     return () => {
       window.removeEventListener("keydown", handler);
-      document.body.style.overflow = "";
+      const idx = modalStack.indexOf(token);
+      if (idx >= 0) modalStack.splice(idx, 1);
+      unlockScroll();
     };
   }, [open, onClose]);
 

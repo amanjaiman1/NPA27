@@ -25,6 +25,7 @@ import { Badge } from "@/components/ui/badge";
 import { EmptyState, Chip } from "@/components/ui/misc";
 import { Input, Select } from "@/components/ui/form";
 import { JournalComposer } from "@/components/journal/composer";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import { emptyEntry, toDraft, MOOD_LABELS } from "@/components/journal/constants";
 import {
   toISODate,
@@ -43,6 +44,7 @@ export default function JournalPage() {
   const journal = useChronicle((s) => s.journal);
   const subjects = useChronicle((s) => s.subjects);
   const deleteJournal = useChronicle((s) => s.deleteJournal);
+  const confirm = useConfirm();
 
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<JournalEntry>(emptyEntry());
@@ -373,9 +375,16 @@ export default function JournalPage() {
                             <Pencil className="h-3.5 w-3.5" />
                           </button>
                           <button
-                            onClick={(ev) => {
+                            onClick={async (ev) => {
                               ev.stopPropagation();
-                              deleteJournal(e.id);
+                              if (
+                                await confirm({
+                                  title: "Delete this journal entry?",
+                                  description: `Your entry for ${e.date} and everything in it will be permanently removed.`,
+                                  confirmLabel: "Delete entry",
+                                })
+                              )
+                                deleteJournal(e.id);
                             }}
                             className="grid h-8 w-8 place-items-center rounded-lg text-paper/35 opacity-0 transition-all hover:bg-paper/[0.06] hover:text-paper group-hover:opacity-100"
                           >

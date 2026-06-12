@@ -19,6 +19,7 @@ import type { JournalEntry } from "@/lib/types";
 import { useChronicle } from "@/lib/store";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import {
   Field,
   Input,
@@ -76,6 +77,7 @@ export function JournalComposer({
   const subjects = useChronicle((s) => s.subjects);
   const upsert = useChronicle((s) => s.upsertJournal);
   const existingDates = useChronicle((s) => s.journal.map((j) => j.date));
+  const confirm = useConfirm();
   const [draft, setDraft] = useState<JournalEntry>(() => toDraft(initial));
 
   useEffect(() => {
@@ -93,7 +95,18 @@ export function JournalComposer({
     setDraft((d) => ({ ...d, ...p }));
   }
 
-  function save() {
+  async function save() {
+    if (
+      !(await confirm({
+        title: isEdit ? "Save changes to this entry?" : "Save this journal entry?",
+        description: isEdit
+          ? "Your edits to this day will be saved."
+          : "This entry will be added to your study journal.",
+        tone: "default",
+        confirmLabel: "Save entry",
+      }))
+    )
+      return;
     const blocks = draft.blocks.filter((b) => b.subjectId && b.hours > 0);
     const totalHours = round(
       blocks.reduce((a, b) => a + Number(b.hours), 0),

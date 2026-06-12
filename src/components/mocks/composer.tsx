@@ -6,6 +6,7 @@ import type { MockTest, MockType, MockSection } from "@/lib/types";
 import { useChronicle } from "@/lib/store";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import { Field, Input, Select } from "@/components/ui/form";
 import { cn, round, sum } from "@/lib/utils";
 
@@ -116,6 +117,7 @@ export function MockComposer({
   initial: MockTest;
 }) {
   const upsert = useChronicle((s) => s.upsertMock);
+  const confirm = useConfirm();
   const [draft, setDraft] = useState<MockTest>(initial);
 
   useEffect(() => {
@@ -156,12 +158,21 @@ export function MockComposer({
     });
   }
 
-  function save() {
+  async function save() {
     if (!draft.name.trim()) return;
     const finalSections = hasSections ? norm : undefined;
     const score = totals ? totals.score : draft.score;
     const max = totals ? totals.max : draft.max;
     if (!max) return;
+    if (
+      !(await confirm({
+        title: "Save this mock test?",
+        description: `"${draft.name.trim()}" will be saved to your mock analytics.`,
+        tone: "default",
+        confirmLabel: "Save mock",
+      }))
+    )
+      return;
     upsert({
       ...draft,
       sections: finalSections,

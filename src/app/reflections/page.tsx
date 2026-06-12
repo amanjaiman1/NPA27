@@ -10,6 +10,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/misc";
 import { Modal } from "@/components/ui/modal";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import { Field, Input, Textarea, Select, RatingPicker } from "@/components/ui/form";
 import { formatDate, toISODate, uid, cn } from "@/lib/utils";
 
@@ -40,6 +41,7 @@ export default function ReflectionsPage() {
   const reflections = useChronicle((s) => s.reflections);
   const upsert = useChronicle((s) => s.upsertReflection);
   const remove = useChronicle((s) => s.deleteReflection);
+  const confirm = useConfirm();
 
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<Reflection>(emptyReflection());
@@ -93,7 +95,17 @@ export default function ReflectionsPage() {
               <div className="flex items-start justify-between gap-3">
                 <p className="text-xs text-paper/40">{formatDate(r.date)}</p>
                 <button
-                  onClick={() => remove(r.id)}
+                  onClick={async () => {
+                    if (
+                      await confirm({
+                        title: "Delete this reflection?",
+                        description:
+                          "This private entry will be permanently removed.",
+                        confirmLabel: "Delete",
+                      })
+                    )
+                      remove(r.id);
+                  }}
                   className="text-paper/25 opacity-0 transition-opacity hover:text-paper group-hover:opacity-100"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
@@ -156,8 +168,17 @@ export default function ReflectionsPage() {
               Cancel
             </Button>
             <Button
-              onClick={() => {
+              onClick={async () => {
                 if (!draft.content.trim()) return;
+                if (
+                  !(await confirm({
+                    title: "Save this reflection?",
+                    description: "It will be added to your reflection journal.",
+                    tone: "default",
+                    confirmLabel: "Save",
+                  }))
+                )
+                  return;
                 const gratitude = gratInput
                   .split(",")
                   .map((g) => g.trim())

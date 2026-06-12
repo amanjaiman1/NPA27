@@ -24,6 +24,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/form";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import { formatDate, cn } from "@/lib/utils";
 
 const STATUSES: TopicStatus[] = ["untouched", "learning", "revised", "mastered"];
@@ -55,6 +56,7 @@ export function NodeDetail({
   const setStatus = useChronicle((s) => s.setTopicStatusById);
   const addTopicLink = useChronicle((s) => s.addTopicLink);
   const removeTopicLink = useChronicle((s) => s.removeTopicLink);
+  const confirm = useConfirm();
   const [linkQuery, setLinkQuery] = useState("");
 
   const node = selectedId ? graph.byId.get(selectedId) : null;
@@ -238,7 +240,17 @@ export function NodeDetail({
                     )}
                   </button>
                   <button
-                    onClick={() => removeTopicLink(l.id)}
+                    onClick={async () => {
+                      if (
+                        await confirm({
+                          title: "Remove this link?",
+                          description:
+                            "The connection between these two topics will be removed.",
+                          confirmLabel: "Remove link",
+                        })
+                      )
+                        removeTopicLink(l.id);
+                    }}
                     className="grid h-6 w-6 shrink-0 place-items-center rounded text-paper/25 opacity-0 transition-opacity hover:text-paper group-hover:opacity-100"
                   >
                     <X className="h-3.5 w-3.5" />
@@ -277,7 +289,17 @@ export function NodeDetail({
                     )}
                   </button>
                   <button
-                    onClick={() => removeTopicLink(l.id)}
+                    onClick={async () => {
+                      if (
+                        await confirm({
+                          title: "Remove this link?",
+                          description:
+                            "The connection between these two topics will be removed.",
+                          confirmLabel: "Remove link",
+                        })
+                      )
+                        removeTopicLink(l.id);
+                    }}
                     className="grid h-6 w-6 shrink-0 place-items-center rounded text-paper/25 opacity-0 transition-opacity hover:text-paper group-hover:opacity-100"
                   >
                     <X className="h-3.5 w-3.5" />

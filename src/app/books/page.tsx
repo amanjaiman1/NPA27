@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Chip, EmptyState } from "@/components/ui/misc";
 import { Modal } from "@/components/ui/modal";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import { Field, Input, Select } from "@/components/ui/form";
 import { uid, sum, cn } from "@/lib/utils";
 
@@ -50,6 +51,7 @@ export default function BooksPage() {
   const books = useChronicle((s) => s.books);
   const updateProgress = useChronicle((s) => s.updateBookProgress);
   const upsert = useChronicle((s) => s.upsertBook);
+  const confirm = useConfirm();
 
   const [filter, setFilter] = useState<BookStatus | "all">("all");
   const [open, setOpen] = useState(false);
@@ -199,10 +201,19 @@ export default function BooksPage() {
               Cancel
             </Button>
             <Button
-              onClick={() => {
+              onClick={async () => {
                 if (!draft.title.trim()) return;
-                upsert(draft);
-                setOpen(false);
+                if (
+                  await confirm({
+                    title: "Add this book?",
+                    description: `"${draft.title.trim()}" will be added to your reading tracker.`,
+                    tone: "default",
+                    confirmLabel: "Add book",
+                  })
+                ) {
+                  upsert(draft);
+                  setOpen(false);
+                }
               }}
             >
               Save

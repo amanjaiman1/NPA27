@@ -26,6 +26,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Modal } from "@/components/ui/modal";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import { Field, Input, Select, RatingPicker } from "@/components/ui/form";
 import { LineChart } from "@/components/charts/line-chart";
 import { BarChart } from "@/components/charts/bar-chart";
@@ -70,6 +71,7 @@ export default function LifeDashboardPage() {
   const journal = useChronicle((s) => s.journal);
   const mocks = useChronicle((s) => s.mocks);
   const upsert = useChronicle((s) => s.upsertLifeEntry);
+  const confirm = useConfirm();
 
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<LifeEntry>(emptyLifeEntry(toISODate(new Date())));
@@ -108,9 +110,18 @@ export default function LifeDashboardPage() {
     setDraft(te ? { ...te } : emptyLifeEntry(today));
     setOpen(true);
   }
-  function save() {
-    upsert(draft);
-    setOpen(false);
+  async function save() {
+    if (
+      await confirm({
+        title: "Save these metrics?",
+        description: "Your life metrics for this day will be saved.",
+        tone: "default",
+        confirmLabel: "Save",
+      })
+    ) {
+      upsert(draft);
+      setOpen(false);
+    }
   }
 
   if (!hydrated) return <Loading />;

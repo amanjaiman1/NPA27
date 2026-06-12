@@ -6,6 +6,7 @@ import { AppShell } from "@/components/layout/app-shell";
 import { AuthProvider } from "@/components/auth/auth-provider";
 import { SyncProvider } from "@/components/auth/sync-provider";
 import { AuthGate } from "@/components/auth/auth-gate";
+import { ConfirmProvider } from "@/components/ui/confirm-dialog";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -75,9 +76,11 @@ export default function RootLayout({
       >
         <AuthProvider>
           <SyncProvider>
-            <AuthGate>
-              <AppShell>{children}</AppShell>
-            </AuthGate>
+            <ConfirmProvider>
+              <AuthGate>
+                <AppShell>{children}</AppShell>
+              </AuthGate>
+            </ConfirmProvider>
           </SyncProvider>
         </AuthProvider>
       </body>

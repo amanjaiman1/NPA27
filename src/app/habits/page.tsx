@@ -9,6 +9,7 @@ import { Loading } from "@/components/ui/loading";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/form";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import { habitAdherence, habitStreak } from "@/lib/selectors";
 import { toISODate, cn } from "@/lib/utils";
 
@@ -45,9 +46,26 @@ export default function HabitsPage() {
   const habits = useChronicle((s) => s.habits);
   const toggle = useChronicle((s) => s.toggleHabit);
   const addHabit = useChronicle((s) => s.addHabit);
+  const confirm = useConfirm();
 
   const [name, setName] = useState("");
   const today = toISODate(new Date());
+
+  async function submitHabit() {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    if (
+      await confirm({
+        title: "Add this habit?",
+        description: `"${trimmed}" will be added as a new daily discipline to track.`,
+        tone: "default",
+        confirmLabel: "Add habit",
+      })
+    ) {
+      addHabit(trimmed);
+      setName("");
+    }
+  }
 
   if (!hydrated) return <Loading />;
 
@@ -135,21 +153,13 @@ export default function HabitsPage() {
           onChange={(e) => setName(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter" && name.trim()) {
-              addHabit(name.trim());
-              setName("");
+              void submitHabit();
             }
           }}
           placeholder="Add a new daily discipline…"
           className="flex-1"
         />
-        <Button
-          onClick={() => {
-            if (name.trim()) {
-              addHabit(name.trim());
-              setName("");
-            }
-          }}
-        >
+        <Button onClick={() => void submitHabit()}>
           <Plus className="h-4 w-4" /> Add habit
         </Button>
       </Card>

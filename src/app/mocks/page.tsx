@@ -26,6 +26,7 @@ import { LineChart } from "@/components/charts/line-chart";
 import { BarChart } from "@/components/charts/bar-chart";
 import { CandleChart } from "@/components/mocks/candle-chart";
 import { MockComposer } from "@/components/mocks/composer";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import {
   mockPoints,
   movingAverage,
@@ -98,6 +99,7 @@ export default function MocksPage() {
   const mocks = useChronicle((s) => s.mocks);
   const profile = useChronicle((s) => s.profile);
   const remove = useChronicle((s) => s.deleteMock);
+  const confirm = useConfirm();
 
   const [filter, setFilter] = useState<Filter>("Prelims GS");
   const [open, setOpen] = useState(false);
@@ -529,7 +531,16 @@ export default function MocksPage() {
                         </td>
                         <td className="px-5 py-3 text-right">
                           <button
-                            onClick={() => remove(m.id)}
+                            onClick={async () => {
+                              if (
+                                await confirm({
+                                  title: "Delete this mock test?",
+                                  description: `"${m.name}" and its section-wise data will be permanently removed.`,
+                                  confirmLabel: "Delete mock",
+                                })
+                              )
+                                remove(m.id);
+                            }}
                             className="text-paper/25 opacity-0 transition-opacity hover:text-paper group-hover:opacity-100"
                           >
                             <Trash2 className="h-4 w-4" />

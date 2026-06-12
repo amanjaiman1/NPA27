@@ -42,6 +42,7 @@ import { Loading } from "@/components/ui/loading";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Modal } from "@/components/ui/modal";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import { Field, Input, Textarea, Select } from "@/components/ui/form";
 import { Chip } from "@/components/ui/misc";
 import { toISODate, formatDate, uid, cn } from "@/lib/utils";
@@ -98,6 +99,7 @@ export default function TimelinePage() {
   const data = useChronicle((s) => s);
   const upsert = useChronicle((s) => s.upsertMilestone);
   const remove = useChronicle((s) => s.deleteMilestone);
+  const confirm = useConfirm();
 
   const today = toISODate(new Date());
   const [open, setOpen] = useState(false);
@@ -222,7 +224,18 @@ export default function TimelinePage() {
                     event={e}
                     index={ci === 0 ? i : 0}
                     onDelete={
-                      e.refId ? () => remove(e.refId as string) : undefined
+                      e.refId
+                        ? async () => {
+                            if (
+                              await confirm({
+                                title: "Delete this memory?",
+                                description: `"${e.title}" will be removed from your timeline.`,
+                                confirmLabel: "Delete memory",
+                              })
+                            )
+                              remove(e.refId as string);
+                          }
+                        : undefined
                     }
                   />
                 ))}
@@ -242,10 +255,19 @@ export default function TimelinePage() {
         draft={draft}
         setDraft={setDraft}
         onClose={() => setOpen(false)}
-        onSave={() => {
+        onSave={async () => {
           if (!draft.title.trim()) return;
-          upsert(draft);
-          setOpen(false);
+          if (
+            await confirm({
+              title: "Add this memory?",
+              description: "It will be added to your timeline.",
+              tone: "default",
+              confirmLabel: "Add to timeline",
+            })
+          ) {
+            upsert(draft);
+            setOpen(false);
+          }
         }}
       />
     </div>

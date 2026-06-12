@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Chip, EmptyState } from "@/components/ui/misc";
 import { Modal } from "@/components/ui/modal";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import { Field, Input, Textarea, Select } from "@/components/ui/form";
 import { relativeDay, toISODate, uid, cn } from "@/lib/utils";
 
@@ -47,6 +48,7 @@ export default function CurrentAffairsPage() {
   const items = useChronicle((s) => s.currentAffairs);
   const toggleBookmark = useChronicle((s) => s.toggleBookmark);
   const upsert = useChronicle((s) => s.upsertCurrentAffair);
+  const confirm = useConfirm();
 
   const [cat, setCat] = useState<CACategory | "all" | "saved">("all");
   const [query, setQuery] = useState("");
@@ -184,8 +186,17 @@ export default function CurrentAffairsPage() {
               Cancel
             </Button>
             <Button
-              onClick={() => {
+              onClick={async () => {
                 if (!draft.title.trim()) return;
+                if (
+                  !(await confirm({
+                    title: "Add this note to the vault?",
+                    description: "It will be saved to your current affairs archive.",
+                    tone: "default",
+                    confirmLabel: "Add note",
+                  }))
+                )
+                  return;
                 const tags = tagInput
                   .split(",")
                   .map((t) => t.trim())
