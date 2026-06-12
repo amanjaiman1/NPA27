@@ -52,19 +52,85 @@ export interface StudyBlock {
   topics?: string[];
 }
 
+/** A book touched on a given day. */
+export interface BookRead {
+  bookId?: string; // optional link to a Library book
+  title: string;
+  fromPage?: number;
+  toPage?: number;
+}
+
+/** A revision session captured within a day. */
+export interface RevisionSession {
+  subjectId?: string;
+  topic: string;
+  minutes?: number;
+}
+
+/** A mock attempted on a day (lightweight reference or inline note). */
+export interface MockRef {
+  mockId?: string; // optional link to a logged MockTest
+  name: string;
+  score?: number;
+  max?: number;
+}
+
+/** A current-affairs item covered on a day. */
+export interface CARef {
+  caId?: string; // optional link to a CurrentAffair
+  title: string;
+  source?: string;
+}
+
+export type AttachmentKind = "image" | "file";
+
+export interface Attachment {
+  id: string;
+  kind: AttachmentKind;
+  name: string;
+  /** base64 data URL — images are downscaled before storing. */
+  dataUrl: string;
+  caption?: string;
+  size?: number; // bytes (approx)
+}
+
 export interface JournalEntry {
   id: string;
   date: ISODate; // unique per day
+
+  /* daily rhythm */
+  wakeTime?: string; // "HH:MM"
+  sleepTime?: string; // "HH:MM" (when they went to bed)
+
+  /* study */
   blocks: StudyBlock[];
   totalHours: number;
-  mood: number; // 1-5
-  energy: number; // 1-5
-  focus: number; // 1-5
-  tasksPlanned?: number;
-  tasksDone?: number;
+  topicsCompleted?: string[];
+  booksStudied?: BookRead[];
+  revisionSessions?: RevisionSession[];
+  mocksAttempted?: MockRef[];
+  currentAffairs?: CARef[];
+
+  /* state of mind (1-5) */
+  mood: number;
+  energy: number;
+  motivation: number;
+  focus: number;
+
+  /* narrative */
+  wins?: string[];
+  failures?: string[];
+  lessons?: string[];
   highlights?: string;
   reflection?: string;
   tags?: string[];
+
+  /* memory */
+  attachments?: Attachment[];
+
+  /* legacy / planning */
+  tasksPlanned?: number;
+  tasksDone?: number;
 }
 
 /* ── Mock Tests ──────────────────────────────────────────────── */

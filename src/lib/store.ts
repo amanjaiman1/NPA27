@@ -294,8 +294,29 @@ export const useChronicle = create<ChronicleState>()(
     }),
     {
       name: "upsc-chronicle-store",
-      version: 1,
+      version: 2,
       storage: createJSONStorage(() => localStorage),
+      migrate: (persisted, version) => {
+        const state = persisted as Partial<ChronicleState> | undefined;
+        // v1 -> v2: backfill the expanded Daily Journal fields so older
+        // entries render cleanly alongside the richer schema.
+        if (state && version < 2 && Array.isArray(state.journal)) {
+          state.journal = state.journal.map((e) => ({
+            ...e,
+            motivation: e.motivation ?? e.focus ?? 3,
+            topicsCompleted: e.topicsCompleted ?? [],
+            booksStudied: e.booksStudied ?? [],
+            revisionSessions: e.revisionSessions ?? [],
+            mocksAttempted: e.mocksAttempted ?? [],
+            currentAffairs: e.currentAffairs ?? [],
+            wins: e.wins ?? [],
+            failures: e.failures ?? [],
+            lessons: e.lessons ?? [],
+            attachments: e.attachments ?? [],
+          }));
+        }
+        return state as ChronicleState;
+      },
       partialize: (s) => {
         // persist everything except the transient hydration flag
         const { _hasHydrated, setHasHydrated, ...rest } = s as ChronicleState;

@@ -21,6 +21,7 @@ import type {
   TopicStatus,
   CACategory,
   MockType,
+  Attachment,
 } from "./types";
 
 /* Deterministic RNG so seed data is stable across reloads. */
@@ -41,6 +42,36 @@ const randInt = (min: number, max: number) =>
 const pick = <T>(arr: T[]): T => arr[Math.floor(rand() * arr.length)];
 const chance = (p: number) => rand() < p;
 const r1 = (n: number) => Math.round(n * 10) / 10;
+/** Pick n distinct items (deterministic). */
+function sample<T>(arr: T[], n: number): T[] {
+  const copy = [...arr];
+  const out: T[] = [];
+  for (let k = 0; k < n && copy.length; k++) {
+    out.push(copy.splice(Math.floor(rand() * copy.length), 1)[0]);
+  }
+  return out;
+}
+
+/** A small grayscale SVG "screenshot" used as a sample attachment. */
+function shot(label: string): string {
+  const lines = Array.from({ length: 7 })
+    .map(
+      (_, i) =>
+        `<rect x='36' y='${96 + i * 28}' width='${380 - (i % 3) * 60}' height='10' rx='5' fill='%2326262b'/>`,
+    )
+    .join("");
+  const svg =
+    `<svg xmlns='http://www.w3.org/2000/svg' width='480' height='320'>` +
+    `<rect width='480' height='320' fill='%230c0c0e'/>` +
+    `<rect x='16' y='16' width='448' height='40' rx='8' fill='%231b1b1f'/>` +
+    `<circle cx='40' cy='36' r='6' fill='%232c2c31'/>` +
+    `<rect x='60' y='30' width='220' height='12' rx='6' fill='%232c2c31'/>` +
+    `<rect x='16' y='72' width='448' height='232' rx='8' fill='%23141417'/>` +
+    lines +
+    `<text x='36' y='298' fill='%235a5a62' font-family='monospace' font-size='13'>${label}</text>` +
+    `</svg>`;
+  return `data:image/svg+xml,${svg}`;
+}
 
 /* Date helpers anchored to "today". */
 const TODAY = new Date();
@@ -146,6 +177,58 @@ function buildJournal(subjects: Subject[]): JournalEntry[] {
     "Watched + noted Rajya Sabha TV debate",
     "Made a one-pager on Climate Summits",
   ];
+  const winsList = [
+    "Hit the 9-hour study target",
+    "Finished a tough Polity chapter",
+    "Wrote 2 answers under the timer",
+    "Cleared yesterday's revision backlog",
+    "Stayed off the phone till noon",
+    "Solved 50 CSAT questions cleanly",
+    "Made crisp current-affairs notes",
+    "Woke up on time without snoozing",
+  ];
+  const failuresList = [
+    "Skipped the morning revision slot",
+    "Doom-scrolled for almost an hour",
+    "Couldn't focus after lunch",
+    "Pushed answer-writing to tomorrow again",
+    "Slept late, woke up groggy",
+    "Avoided the weak subject — again",
+  ];
+  const lessonsList = [
+    "Front-load the hardest subject before fatigue sets in",
+    "Phone in another room = instant focus",
+    "Revision beats fresh reading this close to the exam",
+    "A short walk resets a dead afternoon",
+    "Plan tomorrow tonight, not in the morning",
+    "Quality of hours beats quantity of hours",
+  ];
+  const bookTitles = [
+    "Indian Polity — Laxmikanth",
+    "Indian Economy — Ramesh Singh",
+    "Spectrum — Modern History",
+    "Environment — Shankar IAS",
+    "Certificate Geography — G.C. Leong",
+    "India After Gandhi — Guha",
+    "An Introduction to Political Theory — Gauba",
+  ];
+  const caTitles = [
+    "RBI monetary policy stance",
+    "Supreme Court on electoral bonds",
+    "Global Biofuels Alliance summit",
+    "New tiger reserve notified",
+    "ISRO reusable launch vehicle test",
+    "PM-eBus Sewa expansion",
+    "Economic Survey highlights",
+    "India-EU trade agreement talks",
+    "Coastal Regulation Zone norms",
+    "Data protection rules notified",
+  ];
+  const caSources = ["The Hindu", "Indian Express", "PIB", "PRS", "Down To Earth"];
+  const mockNames = ["Prelims FLT", "CSAT Practice", "Polity Sectional", "Environment Sectional"];
+  const wakeTimes = ["05:10", "05:30", "05:45", "06:00", "06:20", "06:45", "07:10"];
+  const sleepTimes = ["22:40", "23:00", "23:20", "23:50", "00:15", "00:40"];
+  const shotDays = new Set([1, 4, 9]);
 
   for (let i = totalDays; i >= 0; i--) {
     const date = addDays(TODAY, -i);
@@ -188,21 +271,87 @@ function buildJournal(subjects: Subject[]): JournalEntry[] {
     const moodBase = 2.5 + (hours / 13) * 2 + (rand() - 0.5);
     const mood = Math.max(1, Math.min(5, Math.round(moodBase)));
     const energy = Math.max(1, Math.min(5, Math.round(moodBase + (rand() - 0.5))));
+    const motivation = Math.max(1, Math.min(5, Math.round(moodBase + (rand() - 0.5))));
     const focus = Math.max(1, Math.min(5, Math.round((hours / 13) * 5 + (rand() - 0.5))));
+
+    const topicsCompleted = Array.from(
+      new Set(blocks.flatMap((b) => b.topics ?? [])),
+    );
+    const booksStudied = chance(0.5)
+      ? Array.from({ length: randInt(1, 2) }).map(() => {
+          const from = randInt(10, 400);
+          return { title: pick(bookTitles), fromPage: from, toPage: from + randInt(8, 40) };
+        })
+      : undefined;
+    const revisionSessions = chance(0.5)
+      ? Array.from({ length: randInt(1, 2) }).map(() => {
+          const s = pick(subjects);
+          return {
+            subjectId: s.id,
+            topic: s.topics.length ? pick(s.topics).name : "Revision",
+            minutes: randInt(20, 60),
+          };
+        })
+      : undefined;
+    const mocksAttempted = chance(0.12)
+      ? [{ name: pick(mockNames), score: randInt(80, 140), max: 200 }]
+      : undefined;
+    const currentAffairs = chance(0.6)
+      ? Array.from({ length: randInt(1, 3) }).map(() => ({
+          title: pick(caTitles),
+          source: pick(caSources),
+        }))
+      : undefined;
+    const wins = chance(0.6) ? sample(winsList, randInt(1, 2)) : undefined;
+    const failures = chance(0.4) ? sample(failuresList, 1) : undefined;
+    const lessons = chance(0.45) ? sample(lessonsList, 1) : undefined;
+
+    let attachments: Attachment[] | undefined;
+    if (shotDays.has(i)) {
+      attachments = [
+        {
+          id: `att-${iso(date)}-1`,
+          kind: "image",
+          name: "study-notes.png",
+          dataUrl: shot("Polity — notes snapshot"),
+          caption: "My handwritten notes from today",
+        },
+      ];
+      if (i === 1)
+        attachments.push({
+          id: `att-${iso(date)}-2`,
+          kind: "image",
+          name: "mock-analysis.png",
+          dataUrl: shot("Prelims FLT — analysis"),
+          caption: "Mock analysis sheet",
+        });
+    }
 
     entries.push({
       id: `j-${iso(date)}`,
       date: iso(date),
+      wakeTime: pick(wakeTimes),
+      sleepTime: pick(sleepTimes),
       blocks,
       totalHours,
+      topicsCompleted,
+      booksStudied,
+      revisionSessions,
+      mocksAttempted,
+      currentAffairs,
       mood,
       energy,
+      motivation,
       focus,
-      tasksPlanned: randInt(4, 8),
-      tasksDone: randInt(2, 8),
+      wins,
+      failures,
+      lessons,
       highlights: chance(0.4) ? pick(highlights) : undefined,
       reflection: chance(0.5) ? pick(reflections) : undefined,
-      tags: chance(0.3) ? [pick(["deep-work", "revision", "mocks", "current-affairs", "answer-writing"])] : undefined,
+      tags: chance(0.3)
+        ? [pick(["deep-work", "revision", "mocks", "current-affairs", "answer-writing"])]
+        : undefined,
+      attachments,
     });
   }
   return entries;
