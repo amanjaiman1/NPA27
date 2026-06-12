@@ -22,12 +22,12 @@ const config: Config = {
         danger: "rgb(var(--danger) / <alpha-value>)",
         info: "rgb(var(--info) / <alpha-value>)",
         // The blooming bouquet — used for multi-colour charts & accents.
-        "bloom-rose": "rgb(var(--bloom-rose) / <alpha-value>)",
-        "bloom-lilac": "rgb(var(--bloom-lilac) / <alpha-value>)",
-        "bloom-sky": "rgb(var(--bloom-sky) / <alpha-value>)",
-        "bloom-mint": "rgb(var(--bloom-mint) / <alpha-value>)",
-        "bloom-marigold": "rgb(var(--bloom-marigold) / <alpha-value>)",
-        "bloom-peach": "rgb(var(--bloom-peach) / <alpha-value>)",
+        "bloom-1": "rgb(var(--bloom-1) / <alpha-value>)",
+        "bloom-2": "rgb(var(--bloom-2) / <alpha-value>)",
+        "bloom-3": "rgb(var(--bloom-3) / <alpha-value>)",
+        "bloom-4": "rgb(var(--bloom-4) / <alpha-value>)",
+        "bloom-5": "rgb(var(--bloom-5) / <alpha-value>)",
+        "bloom-6": "rgb(var(--bloom-6) / <alpha-value>)",
         // Legacy aliases kept for safety
         background: "rgb(var(--ink) / <alpha-value>)",
         foreground: "rgb(var(--paper) / <alpha-value>)",
@@ -57,7 +57,7 @@ const config: Config = {
           "radial-gradient(ellipse 80% 60% at 50% -10%, rgb(var(--paper)/0.08), transparent 70%)",
         // A scattered field of coloured blooms — the site's living backdrop.
         "bloom-field":
-          "radial-gradient(38% 34% at 10% 6%, rgb(var(--bloom-rose)/0.20), transparent 60%), radial-gradient(42% 38% at 90% 2%, rgb(var(--bloom-lilac)/0.18), transparent 60%), radial-gradient(46% 44% at 82% 90%, rgb(var(--bloom-sky)/0.16), transparent 62%), radial-gradient(40% 40% at 14% 96%, rgb(var(--bloom-mint)/0.14), transparent 60%), radial-gradient(34% 30% at 52% 48%, rgb(var(--bloom-marigold)/0.10), transparent 70%)",
+          "radial-gradient(38% 34% at 10% 6%, rgb(var(--bloom-1)/0.20), transparent 60%), radial-gradient(42% 38% at 90% 2%, rgb(var(--bloom-2)/0.18), transparent 60%), radial-gradient(46% 44% at 82% 90%, rgb(var(--bloom-3)/0.16), transparent 62%), radial-gradient(40% 40% at 14% 96%, rgb(var(--bloom-4)/0.14), transparent 60%), radial-gradient(34% 30% at 52% 48%, rgb(var(--bloom-5)/0.10), transparent 70%)",
         shine:
           "linear-gradient(110deg, transparent 35%, rgb(var(--paper)/0.12) 50%, transparent 65%)",
       },

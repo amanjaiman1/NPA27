@@ -4,9 +4,14 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { createSeedData, createFreshData } from "./seed";
 import { toISODate, uid } from "./utils";
+import {
+  type Surface,
+  type Palette,
+  DEFAULT_SURFACE,
+  DEFAULT_PALETTE,
+} from "./theme";
 import type {
   ChronicleData,
-  Theme,
   JournalEntry,
   MockTest,
   Mistake,
@@ -27,13 +32,14 @@ import type {
 } from "./types";
 
 interface ChronicleState extends ChronicleData {
-  theme: Theme;
+  surface: Surface;
+  palette: Palette;
   _hasHydrated: boolean;
 
   /* meta */
   setHasHydrated: (v: boolean) => void;
-  setTheme: (t: Theme) => void;
-  toggleTheme: () => void;
+  setSurface: (s: Surface) => void;
+  setPalette: (p: Palette) => void;
   resetData: () => void;
   updateProfile: (patch: Partial<ChronicleData["profile"]>) => void;
 
@@ -122,22 +128,26 @@ function maxStatus(a: TopicStatus, b: TopicStatus): TopicStatus {
 
 export const useChronicle = create<ChronicleState>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       ...createFreshData(),
-      theme: "dark",
+      surface: DEFAULT_SURFACE,
+      palette: DEFAULT_PALETTE,
       _hasHydrated: false,
 
       setHasHydrated: (v) => set({ _hasHydrated: v }),
-      setTheme: (t) => {
+      setSurface: (s) => {
         if (typeof document !== "undefined")
-          document.documentElement.setAttribute("data-theme", t);
+          document.documentElement.setAttribute("data-surface", s);
         if (typeof localStorage !== "undefined")
-          localStorage.setItem("upsc-chronicle-theme", t);
-        set({ theme: t });
+          localStorage.setItem("upsc-chronicle-surface", s);
+        set({ surface: s });
       },
-      toggleTheme: () => {
-        const next = get().theme === "dark" ? "light" : "dark";
-        get().setTheme(next);
+      setPalette: (p) => {
+        if (typeof document !== "undefined")
+          document.documentElement.setAttribute("data-palette", p);
+        if (typeof localStorage !== "undefined")
+          localStorage.setItem("upsc-chronicle-palette", p);
+        set({ palette: p });
       },
       resetData: () => set({ ...createFreshData() }),
       updateProfile: (patch) =>
@@ -431,15 +441,33 @@ export const useChronicle = create<ChronicleState>()(
     }),
     {
       name: "upsc-chronicle-store",
-      version: 6,
+      version: 7,
       storage: createJSONStorage(() => localStorage),
       migrate: (persisted, version) => {
         const state = persisted as Partial<ChronicleState> | undefined;
-        // v5 -> v6: a clean slate. Aman starts logging from today, so we
-        // discard the previously-seeded demo records entirely and rebuild
-        // from a fresh dataset (keeping only the chosen theme).
+        // v<6: a clean slate. Aman starts logging from today, so we discard the
+        // previously-seeded demo records entirely and rebuild from fresh data.
         if (version < 6) {
-          return { ...createFreshData(), theme: state?.theme ?? "dark" } as ChronicleState;
+          return {
+            ...createFreshData(),
+            surface: DEFAULT_SURFACE,
+            palette: DEFAULT_PALETTE,
+          } as ChronicleState;
+        }
+        // v6 -> v7: retire the light/dark toggle in favour of independent
+        // surface + palette settings. Keep all logged data; map old theme.
+        if (version < 7) {
+          const old = (state ?? {}) as Partial<ChronicleState> & {
+            theme?: string;
+          };
+          const surface: Surface = old.theme === "light" ? "white" : "black";
+          const next: Record<string, unknown> = {
+            ...old,
+            surface,
+            palette: DEFAULT_PALETTE,
+          };
+          delete next.theme;
+          return next as unknown as ChronicleState;
         }
         // v1 -> v2: backfill the expanded Daily Journal fields so older
         // entries render cleanly alongside the richer schema.
@@ -527,9 +555,10 @@ export const useChronicle = create<ChronicleState>()(
       },
       onRehydrateStorage: () => (state) => {
         state?.setHasHydrated(true);
-        // re-apply theme attribute after hydration
+        // re-apply appearance attributes after hydration
         if (state && typeof document !== "undefined") {
-          document.documentElement.setAttribute("data-theme", state.theme);
+          document.documentElement.setAttribute("data-surface", state.surface);
+          document.documentElement.setAttribute("data-palette", state.palette);
         }
       },
     },
