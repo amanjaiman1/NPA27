@@ -14,8 +14,7 @@ import type {
   Milestone,
   Reflection,
   Review,
-  KnowledgeGraph,
-  GraphNode,
+  TopicLink,
   SelectionStage,
   Topic,
   TopicStatus,
@@ -628,45 +627,120 @@ function buildReviews(): Review[] {
   ];
 }
 
-function buildGraph(subjects: Subject[]): KnowledgeGraph {
-  const nodes: GraphNode[] = subjects.map((s) => {
-    const conf = Math.round(
-      s.topics.reduce((a, t) => a + t.confidence, 0) / Math.max(1, s.topics.length),
-    );
-    return { id: s.id, label: s.name, type: "subject" as const, subjectId: s.id, strength: conf };
-  });
-  // a few cross-cutting concept/event nodes
-  const concepts = [
-    { id: "c-federalism", label: "Federalism", subj: "polity" },
-    { id: "c-climate", label: "Climate Change", subj: "environment" },
-    { id: "c-inflation", label: "Inflation", subj: "economy" },
-    { id: "c-g20", label: "G20", subj: "ir" },
-    { id: "c-ethics-case", label: "Case Studies", subj: "ethics" },
+function buildTopicLinks(): TopicLink[] {
+  // Resolve a (subjectId, topicName) pair to its Topic id ("<subj>-t<index>").
+  const tid = (subjectId: string, topicName: string) => {
+    const def = subjectDefs.find((s) => s.id === subjectId);
+    const idx = def ? def.topics.indexOf(topicName) : -1;
+    return `${subjectId}-t${idx >= 0 ? idx : 0}`;
+  };
+
+  // Curated cross-topic relationships. Authored by readable names so the
+  // graph reads like an Obsidian vault of the syllabus.
+  // [srcSubject, srcTopic, dstSubject, dstTopic, relation?]
+  const defs: [string, string, string, string, string?][] = [
+    // ── Polity web ──
+    ["polity", "Constitutional Framework", "polity", "Fundamental Rights", "leads to"],
+    ["polity", "Constitutional Framework", "polity", "DPSP", "leads to"],
+    ["polity", "Fundamental Rights", "polity", "DPSP", "contrast"],
+    ["polity", "Constitutional Framework", "polity", "Parliament", "leads to"],
+    ["polity", "Parliament", "polity", "Judiciary", "related"],
+    ["polity", "Parliament", "polity", "Constitutional Bodies", "related"],
+    ["polity", "Judiciary", "polity", "Fundamental Rights", "related"],
+    ["polity", "Federalism", "polity", "Local Government", "leads to"],
+    ["polity", "Federalism", "polity", "Parliament", "related"],
+    ["polity", "Governance", "polity", "Constitutional Bodies", "related"],
+    // ── Modern History chain: 1857 → National Movement → Congress ──
+    ["modern-history", "Advent of Europeans", "modern-history", "Revolt of 1857", "leads to"],
+    ["modern-history", "Revolt of 1857", "modern-history", "Socio-Religious Reform", "related"],
+    ["modern-history", "Revolt of 1857", "modern-history", "INC & Moderates", "leads to"],
+    ["modern-history", "Socio-Religious Reform", "modern-history", "INC & Moderates", "leads to"],
+    ["modern-history", "INC & Moderates", "modern-history", "Gandhian Era", "leads to"],
+    ["modern-history", "Gandhian Era", "modern-history", "Revolutionaries", "contrast"],
+    ["modern-history", "Gandhian Era", "modern-history", "Partition & Freedom", "leads to"],
+    ["modern-history", "Partition & Freedom", "modern-history", "Post-Independence", "leads to"],
+    // ── History ↔ Polity ↔ PSIR ──
+    ["modern-history", "Post-Independence", "polity", "Constitutional Framework", "prerequisite"],
+    ["polity", "Constitutional Framework", "psir", "Indian Govt & Politics", "related"],
+    ["psir", "Indian Govt & Politics", "polity", "Parliament", "related"],
+    ["psir", "Political Theory", "ethics", "Thinkers", "related"],
+    ["psir", "Western Thinkers", "ethics", "Thinkers", "related"],
+    ["psir", "IR Theories", "ir", "Global Institutions", "related"],
+    ["psir", "India & World", "ir", "India & Neighbours", "related"],
+    // ── International Relations ──
+    ["ir", "Groupings", "ir", "Global Institutions", "related"],
+    ["ir", "India-China", "ir", "India & Neighbours", "related"],
+    ["ir", "Groupings", "economy", "External Sector", "related"],
+    // ── Economy ──
+    ["economy", "External Sector", "economy", "Money & Banking", "related"],
+    ["economy", "Money & Banking", "economy", "Inflation", "leads to"],
+    ["economy", "Inflation", "economy", "Fiscal Policy", "related"],
+    ["economy", "Fiscal Policy", "economy", "Budget & Survey", "leads to"],
+    ["economy", "Agriculture", "geography", "Resource Distribution", "related"],
+    ["economy", "Industry & Infra", "geography", "Resource Distribution", "related"],
+    // ── Geography ↔ Environment ──
+    ["geography", "Monsoon System", "geography", "Climatology", "related"],
+    ["geography", "Climatology", "environment", "Climate Change", "leads to"],
+    ["geography", "Oceanography", "environment", "Ecosystems", "related"],
+    ["environment", "Climate Change", "environment", "Agreements", "leads to"],
+    ["environment", "Biodiversity", "environment", "Conservation", "leads to"],
+    ["environment", "Conservation", "environment", "Governance", "related"],
+    ["environment", "Climate Change", "ir", "Global Institutions", "related"],
+    ["environment", "Agreements", "ir", "Groupings", "related"],
+    // ── Society & Social Justice ──
+    ["society", "Salient Features", "society", "Communalism", "related"],
+    ["society", "Urbanisation", "geography", "Resource Distribution", "related"],
+    ["society", "Globalisation", "economy", "External Sector", "related"],
+    ["society", "Women & Society", "social-justice", "Vulnerable Sections", "related"],
+    ["social-justice", "Welfare Schemes", "current-affairs", "Govt Schemes", "related"],
+    ["social-justice", "Health", "social-justice", "Education", "related"],
+    ["social-justice", "Poverty", "economy", "Inflation", "related"],
+    // ── Current Affairs as a hub ──
+    ["current-affairs", "Govt Schemes", "economy", "Budget & Survey", "related"],
+    ["current-affairs", "Reports & Indices", "economy", "National Income", "related"],
+    ["current-affairs", "Editorials", "ir", "Global Institutions", "related"],
+    ["current-affairs", "PIB & PRS", "polity", "Governance", "related"],
+    // ── Science, Tech & Security ──
+    ["sci-tech", "Space", "sci-tech", "Defence Tech", "related"],
+    ["sci-tech", "Biotechnology", "sci-tech", "Health Tech", "related"],
+    ["sci-tech", "IT & Computers", "security", "Cyber Security", "leads to"],
+    ["security", "Cyber Security", "security", "Security Challenges", "related"],
+    ["security", "Money Laundering", "economy", "Money & Banking", "related"],
+    ["security", "Border Management", "ir", "India & Neighbours", "related"],
+    // ── Ethics ──
+    ["ethics", "Foundational Values", "ethics", "Public Service Values", "leads to"],
+    ["ethics", "Public Service Values", "ethics", "Probity", "leads to"],
+    ["ethics", "Case Studies", "ethics", "Probity", "related"],
+    ["ethics", "Emotional Intelligence", "ethics", "Attitude", "related"],
+    // ── Art & Culture ──
+    ["art-culture", "Bhakti & Sufi", "modern-history", "Socio-Religious Reform", "related"],
+    ["art-culture", "Buddhism & Jainism", "art-culture", "Temple Architecture", "related"],
+    ["art-culture", "Temple Architecture", "art-culture", "UNESCO Sites", "related"],
+    // ── Essay & CSAT ──
+    ["essay", "Polity-based", "polity", "Governance", "related"],
+    ["essay", "Economy-based", "economy", "Budget & Survey", "related"],
+    ["essay", "Philosophical", "ethics", "Thinkers", "related"],
+    ["csat", "Quantitative Aptitude", "csat", "Data Interpretation", "related"],
+    ["csat", "Comprehension", "csat", "Logical Reasoning", "related"],
   ];
-  concepts.forEach((c) =>
-    nodes.push({ id: c.id, label: c.label, type: "concept" as const, subjectId: c.subj, strength: randInt(40, 90) }),
-  );
 
-  const edges = [
-    { s: "polity", t: "c-federalism" },
-    { s: "polity", t: "ir" },
-    { s: "economy", t: "c-inflation" },
-    { s: "economy", t: "environment" },
-    { s: "environment", t: "c-climate" },
-    { s: "ir", t: "c-g20" },
-    { s: "ir", t: "economy" },
-    { s: "ethics", t: "c-ethics-case" },
-    { s: "modern-history", t: "polity" },
-    { s: "geography", t: "environment" },
-    { s: "society", t: "social-justice" },
-    { s: "current-affairs", t: "economy" },
-    { s: "current-affairs", t: "ir" },
-    { s: "current-affairs", t: "environment" },
-    { s: "psir", t: "ir" },
-    { s: "psir", t: "polity" },
-  ].map((e, i) => ({ id: `e-${i}`, source: e.s, target: e.t }));
-
-  return { nodes, edges };
+  const seen = new Set<string>();
+  const links: TopicLink[] = [];
+  defs.forEach(([sa, ta, sb, tb, r], i) => {
+    const source = tid(sa, ta);
+    const target = tid(sb, tb);
+    const key = [source, target].sort().join("|");
+    if (source === target || seen.has(key)) return;
+    seen.add(key);
+    links.push({
+      id: `lk-${i}`,
+      source,
+      target,
+      relation: r ?? "related",
+      createdOn: agoISO(randInt(5, 300)),
+    });
+  });
+  return links;
 }
 
 function buildSelection(): SelectionStage[] {
@@ -708,7 +782,7 @@ export function createSeedData(): ChronicleData {
     milestones: buildMilestones(),
     reflections: buildReflections(),
     reviews: buildReviews(),
-    graph: buildGraph(subjects),
+    topicLinks: buildTopicLinks(),
     selection: buildSelection(),
   };
 }

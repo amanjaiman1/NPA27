@@ -357,26 +357,19 @@ export interface Review {
 
 /* ── Knowledge Graph ─────────────────────────────────────────── */
 
-export type GraphNodeType = "subject" | "topic" | "concept" | "event";
-
-export interface GraphNode {
-  id: string;
-  label: string;
-  type: GraphNodeType;
-  subjectId?: string;
-  strength: number; // 0-100 mastery
-}
-
-export interface GraphEdge {
+/**
+ * An Obsidian-style link between two topic nodes. `source` and `target` are
+ * Topic ids ("<subjectId>-t<index>"). Subject→topic containment edges are
+ * derived at render time rather than stored, so the graph stays in sync with
+ * the syllabus. Topic completion status, confidence and revision counts live
+ * on the Topic itself and power the node styling and analytics.
+ */
+export interface TopicLink {
   id: string;
   source: string;
   target: string;
-  relation?: string;
-}
-
-export interface KnowledgeGraph {
-  nodes: GraphNode[];
-  edges: GraphEdge[];
+  relation?: string; // e.g. "leads to", "related", "prerequisite", "contrast"
+  createdOn?: ISODate;
 }
 
 /* ── Selection Journey Archive ───────────────────────────────── */
@@ -429,6 +422,6 @@ export interface ChronicleData {
   milestones: Milestone[];
   reflections: Reflection[];
   reviews: Review[];
-  graph: KnowledgeGraph;
+  topicLinks: TopicLink[];
   selection: SelectionStage[];
 }

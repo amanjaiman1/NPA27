@@ -19,6 +19,8 @@ import type {
   RevisionItem,
   Review,
   Topic,
+  TopicStatus,
+  TopicLink,
   Habit,
 } from "./types";
 
@@ -43,6 +45,12 @@ interface ChronicleState extends ChronicleData {
 
   /* subjects / topics */
   updateTopic: (subjectId: string, topicId: string, patch: Partial<Topic>) => void;
+  reviseTopic: (topicId: string) => void;
+  setTopicStatusById: (topicId: string, status: TopicStatus) => void;
+
+  /* knowledge graph */
+  addTopicLink: (source: string, target: string, relation?: string) => void;
+  removeTopicLink: (id: string) => void;
 
   /* mistakes */
   upsertMistake: (m: Mistake) => void;
@@ -82,6 +90,28 @@ interface ChronicleState extends ChronicleData {
 }
 
 const SR_INTERVALS = [1, 3, 7, 14, 30, 60];
+
+const STATUS_CONF: Record<TopicStatus, number> = {
+  untouched: 10,
+  learning: 40,
+  revised: 68,
+  mastered: 92,
+};
+const STATUS_RANK: Record<TopicStatus, number> = {
+  untouched: 0,
+  learning: 1,
+  revised: 2,
+  mastered: 3,
+};
+function statusFromConfidence(c: number): TopicStatus {
+  if (c >= 80) return "mastered";
+  if (c >= 55) return "revised";
+  if (c >= 25) return "learning";
+  return "untouched";
+}
+function maxStatus(a: TopicStatus, b: TopicStatus): TopicStatus {
+  return STATUS_RANK[a] >= STATUS_RANK[b] ? a : b;
+}
 
 export const useChronicle = create<ChronicleState>()(
   persist(
@@ -143,6 +173,74 @@ export const useChronicle = create<ChronicleState>()(
                 },
           ),
         })),
+
+      reviseTopic: (topicId) =>
+        set((s) => ({
+          subjects: s.subjects.map((sub) =>
+            !sub.topics.some((t) => t.id === topicId)
+              ? sub
+              : {
+                  ...sub,
+                  topics: sub.topics.map((t) => {
+                    if (t.id !== topicId) return t;
+                    const confidence = Math.min(100, t.confidence + 6);
+                    return {
+                      ...t,
+                      revisionCount: t.revisionCount + 1,
+                      lastTouched: toISODate(new Date()),
+                      confidence,
+                      status: maxStatus(t.status, statusFromConfidence(confidence)),
+                    };
+                  }),
+                },
+          ),
+        })),
+
+      setTopicStatusById: (topicId, status) =>
+        set((s) => ({
+          subjects: s.subjects.map((sub) =>
+            !sub.topics.some((t) => t.id === topicId)
+              ? sub
+              : {
+                  ...sub,
+                  topics: sub.topics.map((t) =>
+                    t.id === topicId
+                      ? {
+                          ...t,
+                          status,
+                          confidence: Math.max(t.confidence, STATUS_CONF[status]),
+                          lastTouched: toISODate(new Date()),
+                        }
+                      : t,
+                  ),
+                },
+          ),
+        })),
+
+      addTopicLink: (source, target, relation) =>
+        set((s) => {
+          if (source === target) return {};
+          const exists = s.topicLinks.some(
+            (l) =>
+              (l.source === source && l.target === target) ||
+              (l.source === target && l.target === source),
+          );
+          if (exists) return {};
+          return {
+            topicLinks: [
+              ...s.topicLinks,
+              {
+                id: uid("lk"),
+                source,
+                target,
+                relation: relation ?? "related",
+                createdOn: toISODate(new Date()),
+              } as TopicLink,
+            ],
+          };
+        }),
+      removeTopicLink: (id) =>
+        set((s) => ({ topicLinks: s.topicLinks.filter((l) => l.id !== id) })),
 
       upsertMistake: (m) =>
         set((s) => {
@@ -294,7 +392,7 @@ export const useChronicle = create<ChronicleState>()(
     }),
     {
       name: "upsc-chronicle-store",
-      version: 2,
+      version: 3,
       storage: createJSONStorage(() => localStorage),
       migrate: (persisted, version) => {
         const state = persisted as Partial<ChronicleState> | undefined;
@@ -314,6 +412,14 @@ export const useChronicle = create<ChronicleState>()(
             lessons: e.lessons ?? [],
             attachments: e.attachments ?? [],
           }));
+        }
+        // v2 -> v3: introduce the topic-link knowledge graph and retire the
+        // old subject-level graph snapshot.
+        if (state && version < 3) {
+          if (!Array.isArray(state.topicLinks)) {
+            state.topicLinks = createSeedData().topicLinks;
+          }
+          delete (state as Record<string, unknown>).graph;
         }
         return state as ChronicleState;
       },

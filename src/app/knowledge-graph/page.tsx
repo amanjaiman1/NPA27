@@ -1,215 +1,211 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Network, Sparkles } from "lucide-react";
+import { Search, Eye, Focus, ChevronDown } from "lucide-react";
 import { useChronicle, useHasHydrated } from "@/lib/store";
+import { buildGraph } from "@/lib/graph";
 import { PageHeader } from "@/components/ui/page-header";
 import { Loading } from "@/components/ui/loading";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { SectionHeader, Chip } from "@/components/ui/misc";
+import { Input } from "@/components/ui/form";
+import { useMediaQuery } from "@/lib/hooks";
+import { cn } from "@/lib/utils";
+import { ForceGraph } from "@/components/graph/force-graph";
+import { NodeDetail } from "@/components/graph/node-detail";
+import { KnowledgeDensity } from "@/components/graph/analytics";
 
-const W = 900;
-const H = 560;
-const CX = W / 2;
-const CY = H / 2;
+const STATUS_DOT: Record<string, string> = {
+  untouched: "bg-paper/15",
+  learning: "bg-paper/35",
+  revised: "bg-paper/65",
+  mastered: "bg-paper",
+};
 
 export default function KnowledgeGraphPage() {
   const hydrated = useHasHydrated();
-  const graph = useChronicle((s) => s.graph);
-  const [hover, setHover] = useState<string | null>(null);
-  const [selected, setSelected] = useState<string | null>(null);
+  const subjects = useChronicle((s) => s.subjects);
+  const topicLinks = useChronicle((s) => s.topicLinks);
 
-  const positions = useMemo(() => {
-    const pos = new Map<string, { x: number; y: number }>();
-    const subs = graph.nodes.filter((n) => n.type === "subject");
-    const concepts = graph.nodes.filter((n) => n.type !== "subject");
-    subs.forEach((n, i) => {
-      const a = (i / subs.length) * Math.PI * 2 - Math.PI / 2;
-      pos.set(n.id, { x: CX + Math.cos(a) * 210, y: CY + Math.sin(a) * 210 });
-    });
-    concepts.forEach((n, i) => {
-      const a = (i / Math.max(concepts.length, 1)) * Math.PI * 2 - Math.PI / 2;
-      pos.set(n.id, { x: CX + Math.cos(a) * 95, y: CY + Math.sin(a) * 95 });
-    });
-    return pos;
-  }, [graph]);
+  const graph = useMemo(
+    () => buildGraph(subjects, topicLinks),
+    [subjects, topicLinks],
+  );
 
-  const adjacency = useMemo(() => {
-    const map = new Map<string, Set<string>>();
-    graph.edges.forEach((e) => {
-      if (!map.has(e.source)) map.set(e.source, new Set());
-      if (!map.has(e.target)) map.set(e.target, new Set());
-      map.get(e.source)!.add(e.target);
-      map.get(e.target)!.add(e.source);
-    });
-    return map;
-  }, [graph]);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [subjectFilter, setSubjectFilter] = useState("all");
+  const [showTopics, setShowTopics] = useState(true);
+  const [localOnly, setLocalOnly] = useState(false);
+  const [query, setQuery] = useState("");
+  const [focusId, setFocusId] = useState<string | null>(null);
+  const [focusNonce, setFocusNonce] = useState(0);
 
-  const focus = hover ?? selected;
-  const neighbors = focus ? adjacency.get(focus) ?? new Set() : null;
-  const nodeById = (id: string) => graph.nodes.find((n) => n.id === id);
+  const isDesktop = useMediaQuery("(min-width: 1024px)");
 
-  const sortedByStrength = [...graph.nodes]
-    .filter((n) => n.type === "subject")
-    .sort((a, b) => b.strength - a.strength);
+  const matches = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return [];
+    return graph.nodes
+      .filter((n) => n.label.toLowerCase().includes(q))
+      .sort((a, b) => {
+        // subjects first, then by label
+        if (a.type !== b.type) return a.type === "subject" ? -1 : 1;
+        return a.label.localeCompare(b.label);
+      })
+      .slice(0, 8);
+  }, [query, graph]);
+
+  const searchMatches = useMemo(
+    () => (query.trim() ? new Set(matches.map((m) => m.id)) : null),
+    [query, matches],
+  );
+
+  function pick(id: string) {
+    const n = graph.byId.get(id);
+    if (n?.type === "topic") {
+      setShowTopics(true);
+      setSubjectFilter("all");
+      setLocalOnly(false);
+    }
+    setSelectedId(id);
+    setFocusId(id);
+    setFocusNonce((x) => x + 1);
+    setQuery("");
+  }
 
   if (!hydrated) return <Loading />;
-
-  const selNode = selected ? nodeById(selected) : null;
 
   return (
     <div className="space-y-8">
       <PageHeader
         eyebrow="UPSC Knowledge Graph"
         title="The syllabus is a web, not a list."
-        description="Every subject connects to others. Hover a node to trace its links; click to inspect. Brighter nodes mean stronger mastery."
+        description="An Obsidian-style map of every topic and how it connects. Polity → Parliament → Constitutional Bodies; History → 1857 → the National Movement. Trace links, find backlinks, and wire new connections as you learn."
       />
 
-      <div className="grid gap-4 lg:grid-cols-3">
-        <Card className="overflow-hidden lg:col-span-2">
-          <svg
-            viewBox={`0 0 ${W} ${H}`}
-            className="h-full w-full"
-            style={{ minHeight: 380 }}
-          >
-            {/* edges */}
-            {graph.edges.map((e) => {
-              const a = positions.get(e.source);
-              const b = positions.get(e.target);
-              if (!a || !b) return null;
-              const active =
-                focus && (e.source === focus || e.target === focus);
-              return (
-                <line
-                  key={e.id}
-                  x1={a.x}
-                  y1={a.y}
-                  x2={b.x}
-                  y2={b.y}
-                  stroke="rgb(var(--paper))"
-                  strokeOpacity={active ? 0.5 : focus ? 0.05 : 0.12}
-                  strokeWidth={active ? 1.5 : 1}
-                />
-              );
-            })}
-
-            {/* nodes */}
-            {graph.nodes.map((n) => {
-              const p = positions.get(n.id);
-              if (!p) return null;
-              const isSubject = n.type === "subject";
-              const r = isSubject ? 7 + (n.strength / 100) * 9 : 5 + (n.strength / 100) * 5;
-              const dim = focus && focus !== n.id && !neighbors?.has(n.id);
-              const op = 0.25 + (n.strength / 100) * 0.75;
-              return (
-                <g
-                  key={n.id}
-                  onMouseEnter={() => setHover(n.id)}
-                  onMouseLeave={() => setHover(null)}
-                  onClick={() => setSelected(selected === n.id ? null : n.id)}
-                  className="cursor-pointer"
-                  style={{ opacity: dim ? 0.2 : 1, transition: "opacity 0.2s" }}
-                >
-                  <circle
-                    cx={p.x}
-                    cy={p.y}
-                    r={r}
-                    fill="rgb(var(--paper))"
-                    fillOpacity={isSubject ? op : 0.15}
-                    stroke="rgb(var(--paper))"
-                    strokeOpacity={isSubject ? 0.9 : op}
-                    strokeWidth={isSubject ? 0 : 1.5}
-                  />
-                  {(isSubject || focus === n.id || neighbors?.has(n.id)) && (
-                    <text
-                      x={p.x}
-                      y={p.y + r + 12}
-                      textAnchor="middle"
-                      fill="rgb(var(--paper))"
-                      fillOpacity={0.6}
-                      style={{ fontSize: 11 }}
-                    >
-                      {n.label}
-                    </text>
-                  )}
-                </g>
-              );
-            })}
-          </svg>
-        </Card>
-
-        <div className="space-y-4">
-          <Card className="p-5">
-            {selNode ? (
-              <>
-                <div className="flex items-center gap-2">
-                  <Network className="h-4 w-4 text-paper/45" />
-                  <h3 className="text-base font-semibold text-paper">
-                    {selNode.label}
-                  </h3>
-                </div>
-                <div className="mt-2 flex items-center gap-2">
-                  <Badge tone="outline" className="capitalize">
-                    {selNode.type}
-                  </Badge>
-                  <Badge tone="default">{selNode.strength}% mastery</Badge>
-                </div>
-                <p className="mt-4 text-[0.7rem] font-medium uppercase tracking-wider text-paper/40">
-                  Connected to
-                </p>
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  {[...(adjacency.get(selNode.id) ?? [])].map((id) => (
+      {/* Controls */}
+      <Card className="space-y-3 p-4">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+          {/* search */}
+          <div className="relative lg:w-80">
+            <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-paper/35" />
+            <Input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search topics & subjects…"
+              className="pl-10"
+            />
+            {matches.length > 0 && (
+              <ul className="absolute z-20 mt-1.5 max-h-72 w-full overflow-y-auto rounded-xl border border-paper/12 bg-ink p-1 shadow-glow">
+                {matches.map((m) => (
+                  <li key={m.id}>
                     <button
-                      key={id}
-                      onClick={() => setSelected(id)}
-                      className="rounded-full border border-paper/12 px-2.5 py-1 text-xs text-paper/60 transition-colors hover:border-paper/30 hover:text-paper"
+                      onClick={() => pick(m.id)}
+                      className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-paper/[0.06]"
                     >
-                      {nodeById(id)?.label}
+                      <span
+                        className={cn(
+                          "h-2.5 w-2.5 shrink-0 rounded-full",
+                          m.type === "subject"
+                            ? "bg-paper"
+                            : STATUS_DOT[m.status ?? "untouched"],
+                        )}
+                      />
+                      <span className="min-w-0 flex-1 truncate text-sm text-paper/80">
+                        {m.label}
+                      </span>
+                      <span className="shrink-0 text-[0.65rem] text-paper/35">
+                        {m.type === "subject" ? "Subject" : m.subjectName}
+                      </span>
                     </button>
-                  ))}
-                </div>
-              </>
-            ) : (
-              <div className="flex items-start gap-3">
-                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-paper text-ink">
-                  <Sparkles className="h-4 w-4" />
-                </span>
-                <div>
-                  <h3 className="text-base font-semibold text-paper">
-                    Explore the web
-                  </h3>
-                  <p className="mt-1 text-sm text-paper/50">
-                    Click any node to see its mastery and connections. The strongest
-                    subjects anchor the whole graph.
-                  </p>
-                </div>
-              </div>
+                  </li>
+                ))}
+              </ul>
             )}
-          </Card>
+          </div>
 
-          <Card className="p-5">
-            <p className="eyebrow mb-3">Mastery ranking</p>
-            <ul className="space-y-2.5">
-              {sortedByStrength.map((n) => (
-                <li key={n.id} className="flex items-center gap-3">
-                  <span className="min-w-0 flex-1 truncate text-sm text-paper/70">
-                    {n.label}
-                  </span>
-                  <div className="h-1.5 w-20 overflow-hidden rounded-full bg-paper/10">
-                    <div
-                      className="h-full rounded-full bg-paper"
-                      style={{ width: `${n.strength}%` }}
-                    />
-                  </div>
-                  <span className="tabular w-8 text-right text-xs text-paper/45">
-                    {n.strength}
-                  </span>
-                </li>
+          {/* subject filter */}
+          <div className="relative">
+            <select
+              value={subjectFilter}
+              onChange={(e) => setSubjectFilter(e.target.value)}
+              disabled={!showTopics}
+              className={cn(
+                "h-10 appearance-none rounded-xl border border-paper/12 bg-paper/[0.03] pl-3.5 pr-9 text-sm text-paper focus:border-paper/30 focus:outline-none disabled:opacity-40",
+              )}
+            >
+              <option value="all">All subjects</option>
+              {subjects.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
               ))}
-            </ul>
-          </Card>
+            </select>
+            <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-paper/40" />
+          </div>
+
+          {/* toggles */}
+          <div className="flex flex-wrap items-center gap-2 lg:ml-auto">
+            <Chip active={showTopics} onClick={() => setShowTopics((v) => !v)}>
+              <Eye className="mr-1 inline h-3.5 w-3.5" />
+              {showTopics ? "Topics" : "Subjects only"}
+            </Chip>
+            <Chip
+              active={localOnly}
+              onClick={() => setLocalOnly((v) => !v)}
+            >
+              <Focus className="mr-1 inline h-3.5 w-3.5" />
+              Local graph
+            </Chip>
+          </div>
+        </div>
+        {localOnly && !selectedId && (
+          <p className="text-[0.7rem] text-paper/40">
+            Local graph shows the neighbourhood of the selected node — pick a node to focus.
+          </p>
+        )}
+      </Card>
+
+      {/* Graph + detail */}
+      <div className="grid gap-4 lg:grid-cols-3">
+        <Card className="overflow-hidden p-0 lg:col-span-2">
+          <ForceGraph
+            graph={graph}
+            selectedId={selectedId}
+            onSelect={setSelectedId}
+            showTopics={showTopics}
+            subjectFilter={subjectFilter}
+            localOnly={localOnly}
+            focusId={focusId}
+            focusNonce={focusNonce}
+            searchMatches={searchMatches}
+            height={isDesktop ? 600 : 440}
+          />
+        </Card>
+        <div className="lg:col-span-1">
+          <NodeDetail
+            graph={graph}
+            selectedId={selectedId}
+            onSelect={(id) => {
+              setSelectedId(id);
+              if (id) {
+                setFocusId(id);
+                setFocusNonce((x) => x + 1);
+              }
+            }}
+          />
         </div>
       </div>
+
+      {/* Analytics */}
+      <section className="space-y-4">
+        <SectionHeader
+          eyebrow="Knowledge density"
+          title="How connected is your understanding?"
+          description="A sparse graph means siloed knowledge. The denser and more revised the web, the more exam-ready you are."
+        />
+        <KnowledgeDensity graph={graph} onSelect={pick} />
+      </section>
     </div>
   );
 }
