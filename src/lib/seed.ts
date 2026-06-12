@@ -1101,3 +1101,78 @@ export function createSeedData(): ChronicleData {
     selection: buildSelection(),
   };
 }
+
+
+
+/* ── Fresh start ─────────────────────────────────────────────────
+   Aman begins logging from today. We keep the structural scaffolding
+   — the syllabus, reading list, habits, goals and the knowledge graph —
+   but zero every record, so the journey accumulates for real from
+   Day Zero rather than from demo data. */
+export function createFreshData(): ChronicleData {
+  const today = agoISO(0);
+
+  const subjects = buildSubjects().map((s) => ({
+    ...s,
+    topics: s.topics.map((t) => ({
+      ...t,
+      status: "untouched" as const,
+      confidence: 0,
+      revisionCount: 0,
+      lastTouched: undefined,
+    })),
+  }));
+
+  const books = buildBooks().map((b) => ({
+    ...b,
+    currentPage: 0,
+    status: "To Read" as const,
+    startedOn: undefined,
+    finishedOn: undefined,
+    rating: undefined,
+  }));
+
+  const habits = buildHabits().map((h) => ({
+    ...h,
+    createdOn: today,
+    log: {} as Record<string, boolean>,
+  }));
+
+  const goals = buildGoals().map((g) => ({ ...g, current: 0, createdOn: today }));
+
+  return {
+    profile: {
+      name: "Aman Jaiman",
+      tagline: "Do or die · CSE 2027.",
+      mission: "National Police Academy — IPS",
+      targetExam: "UPSC CSE 2027",
+      examDate: aheadISO(345),
+      attemptNumber: 2,
+      optionalSubject: "Sociology",
+      startDate: today,
+      dailyHourTarget: 9,
+    },
+    subjects,
+    journal: [],
+    mocks: [],
+    revisions: [],
+    currentAffairs: [],
+    mistakes: [],
+    habits,
+    sleep: [],
+    exercise: [],
+    lifeLog: [],
+    goals,
+    books,
+    milestones: [],
+    reflections: [],
+    reviews: [],
+    topicLinks: buildTopicLinks(),
+    selection: [
+      { id: "s1", name: "Prelims", attempt: "CSE 2027", status: "Locked", notes: "The first gate. Preparation begins today." },
+      { id: "s2", name: "Mains", attempt: "CSE 2027", status: "Locked", notes: "Nine papers that decide the rank." },
+      { id: "s3", name: "Interview", attempt: "CSE 2027", status: "Locked", notes: "The final 275 marks." },
+      { id: "s4", name: "Final Result", attempt: "CSE 2027", status: "Locked", notes: "The name in the list." },
+    ],
+  };
+}

@@ -2,7 +2,7 @@
 
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
-import { createSeedData } from "./seed";
+import { createSeedData, createFreshData } from "./seed";
 import { toISODate, uid } from "./utils";
 import type {
   ChronicleData,
@@ -123,7 +123,7 @@ function maxStatus(a: TopicStatus, b: TopicStatus): TopicStatus {
 export const useChronicle = create<ChronicleState>()(
   persist(
     (set, get) => ({
-      ...createSeedData(),
+      ...createFreshData(),
       theme: "dark",
       _hasHydrated: false,
 
@@ -139,7 +139,7 @@ export const useChronicle = create<ChronicleState>()(
         const next = get().theme === "dark" ? "light" : "dark";
         get().setTheme(next);
       },
-      resetData: () => set({ ...createSeedData() }),
+      resetData: () => set({ ...createFreshData() }),
       updateProfile: (patch) =>
         set((s) => ({ profile: { ...s.profile, ...patch } })),
 
@@ -431,10 +431,16 @@ export const useChronicle = create<ChronicleState>()(
     }),
     {
       name: "upsc-chronicle-store",
-      version: 5,
+      version: 6,
       storage: createJSONStorage(() => localStorage),
       migrate: (persisted, version) => {
         const state = persisted as Partial<ChronicleState> | undefined;
+        // v5 -> v6: a clean slate. Aman starts logging from today, so we
+        // discard the previously-seeded demo records entirely and rebuild
+        // from a fresh dataset (keeping only the chosen theme).
+        if (version < 6) {
+          return { ...createFreshData(), theme: state?.theme ?? "dark" } as ChronicleState;
+        }
         // v1 -> v2: backfill the expanded Daily Journal fields so older
         // entries render cleanly alongside the richer schema.
         if (state && version < 2 && Array.isArray(state.journal)) {
