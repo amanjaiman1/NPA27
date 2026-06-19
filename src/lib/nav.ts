@@ -2,6 +2,7 @@ import {
   LayoutDashboard,
   NotebookPen,
   Milestone,
+  Route,
   Newspaper,
   Repeat,
   TriangleAlert,
@@ -37,6 +38,7 @@ export const navGroups: NavGroup[] = [
     label: "Command",
     items: [
       { label: "Command Center", href: "/", icon: LayoutDashboard, short: "Dashboard overview" },
+      { label: "Roadmap", href: "/roadmap", icon: Route, short: "The week-by-week plan to CSE 2027" },
       { label: "Milestone Timeline", href: "/timeline", icon: Milestone, short: "The journey so far" },
     ],
   },

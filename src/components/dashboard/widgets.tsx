@@ -12,6 +12,7 @@ import {
   Target,
   Sparkles,
   TrendingUp,
+  Route,
   Milestone as MilestoneIcon,
 } from "lucide-react";
 import { useChronicle } from "@/lib/store";
@@ -37,6 +38,12 @@ import {
 } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { RadialProgress, Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
+import {
+  currentWeek,
+  currentPhase,
+  daysToPrelims,
+} from "@/lib/plan";
 import { Heatmap } from "@/components/charts/heatmap";
 import { BarChart } from "@/components/charts/bar-chart";
 import { Donut } from "@/components/charts/donut";
@@ -537,6 +544,71 @@ export function CoachNudge() {
             Talk to your coach <ArrowUpRight className="h-3.5 w-3.5" />
           </Link>
         </div>
+      </div>
+    </Card>
+  );
+}
+
+
+/* ── This week's plan (Roadmap) ──────────────────────────────── */
+
+export function ThisWeekCard() {
+  const today = toISODate(new Date());
+  const week = currentWeek(today);
+  const phase = currentPhase(today);
+  const dLeft = daysToPrelims(today);
+
+  return (
+    <Card className="relative overflow-hidden p-5 sm:p-6">
+      <div className="absolute -right-8 -top-10 h-32 w-32 rounded-full bg-accent/[0.07] blur-2xl" />
+      <div className="relative">
+        <div className="mb-4 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Route className="h-4 w-4 text-paper/45" />
+            <h3 className="text-base font-semibold text-paper">This week&apos;s plan</h3>
+          </div>
+          <Link
+            href="/roadmap"
+            className="text-xs text-paper/45 transition-colors hover:text-paper"
+          >
+            Roadmap →
+          </Link>
+        </div>
+
+        {week ? (
+          <>
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge tone="solid">Week {week.week}</Badge>
+              <span className="text-xs text-paper/45">{phase.name}</span>
+              <span className="inline-flex items-center gap-1 text-xs text-paper/55">
+                <Clock className="h-3.5 w-3.5" /> {week.hoursTarget}h/day
+              </span>
+            </div>
+            <p className="mt-3 text-sm font-semibold text-paper">{week.primary}</p>
+            <p className="mt-0.5 text-xs text-paper/50">{week.focus}</p>
+            <ul className="mt-3 space-y-1.5">
+              {week.tasks.slice(0, 3).map((t, i) => (
+                <li key={i} className="flex gap-2 text-xs text-paper/70">
+                  <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-accent" />
+                  <span className="min-w-0">
+                    <span className="text-paper/45">{t.track}:</span> {t.label}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </>
+        ) : (
+          <div>
+            <p className="text-sm font-medium text-paper">{phase.name}</p>
+            <p className="mt-1 text-xs leading-relaxed text-paper/55">
+              {phase.mission}
+            </p>
+          </div>
+        )}
+
+        <p className="mt-4 border-t border-paper/[0.06] pt-3 text-[0.7rem] text-paper/40">
+          {dLeft} days to estimated Prelims
+        </p>
       </div>
     </Card>
   );

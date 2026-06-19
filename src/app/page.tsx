@@ -14,6 +14,7 @@ import {
   GoalsCard,
   MilestonesMini,
   CoachNudge,
+  ThisWeekCard,
 } from "@/components/dashboard/widgets";
 
 export default function CommandCenter() {
@@ -37,6 +38,7 @@ export default function CommandCenter() {
 
         <div className="space-y-4">
           <TodayCard />
+          <ThisWeekCard />
           <MockMomentumCard />
           <RevisionDueCard />
           <GoalsCard />
