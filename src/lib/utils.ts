@@ -47,6 +47,34 @@ export function relativeDay(iso: string, today: string): string {
   return formatDate(iso);
 }
 
+/**
+ * The "logging day" key used by the daily sleep prompt. The day only rolls
+ * over at `rolloverHour` (default 07:00 local) — so anything logged late at
+ * night or in the small hours still counts toward the same day, and the next
+ * prompt won't appear until after 7 AM the following morning.
+ */
+export function sleepDayKey(now: Date = new Date(), rolloverHour = 7): string {
+  const d = new Date(now);
+  d.setHours(d.getHours() - rolloverHour);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+/**
+ * Hours of sleep between a bedtime and a wake time given as "HH:MM" strings.
+ * Correctly handles crossing midnight (e.g. 23:00 → 06:30 = 7.5h).
+ */
+export function clockHoursBetween(bedtime: string, wake: string): number {
+  const [bh, bm] = bedtime.split(":").map(Number);
+  const [wh, wm] = wake.split(":").map(Number);
+  if ([bh, bm, wh, wm].some((n) => Number.isNaN(n))) return 0;
+  let mins = wh * 60 + wm - (bh * 60 + bm);
+  if (mins <= 0) mins += 24 * 60;
+  return round(mins / 60, 1);
+}
+
 /** Clamp a number between min and max. */
 export function clamp(n: number, min: number, max: number): number {
   return Math.min(Math.max(n, min), max);

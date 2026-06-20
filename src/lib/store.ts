@@ -3,7 +3,8 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { createSeedData, createFreshData } from "./seed";
-import { toISODate, uid } from "./utils";
+import { toISODate, uid, clockHoursBetween } from "./utils";
+import { emptyEntry } from "@/components/journal/constants";
 import {
   type Surface,
   type Palette,
@@ -12,6 +13,7 @@ import {
 } from "./theme";
 import type {
   ChronicleData,
+  ISODate,
   JournalEntry,
   MockTest,
   Mistake,
@@ -35,6 +37,12 @@ interface ChronicleState extends ChronicleData {
   surface: Surface;
   palette: Palette;
   _hasHydrated: boolean;
+
+  /**
+   * The `sleepDayKey` for which the daily sleep/wake prompt has already been
+   * answered. Local-only (not cloud-synced): it's a per-device daily nudge.
+   */
+  lastSleepPrompt?: string;
 
   /* meta */
   setHasHydrated: (v: boolean) => void;
@@ -101,6 +109,19 @@ interface ChronicleState extends ChronicleData {
 
   /* life dashboard */
   upsertLifeEntry: (entry: LifeEntry) => void;
+
+  /**
+   * Record last night's sleep + this morning's wake-up once, then fan the
+   * values out to both today's journal entry and today's life-dashboard
+   * entry (creating either if missing). Also stamps `lastSleepPrompt` so the
+   * blocking prompt won't reappear until the next day after 7 AM.
+   */
+  logDailySleep: (input: {
+    date: ISODate;
+    promptKey: string;
+    sleepTime: string;
+    wakeTime: string;
+  }) => void;
 }
 
 /**
@@ -165,6 +186,7 @@ export const useChronicle = create<ChronicleState>()(
       surface: DEFAULT_SURFACE,
       palette: DEFAULT_PALETTE,
       _hasHydrated: false,
+      lastSleepPrompt: undefined,
 
       setHasHydrated: (v) => set({ _hasHydrated: v }),
       setSurface: (s) => {
@@ -484,6 +506,59 @@ export const useChronicle = create<ChronicleState>()(
           else lifeLog.push(entry);
           lifeLog.sort((a, b) => a.date.localeCompare(b.date));
           return { lifeLog };
+        }),
+
+      logDailySleep: ({ date, promptKey, sleepTime, wakeTime }) =>
+        set((s) => {
+          const sleepHours = clockHoursBetween(sleepTime, wakeTime);
+
+          // ── Daily journal: merge into today's entry, or create one ──
+          const jIdx = s.journal.findIndex((j) => j.date === date);
+          const journal = [...s.journal];
+          if (jIdx >= 0) {
+            journal[jIdx] = { ...journal[jIdx], wakeTime, sleepTime };
+          } else {
+            journal.push({
+              ...emptyEntry(date),
+              wakeTime,
+              sleepTime,
+              // a fresh auto-created day starts with no logged study blocks
+              blocks: [],
+              totalHours: 0,
+            });
+          }
+          journal.sort((a, b) => a.date.localeCompare(b.date));
+
+          // ── Life dashboard: merge into today's entry, or create one ──
+          const lIdx = s.lifeLog.findIndex((l) => l.date === date);
+          const lifeLog = [...s.lifeLog];
+          if (lIdx >= 0) {
+            lifeLog[lIdx] = {
+              ...lifeLog[lIdx],
+              bedtime: sleepTime,
+              wakeTime,
+              sleepHours,
+            };
+          } else {
+            lifeLog.push({
+              id: `life-${date}`,
+              date,
+              sleepHours,
+              sleepQuality: 3,
+              bedtime: sleepTime,
+              wakeTime,
+              walkKm: 0,
+              runKm: 0,
+              exerciseMinutes: 0,
+              waterLiters: 2,
+              meditationMin: 0,
+              screenTimeMin: 120,
+              deepWorkHours: 0,
+            });
+          }
+          lifeLog.sort((a, b) => a.date.localeCompare(b.date));
+
+          return { journal, lifeLog, lastSleepPrompt: promptKey };
         }),
     }),
     {
