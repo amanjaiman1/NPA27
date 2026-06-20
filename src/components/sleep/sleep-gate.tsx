@@ -201,6 +201,20 @@ export function SleepGate({ children }: { children: React.ReactNode }) {
   const hydrated = useHasHydrated();
   const lastSleepPrompt = useChronicle((s) => s.lastSleepPrompt);
 
+  // Secondary safety net: if today's sleep is already recorded in the synced
+  // data (journal or life log), treat the day as answered even if the local
+  // flag hasn't caught up yet (e.g. just-synced from another device/login).
+  const todayISO = toISODate(new Date());
+  const loggedToday = useChronicle(
+    (s) =>
+      s.journal.some(
+        (j) => j.date === todayISO && Boolean(j.sleepTime) && Boolean(j.wakeTime),
+      ) ||
+      s.lifeLog.some(
+        (l) => l.date === todayISO && Boolean(l.bedtime) && Boolean(l.wakeTime),
+      ),
+  );
+
   // Re-evaluate the effective day periodically (and when the tab regains focus)
   // so the gate is correct even if the page stays open across 7 AM.
   const [, setTick] = useState(0);
@@ -230,7 +244,8 @@ export function SleepGate({ children }: { children: React.ReactNode }) {
   }
 
   const promptKey = sleepDayKey(new Date());
-  if (lastSleepPrompt !== promptKey) {
+  const answered = lastSleepPrompt === promptKey || loggedToday;
+  if (!answered) {
     return <SleepPrompt promptKey={promptKey} />;
   }
 

@@ -151,6 +151,9 @@ export const SNAPSHOT_KEYS = [
   "selection",
   "surface",
   "palette",
+  // Remembering that today's sleep prompt was answered must follow the user
+  // across devices/logins, so it's part of the synced snapshot too.
+  "lastSleepPrompt",
 ] as const;
 
 export type CloudSnapshot = Pick<ChronicleState, (typeof SNAPSHOT_KEYS)[number]>;
