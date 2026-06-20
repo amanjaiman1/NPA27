@@ -37,7 +37,7 @@ import {
   MOTIVATION_LABELS,
   FOCUS_LABELS,
 } from "./constants";
-import { round, formatHours, cn } from "@/lib/utils";
+import { round, formatHours, cn, toISODate } from "@/lib/utils";
 
 function Section({
   icon: Icon,
@@ -95,6 +95,9 @@ export function JournalComposer({
     setDraft((d) => ({ ...d, ...p }));
   }
 
+  // Journal entries can only be logged for today or a past day — never the future.
+  const todayISO = toISODate(new Date());
+
   async function save() {
     if (
       !(await confirm({
@@ -150,7 +153,12 @@ export function JournalComposer({
               <Input
                 type="date"
                 value={draft.date}
-                onChange={(e) => patch({ date: e.target.value })}
+                max={todayISO}
+                onChange={(e) => {
+                  // Clamp to today so future dates can't be entered (even by typing).
+                  const picked = e.target.value;
+                  patch({ date: picked && picked > todayISO ? todayISO : picked });
+                }}
               />
             </Field>
             <Field label="Wake up">
