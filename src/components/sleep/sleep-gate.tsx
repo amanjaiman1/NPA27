@@ -10,9 +10,11 @@ import { Field, Input } from "@/components/ui/form";
 import {
   toISODate,
   sleepDayKey,
-  clockHoursBetween,
+  sleepDuration,
   formatDate,
+  formatDayShort,
   formatHours,
+  cn,
 } from "@/lib/utils";
 
 function FullScreen({ children }: { children: React.ReactNode }) {
@@ -46,6 +48,7 @@ function SleepPrompt({ promptKey }: { promptKey: string }) {
   const lifeLog = useChronicle((s) => s.lifeLog);
 
   const today = toISODate(new Date());
+  const yesterday = toISODate(new Date(Date.now() - 86_400_000));
 
   // Pre-fill from anything already recorded for today, so re-opening is easy.
   const existing = useMemo(() => {
@@ -59,14 +62,25 @@ function SleepPrompt({ promptKey }: { promptKey: string }) {
 
   const [sleepTime, setSleepTime] = useState(existing.sleepTime);
   const [wakeTime, setWakeTime] = useState(existing.wakeTime);
+  // Which day you fell asleep on. Defaults to last night (the common case),
+  // but you can switch to "today" for an after-midnight bedtime (00:30, 02:00).
+  const [sleepDate, setSleepDate] = useState(yesterday);
 
   const canSubmit = Boolean(sleepTime && wakeTime);
-  const duration = canSubmit ? clockHoursBetween(sleepTime, wakeTime) : 0;
+  const duration = canSubmit
+    ? sleepDuration(sleepDate, sleepTime, today, wakeTime)
+    : 0;
   const hour = new Date().getHours();
 
   function submit() {
     if (!canSubmit) return;
-    logDailySleep({ date: today, promptKey, sleepTime, wakeTime });
+    logDailySleep({
+      date: today,
+      promptKey,
+      sleepTime,
+      wakeTime,
+      sleepHours: duration,
+    });
   }
 
   return (
@@ -92,6 +106,34 @@ function SleepPrompt({ promptKey }: { promptKey: string }) {
 
         <div className="mt-7 space-y-4">
           <Field label="When did you go to sleep?">
+            {/* Pick which day the bedtime falls on: last night (e.g. 23:00)
+                or today after midnight (e.g. 00:30, 02:00). */}
+            <div className="mb-2 grid grid-cols-2 gap-1.5 rounded-xl border border-paper/12 bg-paper/[0.03] p-1">
+              <button
+                type="button"
+                onClick={() => setSleepDate(yesterday)}
+                className={cn(
+                  "rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
+                  sleepDate === yesterday
+                    ? "bg-accent text-accent-fg"
+                    : "text-paper/55 hover:text-paper",
+                )}
+              >
+                Last night · {formatDayShort(yesterday)}
+              </button>
+              <button
+                type="button"
+                onClick={() => setSleepDate(today)}
+                className={cn(
+                  "rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
+                  sleepDate === today
+                    ? "bg-accent text-accent-fg"
+                    : "text-paper/55 hover:text-paper",
+                )}
+              >
+                Today · {formatDayShort(today)}
+              </button>
+            </div>
             <div className="relative">
               <Moon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-paper/35" />
               <Input
@@ -105,7 +147,7 @@ function SleepPrompt({ promptKey }: { promptKey: string }) {
             </div>
           </Field>
 
-          <Field label="When did you wake up?">
+          <Field label={`When did you wake up? · ${formatDayShort(today)}`}>
             <div className="relative">
               <Sunrise className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-paper/35" />
               <Input

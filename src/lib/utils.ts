@@ -75,6 +75,39 @@ export function clockHoursBetween(bedtime: string, wake: string): number {
   return round(mins / 60, 1);
 }
 
+/**
+ * Hours of sleep between an explicit bed datetime and wake datetime. Lets the
+ * user say they fell asleep on a *previous* day (e.g. 19 Jun 23:00 → 20 Jun
+ * 07:30 = 8.5h). Falls back to the crossing-midnight estimate if the dates
+ * happen to produce a non-positive span.
+ */
+export function sleepDuration(
+  sleepDate: string,
+  sleepTime: string,
+  wakeDate: string,
+  wakeTime: string,
+): number {
+  if (!sleepTime || !wakeTime) return 0;
+  const [sh, sm] = sleepTime.split(":").map(Number);
+  const [wh, wm] = wakeTime.split(":").map(Number);
+  if ([sh, sm, wh, wm].some((n) => Number.isNaN(n))) return 0;
+  const s = fromISODate(sleepDate);
+  s.setHours(sh, sm, 0, 0);
+  const w = fromISODate(wakeDate);
+  w.setHours(wh, wm, 0, 0);
+  const mins = (w.getTime() - s.getTime()) / 60_000;
+  if (mins <= 0) return clockHoursBetween(sleepTime, wakeTime);
+  return round(mins / 60, 1);
+}
+
+/** "19 Jun" — a compact day label for the same year. */
+export function formatDayShort(iso: string): string {
+  return fromISODate(iso).toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+  });
+}
+
 /** Clamp a number between min and max. */
 export function clamp(n: number, min: number, max: number): number {
   return Math.min(Math.max(n, min), max);

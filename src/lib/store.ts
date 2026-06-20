@@ -3,7 +3,7 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { createSeedData, createFreshData } from "./seed";
-import { toISODate, uid, clockHoursBetween } from "./utils";
+import { toISODate, uid } from "./utils";
 import { emptyEntry } from "@/components/journal/constants";
 import {
   type Surface,
@@ -121,6 +121,7 @@ interface ChronicleState extends ChronicleData {
     promptKey: string;
     sleepTime: string;
     wakeTime: string;
+    sleepHours: number;
   }) => void;
 }
 
@@ -508,10 +509,8 @@ export const useChronicle = create<ChronicleState>()(
           return { lifeLog };
         }),
 
-      logDailySleep: ({ date, promptKey, sleepTime, wakeTime }) =>
+      logDailySleep: ({ date, promptKey, sleepTime, wakeTime, sleepHours }) =>
         set((s) => {
-          const sleepHours = clockHoursBetween(sleepTime, wakeTime);
-
           // ── Daily journal: merge into today's entry, or create one ──
           const jIdx = s.journal.findIndex((j) => j.date === date);
           const journal = [...s.journal];
