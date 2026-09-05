@@ -45,7 +45,7 @@ network, untouched.
 | Documents (navigations) | network-first → cached route → `offline.html` | `chronicle-pages-v1` |
 | `/_next/static/*`, `/_next/image` | cache-first (content-hashed, immutable) | `chronicle-assets-v1` |
 | Other static assets, fonts, images | stale-while-revalidate | `chronicle-assets-v1` |
-| `offline.html`, manifest, icons, hero poster | precached on install | `chronicle-shell-v3` |
+| `offline.html`, manifest, icons, hero posters | precached on install | `chronicle-shell-v4` |
 | RSC/flight payloads (`?_rsc`, `RSC:1`), `/api/*` | never cached (vary by header) | — |
 | Video (`/media/*.mp4`) | never touched — range requests are left to the browser | — |
 
