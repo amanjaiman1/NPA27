@@ -16,6 +16,8 @@ surfaced to Tailwind in `tailwind.config.ts`, so pages never hard-code a colour.
 | `--paper` | foreground / text (`text-paper`, and tints like `bg-paper/[0.04]`) |
 | `--line` | hairline borders (`border-line`, and the default `border` colour) |
 | `--scrim` | modal/drawer backdrop — always darkens, on light *and* dark (`bg-scrim/45`) |
+| `--aura-1` / `--aura-2` | the canvas glow colours, set per surface (not by the palette) |
+| `--wash` | how strongly that glow is applied, 0–1, set per surface |
 | `--shadow` | shadow tint, warm on ivory and black on dark |
 | `--accent` / `--accent-fg` | the brand colour and text that sits on it |
 | `--positive` `--warning` `--danger` `--info` | semantic colours |
@@ -27,11 +29,18 @@ recessed fill on every surface, not a light or dark one.
 
 ### Surfaces (`data-surface`)
 
-| id | Name | Canvas |
-| --- | --- | --- |
-| `white` | **Ivory** (default) | warm off-white `#f6f4f0`, white cards |
-| `black` | **Charcoal** | soft near-black `#121214` — never flat pure black |
-| `navy` | **Indigo** | deep blue night `#0f1221` |
+| id | Name | Canvas | Aura | `--wash` |
+| --- | --- | --- | --- | --- |
+| `white` | **Ivory** (default) | warm off-white `#f6f4f0`, white cards | crimson + blue | 0.55 |
+| `black` | **Pure Black** | true `#000`, cards at `#0d0d0f` | rose + indigo | 0.40 |
+| `navy` | **Indigo** | deep blue night `#0f1221` | blue + violet | 0.80 |
+| `velvet` | **Velvet** | aubergine `#100719` | violet + magenta | 1 |
+| `abyss` | **Abyss** | deep ocean `#030e14` | cyan + electric blue | 1 |
+
+Each surface owns its glow through `--aura-1`/`--aura-2`, which is what makes
+Velvet and Abyss feel different rather than just darker — the palette only drives
+the accent and chart colours. `--wash` scales the whole ambient layer: Pure Black
+keeps the least of it, because glow over true black just reads as grey.
 
 ### Palettes (`data-palette`)
 
@@ -84,6 +93,25 @@ private-use codepoint.
 - Hover on a card: `-translate-y-0.5` plus `shadow-lift` and an accent-tinted
   border (`<Card hover>` does this for you).
 
+## Text over media
+
+Video and photography are unpredictable — bright khaki one frame, dark foliage
+the next — so a region sitting on media gets the `.on-media` class. It pins that
+subtree to a fixed light-on-dark palette (`--paper` white, `--card` near-black,
+`--line` a soft grey), which means every token-based utility inside it resolves
+correctly on all five surfaces without a single conditional.
+
+On top of the media, stack cheap scrims rather than one flat overlay: a base
+tint, a horizontal gradient darkest where the copy sits, a vertical gradient,
+and a breath of accent. Small text also takes a `drop-shadow`, and floating
+controls sit on their own `backdrop-blur` disc or pill.
+
+**Measure it, don't eyeball it.** Screenshot the text's bounding box with the
+content layer hidden, at several timestamps across the clip, and compute contrast
+between the declared colour (composited with its own alpha) and the 98th
+percentile background luminance. WCAG AA is 4.5:1, or 3:1 for text ≥24px. The
+command centre hero passes every region at the worst frame of its loop.
+
 ## Chrome
 
 The topbar is a **floating pill** (`rounded-full bg-card/80 backdrop-blur-xl`)
@@ -101,6 +129,31 @@ background is deliberately quiet: two very soft accent washes, no texture.
   `danger` / `warning`.
 - **Progress ramps** (topic mastery) → the accent at rising opacity:
   `bg-paper/12` → `bg-accent/30` → `bg-accent/60` → `bg-accent`.
+
+## Media assets
+
+Source clips are optimised into `public/media/` — never referenced raw. The clip
+behind the command centre came in as a 7.2 MB 1080×1920 portrait with `moov` at
+the end, meaning a browser had to download the whole file before the first frame.
+The recipe:
+
+```bash
+ffmpeg -i source.mp4 -an \
+  -vf "fps=24,crop=1080:1200:0:480,scale=720:800:flags=lanczos,hqdn3d=4:3:6:4" \
+  -c:v libx264 -crf 32 -preset slow -g 48 -pix_fmt yuv420p \
+  -movflags +faststart public/media/hero-loop.mp4      # 3.1 MB, starts instantly
+
+ffmpeg -ss 2.2 -i source.mp4 \
+  -vf "crop=1080:1200:0:480,scale=720:800" -frames:v 1 -q:v 6 \
+  public/media/hero-poster.jpg                          # 61 KB
+```
+
+Drop the audio (backgrounds are always muted), centre-crop to something closer to
+the box it fills, denoise before encoding (it buys a lot of bitrate on noisy
+footage), and always `+faststart`. The poster is mandatory: it paints
+immediately, and it's the *only* thing downloaded for anyone on reduced-motion,
+Save-Data or a 2G connection — see `components/dashboard/hero-video.tsx`, which
+also pauses the clip off-screen and in hidden tabs.
 
 ## Adding UI
 

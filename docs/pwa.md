@@ -45,8 +45,9 @@ network, untouched.
 | Documents (navigations) | network-first → cached route → `offline.html` | `chronicle-pages-v1` |
 | `/_next/static/*`, `/_next/image` | cache-first (content-hashed, immutable) | `chronicle-assets-v1` |
 | Other static assets, fonts, images | stale-while-revalidate | `chronicle-assets-v1` |
-| `offline.html`, manifest, icons | precached on install | `chronicle-shell-v2` |
+| `offline.html`, manifest, icons, hero poster | precached on install | `chronicle-shell-v3` |
 | RSC/flight payloads (`?_rsc`, `RSC:1`), `/api/*` | never cached (vary by header) | — |
+| Video (`/media/*.mp4`) | never touched — range requests are left to the browser | — |
 
 Pages are keyed by **pathname with the query stripped**, so `/journal?new=1`
 reuses the cached `/journal` document — the app reads its own query string on

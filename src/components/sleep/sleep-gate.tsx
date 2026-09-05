@@ -21,7 +21,7 @@ function FullScreen({ children }: { children: React.ReactNode }) {
   return (
     <div className="relative grid min-h-[100dvh] place-items-center overflow-hidden px-5">
       <div className="pointer-events-none fixed inset-0 -z-10">
-        <div className="absolute inset-0 bg-bloom-field" />
+        <div className="absolute inset-0 bg-aura" />
       </div>
       {children}
     </div>

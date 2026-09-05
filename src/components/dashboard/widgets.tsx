@@ -17,6 +17,7 @@ import {
   Milestone as MilestoneIcon,
 } from "lucide-react";
 import { useChronicle } from "@/lib/store";
+import { HeroVideo } from "./hero-video";
 import {
   buildHeatmap,
   currentStreak,
@@ -82,25 +83,35 @@ export function GreetingHero() {
   const quote = QUOTES[journeyDay % QUOTES.length];
 
   return (
-    <Card className="relative overflow-hidden rounded-3xl">
-      {/* soft brand wash so the hero reads as the page's anchor */}
-      <div className="absolute inset-0 bg-gradient-to-br from-accent/[0.07] via-transparent to-bloom-3/[0.06]" />
-      <div className="absolute -right-16 -top-24 h-72 w-72 rounded-full bg-accent/[0.10] blur-3xl" />
-      <div className="relative flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:p-8">
+    /* `on-media` flips this card to a fixed light-on-dark palette, so the
+       greeting, the countdown and every control stay legible over the film
+       whatever surface the rest of the app is using. */
+    <Card className="on-media relative isolate overflow-hidden rounded-3xl border-white/10">
+      <HeroVideo />
+
+      {/* Scrims, darkest where the text sits. Three cheap layers beat one flat
+          overlay: the copy gets real contrast without dimming the whole clip. */}
+      <div className="pointer-events-none absolute inset-0 bg-[rgb(6,6,8)]/55" />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[rgb(6,6,8)]/92 via-[rgb(6,6,8)]/76 to-[rgb(6,6,8)]/45" />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[rgb(6,6,8)]/80 via-transparent to-[rgb(6,6,8)]/45" />
+      {/* a breath of brand colour so it still belongs to the palette */}
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-accent/20 via-transparent to-transparent" />
+
+      <div className="relative z-10 flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:p-8">
         <div className="min-w-0">
-          <p className="eyebrow mb-3">
+          <p className="eyebrow mb-3 text-white/75">
             Day {journeyDay} of the journey · {profile.targetExam}
           </p>
-          <h1 className="font-display text-[2.1rem] font-bold leading-[1.05] tracking-tightest text-paper sm:text-[2.9rem]">
+          <h1 className="font-display text-[2.1rem] font-bold leading-[1.05] tracking-tightest text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.55)] sm:text-[2.9rem]">
             {greeting()}, {firstName}.
           </h1>
-          <p className="mt-3 max-w-md text-[0.95rem] leading-relaxed text-paper/50">
+          <p className="mt-3 max-w-md text-[0.95rem] leading-relaxed text-white/90 drop-shadow-[0_1px_8px_rgba(0,0,0,0.55)]">
             “{quote}”
           </p>
           {profile.mission && (
-            <p className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-line bg-paper/[0.03] px-3 py-1 text-xs text-paper/60">
+            <p className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs text-white/85 backdrop-blur-md">
               <Target className="h-3.5 w-3.5" />
-              <span className="text-paper/45">Mission</span> {profile.mission}
+              <span className="text-white/55">Mission</span> {profile.mission}
             </p>
           )}
           <div className="mt-5 flex flex-wrap items-center gap-2">
@@ -111,7 +122,7 @@ export function GreetingHero() {
               Log today
               <ArrowUpRight className="h-4 w-4" />
             </Link>
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-line bg-card px-4 py-2.5 text-sm font-medium text-paper/65 shadow-soft">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-4 py-2.5 text-sm font-medium text-white/85 backdrop-blur-md">
               <Flame className="h-4 w-4 text-accent" />
               {streak}-day streak
             </span>
@@ -119,13 +130,15 @@ export function GreetingHero() {
         </div>
 
         <div className="flex shrink-0 items-center justify-center gap-5">
-          <RadialProgress
-            value={Math.max(0, Math.min(100, ((560 - daysLeft) / 560) * 100))}
-            size={120}
-            stroke={7}
-            label={<span className="text-2xl">{daysLeft}</span>}
-            sublabel="days left"
-          />
+          <div className="rounded-full bg-[rgb(6,6,8)]/55 p-2 backdrop-blur-md">
+            <RadialProgress
+              value={Math.max(0, Math.min(100, ((560 - daysLeft) / 560) * 100))}
+              size={120}
+              stroke={7}
+              label={<span className="text-2xl">{daysLeft}</span>}
+              sublabel={<span className="text-white/85">days left</span>}
+            />
+          </div>
         </div>
       </div>
     </Card>

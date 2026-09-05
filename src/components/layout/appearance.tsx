@@ -48,7 +48,7 @@ export function AppearanceModal({
                 >
                   <span
                     className="h-12 w-full rounded-lg border border-line"
-                    style={{ backgroundColor: s.swatch }}
+                    style={{ background: s.swatch }}
                   />
                   <span className="text-xs font-medium text-paper">{s.label}</span>
                   <span className="text-[0.65rem] text-paper/45">{s.hint}</span>

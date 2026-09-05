@@ -48,12 +48,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="relative flex h-[100dvh] overflow-hidden">
-      {/* Ambient canvas — two wide, very soft accent washes. Deliberately
-          restrained: the content and its white cards are the design. */}
-      <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
-        <div className="absolute inset-0 bg-bloom-field" />
-        <div className="absolute -left-40 -top-40 h-[30rem] w-[30rem] animate-bloom-float rounded-full bg-accent/[0.07] blur-[120px]" />
-        <div className="absolute -right-32 top-1/3 h-[26rem] w-[26rem] animate-bloom-float-2 rounded-full bg-bloom-3/[0.06] blur-[120px]" />
+      {/* Ambient canvas — two wide, very soft accent washes, scaled per surface
+          by --wash. Pure black keeps the least (glow on true black just reads
+          as grey); Velvet and Abyss take the most. */}
+      <div
+        className="pointer-events-none fixed inset-0 -z-10 overflow-hidden"
+        style={{ opacity: "var(--wash, 1)" }}
+      >
+        <div className="absolute inset-0 bg-aura" />
+        <div className="absolute -left-40 -top-40 h-[34rem] w-[34rem] animate-bloom-float rounded-full bg-[rgb(var(--aura-1)/0.16)] blur-[130px]" />
+        <div className="absolute -right-32 top-1/4 h-[30rem] w-[30rem] animate-bloom-float-2 rounded-full bg-[rgb(var(--aura-2)/0.14)] blur-[130px]" />
+        <div className="absolute bottom-[-12rem] left-1/3 h-[28rem] w-[28rem] animate-bloom-drift rounded-full bg-[rgb(var(--aura-1)/0.10)] blur-[140px]" />
       </div>
 
       {/* Desktop sidebar */}

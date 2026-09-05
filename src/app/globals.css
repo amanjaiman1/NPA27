@@ -26,6 +26,9 @@
   --line: 226 221 213;
   --shadow: 32 26 20;
   --scrim: 28 24 20;
+  --wash: 0.7;
+  --aura-1: 225 29 72;
+  --aura-2: 37 99 235;
   --accent: 225 29 72;
   --accent-fg: 255 255 255;
   --selection: 225 29 72;
@@ -52,6 +55,10 @@
   --line: 226 221 213;
   --shadow: 32 26 20;
   --scrim: 28 24 20;
+  /* Ivory stays airy: the aura is a hint of warmth, not a light show. */
+  --wash: 0.55;
+  --aura-1: 225 29 72;
+  --aura-2: 37 99 235;
   --positive: 5 150 105;
   --warning: 202 108 6;
   --danger: 220 38 38;
@@ -59,14 +66,20 @@
   color-scheme: light;
 }
 
-/* Charcoal — soft near-black, never flat pure black. */
+/* Pure Black — true #000 canvas for OLED. Cards sit just above the floor so
+   they still read as surfaces, and the ambient wash is dialled back: glow on
+   true black is what makes it look grey. */
 [data-surface="black"] {
-  --ink: 18 18 20;
-  --card: 27 27 31;
-  --paper: 242 241 238;
-  --line: 46 46 52;
+  --ink: 0 0 0;
+  --card: 13 13 15;
+  --paper: 245 245 246;
+  --line: 34 34 38;
   --shadow: 0 0 0;
   --scrim: 0 0 0;
+  /* Glow on true black just reads as grey, so this one keeps the least. */
+  --wash: 0.4;
+  --aura-1: 244 63 94;
+  --aura-2: 99 102 241;
   --positive: 52 211 153;
   --warning: 251 191 36;
   --danger: 251 113 133;
@@ -82,10 +95,51 @@
   --line: 41 48 74;
   --shadow: 4 6 20;
   --scrim: 2 4 14;
+  --wash: 0.8;
+  --aura-1: 96 165 250;
+  --aura-2: 167 139 250;
   --positive: 52 211 153;
   --warning: 251 191 36;
   --danger: 251 113 133;
   --info: 122 168 255;
+  color-scheme: dark;
+}
+
+/* Velvet — aubergine black lit from within. Warm violet cards, a magenta
+   ambient wash and the fullest glow of any surface. */
+[data-surface="velvet"] {
+  --ink: 16 7 25;
+  --card: 35 18 52;
+  --paper: 244 236 253;
+  --line: 66 38 94;
+  --shadow: 14 2 26;
+  --scrim: 9 2 18;
+  --wash: 1;
+  --aura-1: 173 71 255;
+  --aura-2: 255 61 158;
+  --positive: 74 222 176;
+  --warning: 252 200 68;
+  --danger: 253 126 145;
+  --info: 167 152 255;
+  color-scheme: dark;
+}
+
+/* Abyss — deep-ocean black with a cyan cast. Cool, high-contrast, and the
+   accents read almost neon against it. */
+[data-surface="abyss"] {
+  --ink: 3 14 20;
+  --card: 8 31 41;
+  --paper: 226 244 248;
+  --line: 20 58 70;
+  --shadow: 0 8 14;
+  --scrim: 0 6 12;
+  --wash: 1;
+  --aura-1: 34 224 214;
+  --aura-2: 56 130 255;
+  --positive: 45 226 178;
+  --warning: 252 205 74;
+  --danger: 253 122 132;
+  --info: 90 200 255;
   color-scheme: dark;
 }
 
@@ -333,6 +387,25 @@ samp {
     box-shadow:
       0 1px 2px rgb(var(--shadow) / 0.05),
       0 22px 44px -22px rgb(var(--shadow) / 0.24);
+  }
+
+  /**
+   * A panel sitting on top of media (photo or video). Video is unpredictable —
+   * bright khaki one second, dark foliage the next — so rather than hoping the
+   * current surface's text colour survives, the region flips to a fixed
+   * dark-on-media palette. Every token-based utility inside it (`text-paper/60`,
+   * `border-line`, `bg-card`, `.eyebrow`, the progress ring) then resolves to
+   * light-on-dark automatically, on all five surfaces.
+   */
+  .on-media {
+    --ink: 6 6 8;
+    --card: 24 22 28;
+    --paper: 255 255 255;
+    --line: 78 74 84;
+    --shadow: 0 0 0;
+    --scrim: 0 0 0;
+    color-scheme: dark;
+    color: rgb(var(--paper));
   }
 
   /* A recessed panel used *inside* cards for secondary blocks. */
