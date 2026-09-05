@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { motion } from "framer-motion";
 import {
   Flame,
   Clock,
@@ -72,130 +71,131 @@ function greeting() {
 
 /* ── Greeting hero ───────────────────────────────────────────── */
 
-export function GreetingHero() {
+export function CommandPanel() {
   const profile = useChronicle((s) => s.profile);
   const journal = useChronicle((s) => s.journal);
   const today = toISODate(new Date());
   const daysLeft = daysBetween(today, profile.examDate);
   const journeyDay = daysBetween(profile.startDate, today);
   const streak = currentStreak(journal);
+  const longest = longestStreak(journal);
+  const total = totalHours(journal);
+  const days = studyDays(journal);
+  const mood = avgMood(journal, 14);
   const firstName = profile.name.split(" ")[0];
   const quote = QUOTES[journeyDay % QUOTES.length];
 
   return (
-    /* `on-media` flips this card to a fixed light-on-dark palette, so the
-       greeting, the countdown and every control stay legible over the film
-       whatever surface the rest of the app is using. */
+    /* The greeting, the countdown and the four headline numbers share one tall
+       panel. That is mostly for the film behind them: the clip is portrait, so
+       a short wide band showed almost nothing of the frame — this gives it a
+       canvas roughly twice as tall to fill.
+
+       `on-media` flips the whole subtree to a fixed light-on-dark palette, so
+       everything here stays legible over the video on any surface. */
     <Card className="on-media relative isolate overflow-hidden rounded-3xl border-white/10">
       <HeroVideo />
 
-      {/* Scrims, darkest where the text sits. Three cheap layers beat one flat
-          overlay: the copy gets real contrast without dimming the whole clip. */}
-      <div className="pointer-events-none absolute inset-0 bg-[rgb(6,6,8)]/55" />
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[rgb(6,6,8)]/92 via-[rgb(6,6,8)]/76 to-[rgb(6,6,8)]/45" />
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[rgb(6,6,8)]/80 via-transparent to-[rgb(6,6,8)]/45" />
+      {/* Scrims, darkest where the copy sits. Several cheap gradient layers
+          beat one flat overlay: the text gets real contrast while the clip
+          keeps its shape. No backdrop-filter anywhere over the video — that
+          re-rasterises every frame and is what made phones stutter. */}
+      <div className="pointer-events-none absolute inset-0 bg-[rgb(6,6,8)]/40" />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[rgb(6,6,8)]/90 via-[rgb(6,6,8)]/55 to-transparent" />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[rgb(6,6,8)]/70 via-transparent to-[rgb(6,6,8)]/35" />
       {/* a breath of brand colour so it still belongs to the palette */}
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-accent/20 via-transparent to-transparent" />
 
-      <div className="relative z-10 flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:p-8">
-        <div className="min-w-0">
-          <p className="eyebrow mb-3 text-white/75">
-            Day {journeyDay} of the journey · {profile.targetExam}
-          </p>
-          <h1 className="font-display text-[2.1rem] font-bold leading-[1.05] tracking-tightest text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.55)] sm:text-[2.9rem]">
-            {greeting()}, {firstName}.
-          </h1>
-          <p className="mt-3 max-w-md text-[0.95rem] leading-relaxed text-white/90 drop-shadow-[0_1px_8px_rgba(0,0,0,0.55)]">
-            “{quote}”
-          </p>
-          {profile.mission && (
-            <p className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs text-white/85 backdrop-blur-md">
-              <Target className="h-3.5 w-3.5" />
-              <span className="text-white/55">Mission</span> {profile.mission}
+      <div className="relative z-10 p-5 sm:p-7 lg:p-8">
+        <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between sm:gap-8">
+          <div className="min-w-0">
+            <p className="eyebrow mb-3 text-white/90">
+              Day {journeyDay} of the journey · {profile.targetExam}
             </p>
-          )}
-          <div className="mt-5 flex flex-wrap items-center gap-2">
-            <Link
-              href="/journal?new=1"
-              className="inline-flex items-center gap-2 rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-accent-fg shadow-accent transition-all hover:-translate-y-px hover:brightness-[1.08]"
-            >
-              Log today
-              <ArrowUpRight className="h-4 w-4" />
-            </Link>
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-4 py-2.5 text-sm font-medium text-white/85 backdrop-blur-md">
-              <Flame className="h-4 w-4 text-accent" />
-              {streak}-day streak
-            </span>
+            <h1 className="font-display text-[2.1rem] font-bold leading-[1.05] tracking-tightest text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.6)] sm:text-[2.9rem]">
+              {greeting()}, {firstName}.
+            </h1>
+            <p className="mt-3 max-w-md text-[0.95rem] leading-relaxed text-white/90 drop-shadow-[0_1px_8px_rgba(0,0,0,0.6)]">
+              “{quote}”
+            </p>
+            {profile.mission && (
+              <p className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-[rgb(6,6,8)]/70 px-3 py-1 text-xs text-white/90">
+                <Target className="h-3.5 w-3.5" />
+                <span className="text-white/60">Mission</span> {profile.mission}
+              </p>
+            )}
+            <div className="mt-5 flex flex-wrap items-center gap-2">
+              <Link
+                href="/journal?new=1"
+                className="inline-flex items-center gap-2 rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-accent-fg shadow-accent transition-all hover:-translate-y-px hover:brightness-[1.08]"
+              >
+                Log today
+                <ArrowUpRight className="h-4 w-4" />
+              </Link>
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-[rgb(6,6,8)]/70 px-4 py-2.5 text-sm font-medium text-white/90">
+                <Flame className="h-4 w-4 text-accent" />
+                {streak}-day streak
+              </span>
+            </div>
+          </div>
+
+          <div className="flex shrink-0 items-center justify-center">
+            <div className="rounded-full bg-[rgb(6,6,8)]/60 p-2.5 ring-1 ring-white/10">
+              <RadialProgress
+                value={Math.max(0, Math.min(100, ((560 - daysLeft) / 560) * 100))}
+                size={124}
+                stroke={7}
+                label={<span className="text-2xl">{daysLeft}</span>}
+                sublabel={<span className="text-white/85">days left</span>}
+              />
+            </div>
           </div>
         </div>
 
-        <div className="flex shrink-0 items-center justify-center gap-5">
-          <div className="rounded-full bg-[rgb(6,6,8)]/55 p-2 backdrop-blur-md">
-            <RadialProgress
-              value={Math.max(0, Math.min(100, ((560 - daysLeft) / 560) * 100))}
-              size={120}
-              stroke={7}
-              label={<span className="text-2xl">{daysLeft}</span>}
-              sublabel={<span className="text-white/85">days left</span>}
-            />
-          </div>
+        {/* The headline numbers, as glass tiles on the film. */}
+        <div className="mt-6 grid grid-cols-2 gap-2.5 sm:mt-8 sm:gap-3 lg:grid-cols-4">
+          <MediaStat icon={Flame} label="Current streak" value={`${streak}d`} hint={`Best: ${longest} days`} />
+          <MediaStat icon={Clock} label="Total hours" value={`${total}h`} hint="Since day one" />
+          <MediaStat icon={CalendarCheck} label="Days studied" value={`${days}`} hint="Logged sessions" />
+          <MediaStat
+            icon={Smile}
+            label="Avg mood"
+            value={mood ? `${mood}/5` : "—"}
+            hint={mood ? MOOD[Math.round(mood)] : "No data"}
+          />
         </div>
       </div>
     </Card>
   );
 }
 
-/* ── Stat strip ──────────────────────────────────────────────── */
+/* ── Headline numbers, on the film ───────────────────────────── */
 
-function StatCard({
+function MediaStat({
   icon: Icon,
   label,
   value,
   hint,
-  delay = 0,
 }: {
   icon: typeof Flame;
   label: string;
   value: string;
   hint?: string;
-  delay?: number;
 }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay, duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-    >
-      <Card hover className="h-full p-4 sm:p-5">
-        <div className="flex items-center gap-2 text-paper/40">
-          <Icon className="h-4 w-4" />
-          <span className="text-[0.7rem] font-medium uppercase tracking-wider">
-            {label}
-          </span>
-        </div>
-        <p className="tabular mt-3 text-2xl font-semibold tracking-tight text-paper sm:text-3xl">
-          {value}
-        </p>
-        {hint && <p className="mt-1 text-xs text-paper/40">{hint}</p>}
-      </Card>
-    </motion.div>
-  );
-}
-
-export function StatStrip() {
-  const journal = useChronicle((s) => s.journal);
-  const streak = currentStreak(journal);
-  const longest = longestStreak(journal);
-  const total = totalHours(journal);
-  const days = studyDays(journal);
-  const mood = avgMood(journal, 14);
-
-  return (
-    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-      <StatCard icon={Flame} label="Current streak" value={`${streak}d`} hint={`Best: ${longest} days`} delay={0.02} />
-      <StatCard icon={Clock} label="Total hours" value={`${total}h`} hint="Since day one" delay={0.06} />
-      <StatCard icon={CalendarCheck} label="Days studied" value={`${days}`} hint="Logged sessions" delay={0.1} />
-      <StatCard icon={Smile} label="Avg mood" value={mood ? `${mood}/5` : "—"} hint={mood ? MOOD[Math.round(mood)] : "No data"} delay={0.14} />
+    <div className="rounded-2xl border border-white/15 bg-[rgb(6,6,8)]/70 p-3.5 sm:p-4">
+      <div className="flex items-center gap-2 text-white/85">
+        <Icon className="h-3.5 w-3.5 text-accent" />
+        {/* Two tiles per row on a phone: let the label wrap rather than
+            clipping "Current streak" to "Current stre…". */}
+        <span className="text-[0.62rem] font-semibold uppercase leading-tight tracking-[0.07em] sm:text-[0.68rem] sm:tracking-[0.1em]">
+          {label}
+        </span>
+      </div>
+      <p className="tabular mt-2 font-display text-2xl font-bold tracking-tightest text-white sm:text-[1.75rem]">
+        {value}
+      </p>
+      {hint && <p className="mt-0.5 truncate text-[0.7rem] text-white/80">{hint}</p>}
     </div>
   );
 }

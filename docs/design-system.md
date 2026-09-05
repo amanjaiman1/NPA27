@@ -132,10 +132,11 @@ background is deliberately quiet: two very soft accent washes, no texture.
 
 ## Media assets
 
-Source clips are optimised into `public/media/` — never referenced raw. The clip
-behind the command centre came in as a 7.2 MB 1080×1920 portrait with `moov` at
-the end, meaning a browser had to download the whole file before the first frame.
-The recipe:
+Source clips are optimised into `public/media/` — never referenced raw, and
+always in **two renditions**: a desktop cut and a phone cut. The clip behind the
+command centre came in as a 7.2 MB 1080×1920 portrait with `moov` at the end,
+meaning a browser had to download the whole file before the first frame. The
+recipe:
 
 ```bash
 ffmpeg -i source.mp4 -an \
@@ -154,6 +155,28 @@ footage), and always `+faststart`. The poster is mandatory: it paints
 immediately, and it's the *only* thing downloaded for anyone on reduced-motion,
 Save-Data or a 2G connection — see `components/dashboard/hero-video.tsx`, which
 also pauses the clip off-screen and in hidden tabs.
+
+### Performance rules for media panels
+
+Measured on the command centre with a 4x–20x CPU handicap and Fast 3G, these are
+the things that actually moved the needle — and one that didn't:
+
+- **No `backdrop-filter` over video, or on anything that scrolls.** A blurred
+  region compositing over moving frames re-rasterises every frame; the sticky
+  topbar re-blurs the page behind it on every scroll tick. Both are now opaque
+  below `sm` and frosted only on desktop. Use a flat translucent fill instead.
+- **Don't transform-animate blurred layers on phones.** The drifting aura orbs
+  are 130px blurs; animating them is continuous GPU work. They're `hidden sm:block`.
+- **Serve a phone rendition** and attach the video on `requestIdleCallback`, not
+  on mount, so it never competes with hydration.
+- **Pause off-screen and in hidden tabs** (`IntersectionObserver` +
+  `visibilitychange`).
+- `content-visibility: auto` on the cards below the fold was tried and removed:
+  54 fps without it, 55 with one wrapper, 49 applied per card. It bought nothing
+  here and added a scroll-height quirk. Measure before keeping a trick like that.
+
+Result on that harness: scroll went from 37 to 56 fps, main-thread blocking from
+1902 ms to 1073 ms, and the hero from 3.15 MB to 1.40 MB on a phone.
 
 ## Adding UI
 

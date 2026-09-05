@@ -12,8 +12,8 @@
  * Bump CACHE_VERSION to retire every previous cache on the next activation.
  */
 
-// v3 — new dark surfaces and the command-centre poster frame.
-const CACHE_VERSION = "v3";
+// v4 — the command centre gained a phone-sized poster frame.
+const CACHE_VERSION = "v4";
 const SHELL_CACHE = `chronicle-shell-${CACHE_VERSION}`;
 const PAGE_CACHE = `chronicle-pages-${CACHE_VERSION}`;
 const ASSET_CACHE = `chronicle-assets-${CACHE_VERSION}`;
@@ -26,10 +26,12 @@ const OFFLINE_URL = "/offline.html";
 const SHELL_ASSETS = [
   OFFLINE_URL,
   "/manifest.webmanifest",
-  // The hero's poster frame: 61 KB, and it keeps the command centre looking
-  // like itself offline. The clip itself is never precached — it's 3 MB and
-  // served through range requests, which this worker deliberately ignores.
+  // The command centre's poster frames (30 KB phone, 61 KB desktop), so the
+  // panel still looks like itself offline. The clips are never precached —
+  // they're megabytes, and they stream over range requests, which this worker
+  // deliberately leaves alone.
   "/media/hero-poster.jpg",
+  "/media/hero-poster-sm.jpg",
   "/icons/icon-192.png",
   "/icons/icon-512.png",
   "/icons/icon-maskable-192.png",

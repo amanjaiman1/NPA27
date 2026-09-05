@@ -55,10 +55,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         className="pointer-events-none fixed inset-0 -z-10 overflow-hidden"
         style={{ opacity: "var(--wash, 1)" }}
       >
+        {/* The gradient is painted once and costs nothing to keep on screen. */}
         <div className="absolute inset-0 bg-aura" />
-        <div className="absolute -left-40 -top-40 h-[34rem] w-[34rem] animate-bloom-float rounded-full bg-[rgb(var(--aura-1)/0.16)] blur-[130px]" />
-        <div className="absolute -right-32 top-1/4 h-[30rem] w-[30rem] animate-bloom-float-2 rounded-full bg-[rgb(var(--aura-2)/0.14)] blur-[130px]" />
-        <div className="absolute bottom-[-12rem] left-1/3 h-[28rem] w-[28rem] animate-bloom-drift rounded-full bg-[rgb(var(--aura-1)/0.10)] blur-[140px]" />
+        {/* The drifting orbs are 130px-blurred layers being transform-animated,
+            which a phone GPU re-rasterises continuously. They earn their keep on
+            a desktop; on small screens the gradient alone carries the look. */}
+        <div className="hidden sm:block">
+          <div className="absolute -left-40 -top-40 h-[34rem] w-[34rem] animate-bloom-float rounded-full bg-[rgb(var(--aura-1)/0.16)] blur-[130px]" />
+          <div className="absolute -right-32 top-1/4 h-[30rem] w-[30rem] animate-bloom-float-2 rounded-full bg-[rgb(var(--aura-2)/0.14)] blur-[130px]" />
+          <div className="absolute bottom-[-12rem] left-1/3 h-[28rem] w-[28rem] animate-bloom-drift rounded-full bg-[rgb(var(--aura-1)/0.10)] blur-[140px]" />
+        </div>
       </div>
 
       {/* Desktop sidebar */}
@@ -76,7 +82,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {drawerOpen && (
           <>
             <motion.div
-              className="fixed inset-0 z-40 bg-scrim/45 backdrop-blur-md lg:hidden"
+              className="fixed inset-0 z-40 bg-scrim/60 lg:hidden"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}

@@ -3,8 +3,7 @@
 import { useHasHydrated } from "@/lib/store";
 import { Loading } from "@/components/ui/loading";
 import {
-  GreetingHero,
-  StatStrip,
+  CommandPanel,
   HeatmapCard,
   TrendCard,
   TodayCard,
@@ -23,8 +22,7 @@ export default function CommandCenter() {
 
   return (
     <div className="space-y-4">
-      <GreetingHero />
-      <StatStrip />
+      <CommandPanel />
 
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="space-y-4 lg:col-span-2">
