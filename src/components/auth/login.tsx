@@ -49,9 +49,9 @@ export function Login() {
     <div className="relative grid min-h-[100dvh] place-items-center overflow-hidden px-4">
       {/* ambient bloom backdrop, matching the app shell */}
       <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
-        <div className="absolute inset-0 bg-bloom-field" />
-        <div className="absolute -left-24 top-[-6rem] h-80 w-80 animate-bloom-float rounded-full bg-accent/[0.08] blur-[90px]" />
-        <div className="absolute right-[-5rem] bottom-10 h-72 w-72 animate-bloom-float-2 rounded-full bg-bloom-3/[0.07] blur-[90px]" />
+        <div className="absolute inset-0 bg-aura" />
+        <div className="absolute -left-24 top-[-6rem] h-80 w-80 animate-bloom-float rounded-full bg-[rgb(var(--aura-1)/0.16)] blur-[90px]" />
+        <div className="absolute right-[-5rem] bottom-10 h-72 w-72 animate-bloom-float-2 rounded-full bg-[rgb(var(--aura-2)/0.14)] blur-[90px]" />
       </div>
 
       <div className="w-full max-w-sm">

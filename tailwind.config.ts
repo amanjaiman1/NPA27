@@ -69,10 +69,11 @@ const config: Config = {
         grid: "linear-gradient(rgb(var(--paper)/0.035) 1px, transparent 1px), linear-gradient(90deg, rgb(var(--paper)/0.035) 1px, transparent 1px)",
         "radial-fade":
           "radial-gradient(ellipse 80% 60% at 50% -10%, rgb(var(--paper)/0.06), transparent 70%)",
-        // A calm ambient wash — three wide, very low-opacity accents. Replaces
-        // the old floral "bloom field", which read as decorative and dated.
-        "bloom-field":
-          "radial-gradient(48% 42% at 8% 0%, rgb(var(--accent)/0.10), transparent 65%), radial-gradient(46% 40% at 96% 4%, rgb(var(--bloom-3)/0.09), transparent 65%), radial-gradient(52% 46% at 78% 96%, rgb(var(--bloom-4)/0.07), transparent 68%)",
+        // The ambient canvas glow. Colours come from --aura-1/--aura-2, which
+        // each surface sets for itself, and the whole layer is scaled by --wash
+        // — that's what separates Ivory's hint of warmth from Velvet's bloom.
+        aura:
+          "radial-gradient(46% 42% at 4% -6%, rgb(var(--aura-1)/0.28), transparent 62%), radial-gradient(44% 40% at 100% 4%, rgb(var(--aura-2)/0.23), transparent 62%), radial-gradient(62% 52% at 80% 104%, rgb(var(--aura-1)/0.18), transparent 68%)",
         sheen:
           "linear-gradient(180deg, rgb(var(--paper)/0.06), transparent 60%)",
         shine:

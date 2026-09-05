@@ -11,7 +11,7 @@ function FullScreen({ label }: { label: string }) {
   return (
     <div className="relative grid min-h-[100dvh] place-items-center overflow-hidden">
       <div className="pointer-events-none fixed inset-0 -z-10">
-        <div className="absolute inset-0 bg-bloom-field" />
+        <div className="absolute inset-0 bg-aura" />
       </div>
       <div className="flex flex-col items-center gap-4 text-center">
         <Logo className="h-10 w-10" />

@@ -7,7 +7,7 @@
    module only carries the ids + preview swatches for the picker UI.
    ════════════════════════════════════════════════════════════════ */
 
-export type Surface = "white" | "black" | "navy";
+export type Surface = "white" | "black" | "navy" | "velvet" | "abyss";
 export type Palette = "rose" | "sunset" | "lagoon" | "orchid" | "meadow" | "ember";
 
 export const DEFAULT_SURFACE: Surface = "white";
@@ -17,14 +17,47 @@ export interface SurfaceMeta {
   id: Surface;
   label: string;
   hint: string;
-  swatch: string; // preview of the canvas colour
+  /** Preview of the canvas — any CSS `background` value, gradients included. */
+  swatch: string;
   dark: boolean;
 }
 
 export const SURFACES: SurfaceMeta[] = [
-  { id: "white", label: "Ivory", hint: "Warm & bright", swatch: "#f6f4f0", dark: false },
-  { id: "black", label: "Charcoal", hint: "Soft near-black", swatch: "#121214", dark: true },
-  { id: "navy", label: "Indigo", hint: "Deep blue night", swatch: "#0f1221", dark: true },
+  {
+    id: "white",
+    label: "Ivory",
+    hint: "Warm & bright",
+    swatch: "linear-gradient(150deg, #fffefc 0%, #f2efe9 100%)",
+    dark: false,
+  },
+  {
+    id: "black",
+    label: "Pure Black",
+    hint: "True #000 · OLED",
+    swatch: "linear-gradient(150deg, #0d0d0f 0%, #000 100%)",
+    dark: true,
+  },
+  {
+    id: "navy",
+    label: "Indigo",
+    hint: "Deep blue night",
+    swatch: "linear-gradient(150deg, #23305c 0%, #0f1221 100%)",
+    dark: true,
+  },
+  {
+    id: "velvet",
+    label: "Velvet",
+    hint: "Aubergine & magenta",
+    swatch: "linear-gradient(150deg, #4a2470 0%, #130a1c 70%)",
+    dark: true,
+  },
+  {
+    id: "abyss",
+    label: "Abyss",
+    hint: "Deep ocean & neon cyan",
+    swatch: "linear-gradient(150deg, #0e5a66 0%, #041016 70%)",
+    dark: true,
+  },
 ];
 
 export interface PaletteMeta {
@@ -75,7 +108,7 @@ export const PALETTES: PaletteMeta[] = [
 ];
 
 export function isSurface(v: unknown): v is Surface {
-  return v === "white" || v === "black" || v === "navy";
+  return SURFACES.some((s) => s.id === v);
 }
 export function isPalette(v: unknown): v is Palette {
   return PALETTES.some((p) => p.id === v);
