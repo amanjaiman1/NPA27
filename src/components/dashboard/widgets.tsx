@@ -152,8 +152,11 @@ export function CommandPanel() {
           </div>
         </div>
 
-        {/* The headline numbers, as glass tiles on the film. */}
-        <div className="mt-6 grid grid-cols-2 gap-2.5 sm:mt-8 sm:gap-3 lg:grid-cols-4">
+        {/* The headline numbers, as glass tiles on the film — from `sm` up. A
+            phone keeps the panel hero-sized and gets them as ordinary cards
+            underneath instead (see StatStrip), because stretching the panel on a
+            narrow screen pushed everything else off the first view. */}
+        <div className="mt-6 hidden grid-cols-2 gap-2.5 sm:mt-8 sm:grid sm:gap-3 lg:grid-cols-4">
           <MediaStat icon={Flame} label="Current streak" value={`${streak}d`} hint={`Best: ${longest} days`} />
           <MediaStat icon={Clock} label="Total hours" value={`${total}h`} hint="Since day one" />
           <MediaStat icon={CalendarCheck} label="Days studied" value={`${days}`} hint="Logged sessions" />
@@ -165,6 +168,62 @@ export function CommandPanel() {
           />
         </div>
       </div>
+    </Card>
+  );
+}
+
+/* ── Headline numbers ────────────────────────────────────────── */
+
+/**
+ * The same four numbers as the tiles inside the panel, as ordinary cards.
+ * Phone-only: above `sm` they live on the film instead.
+ */
+export function StatStrip() {
+  const journal = useChronicle((s) => s.journal);
+  const streak = currentStreak(journal);
+  const longest = longestStreak(journal);
+  const total = totalHours(journal);
+  const days = studyDays(journal);
+  const mood = avgMood(journal, 14);
+
+  return (
+    <div className="grid grid-cols-2 gap-3 sm:hidden">
+      <StatCard icon={Flame} label="Current streak" value={`${streak}d`} hint={`Best: ${longest} days`} />
+      <StatCard icon={Clock} label="Total hours" value={`${total}h`} hint="Since day one" />
+      <StatCard icon={CalendarCheck} label="Days studied" value={`${days}`} hint="Logged sessions" />
+      <StatCard
+        icon={Smile}
+        label="Avg mood"
+        value={mood ? `${mood}/5` : "—"}
+        hint={mood ? MOOD[Math.round(mood)] : "No data"}
+      />
+    </div>
+  );
+}
+
+function StatCard({
+  icon: Icon,
+  label,
+  value,
+  hint,
+}: {
+  icon: typeof Flame;
+  label: string;
+  value: string;
+  hint?: string;
+}) {
+  return (
+    <Card hover className="h-full p-4">
+      <div className="flex items-center gap-2 text-paper/45">
+        <Icon className="h-3.5 w-3.5 text-accent" />
+        <span className="text-[0.62rem] font-semibold uppercase leading-tight tracking-[0.07em]">
+          {label}
+        </span>
+      </div>
+      <p className="tabular mt-2 font-display text-2xl font-bold tracking-tightest text-paper">
+        {value}
+      </p>
+      {hint && <p className="mt-0.5 truncate text-[0.7rem] text-paper/45">{hint}</p>}
     </Card>
   );
 }
