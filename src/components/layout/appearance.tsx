@@ -6,6 +6,7 @@ import { Modal } from "@/components/ui/modal";
 import { SURFACES, PALETTES } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 import { DataBackup } from "./data-backup";
+import { InstallCard } from "@/components/pwa/install-prompt";
 
 export function AppearanceModal({
   open,
@@ -105,6 +106,11 @@ export function AppearanceModal({
               );
             })}
           </div>
+        </section>
+
+        {/* Install as an app */}
+        <section className="border-t border-paper/[0.08] pt-6">
+          <InstallCard />
         </section>
 
         {/* Backup & data */}

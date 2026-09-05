@@ -8,6 +8,7 @@ import { SyncProvider } from "@/components/auth/sync-provider";
 import { AuthGate } from "@/components/auth/auth-gate";
 import { SleepGate } from "@/components/sleep/sleep-gate";
 import { ConfirmProvider } from "@/components/ui/confirm-dialog";
+import { PwaLayer } from "@/components/pwa/pwa-layer";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -41,12 +42,30 @@ export const metadata: Metadata = {
     "preparation tracker",
     "analytics",
   ],
+  // Installable app metadata
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    title: "Chronicle",
+    statusBarStyle: "default",
+  },
+  icons: {
+    icon: [
+      { url: "/icons/icon-192.png", type: "image/png", sizes: "192x192" },
+      { url: "/icons/icon-512.png", type: "image/png", sizes: "512x512" },
+    ],
+    apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180" }],
+  },
+  formatDetection: { telephone: false },
 };
 
 export const viewport: Viewport = {
   themeColor: "#08080a",
   width: "device-width",
   initialScale: 1,
+  // Pinch-zoom stays available — an installed app shouldn't cost accessibility.
+  maximumScale: 5,
+  userScalable: true,
 };
 
 // Apply the chosen appearance before paint to avoid a flash of the wrong look.
@@ -64,6 +83,17 @@ const themeScript = `
 })();
 `;
 
+// `beforeinstallprompt` can fire before React hydrates, and the event is only
+// usable if it was captured. Stash the earliest one for the install UI to use.
+const installCaptureScript = `
+(function(){
+  window.addEventListener('beforeinstallprompt', function(e){
+    e.preventDefault();
+    window.__chronicleInstallEvent = e;
+  });
+})();
+`;
+
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
@@ -71,6 +101,7 @@ export default function RootLayout({
     <html lang="en" data-surface="black" data-palette="rose" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+        <script dangerouslySetInnerHTML={{ __html: installCaptureScript }} />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${fraunces.variable} grain antialiased`}
@@ -83,6 +114,7 @@ export default function RootLayout({
                   <AppShell>{children}</AppShell>
                 </SleepGate>
               </AuthGate>
+              <PwaLayer />
             </ConfirmProvider>
           </SyncProvider>
         </AuthProvider>
