@@ -1,7 +1,15 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { X, Download, Share, Plus, Check, Smartphone } from "lucide-react";
+import {
+  X,
+  Download,
+  Share,
+  Plus,
+  Check,
+  Smartphone,
+  ChevronRight,
+} from "lucide-react";
 import { useInstall } from "@/lib/pwa";
 import { Logo } from "@/components/layout/logo";
 
@@ -134,7 +142,8 @@ export function InstallCard() {
           <Share className="mt-0.5 h-3.5 w-3.5 shrink-0 text-accent" />
           <span>
             In Safari, tap <span className="font-medium text-paper">Share</span>{" "}
-            → <span className="font-medium text-paper">Add to Home Screen</span>.
+            <ChevronRight className="inline h-3 w-3 align-[-2px]" />{" "}
+            <span className="font-medium text-paper">Add to Home Screen</span>.
           </span>
         </p>
       ) : (

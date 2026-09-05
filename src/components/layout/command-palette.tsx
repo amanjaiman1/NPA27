@@ -94,7 +94,7 @@ export function CommandPalette({
                 placeholder="Jump to a module, search the Chronicle…"
                 className="h-14 flex-1 bg-transparent text-[0.95rem] text-paper placeholder:text-paper/35 focus:outline-none"
               />
-              <kbd className="rounded-md border border-line bg-paper/[0.04] px-1.5 py-0.5 font-mono text-[0.6rem] text-paper/40">
+              <kbd className="rounded-md border border-line bg-paper/[0.04] px-1.5 py-0.5 text-[0.6rem] font-semibold text-paper/45">
                 ESC
               </kbd>
             </div>

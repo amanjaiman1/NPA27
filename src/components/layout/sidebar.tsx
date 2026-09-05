@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { PanelLeftClose, Search, Palette } from "lucide-react";
+import { PanelLeftClose, Search, Palette, Command } from "lucide-react";
 import { navGroups } from "@/lib/nav";
 import { cn } from "@/lib/utils";
 import { Logo } from "./logo";
@@ -80,8 +80,10 @@ export function Sidebar({
           {!collapsed && (
             <>
               <span className="text-sm">Search…</span>
-              <kbd className="ml-auto rounded-md bg-paper/[0.07] px-1.5 py-0.5 font-mono text-[0.6rem] text-paper/45">
-                ⌘K
+              {/* Drawn, not typed: Poppins has no ⌘ glyph, and borrowing one
+                  from a system font would smuggle in a third typeface. */}
+              <kbd className="ml-auto inline-flex items-center gap-0.5 rounded-md bg-paper/[0.07] px-1.5 py-1 text-[0.6rem] font-semibold text-paper/45">
+                <Command className="h-2.5 w-2.5" />K
               </kbd>
             </>
           )}

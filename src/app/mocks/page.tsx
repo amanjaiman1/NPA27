@@ -13,6 +13,7 @@ import {
   Sparkles,
   Clock,
   AlertTriangle,
+  ArrowRight,
 } from "lucide-react";
 import { useChronicle, useHasHydrated } from "@/lib/store";
 import type { MockTest } from "@/lib/types";
@@ -314,7 +315,9 @@ export default function MocksPage() {
                       Why your marks are moving
                     </h3>
                     <Badge tone="outline">
-                      {trend.priorAvg}% → {trend.recentAvg}%
+                      {trend.priorAvg}%
+                      <ArrowRight className="h-3 w-3" />
+                      {trend.recentAvg}%
                     </Badge>
                   </div>
                   <p className="mt-1 text-sm text-paper/60">{trend.headline}</p>
@@ -383,7 +386,7 @@ export default function MocksPage() {
                       <span className="tabular w-9 shrink-0 text-right text-xs text-paper/55">
                         {s.accuracy}%
                       </span>
-                      <span className="hidden w-16 shrink-0 text-right font-mono text-[0.6rem] text-paper/30 sm:block">
+                      <span className="tabular hidden w-16 shrink-0 text-right text-[0.6rem] text-paper/35 sm:block">
                         {s.avgTime}m avg
                       </span>
                     </li>
@@ -459,7 +462,7 @@ export default function MocksPage() {
                             style={{ width: `${(s.avgTime / maxTime) * 100}%` }}
                           />
                         </div>
-                        <span className="tabular w-12 shrink-0 text-right font-mono text-[0.65rem] text-paper/55">
+                        <span className="tabular w-12 shrink-0 text-right text-[0.65rem] text-paper/55">
                           {s.avgTime}m
                         </span>
                         <span
