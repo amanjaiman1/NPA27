@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import localFont from "next/font/local";
-import { Comfortaa } from "next/font/google";
+import { Comfortaa, Poppins } from "next/font/google";
 import "./globals.css";
 import { AppShell } from "@/components/layout/app-shell";
 import { AuthProvider } from "@/components/auth/auth-provider";
@@ -10,25 +9,23 @@ import { SleepGate } from "@/components/sleep/sleep-gate";
 import { ConfirmProvider } from "@/components/ui/confirm-dialog";
 import { PwaLayer } from "@/components/pwa/pwa-layer";
 
-const geistSans = localFont({
-  src: "./fonts/GeistVF.woff",
-  variable: "--font-sans",
-  weight: "100 900",
-  display: "swap",
-});
+/* Two faces, and only two — both geometric, so the whole app speaks with one
+   voice: Comfortaa for display (rounded, characterful) and Poppins for
+   everything else (neutral geometric, legible at UI sizes). */
 
-const geistMono = localFont({
-  src: "./fonts/GeistMonoVF.woff",
-  variable: "--font-mono",
-  weight: "100 900",
-  display: "swap",
-});
-
-/** Rounded geometric display face — headings, numbers, the brand voice. */
+/** Display face — headings, big numbers, the brand. */
 const comfortaa = Comfortaa({
   subsets: ["latin"],
   variable: "--font-display",
   weight: ["400", "500", "600", "700"],
+  display: "swap",
+});
+
+/** Text face — body copy, labels, controls, tabular data. */
+const poppins = Poppins({
+  subsets: ["latin"],
+  variable: "--font-sans",
+  weight: ["300", "400", "500", "600", "700"],
   display: "swap",
 });
 
@@ -106,7 +103,7 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: installCaptureScript }} />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${comfortaa.variable} antialiased`}
+        className={`${poppins.variable} ${comfortaa.variable} antialiased`}
       >
         <AuthProvider>
           <SyncProvider>

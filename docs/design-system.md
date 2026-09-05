@@ -45,17 +45,35 @@ stays legible. Add a palette by declaring both blocks and appending to
 
 ## Type
 
-| Face | Variable | Used for |
-| --- | --- | --- |
-| Comfortaa | `--font-display` (`font-display`) | headings, big numbers, the brand |
-| Geist Sans | `--font-sans` | body, UI, labels |
-| Geist Mono | `--font-mono` | keyboard shortcuts, code, raw readouts |
+**Two faces, and only two** — both geometric, so the whole app speaks with one
+voice. Anything else (a serif, a monospace, a system fallback creeping in) is a
+bug.
 
-Headings are **bold and tight** (`tracking-tightest`, `-0.045em`) — `h1`–`h3`
-pick up the display face automatically. `.eyebrow` is the small uppercase label
-above a heading: sans, semibold, `0.13em` tracking. The old look paired a serif
-display with mono eyebrows, which is what made it read like a printed document;
-avoid reintroducing either, and avoid italics (Comfortaa has no true italic).
+| Face | Variable / class | Used for |
+| --- | --- | --- |
+| **Comfortaa** | `--font-display` · `font-display` | headings, big numbers, the brand |
+| **Poppins** | `--font-sans` | body, labels, controls, tabular figures |
+
+- `h1`–`h4` pick up Comfortaa automatically; everything else is Poppins.
+- Headings are **bold and tight** (`tracking-tightest`, `-0.045em`). Body text is
+  tracked in slightly (`-0.015em`) because Poppins runs wide and open.
+- `.eyebrow` is the small uppercase label above a heading: Poppins, semibold,
+  `0.11em`. `.tabular` locks figures to one width for anything that has to line
+  up in a column.
+- `font-mono` deliberately resolves to Poppins too, so a stray utility can never
+  pull in a third typeface — `kbd`, `code`, `pre` and `samp` are Poppins with
+  tabular figures. There is no monospace face in this app.
+- No italics: Comfortaa has none, and a synthesised oblique looks broken.
+
+### Symbols must be drawn, not typed
+
+Poppins (latin subset) has **no arrows and no `⌘`** — `→ ↗ ↔ ⌘ ✓` are all
+missing, so typing them either falls back to a system font (a third typeface) or
+renders a tofu box. Use a `lucide-react` icon instead (`ArrowRight`,
+`ChevronRight`, `Command`, `Check`). Characters that *are* safe and in use:
+`− — · › » ± % ₹ • “ ” ’`. When in doubt, measure rather than guess — render the
+character in `--font-sans` on a canvas and compare its width against a
+private-use codepoint.
 
 ## Shape and depth
 

@@ -245,22 +245,40 @@ html {
   text-rendering: optimizeLegibility;
 }
 
+/* ── Type ─────────────────────────────────────────────────────────────
+   Exactly two faces, both geometric:
+     Poppins   (--font-sans)     body, labels, controls, figures
+     Comfortaa (--font-display)  headings, big numbers, the brand
+   Poppins runs a little wide and open, so text is tracked in slightly and
+   secondary copy sits at 400 rather than 300.
+   ─────────────────────────────────────────────────────────────────── */
+
 body {
   background-color: rgb(var(--ink));
   color: rgb(var(--paper));
   font-family: var(--font-sans), system-ui, sans-serif;
-  font-feature-settings: "cv11", "ss01";
-  font-variant-ligatures: contextual;
-  letter-spacing: -0.011em;
+  font-variant-numeric: lining-nums;
+  letter-spacing: -0.015em;
   overflow-x: hidden;
 }
 
 /* Headings lead with the rounded display face, set tight and confident. */
 h1,
 h2,
-h3 {
+h3,
+h4 {
   font-family: var(--font-display), var(--font-sans), system-ui, sans-serif;
   letter-spacing: -0.03em;
+}
+
+/* Poppins has no monospaced sibling here, and none is wanted: keyboard hints
+   and inline code borrow the text face with figures locked to one width. */
+kbd,
+code,
+pre,
+samp {
+  font-family: var(--font-sans), system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
 }
 
 ::selection {
@@ -328,15 +346,15 @@ h3 {
     border-color: rgb(var(--line));
   }
 
-  /* Small uppercase label. Sans, not mono — the mono/serif pairing is what
-     made the old look feel like a printed document. */
+  /* Small uppercase label above a heading. Poppins caps are already wide, so
+     it takes less tracking than a narrower face would. */
   .eyebrow {
     font-family: var(--font-sans), system-ui, sans-serif;
     text-transform: uppercase;
-    letter-spacing: 0.13em;
-    font-size: 0.68rem;
+    letter-spacing: 0.11em;
+    font-size: 0.66rem;
     font-weight: 600;
-    color: rgb(var(--paper) / 0.42);
+    color: rgb(var(--paper) / 0.45);
   }
 
   .tabular {

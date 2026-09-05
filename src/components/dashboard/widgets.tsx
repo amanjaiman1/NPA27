@@ -8,6 +8,7 @@ import {
   CalendarCheck,
   Smile,
   ArrowUpRight,
+  ArrowRight,
   Repeat,
   Target,
   Sparkles,
@@ -203,9 +204,10 @@ export function HeatmapCard() {
         </div>
         <Link
           href="/heatmap"
-          className="text-xs text-paper/45 transition-colors hover:text-paper"
+          className="inline-flex items-center gap-1 text-xs text-paper/45 transition-colors hover:text-paper"
         >
-          Full view →
+          Full view
+          <ArrowRight className="h-3.5 w-3.5" />
         </Link>
       </div>
       <Heatmap cells={cells} />
@@ -287,8 +289,9 @@ export function TodayCard() {
             {formatHours(entry.totalHours)} logged
           </h3>
         </div>
-        <Link href="/journal" className="text-xs text-paper/45 hover:text-paper">
-          Edit →
+        <Link href="/journal" className="inline-flex items-center gap-1 text-xs text-paper/45 transition-colors hover:text-paper">
+          Edit
+          <ArrowRight className="h-3.5 w-3.5" />
         </Link>
       </div>
       <div className="space-y-2">
@@ -363,8 +366,9 @@ export function RevisionDueCard() {
           <Repeat className="h-4 w-4 text-paper/45" />
           <h3 className="text-base font-semibold text-paper">Due for revision</h3>
         </div>
-        <Link href="/revision" className="text-xs text-paper/45 hover:text-paper">
-          All →
+        <Link href="/revision" className="inline-flex items-center gap-1 text-xs text-paper/45 transition-colors hover:text-paper">
+          All
+          <ArrowRight className="h-3.5 w-3.5" />
         </Link>
       </div>
       {due.length === 0 ? (
@@ -408,8 +412,9 @@ export function MockMomentumCard() {
           <TrendingUp className="h-4 w-4 text-paper/45" />
           <h3 className="text-base font-semibold text-paper">Mock momentum</h3>
         </div>
-        <Link href="/mocks" className="text-xs text-paper/45 hover:text-paper">
-          Analytics →
+        <Link href="/mocks" className="inline-flex items-center gap-1 text-xs text-paper/45 transition-colors hover:text-paper">
+          Analytics
+          <ArrowRight className="h-3.5 w-3.5" />
         </Link>
       </div>
       <div className="flex items-end justify-between">
@@ -448,8 +453,9 @@ export function GoalsCard() {
           <Target className="h-4 w-4 text-paper/45" />
           <h3 className="text-base font-semibold text-paper">Goals in motion</h3>
         </div>
-        <Link href="/goals" className="text-xs text-paper/45 hover:text-paper">
-          All →
+        <Link href="/goals" className="inline-flex items-center gap-1 text-xs text-paper/45 transition-colors hover:text-paper">
+          All
+          <ArrowRight className="h-3.5 w-3.5" />
         </Link>
       </div>
       <ul className="space-y-3.5">
@@ -489,8 +495,9 @@ export function MilestonesMini() {
           <MilestoneIcon className="h-4 w-4 text-paper/45" />
           <h3 className="text-base font-semibold text-paper">Recent milestones</h3>
         </div>
-        <Link href="/timeline" className="text-xs text-paper/45 hover:text-paper">
-          Timeline →
+        <Link href="/timeline" className="inline-flex items-center gap-1 text-xs text-paper/45 transition-colors hover:text-paper">
+          Timeline
+          <ArrowRight className="h-3.5 w-3.5" />
         </Link>
       </div>
       <ol className="relative space-y-4 border-l border-line pl-4">
@@ -571,9 +578,10 @@ export function ThisWeekCard() {
           </div>
           <Link
             href="/roadmap"
-            className="text-xs text-paper/45 transition-colors hover:text-paper"
+            className="inline-flex items-center gap-1 text-xs text-paper/45 transition-colors hover:text-paper"
           >
-            Roadmap →
+            Roadmap
+            <ArrowRight className="h-3.5 w-3.5" />
           </Link>
         </div>
 

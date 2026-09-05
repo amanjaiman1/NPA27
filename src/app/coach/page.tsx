@@ -803,7 +803,7 @@ function PromptBlock({
           {label}
         </span>
       </div>
-      <pre className="no-scrollbar overflow-x-auto whitespace-pre-wrap rounded-xl border border-line bg-paper/[0.03] p-4 font-mono text-[0.72rem] leading-relaxed text-paper/70">
+      <pre className="no-scrollbar overflow-x-auto whitespace-pre-wrap tabular rounded-xl border border-line bg-paper/[0.03] p-4 text-[0.72rem] leading-relaxed text-paper/70">
         {body}
       </pre>
     </div>

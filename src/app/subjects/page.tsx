@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ChevronRight, Layers } from "lucide-react";
+import { ArrowRight, ChevronRight, Layers } from "lucide-react";
 import { useChronicle, useHasHydrated } from "@/lib/store";
 import type { PaperCode, TopicStatus, Subject } from "@/lib/types";
 import { PageHeader } from "@/components/ui/page-header";
@@ -114,8 +114,9 @@ function SubjectCard({ subject, hours }: { subject: Subject; hours: number }) {
 
       {open && (
         <div className="border-t border-paper/[0.06] px-5 py-4">
-          <p className="mb-3 text-[0.7rem] text-paper/40">
-            Tap a topic to advance its status →
+          <p className="mb-3 inline-flex items-center gap-1 text-[0.7rem] text-paper/40">
+            Tap a topic to advance its status
+            <ArrowRight className="h-3 w-3" />
           </p>
           <div className="space-y-1.5">
             {subject.topics.map((t) => (

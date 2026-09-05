@@ -75,7 +75,7 @@ export function KnowledgeDensity({
       {/* density stats */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         <MiniStat icon={Layers} label="Topics" value={`${d.topics}`} hint={`${d.subjects} subjects`} />
-        <MiniStat icon={Share2} label="Links" value={`${d.relatedLinks}`} hint="topic ↔ topic" />
+        <MiniStat icon={Share2} label="Links" value={`${d.relatedLinks}`} hint="topic-to-topic" />
         <MiniStat icon={Gauge} label="Avg degree" value={`${d.avgDegree}`} hint="links per topic" />
         <MiniStat icon={Gauge} label="Density" value={`${d.linkDensity}`} hint="links / topic" />
         <MiniStat icon={Share2} label="Connected" value={`${d.connectedPct}%`} hint="topics linked" />

@@ -187,7 +187,7 @@ export default function RoadmapPage() {
       <PageHeader
         eyebrow="The Roadmap · CSE 2027"
         title="From today to the academy — one week at a time."
-        description="Your subject-wise micro-plan: GS2 → GS3 → GS1 → GS4, with Sociology running alongside. The hours ramp honestly from 6 toward 10. Revision, current affairs and answer writing are baked in."
+        description="Your subject-wise micro-plan: GS2 › GS3 › GS1 › GS4, with Sociology running alongside. The hours ramp honestly from 6 toward 10. Revision, current affairs and answer writing are baked in."
       />
 
       {/* Countdown / context strip */}

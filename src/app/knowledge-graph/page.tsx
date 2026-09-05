@@ -80,7 +80,7 @@ export default function KnowledgeGraphPage() {
       <PageHeader
         eyebrow="UPSC Knowledge Graph"
         title="The syllabus is a web, not a list."
-        description="An Obsidian-style map of every topic and how it connects. Polity → Parliament → Constitutional Bodies; History → 1857 → the National Movement. Trace links, find backlinks, and wire new connections as you learn."
+        description="An Obsidian-style map of every topic and how it connects. Polity › Parliament › Constitutional Bodies; History › 1857 › the National Movement. Trace links, find backlinks, and wire new connections as you learn."
       />
 
       {/* Controls */}

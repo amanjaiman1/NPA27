@@ -186,7 +186,7 @@ export function CandleChart({
 
       {/* readout */}
       {hc && (
-        <div className="pointer-events-none absolute left-3 top-3 rounded-lg border border-line bg-card/95 px-3 py-2 font-mono text-[0.65rem] leading-relaxed text-paper/70 backdrop-blur">
+        <div className="pointer-events-none absolute left-3 top-3 tabular rounded-lg border border-line bg-card/95 px-3 py-2 text-[0.65rem] leading-relaxed text-paper/70 backdrop-blur">
           <div className="mb-0.5 text-paper/90">{hc.name}</div>
           <div className="flex gap-3">
             <span>O {Math.round(hc.open)}</span>

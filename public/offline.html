@@ -56,9 +56,12 @@
         padding: 1.5rem;
         background: rgb(var(--ink));
         color: rgb(var(--paper));
+        /* The app's Poppins is served by the bundler, which this standalone
+           document can't reference — so it asks for Poppins (used if the OS has
+           it) and otherwise falls back to the closest rounded system face. */
         font-family:
-          ui-rounded, "SF Pro Rounded", "Segoe UI Variable", ui-sans-serif,
-          system-ui, -apple-system, Roboto, Arial, sans-serif;
+          Poppins, ui-rounded, "SF Pro Rounded", "Segoe UI Variable",
+          ui-sans-serif, system-ui, -apple-system, Roboto, Arial, sans-serif;
         letter-spacing: -0.011em;
         -webkit-font-smoothing: antialiased;
       }

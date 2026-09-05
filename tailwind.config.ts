@@ -37,10 +37,13 @@ const config: Config = {
         foreground: "rgb(var(--paper) / <alpha-value>)",
       },
       fontFamily: {
+        // The app uses exactly two faces: Poppins for text, Comfortaa for
+        // display. `mono` deliberately resolves to Poppins as well — pair it
+        // with the `.tabular` class for figures that need to line up — so a
+        // stray `font-mono` can never pull in a third typeface.
         sans: ["var(--font-sans)", "system-ui", "sans-serif"],
-        mono: ["var(--font-mono)", "ui-monospace", "monospace"],
-        // Rounded geometric display face — the voice of the new look.
         display: ["var(--font-display)", "var(--font-sans)", "sans-serif"],
+        mono: ["var(--font-sans)", "system-ui", "sans-serif"],
       },
       letterSpacing: {
         tightest: "-0.045em",
