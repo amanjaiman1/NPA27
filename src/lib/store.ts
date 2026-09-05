@@ -565,34 +565,48 @@ export const useChronicle = create<ChronicleState>()(
     }),
     {
       name: "upsc-chronicle-store",
-      version: 7,
+      version: 8,
       storage: createJSONStorage(() => localStorage),
       migrate: (persisted, version) => {
         const state = persisted as Partial<ChronicleState> | undefined;
+
+        /**
+         * v7 -> v8: the appearance system was redesigned — the surfaces were
+         * rebuilt and renamed (Ivory · Charcoal · Indigo) and every palette
+         * retuned, so a pre-redesign choice no longer means the same thing.
+         * Reset the look once to the new default; it's one click to change it
+         * back. The standalone keys the pre-paint script reads move too, or the
+         * first paint would disagree with the store.
+         */
+        const resetAppearance = (next: Record<string, unknown>) => {
+          if (version >= 8) return next;
+          next.surface = DEFAULT_SURFACE;
+          next.palette = DEFAULT_PALETTE;
+          if (typeof localStorage !== "undefined") {
+            localStorage.setItem("upsc-chronicle-surface", DEFAULT_SURFACE);
+            localStorage.setItem("upsc-chronicle-palette", DEFAULT_PALETTE);
+          }
+          return next;
+        };
+
         // v<6: a clean slate. Aman starts logging from today, so we discard the
         // previously-seeded demo records entirely and rebuild from fresh data.
         if (version < 6) {
-          return {
+          return resetAppearance({
             ...createFreshData(),
-            surface: DEFAULT_SURFACE,
-            palette: DEFAULT_PALETTE,
-          } as ChronicleState;
+          } as unknown as Record<string, unknown>) as unknown as ChronicleState;
         }
         // v6 -> v7: retire the light/dark toggle in favour of independent
-        // surface + palette settings. Keep all logged data; map old theme.
+        // surface + palette settings. Keep all logged data.
         if (version < 7) {
           const old = (state ?? {}) as Partial<ChronicleState> & {
             theme?: string;
           };
-          const surface: Surface = old.theme === "light" ? "white" : "black";
-          const next: Record<string, unknown> = {
-            ...old,
-            surface,
-            palette: DEFAULT_PALETTE,
-          };
+          const next: Record<string, unknown> = { ...old };
           delete next.theme;
-          return next as unknown as ChronicleState;
+          return resetAppearance(next) as unknown as ChronicleState;
         }
+        if (state) resetAppearance(state as unknown as Record<string, unknown>);
         // v1 -> v2: backfill the expanded Daily Journal fields so older
         // entries render cleanly alongside the richer schema.
         if (state && version < 2 && Array.isArray(state.journal)) {

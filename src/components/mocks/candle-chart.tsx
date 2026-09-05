@@ -133,7 +133,7 @@ export function CandleChart({
                 x2={cx}
                 y1={yHigh}
                 y2={yLow}
-                className="stroke-paper/45"
+                className={cn(c.up ? "stroke-positive/60" : "stroke-danger/55")}
                 strokeWidth={1}
               />
               <rect
@@ -143,10 +143,10 @@ export function CandleChart({
                 height={h}
                 rx={1}
                 className={cn(
-                  c.up ? "fill-paper" : "fill-ink stroke-paper/80",
+                  c.up ? "fill-positive" : "fill-card stroke-danger",
                 )}
-                fillOpacity={c.up ? 0.92 : 1}
-                strokeWidth={c.up ? 0 : 1.3}
+                fillOpacity={c.up ? 0.9 : 1}
+                strokeWidth={c.up ? 0 : 1.4}
               />
               {/* volume */}
               <rect
@@ -154,8 +154,8 @@ export function CandleChart({
                 y={geom.yVol(c.volume)}
                 width={geom.cw}
                 height={Math.max(height - PAD.bottom - geom.yVol(c.volume), 0)}
-                className="fill-paper"
-                fillOpacity={active ? 0.4 : 0.16}
+                className={cn(c.up ? "fill-positive" : "fill-danger")}
+                fillOpacity={active ? 0.35 : 0.14}
               />
             </g>
           );
@@ -186,7 +186,7 @@ export function CandleChart({
 
       {/* readout */}
       {hc && (
-        <div className="pointer-events-none absolute left-3 top-3 rounded-lg border border-paper/12 bg-ink/85 px-3 py-2 font-mono text-[0.65rem] leading-relaxed text-paper/70 backdrop-blur">
+        <div className="pointer-events-none absolute left-3 top-3 rounded-lg border border-line bg-card/95 px-3 py-2 font-mono text-[0.65rem] leading-relaxed text-paper/70 backdrop-blur">
           <div className="mb-0.5 text-paper/90">{hc.name}</div>
           <div className="flex gap-3">
             <span>O {Math.round(hc.open)}</span>

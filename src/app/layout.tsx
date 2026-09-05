@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
-import { Fraunces } from "next/font/google";
+import { Comfortaa } from "next/font/google";
 import "./globals.css";
 import { AppShell } from "@/components/layout/app-shell";
 import { AuthProvider } from "@/components/auth/auth-provider";
@@ -24,9 +24,11 @@ const geistMono = localFont({
   display: "swap",
 });
 
-const fraunces = Fraunces({
+/** Rounded geometric display face — headings, numbers, the brand voice. */
+const comfortaa = Comfortaa({
   subsets: ["latin"],
   variable: "--font-display",
+  weight: ["400", "500", "600", "700"],
   display: "swap",
 });
 
@@ -60,7 +62,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#08080a",
+  themeColor: "#f6f4f0",
   width: "device-width",
   initialScale: 1,
   // Pinch-zoom stays available — an installed app shouldn't cost accessibility.
@@ -72,12 +74,12 @@ export const viewport: Viewport = {
 const themeScript = `
 (function(){
   try {
-    var s = localStorage.getItem('upsc-chronicle-surface') || 'black';
+    var s = localStorage.getItem('upsc-chronicle-surface') || 'white';
     var p = localStorage.getItem('upsc-chronicle-palette') || 'rose';
     document.documentElement.setAttribute('data-surface', s);
     document.documentElement.setAttribute('data-palette', p);
   } catch (e) {
-    document.documentElement.setAttribute('data-surface','black');
+    document.documentElement.setAttribute('data-surface','white');
     document.documentElement.setAttribute('data-palette','rose');
   }
 })();
@@ -98,13 +100,13 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" data-surface="black" data-palette="rose" suppressHydrationWarning>
+    <html lang="en" data-surface="white" data-palette="rose" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
         <script dangerouslySetInnerHTML={{ __html: installCaptureScript }} />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${fraunces.variable} grain antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${comfortaa.variable} antialiased`}
       >
         <AuthProvider>
           <SyncProvider>

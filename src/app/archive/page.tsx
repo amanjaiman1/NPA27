@@ -21,10 +21,10 @@ const STATUS_META: Record<
   StageStatus,
   { icon: typeof Lock; tone: string; ring: string }
 > = {
-  Locked: { icon: Lock, tone: "text-paper/35", ring: "border-dashed border-paper/20 bg-ink" },
-  "In Progress": { icon: CircleDot, tone: "text-paper", ring: "border-paper/30 bg-paper/10" },
-  Cleared: { icon: Check, tone: "text-ink", ring: "border-paper/20 bg-paper" },
-  "Awaiting Result": { icon: Clock, tone: "text-paper", ring: "border-paper/30 bg-paper/10 animate-pulse-ring" },
+  Locked: { icon: Lock, tone: "text-paper/35", ring: "border-dashed border-paper/20 bg-paper/[0.03]" },
+  "In Progress": { icon: CircleDot, tone: "text-accent", ring: "border-accent/40 bg-accent/10" },
+  Cleared: { icon: Check, tone: "text-accent-fg", ring: "border-accent bg-accent" },
+  "Awaiting Result": { icon: Clock, tone: "text-accent", ring: "border-accent/40 bg-accent/10 animate-pulse-ring" },
   "Not Cleared": { icon: X, tone: "text-paper/50", ring: "border-paper/15 bg-paper/[0.04]" },
 };
 
@@ -59,12 +59,12 @@ export default function ArchivePage() {
         <div className="absolute -right-12 -top-20 h-64 w-64 rounded-full bg-paper/[0.05] blur-3xl" />
         <div className="relative">
           <Trophy className="h-7 w-7 text-paper/70" />
-          <p className="mt-4 max-w-2xl font-display text-xl font-light italic leading-relaxed text-paper/80">
+          <p className="mt-4 max-w-2xl font-display text-xl font-medium leading-relaxed text-paper/75">
             “Every setback was tuition. Every cleared stage, a door. {profile.name.split(" ")[0]} is
             writing a story that ends in three letters after a name.”
           </p>
           {profile.mission && (
-            <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-paper/12 bg-paper/[0.03] px-3.5 py-1.5 text-sm text-paper/70">
+            <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-line bg-paper/[0.03] px-3.5 py-1.5 text-sm text-paper/70">
               <Trophy className="h-3.5 w-3.5 text-paper/50" />
               <span className="text-paper/45">Mission</span> {profile.mission}
             </div>
@@ -158,7 +158,7 @@ export default function ArchivePage() {
         <p className="text-sm text-paper/50">
           The final entry in this archive is still being written.
         </p>
-        <p className="mt-1 font-display text-lg italic text-paper/80">
+        <p className="mt-1 font-display text-lg font-medium text-paper/75">
           Keep going. The list is waiting.
         </p>
       </Card>

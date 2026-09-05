@@ -2,7 +2,7 @@
    Appearance — the user-choosable look of the Chronicle.
    Two independent dimensions:
      • Surface  — the canvas the app sits on
-     • Palette  — the bloom colours used everywhere inside
+     • Palette  — the accent + data colours used everywhere inside
    The actual colour values live as CSS variables in globals.css; this
    module only carries the ids + preview swatches for the picker UI.
    ════════════════════════════════════════════════════════════════ */
@@ -10,7 +10,7 @@
 export type Surface = "white" | "black" | "navy";
 export type Palette = "rose" | "sunset" | "lagoon" | "orchid" | "meadow" | "ember";
 
-export const DEFAULT_SURFACE: Surface = "black";
+export const DEFAULT_SURFACE: Surface = "white";
 export const DEFAULT_PALETTE: Palette = "rose";
 
 export interface SurfaceMeta {
@@ -22,54 +22,55 @@ export interface SurfaceMeta {
 }
 
 export const SURFACES: SurfaceMeta[] = [
-  { id: "white", label: "White", hint: "Bright & airy", swatch: "#fdfafb", dark: false },
-  { id: "black", label: "Monochrome Black", hint: "Classic & focused", swatch: "#090909", dark: true },
-  { id: "navy", label: "Dark Navy", hint: "Deep & calm", swatch: "#0c1226", dark: true },
+  { id: "white", label: "Ivory", hint: "Warm & bright", swatch: "#f6f4f0", dark: false },
+  { id: "black", label: "Charcoal", hint: "Soft near-black", swatch: "#121214", dark: true },
+  { id: "navy", label: "Indigo", hint: "Deep blue night", swatch: "#0f1221", dark: true },
 ];
 
 export interface PaletteMeta {
   id: Palette;
   label: string;
   hint: string;
-  swatches: [string, string, string, string, string, string]; // matches --bloom-1..6
+  /** Preview of --bloom-1..6 (shown as a stacked swatch strip). */
+  swatches: [string, string, string, string, string, string];
 }
 
 export const PALETTES: PaletteMeta[] = [
   {
     id: "rose",
-    label: "Rosé Bloom",
-    hint: "Pink, lilac & mint",
-    swatches: ["#f06eaa", "#b28cf6", "#78a2fa", "#5cd6a6", "#f5ba50", "#fb9478"],
+    label: "Crimson",
+    hint: "Red · violet · teal",
+    swatches: ["#e11d48", "#7c3aed", "#2563eb", "#0d9488", "#d97706", "#db2777"],
   },
   {
     id: "sunset",
-    label: "Sunset",
-    hint: "Coral, amber & magenta",
-    swatches: ["#fb9260", "#f6ac4e", "#f06e8e", "#e268b8", "#fac860", "#f5846e"],
+    label: "Amber",
+    hint: "Gold · orange · pink",
+    swatches: ["#ca6c06", "#db2777", "#ea580c", "#be185d", "#a16207", "#4f46e5"],
   },
   {
     id: "lagoon",
-    label: "Lagoon",
-    hint: "Teal, cyan & seafoam",
-    swatches: ["#2ecabe", "#60c8fa", "#68a8fa", "#7edeb8", "#9ed47c", "#7098f6"],
+    label: "Teal",
+    hint: "Teal · sky · indigo",
+    swatches: ["#0d9488", "#0284c7", "#4f46e5", "#059669", "#a16207", "#2563eb"],
   },
   {
     id: "orchid",
-    label: "Orchid",
-    hint: "Violet, indigo & fuchsia",
-    swatches: ["#b284fa", "#8e7afa", "#d474ec", "#7c98fa", "#f07cca", "#a2b6fc"],
+    label: "Violet",
+    hint: "Purple · indigo · pink",
+    swatches: ["#7c3aed", "#4f46e5", "#c026d3", "#2563eb", "#e11d48", "#0d9488"],
   },
   {
     id: "meadow",
-    label: "Meadow",
-    hint: "Green, lime & sky",
-    swatches: ["#60ce84", "#b0d860", "#5ccab6", "#d6ca60", "#78c8f0", "#f4b860"],
+    label: "Emerald",
+    hint: "Green · lime · sky",
+    swatches: ["#059669", "#658504", "#0d9488", "#a16207", "#0284c7", "#ea580c"],
   },
   {
     id: "ember",
-    label: "Ember",
-    hint: "Red, orange & gold",
-    swatches: ["#f0705c", "#f6a24c", "#ec5c70", "#fac868", "#d47a5c", "#f68e84"],
+    label: "Coral",
+    hint: "Orange · amber · rose",
+    swatches: ["#ea580c", "#ca6c06", "#e11d48", "#a16207", "#c026d3", "#2563eb"],
   },
 ];
 

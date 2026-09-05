@@ -32,7 +32,7 @@ export function PwaLayer() {
             transition={{ duration: 0.22 }}
             className="pointer-events-none fixed left-1/2 top-3 z-[70] -translate-x-1/2"
           >
-            <span className="flex items-center gap-2 rounded-full border border-paper/12 bg-ink/85 px-3.5 py-1.5 text-xs text-paper/70 shadow-soft backdrop-blur-xl">
+            <span className="flex items-center gap-2 rounded-full border border-line bg-card/95 px-3.5 py-1.5 text-xs text-paper/70 shadow-soft backdrop-blur-xl">
               <WifiOff className="h-3.5 w-3.5 text-paper/45" />
               Offline — saved on this device
             </span>
@@ -50,7 +50,7 @@ export function PwaLayer() {
             className="fixed bottom-3 left-1/2 z-[65] -translate-x-1/2"
             role="status"
           >
-            <div className="flex items-center gap-3 rounded-full border border-paper/12 bg-ink/90 py-1.5 pl-4 pr-1.5 shadow-glow backdrop-blur-xl">
+            <div className="flex items-center gap-3 rounded-full border border-line bg-card/95 py-1.5 pl-4 pr-1.5 shadow-lift backdrop-blur-xl">
               <span className="text-xs text-paper/70">
                 A new version is ready
               </span>

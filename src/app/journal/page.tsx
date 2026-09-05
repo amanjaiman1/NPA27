@@ -185,7 +185,7 @@ export default function JournalPage() {
               "inline-flex items-center justify-center gap-2 rounded-xl border px-4 py-2.5 text-sm transition-colors",
               showFilters || activeFilters
                 ? "border-paper/25 bg-paper/[0.06] text-paper"
-                : "border-paper/12 text-paper/60 hover:border-paper/25 hover:text-paper",
+                : "border-line text-paper/60 hover:border-paper/25 hover:text-paper",
             )}
           >
             <SlidersHorizontal className="h-4 w-4" />
@@ -284,7 +284,7 @@ export default function JournalPage() {
         <div className="space-y-8">
           {groups.map((group) => (
             <div key={group.key}>
-              <div className="sticky top-14 z-10 -mx-1 mb-3 flex items-center gap-3 bg-ink/80 px-1 py-1.5 backdrop-blur">
+              <div className="sticky top-14 z-10 -mx-1 mb-3 flex items-center gap-3 bg-ink/85 px-1 py-1.5 backdrop-blur-xl">
                 <h2 className="text-sm font-semibold tracking-snugg text-paper">
                   {group.label}
                 </h2>
@@ -309,7 +309,7 @@ export default function JournalPage() {
                     >
                       <div className="flex items-start gap-4">
                         {/* date */}
-                        <div className="flex w-12 shrink-0 flex-col items-center rounded-xl border border-paper/[0.08] bg-paper/[0.03] py-2">
+                        <div className="flex w-12 shrink-0 flex-col items-center rounded-xl border border-line bg-paper/[0.03] py-2">
                           <span className="tabular text-lg font-semibold leading-none text-paper">
                             {fromISODate(e.date).getDate()}
                           </span>

@@ -23,10 +23,10 @@ import { RadialProgress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 
 const STATUS_SHADE: Record<TopicStatus, string> = {
-  untouched: "bg-paper/15",
-  learning: "bg-paper/35",
-  revised: "bg-paper/65",
-  mastered: "bg-paper",
+  untouched: "bg-paper/12",
+  learning: "bg-accent/30",
+  revised: "bg-accent/60",
+  mastered: "bg-accent",
 };
 const STATUS_ORDER: TopicStatus[] = ["mastered", "revised", "learning", "untouched"];
 
@@ -137,7 +137,7 @@ export function KnowledgeDensity({
               <button
                 key={n.id}
                 onClick={() => onSelect(n.id)}
-                className="rounded-full border border-paper/12 px-2.5 py-1 text-xs text-paper/60 transition-colors hover:border-paper/30 hover:text-paper"
+                className="rounded-full border border-line px-2.5 py-1 text-xs text-paper/60 transition-colors hover:border-paper/30 hover:text-paper"
               >
                 {n.label}
               </button>
@@ -186,7 +186,7 @@ export function KnowledgeDensity({
               </span>
               <div className="h-1.5 w-20 overflow-hidden rounded-full bg-paper/10">
                 <div
-                  className="h-full rounded-full bg-paper"
+                  className="h-full rounded-full bg-accent"
                   style={{ width: `${s.mastery}%` }}
                 />
               </div>

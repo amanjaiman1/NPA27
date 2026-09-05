@@ -2,134 +2,241 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ───────────────────────────────────────────────────────────
-   Appearance system — two independent dimensions:
-     • data-surface  → the canvas      (white · black · navy)
-     • data-palette  → internal colour (the bloom bouquet)
-   ─────────────────────────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════════
+   The Chronicle — design tokens.
+
+   Two independent dimensions the user can choose:
+     • data-surface  → the canvas   (ivory · charcoal · indigo)
+     • data-palette  → the accent   (crimson · amber · teal · …)
+
+   Token model:
+     --ink      the canvas behind everything
+     --card     elevated surfaces (cards, sheets, the floating chrome)
+     --paper    foreground / text
+     --line     hairline borders
+     --accent   the brand colour: fills, active states, data highlights
+     --bloom-*  the six-colour data palette used by charts
+   ═══════════════════════════════════════════════════════════════════ */
 
 :root {
-  /* Fallback before the inline script runs = Monochrome Black + Rosé. */
-  --ink: 9 9 11;
-  --paper: 234 235 240;
-  --accent-fg: 26 14 22; /* dark text reads cleanly on the vivid accents */
-  --positive: 92 214 166;
-  --warning: 245 186 80;
-  --danger: 242 108 108;
-  --info: 120 162 250;
-  --accent: 240 90 156;
-  --selection: 240 90 156;
-  --bloom-1: 240 110 170;
-  --bloom-2: 178 140 246;
-  --bloom-3: 120 162 250;
-  --bloom-4: 92 214 166;
-  --bloom-5: 245 186 80;
-  --bloom-6: 251 148 120;
-  color-scheme: dark;
-}
-
-/* ── Backgrounds ─────────────────────────────────────────── */
-[data-surface="black"] {
-  --ink: 9 9 11;
-  --paper: 234 235 240;
-  --positive: 92 214 166;
-  --warning: 245 186 80;
-  --danger: 242 108 108;
-  --info: 120 162 250;
-  color-scheme: dark;
-}
-[data-surface="navy"] {
-  --ink: 12 18 38;
-  --paper: 223 229 245;
-  --positive: 96 216 168;
-  --warning: 247 190 92;
-  --danger: 244 112 112;
-  --info: 132 172 252;
-  color-scheme: dark;
-}
-[data-surface="white"] {
-  --ink: 253 250 251;
-  --paper: 28 24 32;
-  --positive: 28 150 110;
-  --warning: 176 122 24;
-  --danger: 198 58 54;
-  --info: 56 104 200;
+  /* Fallback before the inline script runs = Ivory + Crimson. */
+  --ink: 246 244 240;
+  --card: 255 255 255;
+  --paper: 34 31 28;
+  --line: 226 221 213;
+  --shadow: 32 26 20;
+  --scrim: 28 24 20;
+  --accent: 225 29 72;
+  --accent-fg: 255 255 255;
+  --selection: 225 29 72;
+  --positive: 5 150 105;
+  --warning: 202 108 6;
+  --danger: 220 38 38;
+  --info: 37 99 235;
+  --bloom-1: 225 29 72;
+  --bloom-2: 124 58 237;
+  --bloom-3: 37 99 235;
+  --bloom-4: 13 148 136;
+  --bloom-5: 217 119 6;
+  --bloom-6: 219 39 119;
   color-scheme: light;
 }
 
-/* ── Internal colouring (bloom palettes) ─────────────────── */
+/* ── Surfaces ─────────────────────────────────────────────────────── */
+
+/* Ivory — warm, bright, airy. The default. */
+[data-surface="white"] {
+  --ink: 246 244 240;
+  --card: 255 255 255;
+  --paper: 34 31 28;
+  --line: 226 221 213;
+  --shadow: 32 26 20;
+  --scrim: 28 24 20;
+  --positive: 5 150 105;
+  --warning: 202 108 6;
+  --danger: 220 38 38;
+  --info: 37 99 235;
+  color-scheme: light;
+}
+
+/* Charcoal — soft near-black, never flat pure black. */
+[data-surface="black"] {
+  --ink: 18 18 20;
+  --card: 27 27 31;
+  --paper: 242 241 238;
+  --line: 46 46 52;
+  --shadow: 0 0 0;
+  --scrim: 0 0 0;
+  --positive: 52 211 153;
+  --warning: 251 191 36;
+  --danger: 251 113 133;
+  --info: 96 165 250;
+  color-scheme: dark;
+}
+
+/* Indigo — deep blue night. */
+[data-surface="navy"] {
+  --ink: 15 18 33;
+  --card: 23 28 48;
+  --paper: 226 231 245;
+  --line: 41 48 74;
+  --shadow: 4 6 20;
+  --scrim: 2 4 14;
+  --positive: 52 211 153;
+  --warning: 251 191 36;
+  --danger: 251 113 133;
+  --info: 122 168 255;
+  color-scheme: dark;
+}
+
+/* ── Palettes ─────────────────────────────────────────────────────────
+   Each palette declares its dark-surface values. A matching
+   [data-surface="white"] block deepens the accent so it keeps ~4.5:1
+   against the ivory canvas — the fill stays vivid, the text stays legible.
+   ─────────────────────────────────────────────────────────────────── */
+
 [data-palette="rose"] {
-  --accent: 240 90 156;
-  --selection: 240 90 156;
-  --bloom-1: 240 110 170;
-  --bloom-2: 178 140 246;
-  --bloom-3: 120 162 250;
-  --bloom-4: 92 214 166;
-  --bloom-5: 245 186 80;
-  --bloom-6: 251 148 120;
+  --accent: 251 74 113;
+  --accent-fg: 40 6 16;
+  --selection: 251 74 113;
+  --bloom-1: 251 74 113;
+  --bloom-2: 167 139 250;
+  --bloom-3: 96 165 250;
+  --bloom-4: 45 212 191;
+  --bloom-5: 251 191 36;
+  --bloom-6: 244 114 182;
 }
+[data-surface="white"][data-palette="rose"] {
+  --accent: 225 29 72;
+  --accent-fg: 255 255 255;
+  --selection: 225 29 72;
+  --bloom-1: 225 29 72;
+  --bloom-2: 124 58 237;
+  --bloom-3: 37 99 235;
+  --bloom-4: 13 148 136;
+  --bloom-5: 217 119 6;
+  --bloom-6: 219 39 119;
+}
+
 [data-palette="sunset"] {
-  --accent: 244 124 72;
-  --selection: 244 124 72;
-  --bloom-1: 251 146 96;
-  --bloom-2: 246 172 78;
-  --bloom-3: 240 110 142;
-  --bloom-4: 226 104 184;
-  --bloom-5: 250 200 96;
-  --bloom-6: 245 132 110;
+  --accent: 251 174 60;
+  --accent-fg: 44 24 2;
+  --selection: 251 174 60;
+  --bloom-1: 251 174 60;
+  --bloom-2: 251 113 133;
+  --bloom-3: 253 138 76;
+  --bloom-4: 244 114 182;
+  --bloom-5: 250 204 21;
+  --bloom-6: 129 140 248;
 }
+[data-surface="white"][data-palette="sunset"] {
+  --accent: 202 108 6;
+  --accent-fg: 255 255 255;
+  --selection: 202 108 6;
+  --bloom-1: 202 108 6;
+  --bloom-2: 219 39 119;
+  --bloom-3: 234 88 12;
+  --bloom-4: 190 24 93;
+  --bloom-5: 161 98 7;
+  --bloom-6: 79 70 229;
+}
+
 [data-palette="lagoon"] {
-  --accent: 28 188 176;
-  --selection: 28 188 176;
-  --bloom-1: 46 202 190;
-  --bloom-2: 96 200 250;
-  --bloom-3: 104 168 250;
-  --bloom-4: 126 222 184;
-  --bloom-5: 158 212 124;
-  --bloom-6: 112 152 246;
+  --accent: 45 212 191;
+  --accent-fg: 2 34 32;
+  --selection: 45 212 191;
+  --bloom-1: 45 212 191;
+  --bloom-2: 56 189 248;
+  --bloom-3: 129 140 248;
+  --bloom-4: 110 231 183;
+  --bloom-5: 250 204 21;
+  --bloom-6: 96 165 250;
 }
+[data-surface="white"][data-palette="lagoon"] {
+  --accent: 13 148 136;
+  --accent-fg: 255 255 255;
+  --selection: 13 148 136;
+  --bloom-1: 13 148 136;
+  --bloom-2: 2 132 199;
+  --bloom-3: 79 70 229;
+  --bloom-4: 5 150 105;
+  --bloom-5: 161 98 7;
+  --bloom-6: 37 99 235;
+}
+
 [data-palette="orchid"] {
-  --accent: 158 110 248;
-  --selection: 158 110 248;
-  --bloom-1: 178 132 250;
-  --bloom-2: 142 122 250;
-  --bloom-3: 212 116 236;
-  --bloom-4: 124 152 250;
-  --bloom-5: 240 124 202;
-  --bloom-6: 162 182 252;
+  --accent: 167 139 250;
+  --accent-fg: 26 12 48;
+  --selection: 167 139 250;
+  --bloom-1: 167 139 250;
+  --bloom-2: 129 140 248;
+  --bloom-3: 232 121 249;
+  --bloom-4: 96 165 250;
+  --bloom-5: 251 113 133;
+  --bloom-6: 45 212 191;
 }
+[data-surface="white"][data-palette="orchid"] {
+  --accent: 124 58 237;
+  --accent-fg: 255 255 255;
+  --selection: 124 58 237;
+  --bloom-1: 124 58 237;
+  --bloom-2: 79 70 229;
+  --bloom-3: 192 38 211;
+  --bloom-4: 37 99 235;
+  --bloom-5: 225 29 72;
+  --bloom-6: 13 148 136;
+}
+
 [data-palette="meadow"] {
-  --accent: 52 196 128;
-  --selection: 52 196 128;
-  --bloom-1: 96 206 132;
-  --bloom-2: 176 216 96;
-  --bloom-3: 92 202 182;
-  --bloom-4: 214 202 96;
-  --bloom-5: 120 200 240;
-  --bloom-6: 244 184 96;
+  --accent: 52 211 153;
+  --accent-fg: 2 36 26;
+  --selection: 52 211 153;
+  --bloom-1: 52 211 153;
+  --bloom-2: 163 230 53;
+  --bloom-3: 45 212 191;
+  --bloom-4: 250 204 21;
+  --bloom-5: 56 189 248;
+  --bloom-6: 251 146 60;
 }
+[data-surface="white"][data-palette="meadow"] {
+  --accent: 5 150 105;
+  --accent-fg: 255 255 255;
+  --selection: 5 150 105;
+  --bloom-1: 5 150 105;
+  --bloom-2: 101 133 4;
+  --bloom-3: 13 148 136;
+  --bloom-4: 161 98 7;
+  --bloom-5: 2 132 199;
+  --bloom-6: 234 88 12;
+}
+
 [data-palette="ember"] {
-  --accent: 238 102 84;
-  --selection: 238 102 84;
-  --bloom-1: 240 112 92;
-  --bloom-2: 246 162 76;
-  --bloom-3: 236 92 112;
-  --bloom-4: 250 200 104;
-  --bloom-5: 212 122 92;
-  --bloom-6: 246 142 132;
+  --accent: 251 113 92;
+  --accent-fg: 44 12 6;
+  --selection: 251 113 92;
+  --bloom-1: 251 113 92;
+  --bloom-2: 251 174 60;
+  --bloom-3: 251 113 133;
+  --bloom-4: 250 204 21;
+  --bloom-5: 232 121 249;
+  --bloom-6: 96 165 250;
 }
+[data-surface="white"][data-palette="ember"] {
+  --accent: 234 88 12;
+  --accent-fg: 255 255 255;
+  --selection: 234 88 12;
+  --bloom-1: 234 88 12;
+  --bloom-2: 202 108 6;
+  --bloom-3: 225 29 72;
+  --bloom-4: 161 98 7;
+  --bloom-5: 192 38 211;
+  --bloom-6: 37 99 235;
+}
+
+/* ── Base ─────────────────────────────────────────────────────────── */
 
 * {
-  border-color: rgb(var(--paper) / 0.1);
-}
-
-/* Dark surfaces hold the canvas at 90% opacity so the floral field reads as a
-   quiet wash rather than competing with content. White keeps it clear. */
-.bloom-scrim {
-  background-color: rgb(var(--ink) / 0.9);
-}
-[data-surface="white"] .bloom-scrim {
-  background-color: transparent;
+  border-color: rgb(var(--line));
 }
 
 html {
@@ -144,15 +251,29 @@ body {
   font-family: var(--font-sans), system-ui, sans-serif;
   font-feature-settings: "cv11", "ss01";
   font-variant-ligatures: contextual;
+  letter-spacing: -0.011em;
   overflow-x: hidden;
 }
 
+/* Headings lead with the rounded display face, set tight and confident. */
+h1,
+h2,
+h3 {
+  font-family: var(--font-display), var(--font-sans), system-ui, sans-serif;
+  letter-spacing: -0.03em;
+}
+
 ::selection {
-  background: rgb(var(--selection) / 0.16);
+  background: rgb(var(--selection) / 0.2);
   color: rgb(var(--paper));
 }
 
-/* Refined, minimal scrollbars */
+:focus-visible {
+  outline: 2px solid rgb(var(--accent) / 0.55);
+  outline-offset: 2px;
+}
+
+/* Slim, unobtrusive scrollbars */
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;
@@ -161,43 +282,61 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgb(var(--paper) / 0.12);
+  background: rgb(var(--paper) / 0.16);
   border-radius: 999px;
   border: 3px solid transparent;
   background-clip: content-box;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgb(var(--paper) / 0.22);
+  background: rgb(var(--paper) / 0.28);
   background-clip: content-box;
 }
 
 @layer components {
-  /* Frosted surface used for cards & panels */
+  /* The elevated surface: cards, sheets, floating chrome. Lighter than the
+     canvas and lifted by a soft, wide shadow instead of a hard border. */
   .surface {
-    background-color: rgb(var(--paper) / 0.03);
-    border: 1px solid rgb(var(--paper) / 0.08);
-    border-radius: 1.125rem;
+    background-color: rgb(var(--card));
+    border: 1px solid rgb(var(--line));
+    border-radius: 1.5rem;
+    box-shadow:
+      0 1px 2px rgb(var(--shadow) / 0.04),
+      0 12px 32px -18px rgb(var(--shadow) / 0.16);
   }
   .surface-hover {
-    transition: border-color 0.25s ease, background-color 0.25s ease,
-      transform 0.25s ease;
+    transition:
+      box-shadow 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+      transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+      border-color 0.3s ease;
   }
   .surface-hover:hover {
-    background-color: rgb(var(--paper) / 0.05);
-    border-color: rgb(var(--paper) / 0.16);
+    transform: translateY(-2px);
+    border-color: rgb(var(--accent) / 0.35);
+    box-shadow:
+      0 1px 2px rgb(var(--shadow) / 0.05),
+      0 22px 44px -22px rgb(var(--shadow) / 0.24);
+  }
+
+  /* A recessed panel used *inside* cards for secondary blocks. */
+  .inset-panel {
+    background-color: rgb(var(--paper) / 0.04);
+    border: 1px solid rgb(var(--line));
+    border-radius: 1rem;
   }
 
   .hairline {
-    border-color: rgb(var(--paper) / 0.08);
+    border-color: rgb(var(--line));
   }
 
-  /* Tiny uppercase eyebrow label */
+  /* Small uppercase label. Sans, not mono — the mono/serif pairing is what
+     made the old look feel like a printed document. */
   .eyebrow {
-    font-family: var(--font-mono), monospace;
+    font-family: var(--font-sans), system-ui, sans-serif;
     text-transform: uppercase;
-    letter-spacing: 0.18em;
-    font-size: 0.65rem;
-    color: rgb(var(--paper) / 0.45);
+    letter-spacing: 0.13em;
+    font-size: 0.68rem;
+    font-weight: 600;
+    color: rgb(var(--paper) / 0.42);
   }
 
   .tabular {
@@ -212,7 +351,7 @@ body {
     justify-content: center;
     gap: 0.5rem;
     border-radius: 999px;
-    font-weight: 500;
+    font-weight: 600;
     transition: all 0.2s cubic-bezier(0.22, 1, 0.36, 1);
     white-space: nowrap;
     user-select: none;
@@ -220,19 +359,20 @@ body {
   .btn-primary {
     background: rgb(var(--accent));
     color: rgb(var(--accent-fg));
+    box-shadow: 0 8px 20px -10px rgb(var(--accent) / 0.6);
   }
   .btn-primary:hover {
-    opacity: 0.88;
+    filter: brightness(1.06);
     transform: translateY(-1px);
   }
   .btn-ghost {
-    background: rgb(var(--paper) / 0.05);
+    background: rgb(var(--card));
     color: rgb(var(--paper));
-    border: 1px solid rgb(var(--paper) / 0.1);
+    border: 1px solid rgb(var(--line));
   }
   .btn-ghost:hover {
-    background: rgb(var(--paper) / 0.1);
-    border-color: rgb(var(--paper) / 0.2);
+    border-color: rgb(var(--paper) / 0.25);
+    transform: translateY(-1px);
   }
 }
 
@@ -242,17 +382,6 @@ body {
   }
   .text-pretty {
     text-wrap: pretty;
-  }
-
-  /* Subtle film grain to add tactility to the flat black canvas */
-  .grain::before {
-    content: "";
-    position: fixed;
-    inset: 0;
-    z-index: 1;
-    pointer-events: none;
-    opacity: 0.035;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   }
 
   /* Masked fade for edges of scroll regions */
@@ -265,11 +394,12 @@ body {
     mask-image: linear-gradient(to right, black 85%, transparent);
   }
 
+  /* Display headline with a soft vertical falloff */
   .text-gradient {
     background: linear-gradient(
-      180deg,
+      170deg,
       rgb(var(--paper)) 0%,
-      rgb(var(--paper) / 0.55) 130%
+      rgb(var(--paper) / 0.68) 120%
     );
     -webkit-background-clip: text;
     background-clip: text;

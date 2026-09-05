@@ -18,7 +18,7 @@ function ConfidencePips({ value }: { value: number }) {
           key={i}
           className={cn(
             "h-1.5 w-1.5 rounded-full",
-            i < value ? "bg-paper" : "bg-paper/15",
+            i < value ? "bg-accent" : "bg-paper/15",
           )}
         />
       ))}
@@ -121,7 +121,7 @@ export default function RevisionPage() {
                 <div className="flex shrink-0 gap-2">
                   <button
                     onClick={() => revise(r.id, false)}
-                    className="inline-flex items-center gap-1.5 rounded-full border border-paper/12 px-3 py-1.5 text-xs font-medium text-paper/60 transition-colors hover:border-paper/30 hover:text-paper"
+                    className="inline-flex items-center gap-1.5 rounded-full border border-line px-3 py-1.5 text-xs font-medium text-paper/60 transition-colors hover:border-paper/30 hover:text-paper"
                   >
                     <X className="h-3.5 w-3.5" /> Forgot
                   </button>

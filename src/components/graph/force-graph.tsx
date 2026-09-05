@@ -274,7 +274,7 @@ export function ForceGraph({
             key={i}
             onClick={b.fn}
             title={b.label}
-            className="grid h-8 w-8 place-items-center rounded-lg border border-paper/12 bg-ink/70 text-paper/60 backdrop-blur transition-colors hover:border-paper/25 hover:text-paper"
+            className="grid h-8 w-8 place-items-center rounded-lg border border-line bg-card/85 text-paper/60 backdrop-blur transition-colors hover:border-paper/25 hover:text-paper"
           >
             <b.icon className="h-4 w-4" />
           </button>
@@ -336,7 +336,8 @@ export function ForceGraph({
                 focusNeighbors?.has(n.id) ||
                 t.k >= 1.45 ||
                 (hasSearch && searchMatches!.has(n.id));
-              const fillOp = isSubject ? 0.92 : 0.22 + (n.confidence / 100) * 0.6;
+              // Subjects read as solid accent; topics fade in with confidence.
+              const fillOp = isSubject ? 0.95 : 0.16 + (n.confidence / 100) * 0.68;
               const ringOp = isSubject
                 ? 0
                 : STATUS_RING[n.status ?? "untouched"] ?? 0.2;
@@ -358,16 +359,16 @@ export function ForceGraph({
                     <circle
                       r={(r + 5) }
                       fill="none"
-                      stroke="rgb(var(--paper))"
-                      strokeOpacity={0.9}
+                      stroke="rgb(var(--accent))"
+                      strokeOpacity={0.95}
                       strokeWidth={1.5 / t.k}
                     />
                   )}
                   <circle
                     r={r}
-                    fill="rgb(var(--paper))"
+                    fill="rgb(var(--accent))"
                     fillOpacity={fillOp}
-                    stroke="rgb(var(--paper))"
+                    stroke="rgb(var(--accent))"
                     strokeOpacity={ringOp}
                     strokeWidth={1.6 / t.k}
                   />
@@ -396,10 +397,10 @@ export function ForceGraph({
       {/* Legend */}
       <div className="pointer-events-none absolute bottom-3 left-3 z-10 flex flex-wrap items-center gap-x-3 gap-y-1 text-[0.6rem] text-paper/40">
         <span className="flex items-center gap-1">
-          <span className="h-2.5 w-2.5 rounded-full bg-paper" /> Subject
+          <span className="h-2.5 w-2.5 rounded-full bg-accent" /> Subject
         </span>
         <span className="flex items-center gap-1">
-          <span className="h-2 w-2 rounded-full border border-paper bg-paper/40" />
+          <span className="h-2 w-2 rounded-full border border-accent bg-accent/40" />
           Topic · brighter = higher confidence
         </span>
       </div>

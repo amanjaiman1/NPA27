@@ -3,7 +3,7 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
-/** Small mono uppercase eyebrow label. */
+/** Small tracked uppercase label. */
 export function Eyebrow({
   className,
   children,
@@ -32,7 +32,7 @@ export function SectionHeader({
     <div className={cn("flex items-end justify-between gap-4", className)}>
       <div className="min-w-0">
         {eyebrow && <Eyebrow className="mb-2">{eyebrow}</Eyebrow>}
-        <h2 className="text-lg font-semibold tracking-snugg text-paper">
+        <h2 className="font-display text-lg font-semibold tracking-snugg text-paper">
           {title}
         </h2>
         {description && (
@@ -66,7 +66,7 @@ export function Stat({
           {label}
         </span>
       </div>
-      <div className="tabular text-2xl font-semibold tracking-tight text-paper">
+      <div className="tabular font-display text-[1.6rem] font-bold tracking-tightest text-paper">
         {value}
       </div>
       {hint && <div className="text-xs text-paper/40">{hint}</div>}
@@ -91,7 +91,7 @@ export function EmptyState({
   return (
     <div
       className={cn(
-        "flex flex-col items-center justify-center rounded-2xl border border-dashed border-paper/12 px-6 py-14 text-center",
+        "flex flex-col items-center justify-center rounded-2xl border border-dashed border-paper/15 px-6 py-14 text-center",
         className,
       )}
     >
@@ -136,7 +136,7 @@ export function Segmented<T extends string>({
   return (
     <div
       className={cn(
-        "inline-flex items-center gap-0.5 rounded-full border border-paper/10 bg-paper/[0.03] p-0.5",
+        "inline-flex items-center gap-0.5 rounded-full border border-line bg-card p-1 shadow-soft",
         className,
       )}
     >
@@ -145,10 +145,10 @@ export function Segmented<T extends string>({
           key={o.value}
           onClick={() => onChange(o.value)}
           className={cn(
-            "rounded-full px-3 py-1.5 text-xs font-medium transition-all duration-200",
+            "rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all duration-200",
             value === o.value
-              ? "bg-accent text-accent-fg shadow-soft"
-              : "text-paper/55 hover:text-paper",
+              ? "bg-accent text-accent-fg shadow-accent"
+              : "text-paper/55 hover:bg-paper/[0.05] hover:text-paper",
           )}
         >
           {o.label}
@@ -167,10 +167,10 @@ export function Chip({
   return (
     <button
       className={cn(
-        "rounded-full border px-3 py-1 text-xs font-medium transition-all duration-200",
+        "rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-all duration-200",
         active
-          ? "border-accent/40 bg-accent/15 text-paper"
-          : "border-paper/10 bg-transparent text-paper/55 hover:border-paper/20 hover:text-paper",
+          ? "border-accent/35 bg-accent/12 text-accent"
+          : "border-line bg-card text-paper/55 hover:border-paper/25 hover:text-paper",
         className,
       )}
       {...props}

@@ -81,21 +81,23 @@ export function GreetingHero() {
   const quote = QUOTES[journeyDay % QUOTES.length];
 
   return (
-    <Card className="relative overflow-hidden">
-      <div className="absolute -right-10 -top-16 h-56 w-56 rounded-full bg-accent/[0.08] blur-2xl" />
+    <Card className="relative overflow-hidden rounded-3xl">
+      {/* soft brand wash so the hero reads as the page's anchor */}
+      <div className="absolute inset-0 bg-gradient-to-br from-accent/[0.07] via-transparent to-bloom-3/[0.06]" />
+      <div className="absolute -right-16 -top-24 h-72 w-72 rounded-full bg-accent/[0.10] blur-3xl" />
       <div className="relative flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:p-8">
         <div className="min-w-0">
           <p className="eyebrow mb-3">
             Day {journeyDay} of the journey · {profile.targetExam}
           </p>
-          <h1 className="font-display text-3xl font-light tracking-tight text-paper sm:text-[2.5rem]">
+          <h1 className="font-display text-[2.1rem] font-bold leading-[1.05] tracking-tightest text-paper sm:text-[2.9rem]">
             {greeting()}, {firstName}.
           </h1>
-          <p className="mt-3 max-w-md text-sm italic leading-relaxed text-paper/45">
+          <p className="mt-3 max-w-md text-[0.95rem] leading-relaxed text-paper/50">
             “{quote}”
           </p>
           {profile.mission && (
-            <p className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-paper/10 bg-paper/[0.03] px-3 py-1 text-xs text-paper/60">
+            <p className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-line bg-paper/[0.03] px-3 py-1 text-xs text-paper/60">
               <Target className="h-3.5 w-3.5" />
               <span className="text-paper/45">Mission</span> {profile.mission}
             </p>
@@ -103,13 +105,13 @@ export function GreetingHero() {
           <div className="mt-5 flex flex-wrap items-center gap-2">
             <Link
               href="/journal?new=1"
-              className="inline-flex items-center gap-2 rounded-full bg-accent px-4 py-2 text-sm font-medium text-accent-fg shadow-soft transition-all hover:-translate-y-px hover:opacity-90"
+              className="inline-flex items-center gap-2 rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-accent-fg shadow-accent transition-all hover:-translate-y-px hover:brightness-[1.08]"
             >
               Log today
               <ArrowUpRight className="h-4 w-4" />
             </Link>
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-paper/10 bg-paper/[0.03] px-3 py-2 text-sm text-paper/60">
-              <Flame className="h-4 w-4" />
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-line bg-card px-4 py-2.5 text-sm font-medium text-paper/65 shadow-soft">
+              <Flame className="h-4 w-4 text-accent" />
               {streak}-day streak
             </span>
           </div>
@@ -491,10 +493,10 @@ export function MilestonesMini() {
           Timeline →
         </Link>
       </div>
-      <ol className="relative space-y-4 border-l border-paper/10 pl-4">
+      <ol className="relative space-y-4 border-l border-line pl-4">
         {recent.map((m) => (
           <li key={m.id} className="relative">
-            <span className="absolute -left-[1.32rem] top-1 h-2 w-2 rounded-full bg-paper" />
+            <span className="absolute -left-[1.32rem] top-1 h-2 w-2 rounded-full bg-accent" />
             <p className="text-sm font-medium text-paper">{m.title}</p>
             <p className="text-[0.7rem] text-paper/40">{relativeDay(m.date, today)}</p>
             {m.description && (
@@ -532,7 +534,7 @@ export function CoachNudge() {
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             <h3 className="text-base font-semibold text-paper">Coach’s read</h3>
-            <span className="rounded-full border border-paper/10 px-1.5 py-0.5 text-[0.55rem] uppercase tracking-wider text-paper/40">
+            <span className="rounded-full border border-line px-1.5 py-0.5 text-[0.55rem] uppercase tracking-wider text-paper/40">
               AI
             </span>
           </div>

@@ -29,10 +29,10 @@ import { formatDate, cn } from "@/lib/utils";
 
 const STATUSES: TopicStatus[] = ["untouched", "learning", "revised", "mastered"];
 const STATUS_DOT: Record<TopicStatus, string> = {
-  untouched: "bg-paper/15",
-  learning: "bg-paper/35",
-  revised: "bg-paper/65",
-  mastered: "bg-paper",
+  untouched: "bg-paper/12",
+  learning: "bg-accent/30",
+  revised: "bg-accent/60",
+  mastered: "bg-accent",
 };
 
 function StatusDot({ status }: { status?: TopicStatus }) {
@@ -153,7 +153,7 @@ export function NodeDetail({
         </p>
         <h3 className="mt-0.5 text-lg font-semibold text-paper">{node.label}</h3>
         <div className="mt-2 flex flex-wrap items-center gap-2">
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-paper/12 px-2.5 py-1 text-xs text-paper/70">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-line px-2.5 py-1 text-xs text-paper/70">
             <StatusDot status={node.status} />
             <span className="capitalize">{node.status}</span>
           </span>
@@ -172,7 +172,7 @@ export function NodeDetail({
           </div>
           <Progress value={node.confidence} />
         </div>
-        <div className="flex items-center justify-between rounded-xl border border-paper/[0.08] bg-paper/[0.03] px-3 py-2.5">
+        <div className="flex items-center justify-between rounded-xl border border-line bg-paper/[0.03] px-3 py-2.5">
           <div>
             <p className="tabular text-sm font-semibold text-paper">
               {node.revisionCount} revisions
@@ -204,7 +204,7 @@ export function NodeDetail({
                 "rounded-lg border px-1 py-1.5 text-[0.65rem] capitalize transition-all",
                 node.status === st
                   ? "border-paper/30 bg-paper text-ink"
-                  : "border-paper/12 text-paper/45 hover:border-paper/25",
+                  : "border-line text-paper/45 hover:border-paper/25",
               )}
             >
               {st}
@@ -360,7 +360,7 @@ export function NodeDetail({
           />
         </div>
         {candidates.length > 0 && (
-          <ul className="mt-1.5 space-y-0.5 rounded-xl border border-paper/10 bg-paper/[0.02] p-1">
+          <ul className="mt-1.5 space-y-0.5 rounded-xl border border-line bg-paper/[0.02] p-1">
             {candidates.map((c) => (
               <li key={c.id}>
                 <button

@@ -3,8 +3,8 @@
 Renders the Chronicle mark into the PNG app icons used by the PWA manifest.
 
 The mark mirrors `src/components/layout/logo.tsx` — a ring (the cycle of days)
-with a single bright node (today) sitting on the timeline — drawn over the ink
-canvas with a soft rose bloom, so the installed app icon matches the product.
+with a single bright node (today) sitting on the timeline — drawn in ivory over
+a vivid crimson plate, matching the app's default Ivory + Crimson appearance.
 
 Pure standard library (zlib + struct); no image dependencies required.
 
@@ -20,10 +20,12 @@ from pathlib import Path
 
 OUT_DIR = Path(__file__).resolve().parent.parent / "public" / "icons"
 
-INK = (9, 9, 11)          # --ink  (black surface)
-PAPER = (234, 235, 240)   # --paper
-ACCENT = (240, 90, 156)   # --accent (rose)
-INFO = (110, 168, 255)    # cool counterpoint for the bloom
+# The installed icon carries the brand: a vivid crimson plate with the mark
+# drawn in ivory, matching the app's Ivory + Crimson default appearance.
+PLATE_TOP = (244, 63, 94)     # crimson, lit
+PLATE_BOTTOM = (159, 18, 57)  # crimson, deep
+IVORY = (255, 250, 251)
+GLOW = (255, 214, 226)        # soft highlight in the plate
 
 VIEWBOX = 32.0            # the logo's SVG viewBox
 
@@ -124,7 +126,7 @@ def render(size: int, content_scale: float, radius_ratio: float, transparent: bo
 
     ring_outer_r = u(12.5)
     ring_inner_r = u(7.0)
-    stroke = max(u(1.5), size * 0.012)
+    stroke = max(u(1.7), size * 0.014)
     node_x, node_y = to_px(16.0, 3.5)
     node_r = u(2.4)
     tick_ax, tick_ay = to_px(16.0, 3.5)
@@ -139,39 +141,40 @@ def render(size: int, content_scale: float, radius_ratio: float, transparent: bo
         for x in range(size):
             px = x + 0.5
 
-            # --- canvas ------------------------------------------------
-            # vertical lift keeps the plate from reading as flat black
-            lift = 1.0 - (py / size) * 0.35
-            col = (INK[0] + 9 * lift, INK[1] + 9 * lift, INK[2] + 13 * lift)
-
-            # rose bloom drifting in from the top-left, cool wash bottom-right
-            d1 = math.hypot(px - size * 0.24, py - size * 0.12) / bloom_r
-            col = blend(col, ACCENT, clamp(1.0 - d1) ** 2 * 0.30)
-            d2 = math.hypot(px - size * 0.86, py - size * 0.94) / bloom_r
-            col = blend(col, INFO, clamp(1.0 - d2) ** 2 * 0.14)
+            # --- plate -------------------------------------------------
+            # diagonal crimson gradient, lit from the top-left
+            t = clamp((px * 0.35 + py * 0.85) / (size * 1.1))
+            col = (
+                PLATE_TOP[0] + (PLATE_BOTTOM[0] - PLATE_TOP[0]) * t,
+                PLATE_TOP[1] + (PLATE_BOTTOM[1] - PLATE_TOP[1]) * t,
+                PLATE_TOP[2] + (PLATE_BOTTOM[2] - PLATE_TOP[2]) * t,
+            )
+            # soft highlight so the plate has depth rather than reading flat
+            d1 = math.hypot(px - size * 0.22, py - size * 0.14) / bloom_r
+            col = blend(col, GLOW, clamp(1.0 - d1) ** 2 * 0.28)
 
             # --- the mark ----------------------------------------------
             d_center = math.hypot(px - cx, py - cy)
             col = blend(
-                col, PAPER, coverage(abs(d_center - ring_outer_r) - stroke / 2) * 0.34
+                col, IVORY, coverage(abs(d_center - ring_outer_r) - stroke / 2) * 0.62
             )
             col = blend(
-                col, PAPER, coverage(abs(d_center - ring_inner_r) - stroke / 2) * 0.17
+                col, IVORY, coverage(abs(d_center - ring_inner_r) - stroke / 2) * 0.3
             )
             col = blend(
                 col,
-                ACCENT,
+                IVORY,
                 coverage(
                     seg_distance(px, py, tick_ax, tick_ay, tick_bx, tick_by)
                     - stroke / 2
                 )
-                * 0.55,
+                * 0.7,
             )
 
             d_node = math.hypot(px - node_x, py - node_y)
             # halo around today's node
-            col = blend(col, ACCENT, clamp(1.0 - d_node / (node_r * 3.2)) ** 2 * 0.45)
-            col = blend(col, ACCENT, coverage(d_node - node_r))
+            col = blend(col, IVORY, clamp(1.0 - d_node / (node_r * 3.0)) ** 2 * 0.35)
+            col = blend(col, IVORY, coverage(d_node - node_r))
 
             # --- plate shape -------------------------------------------
             a = 1.0

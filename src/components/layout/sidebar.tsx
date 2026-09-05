@@ -39,9 +39,9 @@ export function Sidebar({
   return (
     <aside
       className={cn(
-        "flex h-full flex-col border-r border-paper/[0.08] bg-ink/80 backdrop-blur-xl",
+        "flex h-full flex-col border-r border-line bg-card/60 backdrop-blur-xl",
         "transition-[width] duration-300 ease-out",
-        collapsed ? "w-[76px]" : "w-[270px]",
+        collapsed ? "w-[84px]" : "w-[274px]",
       )}
     >
       {/* Brand */}
@@ -51,13 +51,15 @@ export function Sidebar({
           onClick={onNavigate}
           className="flex items-center gap-3 overflow-hidden"
         >
-          <Logo className="shrink-0" />
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl border border-line bg-card shadow-soft">
+            <Logo className="h-6 w-6" />
+          </span>
           {!collapsed && (
             <div className="min-w-0 leading-tight animate-fade-in-fast">
-              <p className="truncate font-display text-[0.95rem] font-medium tracking-tight text-paper">
-                The UPSC Chronicle
+              <p className="truncate font-display text-[1rem] font-bold tracking-tightest text-paper">
+                UPSC Chronicle
               </p>
-              <p className="truncate text-[0.65rem] uppercase tracking-[0.18em] text-paper/40">
+              <p className="truncate text-[0.72rem] text-paper/40">
                 Prep, documented
               </p>
             </div>
@@ -70,7 +72,7 @@ export function Sidebar({
         <button
           onClick={onOpenPalette}
           className={cn(
-            "group flex w-full items-center gap-2.5 rounded-xl border border-paper/10 bg-paper/[0.03] px-3 py-2 text-paper/50 transition-all hover:border-paper/20 hover:bg-paper/[0.06]",
+            "group flex w-full items-center gap-2.5 rounded-full border border-line bg-paper/[0.04] px-4 py-2.5 text-paper/50 transition-all hover:border-paper/25 hover:text-paper",
             collapsed && "justify-center px-0",
           )}
         >
@@ -78,7 +80,7 @@ export function Sidebar({
           {!collapsed && (
             <>
               <span className="text-sm">Search…</span>
-              <kbd className="ml-auto rounded-md border border-paper/10 bg-paper/[0.04] px-1.5 py-0.5 font-mono text-[0.6rem] text-paper/40">
+              <kbd className="ml-auto rounded-md bg-paper/[0.07] px-1.5 py-0.5 font-mono text-[0.6rem] text-paper/45">
                 ⌘K
               </kbd>
             </>
@@ -87,15 +89,15 @@ export function Sidebar({
       </div>
 
       {/* Nav */}
-      <nav className="mask-fade-b no-scrollbar mt-4 flex-1 space-y-5 overflow-y-auto px-3 pb-4">
+      <nav className="mask-fade-b no-scrollbar mt-5 flex-1 space-y-6 overflow-y-auto px-3 pb-4">
         {navGroups.map((group) => (
           <div key={group.label}>
             {!collapsed && (
-              <p className="px-3 pb-1.5 text-[0.6rem] font-medium uppercase tracking-[0.16em] text-paper/30">
+              <p className="px-4 pb-2 text-[0.62rem] font-semibold uppercase tracking-[0.14em] text-paper/30">
                 {group.label}
               </p>
             )}
-            <ul className="space-y-0.5">
+            <ul className="space-y-1">
               {group.items.map((item) => {
                 const active =
                   item.href === "/"
@@ -109,24 +111,25 @@ export function Sidebar({
                       onClick={onNavigate}
                       title={collapsed ? item.label : undefined}
                       className={cn(
-                        "group relative flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition-all duration-200",
+                        "group relative flex items-center gap-3 rounded-full px-3.5 py-2.5 text-sm transition-all duration-200",
                         collapsed && "justify-center px-0",
                         active
-                          ? "bg-accent/[0.12] text-paper"
-                          : "text-paper/55 hover:bg-paper/[0.04] hover:text-paper",
+                          ? "bg-accent/[0.12] font-semibold text-accent"
+                          : "font-medium text-paper/60 hover:bg-paper/[0.05] hover:text-paper",
                       )}
                     >
-                      {active && (
-                        <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-accent" />
-                      )}
                       <Icon
                         className={cn(
-                          "h-[1.05rem] w-[1.05rem] shrink-0 transition-transform duration-200",
-                          active ? "text-accent" : "text-paper/45 group-hover:text-paper/80",
+                          "h-[1.1rem] w-[1.1rem] shrink-0 transition-transform duration-200",
+                          active
+                            ? "text-accent"
+                            : "text-paper/40 group-hover:text-paper/80",
                         )}
                       />
                       {!collapsed && (
-                        <span className="truncate tracking-snugg">{item.label}</span>
+                        <span className="truncate tracking-snugg">
+                          {item.label}
+                        </span>
                       )}
                     </Link>
                   </li>
@@ -138,30 +141,32 @@ export function Sidebar({
       </nav>
 
       {/* Footer: profile + controls */}
-      <div className="border-t border-paper/[0.08] p-3">
+      <div className="border-t border-line p-3">
         <div
           className={cn(
-            "flex items-center gap-3 rounded-xl px-2 py-2",
+            "flex items-center gap-3 rounded-2xl px-2 py-2",
             collapsed && "justify-center px-0",
           )}
         >
-          <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-gradient-to-br from-accent to-info text-accent-fg">
-            <span className="text-xs font-semibold">{initials}</span>
+          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-accent text-accent-fg shadow-accent">
+            <span className="text-xs font-bold">{initials}</span>
           </div>
           {!collapsed && (
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium text-paper">
+              <p className="truncate text-sm font-semibold text-paper">
                 {profile.name}
               </p>
-              <p className="truncate text-[0.7rem] text-paper/45">
-                {daysLeft !== null ? `${daysLeft} days to exam` : profile.targetExam}
+              <p className="truncate text-[0.72rem] text-paper/45">
+                {daysLeft !== null
+                  ? `${daysLeft} days to exam`
+                  : profile.targetExam}
               </p>
             </div>
           )}
           {!collapsed && (
             <button
               onClick={onOpenAppearance}
-              className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-paper/45 transition-colors hover:bg-paper/[0.06] hover:text-paper"
+              className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-paper/45 transition-colors hover:bg-paper/[0.07] hover:text-paper"
               aria-label="Settings"
               title="Settings"
             >
@@ -173,12 +178,15 @@ export function Sidebar({
         <button
           onClick={onToggleCollapse}
           className={cn(
-            "mt-1 hidden w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-paper/40 transition-colors hover:bg-paper/[0.05] hover:text-paper/70 lg:flex",
+            "mt-1 hidden w-full items-center gap-2 rounded-full px-3.5 py-2 text-xs font-medium text-paper/40 transition-colors hover:bg-paper/[0.05] hover:text-paper/70 lg:flex",
             collapsed && "justify-center px-0",
           )}
         >
           <PanelLeftClose
-            className={cn("h-4 w-4 transition-transform", collapsed && "rotate-180")}
+            className={cn(
+              "h-4 w-4 transition-transform",
+              collapsed && "rotate-180",
+            )}
           />
           {!collapsed && <span>Collapse</span>}
         </button>

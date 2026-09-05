@@ -30,7 +30,7 @@ export function SyncStatus() {
     <div className="flex items-center gap-1">
       <span
         title={user.email ?? undefined}
-        className="hidden items-center gap-1.5 rounded-full border border-paper/10 bg-paper/[0.03] px-2.5 py-1.5 text-xs text-paper/70 sm:flex"
+        className="hidden items-center gap-1.5 rounded-full border border-line bg-paper/[0.03] px-2.5 py-1.5 text-xs text-paper/70 sm:flex"
       >
         <span className={cn("h-1.5 w-1.5 rounded-full", meta.dot)} />
         <Icon className={cn("h-3.5 w-3.5 text-paper/45", meta.spin && "animate-spin")} />

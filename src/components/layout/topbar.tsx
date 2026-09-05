@@ -9,8 +9,35 @@ import { SyncStatus } from "./sync-status";
 import { useChronicle } from "@/lib/store";
 import { useMounted } from "@/lib/hooks";
 import { daysBetween, toISODate } from "@/lib/utils";
-import { cn } from "@/lib/utils";
 
+/** Round icon button used across the floating bar. */
+function IconButton({
+  label,
+  onClick,
+  children,
+  className = "",
+}: {
+  label: string;
+  onClick: () => void;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      aria-label={label}
+      title={label}
+      className={`grid h-10 w-10 place-items-center rounded-full text-paper/55 transition-all hover:bg-paper/[0.07] hover:text-paper ${className}`}
+    >
+      {children}
+    </button>
+  );
+}
+
+/**
+ * A floating pill bar rather than a full-width chrome edge — it lets the canvas
+ * breathe underneath and keeps the app feeling light.
+ */
 export function Topbar({
   onOpenDrawer,
   onOpenPalette,
@@ -29,67 +56,60 @@ export function Topbar({
     : null;
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-paper/[0.08] bg-ink/70 px-4 backdrop-blur-xl sm:px-6">
-      {/* Mobile: menu + brand */}
-      <button
-        onClick={onOpenDrawer}
-        className="grid h-9 w-9 place-items-center rounded-lg text-paper/60 transition-colors hover:bg-paper/[0.06] hover:text-paper lg:hidden"
-        aria-label="Open menu"
-      >
-        <Menu className="h-5 w-5" />
-      </button>
-      <Link href="/" className="flex items-center gap-2 lg:hidden">
-        <Logo className="h-6 w-6" />
-      </Link>
+    <header className="sticky top-0 z-30 px-3 pb-1 pt-3 sm:px-5 sm:pt-4">
+      <div className="flex h-14 items-center gap-2 rounded-full border border-line bg-card/80 px-2.5 shadow-soft backdrop-blur-xl sm:px-3">
+        {/* Mobile: menu + brand */}
+        <IconButton label="Open menu" onClick={onOpenDrawer} className="lg:hidden">
+          <Menu className="h-5 w-5" />
+        </IconButton>
+        <Link href="/" className="flex items-center gap-2 pl-1 lg:hidden">
+          <Logo className="h-6 w-6" />
+        </Link>
 
-      {/* Desktop: current section label */}
-      <div className="hidden items-center gap-2 lg:flex">
-        {current?.icon && <current.icon className="h-4 w-4 text-paper/40" />}
-        <span className="text-sm font-medium tracking-snugg text-paper/80">
-          {current?.label ?? "The UPSC Chronicle"}
-        </span>
-      </div>
-
-      <div className="flex-1" />
-
-      {/* Exam countdown chip */}
-      {daysLeft !== null && (
-        <div className="hidden items-center gap-2 rounded-full border border-paper/10 bg-paper/[0.03] px-3 py-1.5 sm:flex">
-          <CalendarClock className="h-3.5 w-3.5 text-paper/45" />
-          <span className="tabular text-xs text-paper/70">
-            <span className="font-semibold text-paper">{daysLeft}</span> days to{" "}
-            {profile.targetExam.replace("UPSC ", "")}
+        {/* Desktop: current section */}
+        <div className="hidden items-center gap-2.5 pl-2.5 lg:flex">
+          {current?.icon && <current.icon className="h-4 w-4 text-accent" />}
+          <span className="font-display text-sm font-semibold tracking-snugg text-paper">
+            {current?.label ?? "The UPSC Chronicle"}
           </span>
         </div>
-      )}
 
-      <button
-        onClick={onOpenPalette}
-        className="grid h-9 w-9 place-items-center rounded-lg text-paper/60 transition-colors hover:bg-paper/[0.06] hover:text-paper sm:hidden"
-        aria-label="Search"
-      >
-        <Search className="h-5 w-5" />
-      </button>
+        <div className="flex-1" />
 
-      <button
-        onClick={onOpenAppearance}
-        className="grid h-9 w-9 place-items-center rounded-lg text-paper/60 transition-colors hover:bg-paper/[0.06] hover:text-paper lg:hidden"
-        aria-label="Settings"
-      >
-        <Palette className="h-5 w-5" />
-      </button>
-
-      <SyncStatus />
-
-      <Link
-        href="/journal?new=1"
-        className={cn(
-          "hidden items-center gap-2 rounded-full bg-accent px-4 py-2 text-sm font-medium text-accent-fg shadow-soft transition-all hover:opacity-90 hover:-translate-y-px sm:flex",
+        {/* Exam countdown */}
+        {daysLeft !== null && (
+          <div className="hidden items-center gap-2 rounded-full bg-paper/[0.05] px-3.5 py-2 sm:flex">
+            <CalendarClock className="h-3.5 w-3.5 text-accent" />
+            <span className="tabular text-xs text-paper/65">
+              <span className="font-semibold text-paper">{daysLeft}</span> days to{" "}
+              {profile.targetExam.replace("UPSC ", "")}
+            </span>
+          </div>
         )}
-      >
-        <Plus className="h-4 w-4" />
-        Log today
-      </Link>
+
+        <IconButton label="Search" onClick={onOpenPalette} className="sm:hidden">
+          <Search className="h-5 w-5" />
+        </IconButton>
+
+        <IconButton
+          label="Settings"
+          onClick={onOpenAppearance}
+          className="lg:hidden"
+        >
+          <Palette className="h-5 w-5" />
+        </IconButton>
+
+        <SyncStatus />
+
+        {/* The one loud thing in the bar */}
+        <Link
+          href="/journal?new=1"
+          className="hidden items-center gap-2 rounded-full bg-accent px-4 py-2.5 text-sm font-semibold tracking-snugg text-accent-fg shadow-accent transition-all hover:-translate-y-px hover:brightness-[1.08] sm:flex"
+        >
+          <Plus className="h-4 w-4" />
+          Log today
+        </Link>
+      </div>
     </header>
   );
 }

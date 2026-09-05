@@ -147,7 +147,7 @@ export function LineChart({
 
       {hover !== null && points[hover] && (
         <div
-          className="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-full rounded-lg border border-paper/15 bg-ink px-2.5 py-1.5 text-center shadow-glow"
+          className="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-full rounded-lg border border-line bg-card px-2.5 py-1.5 text-center shadow-lift"
           style={{ left: points[hover].x, top: points[hover].y - 10 }}
         >
           <p className="tabular text-xs font-semibold text-paper">

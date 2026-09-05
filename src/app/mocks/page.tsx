@@ -83,7 +83,7 @@ function Ticker({
 }) {
   return (
     <div className="px-4 py-3.5">
-      <p className="font-mono text-[0.58rem] uppercase tracking-[0.15em] text-paper/40">
+      <p className="eyebrow text-[0.6rem]">
         {label}
       </p>
       <p className="tabular mt-1 text-xl font-semibold leading-none text-paper">
@@ -186,7 +186,7 @@ export default function MocksPage() {
               foot={
                 summary.latest ? (
                   <div className="flex items-center gap-2">
-                    <span className="font-mono text-[0.7rem] text-paper/45">
+                    <span className="text-[0.7rem] font-medium text-paper/45">
                       /{summary.latest.max}
                     </span>
                     <Delta value={summary.delta} />
@@ -194,26 +194,26 @@ export default function MocksPage() {
                 ) : null
               }
             />
-            <Ticker label="Avg %" value={`${summary.average}%`} foot={<span className="font-mono text-[0.7rem] text-paper/40">{summary.count} mocks</span>} />
+            <Ticker label="Avg %" value={`${summary.average}%`} foot={<span className="text-[0.7rem] font-medium text-paper/45">{summary.count} mocks</span>} />
             <Ticker
               label="Best"
               value={summary.best ? `${summary.best.pct}%` : "—"}
-              foot={summary.best ? <span className="font-mono text-[0.7rem] text-paper/40">{summary.best.score}/{summary.best.max}</span> : null}
+              foot={summary.best ? <span className="text-[0.7rem] font-medium text-paper/45">{summary.best.score}/{summary.best.max}</span> : null}
             />
             <Ticker
               label="Accuracy"
               value={summary.accuracyAvg != null ? `${summary.accuracyAvg}%` : "—"}
-              foot={<span className="font-mono text-[0.7rem] text-paper/40">of attempted</span>}
+              foot={<span className="text-[0.7rem] font-medium text-paper/45">of attempted</span>}
             />
             <Ticker
               label="Neg / mock"
               value={summary.negativeAvg != null ? `−${summary.negativeAvg}` : "—"}
-              foot={<span className="font-mono text-[0.7rem] text-paper/40">marks lost</span>}
+              foot={<span className="text-[0.7rem] font-medium text-paper/45">marks lost</span>}
             />
             <Ticker
               label="Projected"
               value={summary.projectedScore != null ? `${summary.projectedScore}` : "—"}
-              foot={<span className="font-mono text-[0.7rem] text-paper/40">recent form</span>}
+              foot={<span className="text-[0.7rem] font-medium text-paper/45">recent form</span>}
             />
           </Card>
 
@@ -221,23 +221,22 @@ export default function MocksPage() {
           <Card className="p-5">
             <div className="mb-4 flex items-center justify-between">
               <div className="flex items-baseline gap-2">
-                <h3 className="font-mono text-sm font-semibold tracking-wider text-paper">
-                  SCORE
+                <h3 className="font-display text-base font-semibold tracking-snugg text-paper">
+                  Score
                 </h3>
-                <span className="font-mono text-xs text-paper/40">
-                  {"// "}
-                  {filter === "all" ? "ALL MOCKS" : filter.toUpperCase()}
+                <span className="text-xs text-paper/45">
+                  {filter === "all" ? "all mocks" : filter}
                 </span>
               </div>
-              <div className="flex items-center gap-3 font-mono text-[0.6rem] text-paper/40">
+              <div className="flex items-center gap-3 text-[0.65rem] font-medium text-paper/45">
                 <span className="flex items-center gap-1">
-                  <span className="h-2.5 w-2 rounded-[1px] bg-paper" /> up
+                  <span className="h-2.5 w-2 rounded-[1px] bg-positive" /> up
                 </span>
                 <span className="flex items-center gap-1">
-                  <span className="h-2.5 w-2 rounded-[1px] border border-paper/70" /> down
+                  <span className="h-2.5 w-2 rounded-[1px] border border-danger" /> down
                 </span>
                 <span className="flex items-center gap-1">
-                  <span className="h-[1px] w-3 bg-paper/55" /> MA-5
+                  <span className="h-[1.5px] w-3 rounded-full bg-accent/70" /> MA-5
                 </span>
               </div>
             </div>
@@ -327,7 +326,7 @@ export default function MocksPage() {
                   {trend.drivers.map((d, i) => (
                     <div
                       key={i}
-                      className="flex items-start gap-3 rounded-xl border border-paper/[0.08] bg-paper/[0.02] p-3"
+                      className="flex items-start gap-3 rounded-xl border border-line bg-paper/[0.02] p-3"
                     >
                       <span
                         className={cn(
@@ -373,10 +372,10 @@ export default function MocksPage() {
                           className={cn(
                             "h-full rounded-full",
                             s.accuracy >= 65
-                              ? "bg-paper"
+                              ? "bg-positive"
                               : s.accuracy >= 50
-                                ? "bg-paper/55"
-                                : "bg-paper/30",
+                                ? "bg-warning"
+                                : "bg-danger/70",
                           )}
                           style={{ width: `${s.accuracy}%` }}
                         />
@@ -409,7 +408,7 @@ export default function MocksPage() {
                   {recs.map((r, i) => (
                     <li
                       key={i}
-                      className="flex items-start gap-3 rounded-xl border border-paper/[0.08] p-3"
+                      className="flex items-start gap-3 rounded-xl border border-line p-3"
                     >
                       <span
                         className={cn(
@@ -487,7 +486,7 @@ export default function MocksPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-paper/[0.08] text-left font-mono text-[0.65rem] uppercase tracking-wider text-paper/40">
+                  <tr className="border-b border-line text-left text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-paper/45">
                     <th className="px-5 py-3 font-medium">Test</th>
                     <th className="px-5 py-3 font-medium">Date</th>
                     <th className="px-5 py-3 text-right font-medium">Score</th>

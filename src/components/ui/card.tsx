@@ -1,6 +1,10 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
+/**
+ * The elevated surface everything sits on: a solid card, lifted off the canvas
+ * by a soft wide shadow rather than a hard border.
+ */
 export function Card({
   className,
   hover = false,
@@ -9,10 +13,9 @@ export function Card({
   return (
     <div
       className={cn(
-        "rounded-2xl border border-paper/[0.08] bg-paper/[0.03]",
-        "backdrop-blur-sm",
+        "rounded-2xl border border-line bg-card shadow-soft",
         hover &&
-          "transition-all duration-300 hover:border-paper/20 hover:bg-paper/[0.05]",
+          "transition-all duration-300 ease-out hover:-translate-y-0.5 hover:border-accent/35 hover:shadow-lift",
         className,
       )}
       {...props}
@@ -27,7 +30,7 @@ export function CardHeader({
   return (
     <div
       className={cn(
-        "flex items-start justify-between gap-4 px-5 pt-5 pb-3",
+        "flex items-start justify-between gap-4 px-5 pb-3 pt-5",
         className,
       )}
       {...props}
@@ -42,7 +45,7 @@ export function CardTitle({
   return (
     <h3
       className={cn(
-        "text-sm font-semibold tracking-snugg text-paper",
+        "font-display text-[0.95rem] font-semibold tracking-snugg text-paper",
         className,
       )}
       {...props}

@@ -47,10 +47,10 @@ const STATUS_CONF: Record<TopicStatus, number> = {
   mastered: 92,
 };
 const STATUS_SHADE: Record<TopicStatus, string> = {
-  untouched: "bg-paper/10",
-  learning: "bg-paper/35",
-  revised: "bg-paper/65",
-  mastered: "bg-paper",
+  untouched: "bg-paper/12",
+  learning: "bg-accent/30",
+  revised: "bg-accent/60",
+  mastered: "bg-accent",
 };
 
 function SubjectCard({ subject, hours }: { subject: Subject; hours: number }) {

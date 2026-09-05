@@ -45,7 +45,7 @@ network, untouched.
 | Documents (navigations) | network-first → cached route → `offline.html` | `chronicle-pages-v1` |
 | `/_next/static/*`, `/_next/image` | cache-first (content-hashed, immutable) | `chronicle-assets-v1` |
 | Other static assets, fonts, images | stale-while-revalidate | `chronicle-assets-v1` |
-| `offline.html`, manifest, icons | precached on install | `chronicle-shell-v1` |
+| `offline.html`, manifest, icons | precached on install | `chronicle-shell-v2` |
 | RSC/flight payloads (`?_rsc`, `RSC:1`), `/api/*` | never cached (vary by header) | — |
 
 Pages are keyed by **pathname with the query stripped**, so `/journal?new=1`
@@ -74,8 +74,9 @@ next activation (do this if a caching rule changes, not for ordinary releases).
 ## Icons
 
 `scripts/generate-icons.py` renders the Chronicle mark (the same ring-and-node
-as `components/layout/logo.tsx`) over the ink canvas with a rose bloom, using
-only the Python standard library:
+as `components/layout/logo.tsx`) in ivory over a vivid crimson plate — matching
+the app's default Ivory + Crimson appearance — using only the Python standard
+library:
 
 ```bash
 python3 scripts/generate-icons.py
@@ -83,7 +84,9 @@ python3 scripts/generate-icons.py
 
 It writes `icon-192`, `icon-512`, `icon-maskable-{192,512}` (mark inside the
 80% safe zone) and `apple-touch-icon.png` into `public/icons/`. Re-run it after
-changing the mark or the accent colour.
+changing the mark or the accent colour. `offline.html` hand-copies the Ivory
+surface tokens (it can't import the app's CSS), so refresh it too if those move
+— see `docs/design-system.md`.
 
 ## Notes and caveats
 

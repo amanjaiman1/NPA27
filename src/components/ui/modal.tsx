@@ -74,7 +74,7 @@ export function Modal({
           transition={{ duration: 0.15 }}
         >
           <div
-            className="absolute inset-0 bg-ink/75 backdrop-blur-sm"
+            className="absolute inset-0 bg-scrim/45 backdrop-blur-md"
             onClick={onClose}
           />
           <motion.div
@@ -83,15 +83,15 @@ export function Modal({
             exit={{ opacity: 0, scale: 0.98, y: 8 }}
             transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
             className={cn(
-              "relative flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-2xl border border-paper/12 bg-ink shadow-glow sm:max-w-lg sm:rounded-2xl",
+              "relative flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-3xl border border-line bg-card shadow-lift sm:max-w-lg sm:rounded-3xl",
               className,
             )}
           >
             {(title || description) && (
-              <div className="flex items-start justify-between gap-4 border-b border-paper/[0.08] px-5 py-4">
+              <div className="flex items-start justify-between gap-4 border-b border-line px-5 py-4">
                 <div>
                   {title && (
-                    <h2 className="text-base font-semibold tracking-snugg text-paper">
+                    <h2 className="font-display text-lg font-semibold tracking-snugg text-paper">
                       {title}
                     </h2>
                   )}
@@ -101,7 +101,8 @@ export function Modal({
                 </div>
                 <button
                   onClick={onClose}
-                  className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-paper/40 transition-colors hover:bg-paper/[0.06] hover:text-paper"
+                  aria-label="Close"
+                  className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-line text-paper/45 transition-colors hover:bg-paper/[0.06] hover:text-paper"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -111,7 +112,7 @@ export function Modal({
               {children}
             </div>
             {footer && (
-              <div className="flex items-center justify-end gap-2 border-t border-paper/[0.08] px-5 py-3.5">
+              <div className="flex items-center justify-end gap-2 border-t border-line px-5 py-3.5">
                 {footer}
               </div>
             )}

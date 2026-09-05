@@ -16,10 +16,10 @@ import { NodeDetail } from "@/components/graph/node-detail";
 import { KnowledgeDensity } from "@/components/graph/analytics";
 
 const STATUS_DOT: Record<string, string> = {
-  untouched: "bg-paper/15",
-  learning: "bg-paper/35",
-  revised: "bg-paper/65",
-  mastered: "bg-paper",
+  untouched: "bg-paper/12",
+  learning: "bg-accent/30",
+  revised: "bg-accent/60",
+  mastered: "bg-accent",
 };
 
 export default function KnowledgeGraphPage() {
@@ -96,7 +96,7 @@ export default function KnowledgeGraphPage() {
               className="pl-10"
             />
             {matches.length > 0 && (
-              <ul className="absolute z-20 mt-1.5 max-h-72 w-full overflow-y-auto rounded-xl border border-paper/12 bg-ink p-1 shadow-glow">
+              <ul className="absolute z-20 mt-1.5 max-h-72 w-full overflow-y-auto rounded-xl border border-line bg-card p-1 shadow-lift">
                 {matches.map((m) => (
                   <li key={m.id}>
                     <button
@@ -107,7 +107,7 @@ export default function KnowledgeGraphPage() {
                         className={cn(
                           "h-2.5 w-2.5 shrink-0 rounded-full",
                           m.type === "subject"
-                            ? "bg-paper"
+                            ? "bg-accent"
                             : STATUS_DOT[m.status ?? "untouched"],
                         )}
                       />
@@ -131,7 +131,7 @@ export default function KnowledgeGraphPage() {
               onChange={(e) => setSubjectFilter(e.target.value)}
               disabled={!showTopics}
               className={cn(
-                "h-10 appearance-none rounded-xl border border-paper/12 bg-paper/[0.03] pl-3.5 pr-9 text-sm text-paper focus:border-paper/30 focus:outline-none disabled:opacity-40",
+                "h-10 appearance-none rounded-xl border border-line bg-paper/[0.03] pl-3.5 pr-9 text-sm text-paper focus:border-paper/30 focus:outline-none disabled:opacity-40",
               )}
             >
               <option value="all">All subjects</option>

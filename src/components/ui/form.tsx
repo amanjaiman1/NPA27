@@ -12,7 +12,7 @@ export function Label({
   return (
     <label
       className={cn(
-        "mb-1.5 block text-[0.7rem] font-medium uppercase tracking-wider text-paper/45",
+        "mb-2 block text-[0.78rem] font-semibold tracking-snugg text-paper/60",
         className,
       )}
       {...props}
@@ -21,7 +21,7 @@ export function Label({
 }
 
 const fieldBase =
-  "w-full rounded-xl border border-paper/12 bg-paper/[0.03] px-3.5 py-2.5 text-sm text-paper placeholder:text-paper/30 transition-colors focus:border-accent/50 focus:outline-none focus:ring-1 focus:ring-accent/30";
+  "w-full rounded-xl border border-line bg-paper/[0.03] px-3.5 py-2.5 text-sm text-paper placeholder:text-paper/35 transition-all focus:border-accent/60 focus:bg-card focus:outline-none focus:ring-4 focus:ring-accent/12";
 
 export const Input = React.forwardRef<
   HTMLInputElement,
@@ -49,7 +49,7 @@ export const Select = React.forwardRef<
 >(({ className, children, ...props }, ref) => (
   <select
     ref={ref}
-    className={cn(fieldBase, "appearance-none bg-ink/40 pr-9", className)}
+    className={cn(fieldBase, "appearance-none pr-9", className)}
     style={{
       backgroundImage:
         "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E\")",
@@ -106,10 +106,10 @@ export function RatingPicker({
             onClick={() => onChange(v)}
             title={labels?.[i]}
             className={cn(
-              "h-8 flex-1 rounded-lg border text-xs font-medium transition-all",
+              "h-9 flex-1 rounded-xl border text-xs font-semibold transition-all",
               v <= value
-                ? "border-accent bg-accent text-accent-fg"
-                : "border-paper/12 bg-paper/[0.03] text-paper/40 hover:border-paper/25",
+                ? "border-accent bg-accent text-accent-fg shadow-accent"
+                : "border-line bg-paper/[0.03] text-paper/45 hover:border-paper/25 hover:text-paper",
             )}
           >
             {v}
@@ -158,7 +158,7 @@ export function ListEditor({
             {items.map((it, i) => (
               <span
                 key={i}
-                className="inline-flex items-center gap-1 rounded-full bg-paper/[0.06] py-1 pl-2.5 pr-1 text-xs text-paper/75"
+                className="inline-flex items-center gap-1 rounded-full border border-line bg-paper/[0.04] py-1 pl-3 pr-1 text-xs font-medium text-paper/75"
               >
                 {it}
                 <button
@@ -176,9 +176,9 @@ export function ListEditor({
             {items.map((it, i) => (
               <li
                 key={i}
-                className="group flex items-start gap-2 rounded-lg bg-paper/[0.03] px-3 py-2 text-sm text-paper/80"
+                className="group flex items-start gap-2.5 rounded-xl bg-paper/[0.03] px-3.5 py-2.5 text-sm text-paper/80"
               >
-                <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-paper/40" />
+                <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-accent/70" />
                 <span className="min-w-0 flex-1">{it}</span>
                 <button
                   type="button"
@@ -209,7 +209,7 @@ export function ListEditor({
         <button
           type="button"
           onClick={add}
-          className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-paper/12 bg-paper/[0.03] text-paper/55 transition-colors hover:border-paper/25 hover:text-paper"
+          className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-line bg-paper/[0.03] text-paper/55 transition-colors hover:border-paper/25 hover:text-paper"
         >
           <Plus className="h-4 w-4" />
         </button>

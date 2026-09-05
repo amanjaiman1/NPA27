@@ -101,7 +101,7 @@ function NumField({
           onChange((decimal ? parseFloat(e.target.value) : parseInt(e.target.value)) || 0)
         }
         placeholder="0"
-        className="tabular w-full rounded-lg border border-paper/12 bg-paper/[0.03] px-2 py-2 text-center text-sm text-paper placeholder:text-paper/25 transition-colors focus:border-accent/50 focus:outline-none focus:ring-1 focus:ring-accent/30"
+        className="tabular w-full rounded-lg border border-line bg-paper/[0.03] px-2 py-2 text-center text-sm text-paper placeholder:text-paper/25 transition-colors focus:border-accent/50 focus:outline-none focus:ring-1 focus:ring-accent/30"
       />
     </label>
   );
@@ -268,7 +268,7 @@ export function MockComposer({
                 key={nm}
                 type="button"
                 onClick={() => addSection(nm)}
-                className="rounded-full border border-paper/12 px-2.5 py-1 text-[0.7rem] text-paper/55 transition-colors hover:border-paper/25 hover:text-paper"
+                className="rounded-full border border-line px-2.5 py-1 text-[0.7rem] text-paper/55 transition-colors hover:border-paper/25 hover:text-paper"
               >
                 + {nm}
               </button>
@@ -280,7 +280,7 @@ export function MockComposer({
               {sections.map((s, i) => (
                 <div
                   key={i}
-                  className="rounded-xl border border-paper/10 bg-paper/[0.02] p-2.5 sm:p-3"
+                  className="rounded-xl border border-line bg-paper/[0.02] p-2.5 sm:p-3"
                 >
                   {/* name + remove */}
                   <div className="flex items-center gap-2">
@@ -288,7 +288,7 @@ export function MockComposer({
                       value={s.name}
                       onChange={(e) => setSection(i, { name: e.target.value })}
                       placeholder="Section name"
-                      className="min-w-0 flex-1 rounded-lg border border-paper/12 bg-paper/[0.03] px-3 py-2 text-sm text-paper placeholder:text-paper/30 transition-colors focus:border-accent/50 focus:outline-none focus:ring-1 focus:ring-accent/30"
+                      className="min-w-0 flex-1 rounded-lg border border-line bg-paper/[0.03] px-3 py-2 text-sm text-paper placeholder:text-paper/30 transition-colors focus:border-accent/50 focus:outline-none focus:ring-1 focus:ring-accent/30"
                     />
                     <button
                       type="button"
