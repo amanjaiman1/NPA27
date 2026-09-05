@@ -175,8 +175,15 @@ the things that actually moved the needle — and one that didn't:
   54 fps without it, 55 with one wrapper, 49 applied per card. It bought nothing
   here and added a scroll-height quirk. Measure before keeping a trick like that.
 
-Result on that harness: scroll went from 37 to 56 fps, main-thread blocking from
-1902 ms to 1073 ms, and the hero from 3.15 MB to 1.40 MB on a phone.
+Result on that harness (median of three runs — a single run swings by ±5 fps, so
+don't trust one): scroll went from 42 to 51 fps, main-thread blocking from 1916 ms
+to 1109 ms, and the hero from 3.15 MB to 1.40 MB on a phone.
+
+The panel itself is responsive about how much film it shows: the four headline
+numbers sit on the video from `sm` up, which is what gives the clip a tall canvas
+on a desktop, and drop out below `sm` so a phone keeps a hero-sized panel with
+the numbers as ordinary cards underneath. Stretching the panel on a narrow screen
+just pushed the rest of the dashboard off the first view.
 
 ## Adding UI
 

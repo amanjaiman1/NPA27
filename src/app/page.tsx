@@ -4,6 +4,7 @@ import { useHasHydrated } from "@/lib/store";
 import { Loading } from "@/components/ui/loading";
 import {
   CommandPanel,
+  StatStrip,
   HeatmapCard,
   TrendCard,
   TodayCard,
@@ -23,6 +24,8 @@ export default function CommandCenter() {
   return (
     <div className="space-y-4">
       <CommandPanel />
+      {/* Phones only: above `sm` these four numbers sit inside the panel. */}
+      <StatStrip />
 
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="space-y-4 lg:col-span-2">
