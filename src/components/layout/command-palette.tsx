@@ -74,7 +74,7 @@ export function CommandPalette({
           transition={{ duration: 0.15 }}
         >
           <div
-            className="absolute inset-0 bg-ink/70 backdrop-blur-sm"
+            className="absolute inset-0 bg-scrim/45 backdrop-blur-md"
             onClick={onClose}
           />
           <motion.div
@@ -82,9 +82,9 @@ export function CommandPalette({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.98, y: -4 }}
             transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
-            className="relative w-full max-w-xl overflow-hidden rounded-2xl border border-paper/12 bg-ink shadow-glow"
+            className="relative w-full max-w-xl overflow-hidden rounded-3xl border border-line bg-card shadow-lift"
           >
-            <div className="flex items-center gap-3 border-b border-paper/[0.08] px-4">
+            <div className="flex items-center gap-3 border-b border-line px-4">
               <Search className="h-4 w-4 text-paper/40" />
               <input
                 ref={inputRef}
@@ -94,7 +94,7 @@ export function CommandPalette({
                 placeholder="Jump to a module, search the Chronicle…"
                 className="h-14 flex-1 bg-transparent text-[0.95rem] text-paper placeholder:text-paper/35 focus:outline-none"
               />
-              <kbd className="rounded-md border border-paper/10 bg-paper/[0.04] px-1.5 py-0.5 font-mono text-[0.6rem] text-paper/40">
+              <kbd className="rounded-md border border-line bg-paper/[0.04] px-1.5 py-0.5 font-mono text-[0.6rem] text-paper/40">
                 ESC
               </kbd>
             </div>
@@ -114,13 +114,13 @@ export function CommandPalette({
                     onMouseEnter={() => setActive(i)}
                     className={cn(
                       "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors",
-                      i === active ? "bg-paper/[0.08]" : "hover:bg-paper/[0.04]",
+                      i === active ? "bg-accent/10" : "hover:bg-paper/[0.05]",
                     )}
                   >
                     <span
                       className={cn(
-                        "grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-paper/10",
-                        i === active ? "bg-paper text-ink" : "bg-paper/[0.03] text-paper/60",
+                        "grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-line",
+                        i === active ? "bg-accent text-accent-fg" : "bg-paper/[0.04] text-paper/55",
                       )}
                     >
                       <Icon className="h-4 w-4" />
@@ -141,7 +141,7 @@ export function CommandPalette({
               })}
             </div>
 
-            <div className="flex items-center gap-4 border-t border-paper/[0.08] px-4 py-2.5 text-[0.65rem] text-paper/35">
+            <div className="flex items-center gap-4 border-t border-line px-4 py-2.5 text-[0.65rem] text-paper/35">
               <span className="flex items-center gap-1">
                 <ArrowUp className="h-3 w-3" />
                 <ArrowDown className="h-3 w-3" /> navigate
@@ -149,7 +149,7 @@ export function CommandPalette({
               <span className="flex items-center gap-1">
                 <CornerDownLeft className="h-3 w-3" /> open
               </span>
-              <span className="ml-auto font-mono">The UPSC Chronicle</span>
+              <span className="ml-auto font-display font-semibold">The UPSC Chronicle</span>
             </div>
           </motion.div>
         </motion.div>

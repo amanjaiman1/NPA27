@@ -50,15 +50,14 @@ export function Login() {
       {/* ambient bloom backdrop, matching the app shell */}
       <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
         <div className="absolute inset-0 bg-bloom-field" />
-        <div className="absolute -left-24 top-[-6rem] h-80 w-80 animate-bloom-float rounded-full bg-bloom-1/25 blur-[90px]" />
-        <div className="absolute right-[-5rem] bottom-10 h-72 w-72 animate-bloom-float-2 rounded-full bg-bloom-3/25 blur-[90px]" />
-        <div className="bloom-scrim absolute inset-0" />
+        <div className="absolute -left-24 top-[-6rem] h-80 w-80 animate-bloom-float rounded-full bg-accent/[0.08] blur-[90px]" />
+        <div className="absolute right-[-5rem] bottom-10 h-72 w-72 animate-bloom-float-2 rounded-full bg-bloom-3/[0.07] blur-[90px]" />
       </div>
 
       <div className="w-full max-w-sm">
         <div className="mb-8 flex flex-col items-center text-center">
           <Logo className="h-11 w-11" />
-          <h1 className="mt-4 font-display text-2xl text-paper">
+          <h1 className="mt-5 font-display text-[1.75rem] font-bold tracking-tightest text-paper">
             The UPSC Chronicle
           </h1>
           <p className="mt-1 text-sm text-paper/50">
@@ -69,7 +68,7 @@ export function Login() {
         </div>
 
         {confirmSent ? (
-          <div className="rounded-2xl border border-paper/10 bg-paper/[0.03] p-6 text-center">
+          <div className="rounded-3xl border border-line bg-card p-7 text-center shadow-lift">
             <MailCheck className="mx-auto h-8 w-8 text-accent" />
             <h2 className="mt-3 text-base font-medium text-paper">
               Check your inbox
@@ -92,7 +91,7 @@ export function Login() {
         ) : (
           <form
             onSubmit={handleSubmit}
-            className="rounded-2xl border border-paper/10 bg-paper/[0.03] p-6 shadow-soft backdrop-blur-xl"
+            className="rounded-3xl border border-line bg-card p-7 shadow-lift"
           >
             <label className="block text-xs font-medium text-paper/50">
               Email
@@ -102,7 +101,7 @@ export function Login() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
-                className="mt-1.5 w-full rounded-lg border border-paper/10 bg-ink/40 px-3 py-2.5 text-sm text-paper outline-none transition-colors placeholder:text-paper/25 focus:border-accent/60"
+                className="mt-1.5 w-full rounded-lg border border-line bg-paper/[0.03] px-3 py-2.5 text-sm text-paper outline-none transition-colors placeholder:text-paper/25 focus:border-accent/60"
               />
             </label>
 
@@ -116,7 +115,7 @@ export function Login() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="mt-1.5 w-full rounded-lg border border-paper/10 bg-ink/40 px-3 py-2.5 text-sm text-paper outline-none transition-colors placeholder:text-paper/25 focus:border-accent/60"
+                className="mt-1.5 w-full rounded-lg border border-line bg-paper/[0.03] px-3 py-2.5 text-sm text-paper outline-none transition-colors placeholder:text-paper/25 focus:border-accent/60"
               />
             </label>
 

@@ -75,7 +75,7 @@ function RatingRow({
               key={i}
               className={cn(
                 "h-1.5 w-4 rounded-full",
-                i < value ? "bg-paper" : "bg-paper/15",
+                i < value ? "bg-accent" : "bg-paper/15",
               )}
             />
           ))}
@@ -167,7 +167,7 @@ export default function JournalDayPage() {
         <div className="flex items-center gap-1">
           <Link
             href={`/journal/${prev}`}
-            className="grid h-9 w-9 place-items-center rounded-lg border border-paper/12 text-paper/55 transition-colors hover:border-paper/25 hover:text-paper"
+            className="grid h-9 w-9 place-items-center rounded-lg border border-line text-paper/55 transition-colors hover:border-paper/25 hover:text-paper"
             aria-label="Previous day"
           >
             <ChevronLeft className="h-4 w-4" />
@@ -175,7 +175,7 @@ export default function JournalDayPage() {
           <Link
             href={`/journal/${next}`}
             className={cn(
-              "grid h-9 w-9 place-items-center rounded-lg border border-paper/12 text-paper/55 transition-colors hover:border-paper/25 hover:text-paper",
+              "grid h-9 w-9 place-items-center rounded-lg border border-line text-paper/55 transition-colors hover:border-paper/25 hover:text-paper",
               next > today && "pointer-events-none opacity-30",
             )}
             aria-label="Next day"
@@ -195,7 +195,7 @@ export default function JournalDayPage() {
                 ? `Day ${journeyDay} of the journey`
                 : "Before Day Zero"}
           </p>
-          <h1 className="font-display text-3xl font-light tracking-tight text-paper sm:text-[2.4rem]">
+          <h1 className="font-display text-[2rem] font-bold tracking-tightest text-paper sm:text-[2.5rem]">
             {fullDate}
           </h1>
         </div>
@@ -463,7 +463,7 @@ export default function JournalDayPage() {
             <Card className="relative overflow-hidden p-6">
               <Quote className="absolute right-5 top-5 h-8 w-8 text-paper/[0.06]" />
               {entry.highlights && (
-                <p className="font-display text-lg italic leading-snug text-paper/85">
+                <p className="font-display text-lg font-medium leading-snug text-paper/80">
                   {entry.highlights}
                 </p>
               )}

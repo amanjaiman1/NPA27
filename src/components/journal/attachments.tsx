@@ -72,7 +72,7 @@ export function AttachmentField({
           {attachments.map((a) => (
             <div
               key={a.id}
-              className="group relative overflow-hidden rounded-xl border border-paper/10 bg-paper/[0.03]"
+              className="group relative overflow-hidden rounded-xl border border-line bg-paper/[0.03]"
             >
               <div className="relative aspect-[4/3] w-full bg-ink">
                 {a.kind === "image" ? (
@@ -91,7 +91,7 @@ export function AttachmentField({
                 <button
                   type="button"
                   onClick={() => remove(a.id)}
-                  className="absolute right-1.5 top-1.5 grid h-6 w-6 place-items-center rounded-full bg-ink/80 text-paper/70 opacity-0 backdrop-blur transition-opacity hover:text-paper group-hover:opacity-100"
+                  className="absolute right-1.5 top-1.5 grid h-6 w-6 place-items-center rounded-full bg-card/90 text-paper/70 opacity-0 backdrop-blur transition-opacity hover:text-paper group-hover:opacity-100"
                 >
                   <X className="h-3.5 w-3.5" />
                 </button>
@@ -123,7 +123,7 @@ export function AttachmentGallery({ attachments }: { attachments: Attachment[] }
         {attachments.map((a) => (
           <figure
             key={a.id}
-            className="group overflow-hidden rounded-xl border border-paper/10 bg-paper/[0.03]"
+            className="group overflow-hidden rounded-xl border border-line bg-paper/[0.03]"
           >
             <button
               type="button"
@@ -138,7 +138,7 @@ export function AttachmentGallery({ attachments }: { attachments: Attachment[] }
                     alt={a.caption || a.name}
                     className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                   />
-                  <span className="absolute inset-0 grid place-items-center bg-ink/40 opacity-0 transition-opacity group-hover:opacity-100">
+                  <span className="absolute inset-0 grid place-items-center bg-scrim/40 opacity-0 transition-opacity group-hover:opacity-100">
                     <Maximize2 className="h-5 w-5 text-paper" />
                   </span>
                 </>
@@ -169,7 +169,7 @@ export function AttachmentGallery({ attachments }: { attachments: Attachment[] }
                 exit={{ opacity: 0 }}
                 onClick={() => setActive(null)}
               >
-                <div className="absolute inset-0 bg-ink/85 backdrop-blur-sm" />
+                <div className="absolute inset-0 bg-scrim/70 backdrop-blur-md" />
                 <motion.figure
                   initial={{ scale: 0.96, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
@@ -191,7 +191,7 @@ export function AttachmentGallery({ attachments }: { attachments: Attachment[] }
                   )}
                   <button
                     onClick={() => setActive(null)}
-                    className="absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-full bg-ink/80 text-paper/80 backdrop-blur hover:text-paper"
+                    className="absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-full bg-card/90 text-paper/80 backdrop-blur hover:text-paper"
                   >
                     <X className="h-4 w-4" />
                   </button>

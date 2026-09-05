@@ -22,7 +22,6 @@ function FullScreen({ children }: { children: React.ReactNode }) {
     <div className="relative grid min-h-[100dvh] place-items-center overflow-hidden px-5">
       <div className="pointer-events-none fixed inset-0 -z-10">
         <div className="absolute inset-0 bg-bloom-field" />
-        <div className="bloom-scrim absolute inset-0" />
       </div>
       {children}
     </div>
@@ -90,11 +89,11 @@ function SleepPrompt({ promptKey }: { promptKey: string }) {
           e.preventDefault();
           submit();
         }}
-        className="w-full max-w-md rounded-2xl border border-paper/12 bg-ink/80 p-7 shadow-glow backdrop-blur-xl"
+        className="w-full max-w-md rounded-3xl border border-line bg-card p-7 shadow-lift"
       >
         <div className="flex flex-col items-center text-center">
           <Logo className="h-9 w-9" />
-          <h1 className="mt-4 font-display text-xl tracking-snugg text-paper">
+          <h1 className="mt-5 font-display text-2xl font-bold tracking-tightest text-paper">
             {greeting(hour)}.
           </h1>
           <p className="mt-1 text-sm text-paper/55">
@@ -108,7 +107,7 @@ function SleepPrompt({ promptKey }: { promptKey: string }) {
           <Field label="When did you go to sleep?">
             {/* Pick which day the bedtime falls on: last night (e.g. 23:00)
                 or today after midnight (e.g. 00:30, 02:00). */}
-            <div className="mb-2 grid grid-cols-2 gap-1.5 rounded-xl border border-paper/12 bg-paper/[0.03] p-1">
+            <div className="mb-2 grid grid-cols-2 gap-1.5 rounded-xl border border-line bg-paper/[0.03] p-1">
               <button
                 type="button"
                 onClick={() => setSleepDate(yesterday)}

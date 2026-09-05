@@ -361,7 +361,7 @@ function PlanView({ ctx, data }: { ctx: MentorContext; data: ChronicleData }) {
               className="h-1.5 w-28"
             />
           </div>
-          <ol className="relative space-y-1 border-l border-paper/10 pl-0">
+          <ol className="relative space-y-1 border-l border-line pl-0">
             {plan.blocks.map((b, i) => (
               <ScheduleRow key={i} block={b} />
             ))}
@@ -390,7 +390,7 @@ function ScheduleRow({ block }: { block: ScheduleBlock }) {
       <span
         className={cn(
           "absolute left-0 top-3 -ml-[5px] h-2.5 w-2.5 rounded-full border-2 border-ink",
-          isBreak ? "bg-paper/25" : "bg-paper",
+          isBreak ? "bg-accent/25" : "bg-accent",
         )}
       />
       <div
@@ -511,7 +511,7 @@ function ReportsView({
             </p>
           </div>
           <div className="grid shrink-0 place-items-center">
-            <span className="font-display text-4xl font-light text-paper">
+            <span className="font-display text-4xl font-bold tracking-tightest text-paper">
               {report.grade}
             </span>
             <span className="tabular text-[0.7rem] text-paper/40">
@@ -632,7 +632,7 @@ function TalkView({
         />
         <button
           onClick={() => setPromptOpen(true)}
-          className="inline-flex items-center gap-1.5 rounded-full border border-paper/12 px-3 py-1.5 text-xs text-paper/60 transition-colors hover:border-paper/25 hover:text-paper"
+          className="inline-flex items-center gap-1.5 rounded-full border border-line px-3 py-1.5 text-xs text-paper/60 transition-colors hover:border-paper/25 hover:text-paper"
         >
           <FileText className="h-3.5 w-3.5" />
           View the prompt
@@ -676,7 +676,7 @@ function TalkView({
                   "max-w-[80%] whitespace-pre-wrap rounded-2xl px-4 py-2.5 text-sm leading-relaxed",
                   m.role === "user"
                     ? "bg-paper text-ink"
-                    : "border border-paper/10 bg-paper/[0.03] text-paper/80",
+                    : "border border-line bg-paper/[0.03] text-paper/80",
                 )}
               >
                 {m.text}
@@ -688,7 +688,7 @@ function TalkView({
               <span className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-accent text-accent-fg">
                 <Sparkles className="h-3.5 w-3.5" />
               </span>
-              <div className="flex items-center gap-1 rounded-2xl border border-paper/10 bg-paper/[0.03] px-4 py-3">
+              <div className="flex items-center gap-1 rounded-2xl border border-line bg-paper/[0.03] px-4 py-3">
                 {[0, 1, 2].map((d) => (
                   <span
                     key={d}
@@ -707,7 +707,7 @@ function TalkView({
             <button
               key={s}
               onClick={() => send(s)}
-              className="shrink-0 rounded-full border border-paper/12 px-3 py-1.5 text-xs text-paper/60 transition-colors hover:border-paper/25 hover:text-paper"
+              className="shrink-0 rounded-full border border-line px-3 py-1.5 text-xs text-paper/60 transition-colors hover:border-paper/25 hover:text-paper"
             >
               {s}
             </button>
@@ -715,13 +715,13 @@ function TalkView({
         </div>
 
         {/* input */}
-        <div className="flex items-center gap-2 border-t border-paper/[0.08] p-3">
+        <div className="flex items-center gap-2 border-t border-line p-3">
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && send(input)}
             placeholder="Ask about your preparation…"
-            className="h-11 flex-1 rounded-xl border border-paper/10 bg-paper/[0.03] px-4 text-sm text-paper placeholder:text-paper/35 focus:border-paper/25 focus:outline-none"
+            className="h-11 flex-1 rounded-xl border border-line bg-paper/[0.03] px-4 text-sm text-paper placeholder:text-paper/35 focus:border-paper/25 focus:outline-none"
           />
           <button
             onClick={() => send(input)}
@@ -803,7 +803,7 @@ function PromptBlock({
           {label}
         </span>
       </div>
-      <pre className="no-scrollbar overflow-x-auto whitespace-pre-wrap rounded-xl border border-paper/[0.08] bg-paper/[0.03] p-4 font-mono text-[0.72rem] leading-relaxed text-paper/70">
+      <pre className="no-scrollbar overflow-x-auto whitespace-pre-wrap rounded-xl border border-line bg-paper/[0.03] p-4 font-mono text-[0.72rem] leading-relaxed text-paper/70">
         {body}
       </pre>
     </div>

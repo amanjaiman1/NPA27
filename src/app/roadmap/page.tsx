@@ -84,7 +84,7 @@ function WeekCard({
           <p className="mt-2 text-sm font-semibold text-paper">{w.primary}</p>
           <p className="mt-0.5 text-xs text-paper/50">{w.focus}</p>
         </div>
-        <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-paper/10 bg-paper/[0.04] px-2.5 py-1 text-[0.7rem] text-paper/60">
+        <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-line bg-paper/[0.04] px-2.5 py-1 text-[0.7rem] text-paper/60">
           <Clock className="h-3 w-3" />
           {w.hoursTarget}h/day
         </span>
@@ -98,7 +98,7 @@ function WeekCard({
             </Badge>
             <p className="text-sm leading-snug text-paper/80">{t.label}</p>
             {t.detail && (
-              <p className="text-[0.7rem] italic text-paper/40">{t.detail}</p>
+              <p className="text-[0.7rem] text-paper/40">{t.detail}</p>
             )}
           </li>
         ))}
@@ -143,7 +143,7 @@ function PhaseRail({
               "rounded-2xl border p-4 text-left transition-all duration-200",
               isSelected
                 ? "border-accent/40 bg-accent/[0.07]"
-                : "border-paper/[0.08] bg-paper/[0.03] hover:border-paper/20",
+                : "border-line bg-paper/[0.03] hover:border-paper/20",
             )}
           >
             <div className="flex items-center justify-between">
@@ -256,7 +256,7 @@ export default function RoadmapPage() {
                 <Clock className="h-3.5 w-3.5" /> {thisWeek.hoursTarget}h/day
               </span>
             </div>
-            <h2 className="mt-3 font-display text-2xl font-light text-paper">
+            <h2 className="mt-3 font-display text-2xl font-bold tracking-tightest text-paper">
               {thisWeek.primary}
             </h2>
             <p className="mt-1 text-sm text-paper/55">{thisWeek.focus}</p>
@@ -264,14 +264,14 @@ export default function RoadmapPage() {
               {thisWeek.tasks.map((t, i) => (
                 <li
                   key={i}
-                  className="flex flex-col gap-1 rounded-xl border border-paper/[0.08] bg-paper/[0.03] p-3"
+                  className="flex flex-col gap-1 rounded-xl border border-line bg-paper/[0.03] p-3"
                 >
                   <Badge tone={trackTone(t.track)} className="w-fit">
                     {t.track}
                   </Badge>
                   <p className="text-sm text-paper/80">{t.label}</p>
                   {t.detail && (
-                    <p className="text-[0.7rem] italic text-paper/40">{t.detail}</p>
+                    <p className="text-[0.7rem] text-paper/40">{t.detail}</p>
                   )}
                 </li>
               ))}
@@ -335,7 +335,7 @@ export default function RoadmapPage() {
           {selectedPhase.blocks.map((b, i) => (
             <div
               key={i}
-              className="rounded-xl border border-paper/[0.08] bg-paper/[0.03] p-4"
+              className="rounded-xl border border-line bg-paper/[0.03] p-4"
             >
               <p className="text-sm font-semibold text-paper">{b.label}</p>
               <ul className="mt-2 space-y-1.5">
@@ -476,7 +476,7 @@ export default function RoadmapPage() {
             {antiPatterns.map((a, i) => (
               <li
                 key={i}
-                className="flex gap-2 rounded-xl border border-paper/[0.08] bg-paper/[0.03] p-3 text-sm text-paper/75"
+                className="flex gap-2 rounded-xl border border-line bg-paper/[0.03] p-3 text-sm text-paper/75"
               >
                 <ListChecks className="mt-0.5 h-4 w-4 shrink-0 text-paper/40" />
                 {a}

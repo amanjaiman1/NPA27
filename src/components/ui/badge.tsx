@@ -12,14 +12,14 @@ type Tone =
   | "danger";
 
 const tones: Record<Tone, string> = {
-  default: "bg-paper/[0.06] text-paper/80 border border-paper/10",
+  default: "bg-paper/[0.05] text-paper/75 border border-line",
   solid: "bg-accent text-accent-fg border border-transparent",
-  outline: "bg-transparent text-paper/70 border border-paper/20",
+  outline: "bg-transparent text-paper/70 border border-line",
   ghost: "bg-transparent text-paper/50 border border-transparent",
-  accent: "bg-accent/15 text-accent border border-accent/25",
-  positive: "bg-positive/15 text-positive border border-positive/25",
-  warning: "bg-warning/15 text-warning border border-warning/30",
-  danger: "bg-danger/15 text-danger border border-danger/30",
+  accent: "bg-accent/12 text-accent border border-accent/25",
+  positive: "bg-positive/12 text-positive border border-positive/25",
+  warning: "bg-warning/12 text-warning border border-warning/25",
+  danger: "bg-danger/12 text-danger border border-danger/25",
 };
 
 export function Badge({
@@ -30,7 +30,7 @@ export function Badge({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[0.7rem] font-medium tracking-snugg",
+        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[0.7rem] font-semibold tracking-snugg",
         tones[tone],
         className,
       )}

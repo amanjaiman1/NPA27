@@ -12,7 +12,8 @@
  * Bump CACHE_VERSION to retire every previous cache on the next activation.
  */
 
-const CACHE_VERSION = "v1";
+// v2 — the redesign changed the offline document and every icon.
+const CACHE_VERSION = "v2";
 const SHELL_CACHE = `chronicle-shell-${CACHE_VERSION}`;
 const PAGE_CACHE = `chronicle-pages-${CACHE_VERSION}`;
 const ASSET_CACHE = `chronicle-assets-${CACHE_VERSION}`;

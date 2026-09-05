@@ -43,11 +43,11 @@ export function AppearanceModal({
                     "group relative flex flex-col items-start gap-2 rounded-xl border p-3 text-left transition-all",
                     active
                       ? "border-accent ring-1 ring-accent/40"
-                      : "border-paper/12 hover:border-paper/30",
+                      : "border-line hover:border-paper/30",
                   )}
                 >
                   <span
-                    className="h-12 w-full rounded-lg border border-paper/12"
+                    className="h-12 w-full rounded-lg border border-line"
                     style={{ backgroundColor: s.swatch }}
                   />
                   <span className="text-xs font-medium text-paper">{s.label}</span>
@@ -77,10 +77,10 @@ export function AppearanceModal({
                     "relative flex items-center gap-3 rounded-xl border p-3 transition-all",
                     active
                       ? "border-accent ring-1 ring-accent/40"
-                      : "border-paper/12 hover:border-paper/30",
+                      : "border-line hover:border-paper/30",
                   )}
                 >
-                  <span className="flex shrink-0 overflow-hidden rounded-full border border-paper/12 shadow-soft">
+                  <span className="flex shrink-0 overflow-hidden rounded-full border border-line shadow-soft">
                     {p.swatches.map((c, i) => (
                       <span
                         key={i}
@@ -109,12 +109,12 @@ export function AppearanceModal({
         </section>
 
         {/* Install as an app */}
-        <section className="border-t border-paper/[0.08] pt-6">
+        <section className="border-t border-line pt-6">
           <InstallCard />
         </section>
 
         {/* Backup & data */}
-        <section className="border-t border-paper/[0.08] pt-6">
+        <section className="border-t border-line pt-6">
           <DataBackup />
         </section>
       </div>

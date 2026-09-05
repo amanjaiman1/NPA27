@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 
+/** Categorical palette, used only when `multicolor` is requested. */
 const BLOOM = [
   "var(--bloom-1)",
   "var(--bloom-2)",
@@ -25,12 +26,16 @@ export function BarChart({
   className,
   formatValue = (v) => String(v),
   target,
+  multicolor = false,
 }: {
   data: BarDatum[];
   height?: number;
   className?: string;
   formatValue?: (v: number) => string;
   target?: number;
+  /** Colour each bar from the categorical palette instead of the accent.
+   *  Off by default: a single series reads better in one colour. */
+  multicolor?: boolean;
 }) {
   const [hover, setHover] = useState<number | null>(null);
   const max = Math.max(...data.map((d) => d.value), target ?? 0, 1);
@@ -54,7 +59,7 @@ export function BarChart({
         {data.map((d, i) => {
           const pct = (d.value / max) * 100;
           const isLast = i === data.length - 1;
-          const color = BLOOM[i % BLOOM.length];
+          const color = multicolor ? BLOOM[i % BLOOM.length] : "var(--accent)";
           return (
             <div
               key={i}
@@ -67,11 +72,11 @@ export function BarChart({
                 style={{
                   height: `${Math.max(pct, 1.5)}%`,
                   backgroundColor: `rgb(${color})`,
-                  opacity: hover === i || isLast ? 1 : 0.78,
+                  opacity: hover === i || isLast ? 1 : multicolor ? 0.78 : 0.62,
                 }}
               />
               {hover === i && (
-                <div className="pointer-events-none absolute -top-1 left-1/2 z-10 -translate-x-1/2 -translate-y-full whitespace-nowrap rounded-lg border border-paper/15 bg-ink px-2 py-1 text-center shadow-glow">
+                <div className="pointer-events-none absolute -top-1 left-1/2 z-10 -translate-x-1/2 -translate-y-full whitespace-nowrap rounded-lg border border-line bg-card px-2 py-1 text-center shadow-lift">
                   <p className="tabular text-xs font-semibold text-paper">
                     {formatValue(d.value)}
                   </p>

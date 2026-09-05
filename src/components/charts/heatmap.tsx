@@ -151,7 +151,7 @@ export function Heatmap({
       {/* Tooltip */}
       {hover && (
         <div
-          className="pointer-events-none fixed z-50 -translate-x-1/2 -translate-y-full rounded-lg border border-paper/15 bg-ink px-2.5 py-1.5 text-center shadow-glow"
+          className="pointer-events-none fixed z-50 -translate-x-1/2 -translate-y-full rounded-lg border border-line bg-card px-2.5 py-1.5 text-center shadow-lift"
           style={{ left: hover.x, top: hover.y - 8 }}
         >
           <p className="tabular text-xs font-semibold text-paper">

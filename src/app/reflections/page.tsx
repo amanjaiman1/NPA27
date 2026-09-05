@@ -112,7 +112,7 @@ export default function ReflectionsPage() {
                 </button>
               </div>
               {r.prompt && (
-                <p className="mt-2 font-display text-base italic leading-snug text-paper/80">
+                <p className="mt-2 font-display text-base font-medium leading-snug text-paper/75">
                   {r.prompt}
                 </p>
               )}
@@ -128,7 +128,7 @@ export default function ReflectionsPage() {
                         key={i}
                         className={cn(
                           "h-1.5 w-1.5 rounded-full",
-                          i < r.mood ? "bg-paper" : "bg-paper/15",
+                          i < r.mood ? "bg-accent" : "bg-paper/15",
                         )}
                       />
                     ))}

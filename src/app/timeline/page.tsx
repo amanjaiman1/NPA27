@@ -294,14 +294,14 @@ function LegacyHero({
     { label: "Current stage", value: stats.currentStage.split(" · ")[0], hint: stats.currentStage.split(" · ")[1] ?? "" },
   ];
   return (
-    <div className="overflow-hidden rounded-2xl border border-paper/[0.08] bg-gradient-to-br from-accent/[0.08] via-paper/[0.02] to-transparent">
+    <div className="overflow-hidden rounded-2xl border border-line bg-gradient-to-br from-accent/[0.08] via-paper/[0.02] to-transparent">
       <div className="flex items-start gap-3 p-6 sm:p-7">
         <span className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-accent text-accent-fg shadow-soft">
           <Sparkles className="h-4 w-4" />
         </span>
         <div>
           <p className="eyebrow mb-2">Opening narration</p>
-          <p className="max-w-3xl font-display text-lg font-light leading-relaxed text-paper/85 sm:text-xl">
+          <p className="max-w-3xl font-display text-lg font-medium leading-relaxed text-paper/80 sm:text-xl">
             {narration}
           </p>
         </div>
@@ -349,7 +349,7 @@ function ChapterHeader({
       </div>
       <h2
         className={cn(
-          "font-display text-2xl font-light tracking-tight sm:text-[1.9rem]",
+          "font-display text-2xl font-bold tracking-tightest sm:text-[1.9rem]",
           chapter.future ? "text-paper/55" : "text-paper",
         )}
       >
@@ -397,7 +397,7 @@ function EventRow({
               ? "border-transparent bg-accent text-accent-fg shadow-soft"
               : strong
                 ? "border-paper/20 bg-paper/[0.08] text-paper"
-                : "border-paper/12 bg-paper/[0.04] text-paper/60",
+                : "border-line bg-paper/[0.04] text-paper/60",
         )}
       >
         <Icon className="h-[1.05rem] w-[1.05rem]" />
@@ -408,7 +408,7 @@ function EventRow({
         className={cn(
           "min-w-0 flex-1 rounded-2xl border p-4 transition-colors sm:p-5",
           event.future
-            ? "border-dashed border-paper/12 bg-transparent"
+            ? "border-dashed border-line bg-transparent"
             : "border-paper/[0.07] bg-paper/[0.02] group-hover:border-paper/15",
         )}
       >

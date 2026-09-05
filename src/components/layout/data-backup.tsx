@@ -10,7 +10,7 @@ import {
 import type { CloudSnapshot } from "@/lib/store";
 
 /** Bumped alongside the store's persisted `version`. Stamped into backups. */
-const BACKUP_SCHEMA_VERSION = 7;
+const BACKUP_SCHEMA_VERSION = 8;
 const BACKUP_APP_ID = "the-upsc-chronicle";
 
 type Note = { kind: "ok" | "err"; text: string } | null;
@@ -111,7 +111,7 @@ export function DataBackup() {
         </button>
         <button
           onClick={() => fileRef.current?.click()}
-          className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-paper/12 bg-paper/[0.03] px-4 py-2.5 text-sm font-medium text-paper/80 transition-all hover:border-paper/30 hover:bg-paper/[0.06]"
+          className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-line bg-paper/[0.03] px-4 py-2.5 text-sm font-medium text-paper/80 transition-all hover:border-paper/30 hover:bg-paper/[0.06]"
         >
           <Upload className="h-4 w-4" />
           Restore from file

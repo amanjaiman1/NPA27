@@ -33,7 +33,7 @@ function MiniGrid({ habit }: { habit: Habit }) {
           title={c.date}
           className={cn(
             "h-3 w-3 rounded-[3px]",
-            c.done ? "bg-paper" : "bg-paper/[0.07]",
+            c.done ? "bg-accent" : "bg-paper/[0.07]",
           )}
         />
       ))}
@@ -92,14 +92,14 @@ export default function HabitsPage() {
                 className={cn(
                   "inline-flex items-center gap-2 rounded-full border px-3.5 py-2 text-sm font-medium transition-all",
                   done
-                    ? "border-paper/30 bg-paper text-ink"
-                    : "border-paper/12 text-paper/60 hover:border-paper/25 hover:text-paper",
+                    ? "border-accent bg-accent text-accent-fg"
+                    : "border-line text-paper/60 hover:border-paper/25 hover:text-paper",
                 )}
               >
                 <span
                   className={cn(
                     "grid h-4 w-4 place-items-center rounded-full border",
-                    done ? "border-ink/30 bg-ink/10" : "border-paper/30",
+                    done ? "border-accent bg-accent" : "border-paper/25",
                   )}
                 >
                   {done && <Check className="h-3 w-3" />}

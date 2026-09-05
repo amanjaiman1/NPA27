@@ -48,19 +48,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="relative flex h-[100dvh] overflow-hidden">
-      {/* ambient background — a living field of blooms */}
+      {/* Ambient canvas — two wide, very soft accent washes. Deliberately
+          restrained: the content and its white cards are the design. */}
       <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
         <div className="absolute inset-0 bg-bloom-field" />
-        <div className="absolute inset-0 bg-grid bg-grid opacity-40 [mask-image:radial-gradient(ellipse_70%_60%_at_50%_0%,black,transparent)]" />
-        {/* drifting petal-glows */}
-        <div className="absolute -left-24 top-[-6rem] h-80 w-80 animate-bloom-float rounded-full bg-bloom-1/25 blur-[90px]" />
-        <div className="absolute right-[-5rem] top-10 h-72 w-72 animate-bloom-float-2 rounded-full bg-bloom-2/25 blur-[90px]" />
-        <div className="absolute bottom-[-6rem] right-1/4 h-96 w-96 animate-bloom-drift rounded-full bg-bloom-3/20 blur-[110px]" />
-        <div className="absolute bottom-4 left-[-4rem] h-72 w-72 animate-bloom-float rounded-full bg-bloom-4/20 blur-[90px] [animation-delay:-6s]" />
-        <div className="absolute left-1/3 top-1/3 h-64 w-64 animate-bloom-drift rounded-full bg-bloom-5/15 blur-[100px] [animation-delay:-12s]" />
-        <div className="absolute right-1/3 top-2/3 h-60 w-60 animate-bloom-float-2 rounded-full bg-bloom-6/20 blur-[90px] [animation-delay:-9s]" />
-        {/* Dark mode: a 90% ink scrim keeps the canvas dominant, leaving the blooms as a subtle wash. */}
-        <div className="bloom-scrim absolute inset-0" />
+        <div className="absolute -left-40 -top-40 h-[30rem] w-[30rem] animate-bloom-float rounded-full bg-accent/[0.07] blur-[120px]" />
+        <div className="absolute -right-32 top-1/3 h-[26rem] w-[26rem] animate-bloom-float-2 rounded-full bg-bloom-3/[0.06] blur-[120px]" />
       </div>
 
       {/* Desktop sidebar */}
@@ -78,7 +71,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {drawerOpen && (
           <>
             <motion.div
-              className="fixed inset-0 z-40 bg-ink/70 backdrop-blur-sm lg:hidden"
+              className="fixed inset-0 z-40 bg-scrim/45 backdrop-blur-md lg:hidden"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -117,7 +110,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           onOpenAppearance={() => setAppearanceOpen(true)}
         />
         <main className="no-scrollbar relative flex-1 overflow-y-auto">
-          <div className="mx-auto w-full max-w-[1200px] px-4 py-8 sm:px-6 lg:px-10 lg:py-10">
+          <div className="mx-auto w-full max-w-[1240px] px-4 py-8 sm:px-6 lg:px-10 lg:py-12">
             {children}
           </div>
         </main>

@@ -106,7 +106,7 @@ function ReviewPanel({
           <CalendarClock className="h-4 w-4 text-paper/45" />
           <h3 className="text-sm font-semibold text-paper">Review queue</h3>
         </div>
-        <span className="font-mono text-xs text-paper/45">{due.length} due</span>
+        <span className="text-xs font-semibold text-accent">{due.length} due</span>
       </div>
 
       <div className="p-5">
@@ -119,7 +119,7 @@ function ReviewPanel({
           )}
         </div>
 
-        <p className="font-display text-lg leading-snug text-paper">
+        <p className="font-display text-lg font-semibold leading-snug text-paper">
           {m.question || m.topic}
         </p>
 
@@ -130,7 +130,7 @@ function ReviewPanel({
         ) : (
           <div className="mt-4 space-y-3 animate-fade-in">
             {m.userAnswer && (
-              <div className="flex items-start gap-2 rounded-xl border border-paper/[0.08] bg-paper/[0.02] p-3">
+              <div className="flex items-start gap-2 rounded-xl border border-line bg-paper/[0.02] p-3">
                 <X className="mt-0.5 h-3.5 w-3.5 shrink-0 text-paper/40" />
                 <div>
                   <p className="text-[0.65rem] uppercase tracking-wider text-paper/35">
@@ -160,7 +160,7 @@ function ReviewPanel({
             <div className="flex items-center gap-2 pt-1">
               <button
                 onClick={() => onReview(m.id, false)}
-                className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-full border border-paper/12 px-4 py-2.5 text-sm font-medium text-paper/60 transition-colors hover:border-paper/30 hover:text-paper"
+                className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-full border border-line px-4 py-2.5 text-sm font-medium text-paper/60 transition-colors hover:border-paper/30 hover:text-paper"
               >
                 <X className="h-4 w-4" /> Missed again
               </button>
@@ -356,7 +356,7 @@ export default function MistakesPage() {
                           setSubjFilter("all");
                           setStatusFilter("all");
                         }}
-                        className="flex w-full items-center gap-3 rounded-xl border border-paper/[0.08] p-2.5 text-left transition-colors hover:border-paper/20 hover:bg-paper/[0.03]"
+                        className="flex w-full items-center gap-3 rounded-xl border border-line p-2.5 text-left transition-colors hover:border-paper/20 hover:bg-paper/[0.03]"
                       >
                         <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-paper text-ink">
                           <span className="tabular text-sm font-semibold">{p.count}</span>
@@ -592,7 +592,7 @@ export default function MistakesPage() {
                         <div className="flex items-center justify-between pt-1">
                           <button
                             onClick={() => cycleStatus(m)}
-                            className="rounded-full border border-paper/12 px-3 py-1 text-xs text-paper/60 transition-colors hover:border-paper/25 hover:text-paper"
+                            className="rounded-full border border-line px-3 py-1 text-xs text-paper/60 transition-colors hover:border-paper/25 hover:text-paper"
                           >
                             {m.status} ›
                           </button>

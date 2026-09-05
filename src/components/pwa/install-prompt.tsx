@@ -28,7 +28,7 @@ export function InstallPrompt() {
           role="dialog"
           aria-label="Install The UPSC Chronicle"
         >
-          <div className="relative overflow-hidden rounded-2xl border border-paper/12 bg-ink/90 p-4 shadow-glow backdrop-blur-xl">
+          <div className="relative overflow-hidden rounded-2xl border border-line bg-card/95 p-4 shadow-lift backdrop-blur-xl">
             {/* accent bloom in the corner */}
             <div className="pointer-events-none absolute -right-10 -top-12 h-32 w-32 rounded-full bg-accent/25 blur-3xl" />
 
@@ -41,7 +41,7 @@ export function InstallPrompt() {
             </button>
 
             <div className="relative flex items-start gap-3 pr-6">
-              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-paper/12 bg-paper/[0.04]">
+              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-line bg-paper/[0.04]">
                 <Logo className="h-6 w-6" />
               </span>
               <div className="min-w-0">
@@ -56,7 +56,7 @@ export function InstallPrompt() {
             </div>
 
             {needsIosInstructions && !canInstall ? (
-              <ol className="relative mt-3.5 space-y-1.5 rounded-xl border border-paper/10 bg-paper/[0.03] p-3 text-xs text-paper/65">
+              <ol className="relative mt-3.5 space-y-1.5 rounded-xl border border-line bg-paper/[0.03] p-3 text-xs text-paper/65">
                 <li className="flex items-center gap-2">
                   <span className="tabular text-paper/35">1.</span>
                   <Share className="h-3.5 w-3.5 shrink-0 text-accent" />
@@ -87,7 +87,7 @@ export function InstallPrompt() {
                 </button>
                 <button
                   onClick={dismissBanner}
-                  className="rounded-xl border border-paper/12 bg-paper/[0.03] px-3.5 py-2.5 text-sm text-paper/60 transition-colors hover:border-paper/25 hover:text-paper"
+                  className="rounded-xl border border-line bg-paper/[0.03] px-3.5 py-2.5 text-sm text-paper/60 transition-colors hover:border-paper/25 hover:text-paper"
                 >
                   Not now
                 </button>
@@ -130,7 +130,7 @@ export function InstallCard() {
           Install the Chronicle
         </button>
       ) : needsIosInstructions ? (
-        <p className="flex items-start gap-2 rounded-xl border border-paper/10 bg-paper/[0.03] px-3 py-2.5 text-xs leading-relaxed text-paper/65">
+        <p className="flex items-start gap-2 rounded-xl border border-line bg-paper/[0.03] px-3 py-2.5 text-xs leading-relaxed text-paper/65">
           <Share className="mt-0.5 h-3.5 w-3.5 shrink-0 text-accent" />
           <span>
             In Safari, tap <span className="font-medium text-paper">Share</span>{" "}
@@ -138,7 +138,7 @@ export function InstallCard() {
           </span>
         </p>
       ) : (
-        <p className="flex items-start gap-2 rounded-xl border border-paper/10 bg-paper/[0.03] px-3 py-2.5 text-xs leading-relaxed text-paper/55">
+        <p className="flex items-start gap-2 rounded-xl border border-line bg-paper/[0.03] px-3 py-2.5 text-xs leading-relaxed text-paper/55">
           <Smartphone className="mt-0.5 h-3.5 w-3.5 shrink-0 text-paper/40" />
           <span>
             Use your browser&apos;s <span className="font-medium text-paper">Install</span>{" "}

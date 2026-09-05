@@ -189,7 +189,7 @@ export default function LifeDashboardPage() {
                       <Progress
                         value={pct}
                         className="mt-2"
-                        barClassName={hit ? "bg-paper" : "bg-paper/50"}
+                        barClassName={hit ? "bg-positive" : "bg-accent"}
                       />
                       <p className="mt-1 text-[0.62rem] text-paper/35">
                         {t.lowerBetter ? "limit" : "goal"} {t.target}
@@ -298,7 +298,7 @@ export default function LifeDashboardPage() {
                     <div
                       className={cn(
                         "absolute top-0 h-full rounded-full",
-                        f.direction === "helps" ? "left-1/2 bg-paper" : "right-1/2 bg-paper/40",
+                        f.direction === "helps" ? "left-1/2 bg-positive" : "right-1/2 bg-danger/70",
                       )}
                       style={{ width: `${Math.min(50, Math.abs(f.r) * 50)}%` }}
                     />

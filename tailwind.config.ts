@@ -10,18 +10,22 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Two-token black & white system. Everything else is composed
-        // from these via opacity, so the palette is theme-agnostic.
+        // Canvas / elevated surface / foreground. Everything else is composed
+        // from these with opacity, so the palette stays theme-agnostic.
         ink: "rgb(var(--ink) / <alpha-value>)",
+        card: "rgb(var(--card) / <alpha-value>)",
         paper: "rgb(var(--paper) / <alpha-value>)",
-        // A calm accent + muted semantic palette layered on top.
+        line: "rgb(var(--line) / <alpha-value>)",
+        // Modal / drawer backdrop — always darkens, on light and dark surfaces.
+        scrim: "rgb(var(--scrim) / <alpha-value>)",
+        // Brand + semantic colours.
         accent: "rgb(var(--accent) / <alpha-value>)",
         "accent-fg": "rgb(var(--accent-fg) / <alpha-value>)",
         positive: "rgb(var(--positive) / <alpha-value>)",
         warning: "rgb(var(--warning) / <alpha-value>)",
         danger: "rgb(var(--danger) / <alpha-value>)",
         info: "rgb(var(--info) / <alpha-value>)",
-        // The blooming bouquet — used for multi-colour charts & accents.
+        // The six-colour data palette used by charts and multi-series views.
         "bloom-1": "rgb(var(--bloom-1) / <alpha-value>)",
         "bloom-2": "rgb(var(--bloom-2) / <alpha-value>)",
         "bloom-3": "rgb(var(--bloom-3) / <alpha-value>)",
@@ -35,38 +39,48 @@ const config: Config = {
       fontFamily: {
         sans: ["var(--font-sans)", "system-ui", "sans-serif"],
         mono: ["var(--font-mono)", "ui-monospace", "monospace"],
-        display: ["var(--font-display)", "Georgia", "serif"],
+        // Rounded geometric display face — the voice of the new look.
+        display: ["var(--font-display)", "var(--font-sans)", "sans-serif"],
       },
       letterSpacing: {
-        tightest: "-0.04em",
+        tightest: "-0.045em",
         snugg: "-0.02em",
       },
+      // Generously rounded, in the spirit of a 1.25rem base radius.
       borderRadius: {
-        xl: "0.875rem",
-        "2xl": "1.125rem",
-        "3xl": "1.5rem",
+        lg: "0.75rem",
+        xl: "1rem",
+        "2xl": "1.25rem",
+        "3xl": "1.75rem",
+        "4xl": "2.25rem",
       },
       boxShadow: {
-        soft: "0 1px 2px rgba(0,0,0,0.06), 0 8px 24px -12px rgba(0,0,0,0.3)",
-        glow: "0 0 0 1px rgb(var(--paper) / 0.06), 0 20px 60px -20px rgb(0 0 0 / 0.6)",
-        ring: "0 0 0 1px rgb(var(--paper) / 0.1)",
+        // Soft, wide and low-contrast: depth without a heavy edge.
+        soft: "0 1px 2px rgb(var(--shadow) / 0.04), 0 12px 32px -18px rgb(var(--shadow) / 0.16)",
+        lift: "0 1px 2px rgb(var(--shadow) / 0.05), 0 24px 48px -24px rgb(var(--shadow) / 0.26)",
+        glow: "0 24px 60px -28px rgb(var(--shadow) / 0.35), 0 0 0 1px rgb(var(--line))",
+        accent: "0 10px 26px -12px rgb(var(--accent) / 0.55)",
+        ring: "0 0 0 1px rgb(var(--line))",
       },
       backgroundImage: {
-        grid: "linear-gradient(rgb(var(--paper)/0.04) 1px, transparent 1px), linear-gradient(90deg, rgb(var(--paper)/0.04) 1px, transparent 1px)",
+        grid: "linear-gradient(rgb(var(--paper)/0.035) 1px, transparent 1px), linear-gradient(90deg, rgb(var(--paper)/0.035) 1px, transparent 1px)",
         "radial-fade":
-          "radial-gradient(ellipse 80% 60% at 50% -10%, rgb(var(--paper)/0.08), transparent 70%)",
-        // A scattered field of coloured blooms — the site's living backdrop.
+          "radial-gradient(ellipse 80% 60% at 50% -10%, rgb(var(--paper)/0.06), transparent 70%)",
+        // A calm ambient wash — three wide, very low-opacity accents. Replaces
+        // the old floral "bloom field", which read as decorative and dated.
         "bloom-field":
-          "radial-gradient(38% 34% at 10% 6%, rgb(var(--bloom-1)/0.20), transparent 60%), radial-gradient(42% 38% at 90% 2%, rgb(var(--bloom-2)/0.18), transparent 60%), radial-gradient(46% 44% at 82% 90%, rgb(var(--bloom-3)/0.16), transparent 62%), radial-gradient(40% 40% at 14% 96%, rgb(var(--bloom-4)/0.14), transparent 60%), radial-gradient(34% 30% at 52% 48%, rgb(var(--bloom-5)/0.10), transparent 70%)",
+          "radial-gradient(48% 42% at 8% 0%, rgb(var(--accent)/0.10), transparent 65%), radial-gradient(46% 40% at 96% 4%, rgb(var(--bloom-3)/0.09), transparent 65%), radial-gradient(52% 46% at 78% 96%, rgb(var(--bloom-4)/0.07), transparent 68%)",
+        sheen:
+          "linear-gradient(180deg, rgb(var(--paper)/0.06), transparent 60%)",
         shine:
-          "linear-gradient(110deg, transparent 35%, rgb(var(--paper)/0.12) 50%, transparent 65%)",
+          "linear-gradient(110deg, transparent 35%, rgb(var(--paper)/0.1) 50%, transparent 65%)",
       },
       backgroundSize: {
-        grid: "44px 44px",
+        grid: "56px 56px",
       },
       keyframes: {
         "fade-in": {
-          "0%": { opacity: "0", transform: "translateY(8px)" },
+          "0%": { opacity: "0", transform: "translateY(10px)" },
           "100%": { opacity: "1", transform: "translateY(0)" },
         },
         "fade-in-fast": {
@@ -82,26 +96,27 @@ const config: Config = {
           "100%": { backgroundPosition: "200% 0" },
         },
         "pulse-ring": {
-          "0%": { boxShadow: "0 0 0 0 rgb(var(--paper)/0.35)" },
-          "70%": { boxShadow: "0 0 0 8px rgb(var(--paper)/0)" },
-          "100%": { boxShadow: "0 0 0 0 rgb(var(--paper)/0)" },
+          "0%": { boxShadow: "0 0 0 0 rgb(var(--accent)/0.35)" },
+          "70%": { boxShadow: "0 0 0 8px rgb(var(--accent)/0)" },
+          "100%": { boxShadow: "0 0 0 0 rgb(var(--accent)/0)" },
         },
         marquee: {
           "0%": { transform: "translateX(0)" },
           "100%": { transform: "translateX(-50%)" },
         },
+        // Slow, barely-there drift for the ambient wash.
         "bloom-float": {
           "0%,100%": { transform: "translate(0,0) scale(1)" },
-          "50%": { transform: "translate(2.5%,-4%) scale(1.08)" },
+          "50%": { transform: "translate(2%,-3%) scale(1.06)" },
         },
         "bloom-float-2": {
-          "0%,100%": { transform: "translate(0,0) scale(1.05)" },
-          "50%": { transform: "translate(-3%,3.5%) scale(0.95)" },
+          "0%,100%": { transform: "translate(0,0) scale(1.04)" },
+          "50%": { transform: "translate(-2.5%,3%) scale(0.97)" },
         },
         "bloom-drift": {
           "0%,100%": { transform: "translate(0,0)" },
-          "33%": { transform: "translate(-2%,3%)" },
-          "66%": { transform: "translate(3%,-2%)" },
+          "33%": { transform: "translate(-1.5%,2.5%)" },
+          "66%": { transform: "translate(2.5%,-1.5%)" },
         },
       },
       animation: {
@@ -111,9 +126,9 @@ const config: Config = {
         shimmer: "shimmer 2.5s linear infinite",
         "pulse-ring": "pulse-ring 2s cubic-bezier(0.4,0,0.6,1) infinite",
         marquee: "marquee 40s linear infinite",
-        "bloom-float": "bloom-float 18s ease-in-out infinite",
-        "bloom-float-2": "bloom-float-2 22s ease-in-out infinite",
-        "bloom-drift": "bloom-drift 28s ease-in-out infinite",
+        "bloom-float": "bloom-float 22s ease-in-out infinite",
+        "bloom-float-2": "bloom-float-2 26s ease-in-out infinite",
+        "bloom-drift": "bloom-drift 32s ease-in-out infinite",
       },
     },
   },

@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="en" data-surface="black">
+<html lang="en" data-surface="white">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#08080a" />
+    <meta name="theme-color" content="#f6f4f0" />
     <title>Offline · The UPSC Chronicle</title>
     <link rel="icon" href="/icons/icon-192.png" type="image/png" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
@@ -11,21 +11,36 @@
       The service worker's navigation fallback.
 
       Deliberately a standalone document: no app JavaScript, no build chunks,
-      no auth or sleep gate. It has to render when nothing else can.
+      no auth or sleep gate. It has to render when nothing else can, so the
+      design tokens below are a hand-copy of the app's Ivory surface.
     -->
     <style>
       :root {
-        --ink: 9 9 11;
-        --paper: 234 235 240;
-        --accent: 240 90 156;
+        --ink: 246 244 240;
+        --card: 255 255 255;
+        --paper: 34 31 28;
+        --line: 226 221 213;
+        --accent: 225 29 72;
+        --accent-fg: 255 255 255;
+        --shadow: 32 26 20;
+      }
+      [data-surface="black"] {
+        --ink: 18 18 20;
+        --card: 27 27 31;
+        --paper: 242 241 238;
+        --line: 46 46 52;
+        --accent: 251 74 113;
+        --accent-fg: 40 6 16;
+        --shadow: 0 0 0;
       }
       [data-surface="navy"] {
-        --ink: 12 18 38;
-        --paper: 223 229 245;
-      }
-      [data-surface="white"] {
-        --ink: 253 250 251;
-        --paper: 28 24 32;
+        --ink: 15 18 33;
+        --card: 23 28 48;
+        --paper: 226 231 245;
+        --line: 41 48 74;
+        --accent: 251 74 113;
+        --accent-fg: 40 6 16;
+        --shadow: 4 6 20;
       }
       * {
         box-sizing: border-box;
@@ -42,55 +57,67 @@
         background: rgb(var(--ink));
         color: rgb(var(--paper));
         font-family:
-          ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
-          "Helvetica Neue", Arial, sans-serif;
+          ui-rounded, "SF Pro Rounded", "Segoe UI Variable", ui-sans-serif,
+          system-ui, -apple-system, Roboto, Arial, sans-serif;
+        letter-spacing: -0.011em;
         -webkit-font-smoothing: antialiased;
       }
-      .bloom {
+      .wash {
         position: fixed;
         inset: 0;
         z-index: -1;
         overflow: hidden;
       }
-      .bloom span {
+      .wash span {
         position: absolute;
         border-radius: 9999px;
-        filter: blur(90px);
+        filter: blur(110px);
       }
-      .b1 {
-        top: -6rem;
-        left: -5rem;
-        width: 22rem;
-        height: 22rem;
-        background: rgb(var(--accent) / 0.22);
+      .w1 {
+        top: -10rem;
+        left: -10rem;
+        width: 30rem;
+        height: 30rem;
+        background: rgb(var(--accent) / 0.1);
       }
-      .b2 {
-        right: -6rem;
+      .w2 {
+        right: -8rem;
         bottom: -8rem;
-        width: 24rem;
-        height: 24rem;
-        background: rgb(110 168 255 / 0.14);
+        width: 26rem;
+        height: 26rem;
+        background: rgb(37 99 235 / 0.07);
       }
       .card {
         width: 100%;
-        max-width: 26rem;
-        padding: 1.75rem;
-        border: 1px solid rgb(var(--paper) / 0.12);
-        border-radius: 1.25rem;
-        background: rgb(var(--ink) / 0.75);
-        backdrop-filter: blur(18px);
-        box-shadow: 0 30px 80px -20px rgb(0 0 0 / 0.6);
+        max-width: 27rem;
+        padding: 2rem;
+        border: 1px solid rgb(var(--line));
+        border-radius: 1.75rem;
+        background: rgb(var(--card));
+        box-shadow:
+          0 1px 2px rgb(var(--shadow) / 0.05),
+          0 24px 48px -24px rgb(var(--shadow) / 0.26);
         text-align: center;
       }
+      .mark {
+        display: grid;
+        place-items: center;
+        width: 3.25rem;
+        height: 3.25rem;
+        margin: 0 auto;
+        border-radius: 1rem;
+        border: 1px solid rgb(var(--line));
+      }
       h1 {
-        margin: 1.25rem 0 0;
-        font-size: 1.35rem;
-        font-weight: 500;
-        letter-spacing: -0.02em;
+        margin: 1.35rem 0 0;
+        font-size: 1.45rem;
+        font-weight: 700;
+        letter-spacing: -0.035em;
+        line-height: 1.15;
       }
       p {
-        margin: 0.6rem 0 0;
-        font-size: 0.875rem;
+        margin: 0.7rem 0 0;
+        font-size: 0.9rem;
         line-height: 1.65;
         color: rgb(var(--paper) / 0.55);
       }
@@ -98,7 +125,7 @@
         display: flex;
         flex-direction: column;
         gap: 0.6rem;
-        margin-top: 1.5rem;
+        margin-top: 1.6rem;
       }
       button,
       a.btn {
@@ -107,57 +134,63 @@
         justify-content: center;
         gap: 0.5rem;
         width: 100%;
-        padding: 0.7rem 1rem;
-        border-radius: 0.85rem;
+        padding: 0.8rem 1rem;
+        border-radius: 999px;
         font: inherit;
-        font-size: 0.875rem;
-        font-weight: 500;
+        font-size: 0.9rem;
+        font-weight: 600;
+        letter-spacing: -0.02em;
         cursor: pointer;
         text-decoration: none;
         transition:
-          opacity 0.2s ease,
+          filter 0.2s ease,
+          transform 0.2s ease,
           border-color 0.2s ease,
-          background-color 0.2s ease;
+          color 0.2s ease;
       }
       button {
         border: 0;
         background: rgb(var(--accent));
-        color: #1a0e16;
+        color: rgb(var(--accent-fg));
+        box-shadow: 0 10px 26px -12px rgb(var(--accent) / 0.55);
       }
       button:hover {
-        opacity: 0.9;
+        filter: brightness(1.08);
+        transform: translateY(-1px);
       }
       a.btn {
-        border: 1px solid rgb(var(--paper) / 0.14);
-        background: rgb(var(--paper) / 0.03);
-        color: rgb(var(--paper) / 0.75);
+        border: 1px solid rgb(var(--line));
+        background: transparent;
+        color: rgb(var(--paper) / 0.7);
       }
       a.btn:hover {
         border-color: rgb(var(--paper) / 0.3);
         color: rgb(var(--paper));
+        transform: translateY(-1px);
       }
       .note {
-        margin-top: 1.25rem;
-        font-size: 0.7rem;
-        color: rgb(var(--paper) / 0.35);
+        margin-top: 1.4rem;
+        font-size: 0.72rem;
+        color: rgb(var(--paper) / 0.38);
       }
       svg {
         display: block;
-        margin: 0 auto;
       }
     </style>
   </head>
   <body>
-    <div class="bloom"><span class="b1"></span><span class="b2"></span></div>
+    <div class="wash"><span class="w1"></span><span class="w2"></span></div>
 
     <main class="card">
       <!-- The Chronicle mark: the cycle of days, with today lit up. -->
-      <svg viewBox="0 0 32 32" width="40" height="40" fill="none" aria-hidden="true">
-        <circle cx="16" cy="16" r="12.5" stroke="rgb(var(--paper) / 0.3)" stroke-width="1.5" />
-        <circle cx="16" cy="16" r="7" stroke="rgb(var(--paper) / 0.15)" stroke-width="1.5" />
-        <line x1="16" y1="3.5" x2="16" y2="9" stroke="rgb(var(--accent) / 0.5)" stroke-width="1.5" stroke-linecap="round" />
-        <circle cx="16" cy="3.5" r="2.4" fill="rgb(var(--accent))" />
-      </svg>
+      <span class="mark">
+        <svg viewBox="0 0 32 32" width="30" height="30" fill="none" aria-hidden="true">
+          <circle cx="16" cy="16" r="12.5" stroke="rgb(var(--paper) / 0.3)" stroke-width="1.6" />
+          <circle cx="16" cy="16" r="7" stroke="rgb(var(--paper) / 0.15)" stroke-width="1.6" />
+          <line x1="16" y1="3.5" x2="16" y2="9" stroke="rgb(var(--accent) / 0.55)" stroke-width="1.6" stroke-linecap="round" />
+          <circle cx="16" cy="3.5" r="2.4" fill="rgb(var(--accent))" />
+        </svg>
+      </span>
 
       <h1>This page isn’t available offline</h1>
       <p>
@@ -179,7 +212,7 @@
       // Match the surface the user chose in the app, and retry automatically
       // the moment the connection returns.
       try {
-        var s = localStorage.getItem("upsc-chronicle-surface") || "black";
+        var s = localStorage.getItem("upsc-chronicle-surface") || "white";
         document.documentElement.setAttribute("data-surface", s);
       } catch (e) {}
       window.addEventListener("online", function () {

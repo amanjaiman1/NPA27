@@ -1,7 +1,10 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
-/** Large editorial page header used at the top of every route. */
+/**
+ * The header at the top of every route: a small tracked label, a big rounded
+ * display headline, and an optional supporting line.
+ */
 export function PageHeader({
   eyebrow,
   title,
@@ -25,15 +28,15 @@ export function PageHeader({
       <div className="min-w-0 animate-fade-in">
         {eyebrow && (
           <p className="eyebrow mb-3 flex items-center gap-2">
-            <span className="inline-block h-1 w-1 rounded-full bg-paper/40" />
+            <span className="inline-block h-1.5 w-1.5 rounded-full bg-accent" />
             {eyebrow}
           </p>
         )}
-        <h1 className="font-display text-3xl font-light leading-[1.05] tracking-tight text-paper sm:text-[2.6rem]">
+        <h1 className="font-display text-[2rem] font-bold leading-[1.08] tracking-tightest text-paper sm:text-[2.75rem]">
           {title}
         </h1>
         {description && (
-          <p className="mt-3 max-w-2xl text-sm leading-relaxed text-paper/50 text-pretty">
+          <p className="mt-3.5 max-w-2xl text-[0.95rem] leading-relaxed text-paper/55 text-pretty">
             {description}
           </p>
         )}
