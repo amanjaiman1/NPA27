@@ -17,6 +17,16 @@ import {
   DEFAULT_WALLPAPER,
   wallpaperMeta,
 } from "./wallpaper";
+import {
+  type NotifySettings,
+  type NotifyState,
+  type DeliveryLog,
+  DEFAULT_NOTIFY_SETTINGS,
+  EMPTY_NOTIFY_STATE,
+  EMPTY_DELIVERY_LOG,
+  recordDelivery,
+  withDefaults as withNotifyDefaults,
+} from "./notifications";
 import type {
   ChronicleData,
   ISODate,
@@ -154,6 +164,41 @@ interface ChronicleState extends ChronicleData {
   /* life dashboard */
   upsertLifeEntry: (entry: LifeEntry) => void;
 
+  /* ── notifications ──────────────────────────────────────────
+     Notices themselves are never stored — they're derived on demand by
+     `lib/notifications.ts`. Only your *reaction* to them lives here. */
+
+  /** Notification preferences. Synced, so they follow you across devices. */
+  notify: NotifySettings;
+  /**
+   * Read / dismissed / snoozed notice ids. Synced too: acknowledging something
+   * on your phone should not leave the laptop still nagging about it.
+   */
+  notifyState: NotifyState;
+  /**
+   * Per-device delivery bookkeeping for the rate limits. Deliberately *not*
+   * synced — each device fires its own OS notifications, so each keeps its own
+   * count. Sharing it would let one device's digest silence another's.
+   */
+  notifyLog: DeliveryLog;
+  updateNotifySettings: (patch: Partial<NotifySettings>) => void;
+  markNoticeRead: (id: string) => void;
+  markNoticesRead: (ids: string[]) => void;
+  dismissNotice: (id: string) => void;
+  /** Hide a notice until `until` (an ISO date, exclusive of that day). */
+  snoozeNotice: (id: string, until: ISODate) => void;
+  /** Drop read/dismiss/snooze entries that no live notice claims any more. */
+  pruneNotifyState: (stale: {
+    readIds: string[];
+    dismissedIds: string[];
+    snoozedIds: string[];
+  }) => void;
+  recordNoticeDelivery: (
+    delivered: { dedupeKey: string }[],
+    now: Date,
+    digest?: boolean,
+  ) => void;
+
   /**
    * Record last night's sleep + this morning's wake-up once, then fan the
    * values out to both today's journal entry and today's life-dashboard
@@ -203,6 +248,11 @@ export const SNAPSHOT_KEYS = [
   // Remembering that today's sleep prompt was answered must follow the user
   // across devices/logins, so it's part of the synced snapshot too.
   "lastSleepPrompt",
+  // Notification preferences and what you've already acknowledged travel with
+  // you. `notifyLog` deliberately does not — it's per-device delivery
+  // bookkeeping, and sharing it would let one device silence another.
+  "notify",
+  "notifyState",
 ] as const;
 
 export type CloudSnapshot = Pick<ChronicleState, (typeof SNAPSHOT_KEYS)[number]>;
@@ -270,6 +320,9 @@ export const useChronicle = create<ChronicleState>()(
       wallpaperDim: wallpaperMeta(DEFAULT_WALLPAPER).dim,
       _hasHydrated: false,
       lastSleepPrompt: undefined,
+      notify: DEFAULT_NOTIFY_SETTINGS,
+      notifyState: EMPTY_NOTIFY_STATE,
+      notifyLog: EMPTY_DELIVERY_LOG,
 
       setHasHydrated: (v) => set({ _hasHydrated: v }),
       setSurface: (s) => {
@@ -863,6 +916,95 @@ export const useChronicle = create<ChronicleState>()(
 
           return { journal, lifeLog, lastSleepPrompt: promptKey };
         }),
+
+      /* ── notifications ─────────────────────────────────────── */
+
+      /**
+       * Merged through `withDefaults` rather than spread blindly, so a settings
+       * object persisted before a new option existed gains the new default
+       * instead of leaving it `undefined`.
+       */
+      updateNotifySettings: (patch) =>
+        set((s) => ({ notify: withNotifyDefaults({ ...s.notify, ...patch }) })),
+
+      markNoticeRead: (id) =>
+        set((s) =>
+          s.notifyState.readIds.includes(id)
+            ? {}
+            : {
+                notifyState: {
+                  ...s.notifyState,
+                  readIds: [...s.notifyState.readIds, id],
+                },
+              },
+        ),
+
+      markNoticesRead: (ids) =>
+        set((s) => {
+          const next = new Set(s.notifyState.readIds);
+          const before = next.size;
+          for (const id of ids) next.add(id);
+          // Returning `{}` for a no-op keeps zustand from notifying subscribers.
+          if (next.size === before) return {};
+          return { notifyState: { ...s.notifyState, readIds: [...next] } };
+        }),
+
+      /**
+       * Dismissal implies read: an unread counter that still counts something
+       * you have explicitly thrown away would be lying.
+       */
+      dismissNotice: (id) =>
+        set((s) => ({
+          notifyState: {
+            ...s.notifyState,
+            dismissedIds: s.notifyState.dismissedIds.includes(id)
+              ? s.notifyState.dismissedIds
+              : [...s.notifyState.dismissedIds, id],
+            readIds: s.notifyState.readIds.includes(id)
+              ? s.notifyState.readIds
+              : [...s.notifyState.readIds, id],
+          },
+        })),
+
+      snoozeNotice: (id, until) =>
+        set((s) => ({
+          notifyState: {
+            ...s.notifyState,
+            snoozedUntil: { ...s.notifyState.snoozedUntil, [id]: until },
+          },
+        })),
+
+      pruneNotifyState: (stale) =>
+        set((s) => {
+          if (
+            stale.readIds.length === 0 &&
+            stale.dismissedIds.length === 0 &&
+            stale.snoozedIds.length === 0
+          )
+            return {};
+          const dropRead = new Set(stale.readIds);
+          const dropDismissed = new Set(stale.dismissedIds);
+          const dropSnoozed = new Set(stale.snoozedIds);
+          /** Keyed by notice id, valued by the ISO date the snooze expires. */
+          const snoozedUntil: Record<string, ISODate> = {};
+          for (const [k, v] of Object.entries(s.notifyState.snoozedUntil)) {
+            if (!dropSnoozed.has(k)) snoozedUntil[k] = v;
+          }
+          return {
+            notifyState: {
+              readIds: s.notifyState.readIds.filter((i) => !dropRead.has(i)),
+              dismissedIds: s.notifyState.dismissedIds.filter(
+                (i) => !dropDismissed.has(i),
+              ),
+              snoozedUntil,
+            },
+          };
+        }),
+
+      recordNoticeDelivery: (delivered, now, digest = false) =>
+        set((s) => ({
+          notifyLog: recordDelivery(s.notifyLog, delivered, now, digest),
+        })),
     }),
     {
       name: "upsc-chronicle-store",
@@ -1002,6 +1144,27 @@ export const useChronicle = create<ChronicleState>()(
       },
       onRehydrateStorage: () => (state) => {
         state?.setHasHydrated(true);
+        /**
+         * Normalise the notification slice after hydration. Stored settings from
+         * before a new option existed would otherwise carry it as `undefined`,
+         * and a snapshot written by an older build has no slice at all — both
+         * read as a broken settings pane rather than a sensible default.
+         */
+        if (state) {
+          state.updateNotifySettings({});
+          if (
+            !state.notifyState ||
+            !Array.isArray(state.notifyState.readIds) ||
+            !Array.isArray(state.notifyState.dismissedIds) ||
+            typeof state.notifyState.snoozedUntil !== "object" ||
+            state.notifyState.snoozedUntil === null
+          ) {
+            useChronicle.setState({ notifyState: EMPTY_NOTIFY_STATE });
+          }
+          if (!state.notifyLog || typeof state.notifyLog.lastSentAt !== "object") {
+            useChronicle.setState({ notifyLog: EMPTY_DELIVERY_LOG });
+          }
+        }
         // re-apply appearance attributes after hydration
         if (state && typeof document !== "undefined") {
           document.documentElement.setAttribute("data-surface", state.surface);

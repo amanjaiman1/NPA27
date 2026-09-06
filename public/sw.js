@@ -81,6 +81,81 @@ self.addEventListener("message", (event) => {
   }
 });
 
+// -------------------------------------------------------------- notifications
+
+/**
+ * Server-sent push. Nothing sends these yet — real background push needs a
+ * VAPID key pair, a stored subscription and something running the rules engine
+ * server-side (see docs/notifications.md). The handler exists so that when a
+ * sender is added, the client half is already correct: the payload shape it
+ * expects is `{ title, body, href, tag }`, exactly what the in-page notifier
+ * passes to `showNotification`.
+ *
+ * A push with no payload, or one that isn't JSON, still shows something rather
+ * than nothing — a silent push that displays no notification costs the origin
+ * its push permission in some browsers.
+ */
+self.addEventListener("push", (event) => {
+  let payload = {};
+  try {
+    payload = event.data ? event.data.json() : {};
+  } catch {
+    try {
+      payload = { body: event.data ? event.data.text() : "" };
+    } catch {
+      payload = {};
+    }
+  }
+
+  const title = payload.title || "OP NPA28";
+  const href = typeof payload.href === "string" ? payload.href : "/";
+
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body: payload.body || "Something needs your attention.",
+      // Re-using a tag replaces the previous notification about the same thing
+      // instead of stacking duplicates on the lock screen.
+      tag: payload.tag || "chronicle",
+      icon: "/icons/icon-192.png",
+      badge: "/icons/icon-192.png",
+      data: { href },
+    }),
+  );
+});
+
+/**
+ * Focus an already-open tab and route it, rather than opening a second copy of
+ * the app. `clients.matchAll` needs `includeUncontrolled` because a tab loaded
+ * before this worker took control is not yet controlled by it, but is still the
+ * window the user means.
+ */
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const href = event.notification.data?.href || "/";
+  const target = new URL(href, self.location.origin);
+
+  event.waitUntil(
+    (async () => {
+      const clientList = await self.clients.matchAll({
+        type: "window",
+        includeUncontrolled: true,
+      });
+      for (const client of clientList) {
+        // Same-origin only; navigating a foreign window is not ours to do.
+        if (new URL(client.url).origin !== self.location.origin) continue;
+        if ("navigate" in client) {
+          const focused = await client.focus();
+          await (focused || client).navigate(target.href);
+          return;
+        }
+        await client.focus();
+        return;
+      }
+      await self.clients.openWindow(target.href);
+    })(),
+  );
+});
+
 // ---------------------------------------------------------------- strategies
 
 function isImmutableAsset(url) {
