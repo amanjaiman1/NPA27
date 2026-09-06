@@ -62,16 +62,18 @@ export function Heatmap({
         lastMonth = m;
       }
     });
-    /* A twelve-month window necessarily starts and ends inside the same month,
-       so the plain "label every change" pass printed that month's name at both
-       ends of the axis — "Sep Oct … Aug Sep", which reads like the range covers
-       thirteen months. Drop any mark with fewer than two columns to itself: it's
-       a few days' stub of a month already labelled at the other end, and there
-       is no room to print it legibly anyway. */
-    const monthLabels = marks.filter((mk, i) => {
-      const nextCol = marks[i + 1]?.col ?? weeks.length;
-      return nextCol - mk.col >= 2;
-    });
+    /* A twelve-month window starts and ends inside the same month, so labelling
+       every change printed that month's name at both ends — "Sep Oct … Aug Sep",
+       which reads like the range covers thirteen months.
+
+       When a name repeats, keep the *last* occurrence. The right-hand end of the
+       axis is the month you are in now, and that is the label that has to be
+       right; the earlier one is a few days' stub of a month a year ago. Dropping
+       the short stub instead — whichever end it fell on — is what left the axis
+       ending on "Aug" while the final squares were September. */
+    const monthLabels = marks.filter(
+      (mk, i) => !marks.some((other, j) => j > i && other.label === mk.label),
+    );
     return { weeks, monthLabels };
   }, [cells]);
 
@@ -88,12 +90,19 @@ export function Heatmap({
           className="relative flex-1 overflow-hidden text-[0.6rem] text-paper/35"
           style={{ maxWidth: maxGridWidth }}
         >
-          {monthLabels.map((m) => {
+          {monthLabels.map((m, i) => {
             const pct = (m.col / weeks.length) * 100;
-            // A label in the last stretch of the track is anchored to the right
-            // instead, so it stays readable and — more importantly — can't hang
-            // past the edge and stretch every ancestor with it.
-            const nearEnd = pct > 88;
+            /* A label at the very end of the track is pinned to the right edge so
+               it stays readable and can't hang past the end.
+               Only the *last* label may be pinned, though. The threshold used to
+               apply to any label, and on a 53-column year the second-last month
+               already sits at ~89% — so it and the final month both resolved to
+               `right: 0` and were drawn one on top of the other. Everything else
+               keeps its true position, which also matters for short windows: when
+               the current month spans several columns its mark can sit well left
+               of the edge, and pinning it regardless would misplace it. */
+            const isLast = i === monthLabels.length - 1;
+            const nearEnd = isLast && pct > 88;
             return (
               <span
                 key={`${m.col}-${m.label}`}
