@@ -32,7 +32,8 @@ export function LineChart({
   const [ref, width] = useMeasure<HTMLDivElement>();
   const [hover, setHover] = useState<number | null>(null);
 
-  const w = Math.max(width, 280);
+  // Once measured, use the real width; the floor only covers first paint.
+  const w = width > 0 ? width : 280;
   const h = height;
 
   const { min, max, points, areaPath, linePath, gridY } = useMemo(() => {
@@ -65,8 +66,14 @@ export function LineChart({
   const gid = useMemo(() => `lg-${Math.random().toString(36).slice(2, 7)}`, []);
 
   return (
-    <div ref={ref} className={cn("relative w-full", className)}>
-      <svg width={w} height={h} className="overflow-visible">
+    <div ref={ref} className={cn("relative w-full min-w-0", className)}>
+      <svg
+        viewBox={`0 0 ${w} ${h}`}
+        width="100%"
+        height={h}
+        preserveAspectRatio="none"
+        className="block overflow-visible"
+      >
         <defs>
           <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="rgb(var(--accent))" stopOpacity="0.20" />

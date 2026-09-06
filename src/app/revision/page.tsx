@@ -113,7 +113,7 @@ export default function RevisionPage() {
                     </p>
                   </div>
                   <div className="mt-1.5 flex flex-wrap items-center gap-3 pl-9 text-[0.7rem] text-paper/45">
-                    <span>{name(r.subjectId)}</span>
+                    <span className="max-w-full truncate">{name(r.subjectId)}</span>
                     <ConfidencePips value={r.confidence} />
                     <span>last: {r.lastRevised ? formatDate(r.lastRevised) : "never"}</span>
                   </div>
@@ -151,7 +151,7 @@ export default function RevisionPage() {
                 <div key={r.id} className="flex items-center gap-4 px-5 py-3">
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm text-paper/80">{r.topic}</p>
-                    <p className="text-[0.7rem] text-paper/40">{name(r.subjectId)}</p>
+                    <p className="truncate text-[0.7rem] text-paper/40">{name(r.subjectId)}</p>
                   </div>
                   <ConfidencePips value={r.confidence} />
                   <Badge tone="outline">

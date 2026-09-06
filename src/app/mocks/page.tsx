@@ -157,7 +157,7 @@ export default function MocksPage() {
         }
       />
 
-      <div className="no-scrollbar -mx-1 overflow-x-auto px-1">
+      <div className="no-scrollbar overflow-x-auto px-0.5">
         <Segmented value={filter} onChange={(v) => setFilter(v as Filter)} options={TABS} />
       </div>
 
@@ -251,7 +251,7 @@ export default function MocksPage() {
           </Card>
 
           {/* Accuracy + negatives */}
-          <div className="grid gap-4 lg:grid-cols-2">
+          <div className="grid gap-4 lg:grid-cols-2 [&>*]:min-w-0">
             <Card className="p-5">
               <p className="eyebrow mb-1">{hasAccuracy ? "Accuracy" : "Score %"} trend</p>
               <h3 className="mb-5 text-base font-semibold text-paper">
@@ -357,7 +357,7 @@ export default function MocksPage() {
           )}
 
           {/* Subject accuracy + AI recommendations */}
-          <div className="grid gap-4 lg:grid-cols-2">
+          <div className="grid gap-4 lg:grid-cols-2 [&>*]:min-w-0">
             {subjects.length > 0 && (
               <Card className="p-5">
                 <p className="eyebrow mb-1">Subject-wise accuracy</p>

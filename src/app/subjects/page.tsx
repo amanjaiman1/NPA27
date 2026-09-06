@@ -223,7 +223,7 @@ export default function SubjectsPage() {
         </Card>
       </div>
 
-      <div className="no-scrollbar -mx-1 overflow-x-auto px-1">
+      <div className="no-scrollbar overflow-x-auto px-0.5">
         <Segmented
           value={filter}
           onChange={(v) => setFilter(v as "all" | PaperCode)}
