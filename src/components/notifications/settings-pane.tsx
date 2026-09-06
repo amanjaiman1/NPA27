@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { AlertTriangle, BellOff, Check } from "lucide-react";
 import { useChronicle } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -14,7 +15,7 @@ import {
   useNotificationPermission,
   type PermissionState,
 } from "./use-notifications";
-import { usePushSubscription } from "@/lib/push";
+import { usePushSubscription, sendTestPush } from "@/lib/push";
 
 /** A compact pill switch — the app has no shared one, and this is its only user. */
 function Switch({
@@ -245,6 +246,54 @@ function BackgroundPushRow() {
               : "Couldn't register this device. Check the connection and try again."}
         </Note>
       )}
+      {subscribed === true && <TestPushRow />}
+    </>
+  );
+}
+
+/**
+ * A "send one now" button.
+ *
+ * Worth its own control because the real path is deliberately quiet: quiet hours,
+ * the digest hour, the per-day cap and the per-subject cooldown mean that most of
+ * the time the correct behaviour is to send nothing — which is indistinguishable
+ * from a broken setup. This proves the pipe without waiting until morning.
+ */
+function TestPushRow() {
+  const [state, setState] = useState<
+    { kind: "idle" } | { kind: "sending" } | { kind: "sent"; devices: number } | { kind: "error"; message: string }
+  >({ kind: "idle" });
+
+  return (
+    <>
+      <Row
+        title="Send a test notification"
+        hint="Goes through the server and ignores your schedule, so it always arrives."
+      >
+        <button
+          onClick={async () => {
+            setState({ kind: "sending" });
+            const result = await sendTestPush();
+            setState(
+              result.ok
+                ? { kind: "sent", devices: result.devices }
+                : { kind: "error", message: result.error },
+            );
+          }}
+          disabled={state.kind === "sending"}
+          className="shrink-0 rounded-full border border-line px-3 py-1.5 text-xs font-semibold text-paper transition-colors hover:bg-paper/[0.06] disabled:opacity-40"
+        >
+          {state.kind === "sending" ? "Sending…" : "Send"}
+        </button>
+      </Row>
+      {state.kind === "sent" && (
+        <Note>
+          Sent to {state.devices} {state.devices === 1 ? "device" : "devices"}. If
+          nothing appears, check this site is allowed in your system notification
+          settings — and that Do Not Disturb or Focus isn&apos;t on.
+        </Note>
+      )}
+      {state.kind === "error" && <Note tone="warning">{state.message}</Note>}
     </>
   );
 }

@@ -175,6 +175,37 @@ export async function subscribeToPush(): Promise<
   return { ok: true };
 }
 
+/**
+ * Ask the server to push a test notification to this account's devices.
+ *
+ * Goes through the server rather than calling `showNotification` locally, which
+ * would prove nothing: a local notification works even with no subscription at
+ * all. This exercises the real path end to end.
+ */
+export async function sendTestPush(): Promise<
+  { ok: true; sent: number; devices: number } | { ok: false; error: string }
+> {
+  const token = await accessToken();
+  if (!token) return { ok: false, error: "Sign in first." };
+
+  const res = await fetch("/api/push/test", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+  }).catch(() => null);
+
+  if (!res) return { ok: false, error: "Couldn't reach the server." };
+  const body = (await res.json().catch(() => ({}))) as {
+    error?: string;
+    sent?: number;
+    devices?: number;
+  };
+  if (!res.ok) return { ok: false, error: body.error ?? `HTTP ${res.status}` };
+  if (!body.sent) {
+    return { ok: false, error: "The push service accepted nothing. Try re-enabling." };
+  }
+  return { ok: true, sent: body.sent, devices: body.devices ?? body.sent };
+}
+
 /** Unsubscribe this device and forget it server-side. */
 export async function unsubscribeFromPush(): Promise<boolean> {
   const reg = await serviceWorkerReady();
