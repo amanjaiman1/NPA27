@@ -6,6 +6,8 @@ import { Menu, Search, Plus, Palette, CalendarClock } from "lucide-react";
 import { findNavItem } from "@/lib/nav";
 import { Logo } from "./logo";
 import { SyncStatus } from "./sync-status";
+import { NotificationCentre } from "@/components/notifications/centre";
+import { Notifier } from "@/components/notifications/notifier";
 import { useChronicle } from "@/lib/store";
 import { useMounted } from "@/lib/hooks";
 import { daysBetween, toISODate } from "@/lib/utils";
@@ -102,6 +104,15 @@ export function Topbar({
         >
           <Palette className="h-5 w-5" />
         </IconButton>
+
+        <NotificationCentre />
+
+        {/**
+         * Mounted here because the topbar renders exactly once, inside the
+         * authenticated shell — which is precisely where notification delivery
+         * belongs. It renders nothing.
+         */}
+        <Notifier />
 
         <SyncStatus />
 
