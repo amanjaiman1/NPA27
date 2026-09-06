@@ -11,6 +11,11 @@ import {
   DEFAULT_SURFACE,
   DEFAULT_PALETTE,
 } from "./theme";
+import {
+  type WallpaperId,
+  DEFAULT_WALLPAPER,
+  wallpaperMeta,
+} from "./wallpaper";
 import type {
   ChronicleData,
   ISODate,
@@ -36,6 +41,10 @@ import type {
 interface ChronicleState extends ChronicleData {
   surface: Surface;
   palette: Palette;
+  /** The layer behind the app. A custom image's bytes stay in IndexedDB. */
+  wallpaper: WallpaperId;
+  /** How much canvas colour covers the wallpaper, 0–0.9. */
+  wallpaperDim: number;
   _hasHydrated: boolean;
 
   /**
@@ -48,6 +57,9 @@ interface ChronicleState extends ChronicleData {
   setHasHydrated: (v: boolean) => void;
   setSurface: (s: Surface) => void;
   setPalette: (p: Palette) => void;
+  /** Switching wallpaper resets the dim to that wallpaper's sensible default. */
+  setWallpaper: (w: WallpaperId) => void;
+  setWallpaperDim: (d: number) => void;
   resetData: () => void;
   /** Replace all synced data with a snapshot pulled from the cloud. */
   applyCloudSnapshot: (snap: Partial<CloudSnapshot>) => void;
@@ -56,6 +68,13 @@ interface ChronicleState extends ChronicleData {
   /* journal */
   upsertJournal: (entry: JournalEntry) => void;
   deleteJournal: (id: string) => void;
+
+  /**
+   * Mark or unmark a day as accomplished. Returns true when the day *became*
+   * accomplished, which is the signal the celebration listens for — so
+   * unmarking, or a re-render, never re-fires it.
+   */
+  toggleAccomplished: (date: ISODate) => boolean;
 
   /* mocks */
   upsertMock: (m: MockTest) => void;
@@ -149,8 +168,13 @@ export const SNAPSHOT_KEYS = [
   "reviews",
   "topicLinks",
   "selection",
+  "accomplished",
   "surface",
   "palette",
+  // The wallpaper *choice* follows the user across devices; a custom photo's
+  // bytes never do — they stay in IndexedDB on the device that picked it.
+  "wallpaper",
+  "wallpaperDim",
   // Remembering that today's sleep prompt was answered must follow the user
   // across devices/logins, so it's part of the synced snapshot too.
   "lastSleepPrompt",
@@ -189,6 +213,8 @@ export const useChronicle = create<ChronicleState>()(
       ...createFreshData(),
       surface: DEFAULT_SURFACE,
       palette: DEFAULT_PALETTE,
+      wallpaper: DEFAULT_WALLPAPER,
+      wallpaperDim: wallpaperMeta(DEFAULT_WALLPAPER).dim,
       _hasHydrated: false,
       lastSleepPrompt: undefined,
 
@@ -207,6 +233,26 @@ export const useChronicle = create<ChronicleState>()(
           localStorage.setItem("upsc-chronicle-palette", p);
         set({ palette: p });
       },
+      setWallpaper: (w) => {
+        const dim = wallpaperMeta(w).dim;
+        if (typeof document !== "undefined") {
+          document.documentElement.setAttribute("data-wallpaper", w);
+          document.documentElement.style.setProperty("--wp-dim", String(dim));
+        }
+        if (typeof localStorage !== "undefined") {
+          localStorage.setItem("upsc-chronicle-wallpaper", w);
+          localStorage.setItem("upsc-chronicle-wallpaper-dim", String(dim));
+        }
+        set({ wallpaper: w, wallpaperDim: dim });
+      },
+      setWallpaperDim: (d) => {
+        const dim = Math.max(0, Math.min(0.9, d));
+        if (typeof document !== "undefined")
+          document.documentElement.style.setProperty("--wp-dim", String(dim));
+        if (typeof localStorage !== "undefined")
+          localStorage.setItem("upsc-chronicle-wallpaper-dim", String(dim));
+        set({ wallpaperDim: dim });
+      },
       resetData: () => set({ ...createFreshData() }),
       applyCloudSnapshot: (snap) =>
         set(() => {
@@ -220,11 +266,33 @@ export const useChronicle = create<ChronicleState>()(
               document.documentElement.setAttribute("data-surface", snap.surface);
             if (snap.palette)
               document.documentElement.setAttribute("data-palette", snap.palette);
+            if (snap.wallpaper)
+              document.documentElement.setAttribute("data-wallpaper", snap.wallpaper);
+            if (snap.wallpaperDim !== undefined)
+              document.documentElement.style.setProperty(
+                "--wp-dim",
+                String(snap.wallpaperDim),
+              );
           }
           return next as Partial<ChronicleState>;
         }),
       updateProfile: (patch) =>
         set((s) => ({ profile: { ...s.profile, ...patch } })),
+
+      toggleAccomplished: (date) => {
+        let became = false;
+        set((s) => {
+          const list = s.accomplished ?? [];
+          const has = list.includes(date);
+          became = !has;
+          return {
+            accomplished: has
+              ? list.filter((d) => d !== date)
+              : [...list, date].sort(),
+          };
+        });
+        return became;
+      },
 
       upsertJournal: (entry) =>
         set((s) => {
@@ -565,7 +633,7 @@ export const useChronicle = create<ChronicleState>()(
     }),
     {
       name: "upsc-chronicle-store",
-      version: 8,
+      version: 9,
       storage: createJSONStorage(() => localStorage),
       migrate: (persisted, version) => {
         const state = persisted as Partial<ChronicleState> | undefined;
@@ -589,6 +657,14 @@ export const useChronicle = create<ChronicleState>()(
           return next;
         };
 
+        // v8 -> v9: new keys — the accomplished-days list and the wallpaper
+        // choice. Backfill rather than reset, so nothing logged is disturbed.
+        if (state && version < 9) {
+          if (!Array.isArray(state.accomplished)) state.accomplished = [];
+          if (state.wallpaper === undefined) state.wallpaper = DEFAULT_WALLPAPER;
+          if (state.wallpaperDim === undefined)
+            state.wallpaperDim = wallpaperMeta(DEFAULT_WALLPAPER).dim;
+        }
         // v<6: a clean slate. Aman starts logging from today, so we discard the
         // previously-seeded demo records entirely and rebuild from fresh data.
         if (version < 6) {
@@ -697,6 +773,14 @@ export const useChronicle = create<ChronicleState>()(
         if (state && typeof document !== "undefined") {
           document.documentElement.setAttribute("data-surface", state.surface);
           document.documentElement.setAttribute("data-palette", state.palette);
+          document.documentElement.setAttribute(
+            "data-wallpaper",
+            state.wallpaper ?? DEFAULT_WALLPAPER,
+          );
+          document.documentElement.style.setProperty(
+            "--wp-dim",
+            String(state.wallpaperDim ?? 0),
+          );
         }
       },
     },

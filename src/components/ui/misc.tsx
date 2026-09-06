@@ -169,7 +169,7 @@ export function Chip({
       className={cn(
         "rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-all duration-200",
         active
-          ? "border-accent/35 bg-accent/12 text-accent"
+          ? "border-accent/35 bg-accent/15 text-accent"
           : "border-line bg-card text-paper/55 hover:border-paper/25 hover:text-paper",
         className,
       )}

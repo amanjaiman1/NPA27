@@ -57,7 +57,7 @@ export function Topbar({
 
   return (
     <header className="sticky top-0 z-30 px-3 pb-1 pt-3 sm:px-5 sm:pt-4">
-      <div className="flex h-14 items-center gap-2 rounded-full border border-line bg-card/95 px-2.5 shadow-soft backdrop-blur-none sm:bg-card/80 sm:px-3 sm:backdrop-blur-xl">
+      <div className="chrome-glass flex h-14 items-center gap-2 rounded-full border border-line bg-card/95 px-2.5 shadow-soft backdrop-blur-none sm:bg-card/80 sm:px-3 sm:backdrop-blur-xl">
         {/* Mobile: menu + brand */}
         <IconButton label="Open menu" onClick={onOpenDrawer} className="lg:hidden">
           <Menu className="h-5 w-5" />

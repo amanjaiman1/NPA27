@@ -287,6 +287,166 @@
   --bloom-6: 37 99 235;
 }
 
+
+
+/* ── Opening animations ───────────────────────────────────────────────
+   Each route plays a short rise-and-fade, and its top-level sections follow
+   in sequence. Transform and opacity only, one shot, no layout thrash — so it
+   reads as choreography rather than costing frames. The reduced-motion block
+   at the bottom of this file collapses all of it.
+   ─────────────────────────────────────────────────────────────────── */
+
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 14px, 0) scale(0.995);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes section-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 18px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.page-enter {
+  animation: page-in 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* The page's own sections, cascading. Six steps is enough — beyond that the
+   wait starts to feel like latency instead of polish. */
+.page-enter > * {
+  animation: section-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.page-enter > *:nth-child(1) {
+  animation-delay: 0.04s;
+}
+.page-enter > *:nth-child(2) {
+  animation-delay: 0.1s;
+}
+.page-enter > *:nth-child(3) {
+  animation-delay: 0.16s;
+}
+.page-enter > *:nth-child(4) {
+  animation-delay: 0.22s;
+}
+.page-enter > *:nth-child(5) {
+  animation-delay: 0.27s;
+}
+.page-enter > *:nth-child(n + 6) {
+  animation-delay: 0.31s;
+}
+
+/* Sticky children must not be transformed — a transform creates a containing
+   block and the stickiness silently breaks. */
+.page-enter > .sticky,
+.page-enter > [class*="sticky"] {
+  animation: fade-in-fast 0.3s ease-out both;
+}
+
+/* ── Wallpapers ───────────────────────────────────────────────────────
+   The layer behind everything, painted by `components/layout/wallpaper.tsx`.
+   Every pattern is built from the palette's own aura colours, so it costs no
+   bytes, re-tints itself when the palette changes, and needs no animation —
+   which is what keeps it free on a phone.
+
+   `--wp-dim` (set from the store) lays canvas colour back over the top, so
+   legibility is a single dial rather than a per-wallpaper guess.
+   ─────────────────────────────────────────────────────────────────── */
+
+.wallpaper-art {
+  position: absolute;
+  inset: 0;
+  background-color: rgb(var(--ink));
+}
+
+[data-wallpaper="mesh"] .wallpaper-art {
+  background-image:
+    radial-gradient(38% 44% at 12% 8%, rgb(var(--aura-1) / 0.55), transparent 68%),
+    radial-gradient(42% 48% at 88% 12%, rgb(var(--aura-2) / 0.45), transparent 70%),
+    radial-gradient(46% 50% at 78% 92%, rgb(var(--bloom-4) / 0.34), transparent 70%),
+    radial-gradient(40% 46% at 10% 88%, rgb(var(--bloom-3) / 0.3), transparent 70%);
+}
+
+[data-wallpaper="aurora"] .wallpaper-art {
+  background-image:
+    conic-gradient(from 200deg at 24% -10%, transparent 0deg, rgb(var(--aura-1) / 0.42) 26deg, transparent 62deg),
+    conic-gradient(from 340deg at 82% 108%, transparent 0deg, rgb(var(--aura-2) / 0.38) 30deg, transparent 66deg),
+    radial-gradient(70% 50% at 50% 0%, rgb(var(--bloom-3) / 0.22), transparent 72%),
+    radial-gradient(60% 50% at 50% 100%, rgb(var(--bloom-4) / 0.18), transparent 72%);
+}
+
+[data-wallpaper="beams"] .wallpaper-art {
+  background-image:
+    conic-gradient(
+      from 196deg at 50% -18%,
+      transparent 0deg,
+      rgb(var(--aura-1) / 0.3) 12deg,
+      transparent 22deg,
+      rgb(var(--aura-2) / 0.26) 34deg,
+      transparent 44deg,
+      rgb(var(--aura-1) / 0.22) 56deg,
+      transparent 68deg
+    ),
+    radial-gradient(80% 60% at 50% -10%, rgb(var(--aura-2) / 0.28), transparent 70%);
+}
+
+[data-wallpaper="grid"] .wallpaper-art {
+  background-image:
+    linear-gradient(rgb(var(--paper) / 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(var(--paper) / 0.07) 1px, transparent 1px),
+    radial-gradient(70% 60% at 50% 0%, rgb(var(--aura-1) / 0.18), transparent 70%);
+  background-size: 56px 56px, 56px 56px, 100% 100%;
+}
+
+[data-wallpaper="dots"] .wallpaper-art {
+  background-image:
+    radial-gradient(rgb(var(--paper) / 0.13) 1.4px, transparent 1.5px),
+    radial-gradient(75% 60% at 50% 100%, rgb(var(--aura-2) / 0.16), transparent 70%);
+  background-size: 26px 26px, 100% 100%;
+}
+
+[data-wallpaper="rings"] .wallpaper-art {
+  background-image:
+    repeating-radial-gradient(
+      circle at 22% 112%,
+      rgb(var(--paper) / 0.075) 0 1px,
+      transparent 1px 34px
+    ),
+    repeating-radial-gradient(
+      circle at 86% -12%,
+      rgb(var(--aura-1) / 0.09) 0 1px,
+      transparent 1px 42px
+    );
+}
+
+/* Image wallpapers: the still from the command-centre film, or the user's own
+   photo (served from an IndexedDB blob URL set inline by the component). */
+[data-wallpaper="academy"] .wallpaper-art,
+[data-wallpaper="custom"] .wallpaper-art {
+  background-position: center 38%;
+  background-size: cover;
+  background-repeat: no-repeat;
+}
+[data-wallpaper="academy"] .wallpaper-art {
+  background-image: url("/media/hero-poster.jpg");
+}
+
+/* Chrome sits directly on the wallpaper, so it firms up when one is showing —
+   translucent glass over a busy photo is where readability goes to die. */
+[data-wallpaper]:not([data-wallpaper="none"]) .chrome-glass {
+  background-color: rgb(var(--card) / 0.94);
+}
+
 /* ── Base ─────────────────────────────────────────────────────────── */
 
 * {
@@ -427,7 +587,9 @@ samp {
     letter-spacing: 0.11em;
     font-size: 0.66rem;
     font-weight: 600;
-    color: rgb(var(--paper) / 0.45);
+    /* 0.68, not 0.45: measured, this is what 11px needs to clear 4.5:1 on the
+       ivory canvas — and it still reads as secondary. */
+    color: rgb(var(--paper) / 0.68);
   }
 
   .tabular {

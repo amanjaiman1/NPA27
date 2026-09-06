@@ -16,7 +16,7 @@ import { NodeDetail } from "@/components/graph/node-detail";
 import { KnowledgeDensity } from "@/components/graph/analytics";
 
 const STATUS_DOT: Record<string, string> = {
-  untouched: "bg-paper/12",
+  untouched: "bg-paper/10",
   learning: "bg-accent/30",
   revised: "bg-accent/60",
   mastered: "bg-accent",

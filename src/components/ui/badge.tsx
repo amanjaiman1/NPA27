@@ -16,10 +16,10 @@ const tones: Record<Tone, string> = {
   solid: "bg-accent text-accent-fg border border-transparent",
   outline: "bg-transparent text-paper/70 border border-line",
   ghost: "bg-transparent text-paper/50 border border-transparent",
-  accent: "bg-accent/12 text-accent border border-accent/25",
-  positive: "bg-positive/12 text-positive border border-positive/25",
-  warning: "bg-warning/12 text-warning border border-warning/25",
-  danger: "bg-danger/12 text-danger border border-danger/25",
+  accent: "bg-accent/15 text-accent border border-accent/25",
+  positive: "bg-positive/15 text-positive border border-positive/25",
+  warning: "bg-warning/15 text-warning border border-warning/25",
+  danger: "bg-danger/15 text-danger border border-danger/25",
 };
 
 export function Badge({

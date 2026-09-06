@@ -1082,6 +1082,9 @@ export function createSeedData(): ChronicleData {
       startDate: agoISO(560),
       dailyHourTarget: 9,
     },
+    // The demo marks every day that met the daily hour target, so the
+    // accomplishment badge and its streak have something to show.
+    accomplished: journal.filter((e) => e.totalHours >= 9).map((e) => e.date),
     subjects,
     journal,
     mocks: buildMocks(),
@@ -1152,6 +1155,7 @@ export function createFreshData(): ChronicleData {
       startDate: today,
       dailyHourTarget: 9,
     },
+    accomplished: [],
     subjects,
     journal: [],
     mocks: [],
