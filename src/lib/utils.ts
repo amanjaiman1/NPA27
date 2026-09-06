@@ -6,9 +6,23 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-/** ISO date (yyyy-mm-dd) for a Date. */
+/**
+ * ISO date (yyyy-mm-dd) for a Date, read in the **local** calendar.
+ *
+ * This must stay the exact inverse of `fromISODate`, which builds a Date at
+ * local midnight. Reading it back through `toISOString()` would convert to UTC
+ * first, so every timezone ahead of UTC (IST is +05:30) landed on the previous
+ * day — `toISODate(fromISODate("2026-09-06"))` returned "2026-09-05". That broke
+ * day-stepping helpers badly enough to hang the page: a `shiftDays(date, +1)`
+ * came back as the *same* date, so loops that walk a date forward until they
+ * reach today never advanced. Formatting from local getters keeps the round trip
+ * exact in every timezone.
+ */
 export function toISODate(d: Date): string {
-  return d.toISOString().slice(0, 10);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
 }
 
 /** Parse an ISO date string into a local Date (no TZ drift). */

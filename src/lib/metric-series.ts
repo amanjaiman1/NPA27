@@ -211,9 +211,14 @@ export function buildMetricSeries(
   });
 
   // ── streaks ───────────────────────────────────────────────────────────────
+  // Both walks below run on the render path, so each one carries an explicit
+  // upper bound. A date helper that fails to advance would otherwise spin the
+  // main thread forever and hang the tab rather than just render a wrong number.
+  const MAX_WALK = 3650;
+
   const byDate = new Map(all.map((r) => [r.date, r.value]));
   let streak = 0;
-  for (let i = 0; ; i++) {
+  for (let i = 0; i <= MAX_WALK; i++) {
     const date = shiftDays(todayISO, -i);
     const v = byDate.get(date);
     // Today not yet logged doesn't break a streak; it just hasn't started.
@@ -223,12 +228,12 @@ export function buildMetricSeries(
     }
     if (!metric.isActiveDay(v)) break;
     streak++;
-    if (i > 3650) break;
   }
+
   let longestStreak = 0;
   let run = 0;
   let cursorDate = earliest;
-  while (cursorDate && cursorDate <= todayISO) {
+  for (let step = 0; cursorDate && cursorDate <= todayISO && step <= MAX_WALK; step++) {
     const v = byDate.get(cursorDate);
     if (v != null && metric.isActiveDay(v)) {
       run++;
@@ -236,7 +241,11 @@ export function buildMetricSeries(
     } else if (v != null) {
       run = 0;
     }
-    cursorDate = shiftDays(cursorDate, 1);
+    const next = shiftDays(cursorDate, 1);
+    // Stepping forward must produce a later date. If it ever doesn't, stop
+    // instead of re-reading the same day for eternity.
+    if (next <= cursorDate) break;
+    cursorDate = next;
   }
 
   const withTarget =
