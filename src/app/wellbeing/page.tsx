@@ -45,6 +45,12 @@ import {
   weekTotals,
   strengthLabel,
 } from "@/lib/life";
+import {
+  METRIC_IDS,
+  METRICS,
+  formatMetric,
+  formatMinutesAsClock,
+} from "@/lib/metrics";
 import { toISODate, formatDate, weekday, round, cn } from "@/lib/utils";
 
 const EX_TYPES: ExerciseType[] = ["Run", "Walk", "Gym", "Yoga", "Cycling", "Sports", "Other"];
@@ -65,6 +71,103 @@ function emptyLifeEntry(date: string): LifeEntry {
     screenTimeMin: 120,
     deepWorkHours: 0,
   };
+}
+
+/**
+ * The four metrics that have a page of their own, summarised over the whole log.
+ *
+ * This reads every entry rather than today's, which is the point: the deep-dive
+ * pages must be reachable whether or not today has been logged yet. Hanging
+ * them off today's tiles alone meant that on any day you hadn't filled in, there
+ * was nothing on screen to click.
+ */
+function MetricDeepDives({ lifeLog }: { lifeLog: LifeEntry[] }) {
+  const cards = useMemo(() => {
+    const byDate = [...lifeLog].sort((a, b) => a.date.localeCompare(b.date));
+    return METRIC_IDS.map((id) => {
+      const m = METRICS[id];
+      const readings = byDate
+        .map((e) => ({ date: e.date, value: m.read(e) }))
+        .filter((r): r is { date: string; value: number } => r.value != null);
+      const values = readings.map((r) => r.value);
+      const total = values.reduce((a, b) => a + b, 0);
+      const headline =
+        !values.length
+          ? null
+          : m.rollUp === "sum"
+            ? total
+            : round(total / values.length, 2);
+      return {
+        m,
+        readings,
+        latest: readings[readings.length - 1] ?? null,
+        headline,
+        spark: values.slice(-30),
+      };
+    });
+  }, [lifeLog]);
+
+  return (
+    <section className="space-y-3">
+      <div className="flex items-center gap-2">
+        <Sparkles className="h-4 w-4 text-paper/45" />
+        <h2 className="text-sm font-semibold tracking-snugg text-paper">
+          Go deeper
+        </h2>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 [&>*]:min-w-0">
+        {cards.map(({ m, readings, latest, headline, spark }) => (
+          <Link
+            key={m.id}
+            href={`/wellbeing/${m.id}`}
+            className="group rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/45"
+          >
+            <Card hover className="flex h-full flex-col p-4">
+              <div className="flex items-center gap-2 text-paper/55">
+                <m.icon className="h-4 w-4 text-accent" />
+                <span className="min-w-0 flex-1 truncate text-[0.62rem] font-semibold uppercase tracking-wider">
+                  {m.label}
+                </span>
+                <ChevronRight className="h-3.5 w-3.5 shrink-0 text-paper/35 transition-transform group-hover:translate-x-0.5" />
+              </div>
+
+              {readings.length === 0 ? (
+                <>
+                  <p className="tabular mt-2 text-2xl font-semibold text-paper/40">—</p>
+                  <p className="mt-1 text-[0.68rem] text-paper/45">
+                    No readings yet — open to see how it works
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="tabular mt-2 text-2xl font-semibold text-paper">
+                    {m.id === "screen"
+                      ? formatMinutesAsClock(headline ?? 0)
+                      : formatMetric(m, headline)}
+                  </p>
+                  <p className="mt-0.5 text-[0.68rem] text-paper/50">
+                    {m.rollUp === "sum" ? "all time" : "daily average"} ·{" "}
+                    {readings.length} {readings.length === 1 ? "day" : "days"}
+                  </p>
+                  <div className="mt-3 flex items-end justify-between gap-2">
+                    <span className="text-[0.68rem] text-paper/45">
+                      latest{" "}
+                      <span className="tabular font-semibold text-paper/70">
+                        {m.id === "screen"
+                          ? formatMinutesAsClock(latest!.value)
+                          : formatMetric(m, latest!.value)}
+                      </span>
+                    </span>
+                    <Sparkline values={spark} width={64} height={22} fill={false} />
+                  </div>
+                </>
+              )}
+            </Card>
+          </Link>
+        ))}
+      </div>
+    </section>
+  );
 }
 
 export default function LifeDashboardPage() {
@@ -229,6 +332,11 @@ export default function LifeDashboardPage() {
           </div>
         )}
       </section>
+
+      {/* Sleep, running, weight and screen time each get a full page. Rendered
+          outside the "is today logged" branch above on purpose — see the
+          component's own note. */}
+      <MetricDeepDives lifeLog={lifeLog} />
 
       {/* Weekly analytics */}
       <section className="space-y-3">
