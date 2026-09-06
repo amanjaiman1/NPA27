@@ -52,12 +52,23 @@ export function buildHeatmap(
 /** Current consecutive-day study streak ending today or yesterday. */
 export function currentStreak(journal: JournalEntry[], today = new Date()): number {
   const map = hoursByDate(journal);
+  const hoursOn = (d: Date) => map.get(toISODate(d)) ?? 0;
   let streak = 0;
   const d = new Date(today);
   d.setHours(0, 0, 0, 0);
-  // allow streak to count if today not yet logged but yesterday was
-  if (!map.has(toISODate(d))) d.setDate(d.getDate() - 1);
-  while (map.has(toISODate(d)) && (map.get(toISODate(d)) ?? 0) > 0) {
+  /**
+   * A day with no study hours on it *yet* doesn't break the streak — it just
+   * hasn't started. The test has to be on the hours rather than on whether an
+   * entry exists, because an entry for today usually does exist well before any
+   * studying is logged: the daily sleep prompt creates one at wake-up carrying
+   * only bedtime and wake time, with `totalHours: 0`. Checking `map.has(today)`
+   * treated that stub as a logged day, failed the `> 0` test on the very first
+   * iteration and reported a streak of 0 — so every morning, answering the
+   * prompt wiped a hundred-day streak from the dashboard until the day's hours
+   * were entered.
+   */
+  if (hoursOn(d) <= 0) d.setDate(d.getDate() - 1);
+  while (hoursOn(d) > 0) {
     streak++;
     d.setDate(d.getDate() - 1);
   }
