@@ -6,6 +6,11 @@ import {
   Plus,
   Trash2,
   Pin,
+  Pencil,
+  ChevronRight,
+  CalendarDays,
+  Tag,
+  Hash,
   Sparkles,
   // event icons
   Sunrise,
@@ -104,6 +109,10 @@ export default function TimelinePage() {
   const today = toISODate(new Date());
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<Milestone>(emptyMilestone());
+  /** Milestone id being edited; null means the composer is adding a new one. */
+  const [editingId, setEditingId] = useState<string | null>(null);
+  /** Milestone id whose detail view is open. */
+  const [detailId, setDetailId] = useState<string | null>(null);
   const [definingOnly, setDefiningOnly] = useState(false);
   const [muted, setMuted] = useState<Set<EventCategory>>(new Set());
 
@@ -149,6 +158,25 @@ export default function TimelinePage() {
     [filtered, today],
   );
 
+  /**
+   * What the detail view is looking at. The milestone comes from the store so the
+   * view always reflects the latest save, and it closes itself the moment the
+   * milestone stops existing (i.e. after a delete).
+   *
+   * The event is resolved against `allEvents` rather than `filtered` on purpose:
+   * editing a memory can move it out of the current filter — changing its type
+   * changes its category, and un-pinning it drops its importance below the
+   * "Defining only" threshold. Reading the unfiltered list means the memory the
+   * user just saved is still there to look at, even when its row is no longer in
+   * the list behind the modal.
+   */
+  const detailMilestone = detailId
+    ? (data.milestones.find((m) => m.id === detailId) ?? null)
+    : null;
+  const detailEvent = detailId
+    ? (allEvents.find((e) => e.refId === detailId) ?? null)
+    : null;
+
   if (!hydrated) return <Loading />;
 
   function toggleCat(c: EventCategory) {
@@ -160,6 +188,57 @@ export default function TimelinePage() {
     });
   }
 
+  function openAdd() {
+    setDraft(emptyMilestone());
+    setEditingId(null);
+    setOpen(true);
+  }
+
+  /**
+   * Seeds the composer from the stored milestone, never from the TimelineEvent.
+   * The event is a lossy projection: it drops `type` entirely and substitutes a
+   * fallback sentence for an empty description, so editing from it would quietly
+   * rewrite both fields.
+   */
+  function openEdit(m: Milestone) {
+    setDraft({ ...m });
+    setEditingId(m.id);
+    setOpen(true);
+  }
+
+  async function saveDraft() {
+    if (!draft.title.trim()) return;
+    const isEdit = editingId !== null;
+    if (
+      await confirm({
+        title: isEdit ? "Save changes to this memory?" : "Add this memory?",
+        description: isEdit
+          ? "Your timeline will be updated."
+          : "It will be added to your timeline.",
+        tone: "default",
+        confirmLabel: isEdit ? "Save changes" : "Add to timeline",
+      })
+    ) {
+      upsert(draft);
+      setOpen(false);
+    }
+  }
+
+  async function deleteMemory(id: string) {
+    const m = data.milestones.find((x) => x.id === id);
+    if (!m) return;
+    if (
+      await confirm({
+        title: "Delete this memory?",
+        description: `"${m.title}" will be removed from your timeline.`,
+        confirmLabel: "Delete memory",
+      })
+    ) {
+      remove(id);
+      setDetailId((cur) => (cur === id ? null : cur));
+    }
+  }
+
   return (
     <div className="space-y-8">
       <PageHeader
@@ -167,12 +246,7 @@ export default function TimelinePage() {
         title="The documentary of a journey."
         description="Every defining moment, recorded as it happened — Day Zero to the name in the list. Most of this wrote itself: the system watches your hours, mocks, books and exams, and remembers them for you."
         actions={
-          <Button
-            onClick={() => {
-              setDraft(emptyMilestone());
-              setOpen(true);
-            }}
-          >
+          <Button onClick={openAdd}>
             <Plus className="h-4 w-4" /> Add memory
           </Button>
         }
@@ -223,19 +297,16 @@ export default function TimelinePage() {
                     key={e.id}
                     event={e}
                     index={ci === 0 ? i : 0}
+                    /* Only memories you wrote can be opened, edited or deleted.
+                       Auto-recorded and selection events are derivations of your
+                       journal, mocks and books — there is no record behind them
+                       to change, so they stay read-only. `refId` is exactly that
+                       distinction. */
+                    onOpen={
+                      e.refId ? () => setDetailId(e.refId as string) : undefined
+                    }
                     onDelete={
-                      e.refId
-                        ? async () => {
-                            if (
-                              await confirm({
-                                title: "Delete this memory?",
-                                description: `"${e.title}" will be removed from your timeline.`,
-                                confirmLabel: "Delete memory",
-                              })
-                            )
-                              remove(e.refId as string);
-                          }
-                        : undefined
+                      e.refId ? () => deleteMemory(e.refId as string) : undefined
                     }
                   />
                 ))}
@@ -250,25 +321,30 @@ export default function TimelinePage() {
         )}
       </div>
 
-      <AddMemoryModal
+      {/* Detail view. Hidden while the composer is up rather than unmounted, so
+          closing the composer drops the user straight back to the memory they
+          were editing — now showing the saved values. */}
+      {detailMilestone && detailEvent && (
+        <MemoryDetailModal
+          open={!open}
+          milestone={detailMilestone}
+          event={detailEvent}
+          onClose={() => setDetailId(null)}
+          onEdit={() => openEdit(detailMilestone)}
+          onDelete={() => deleteMemory(detailMilestone.id)}
+          onTogglePin={() =>
+            upsert({ ...detailMilestone, pinned: !detailMilestone.pinned })
+          }
+        />
+      )}
+
+      <MemoryComposer
         open={open}
+        isEdit={editingId !== null}
         draft={draft}
         setDraft={setDraft}
         onClose={() => setOpen(false)}
-        onSave={async () => {
-          if (!draft.title.trim()) return;
-          if (
-            await confirm({
-              title: "Add this memory?",
-              description: "It will be added to your timeline.",
-              tone: "default",
-              confirmLabel: "Add to timeline",
-            })
-          ) {
-            upsert(draft);
-            setOpen(false);
-          }
-        }}
+        onSave={saveDraft}
       />
     </div>
   );
@@ -369,15 +445,19 @@ function ChapterHeader({
 function EventRow({
   event,
   index,
+  onOpen,
   onDelete,
 }: {
   event: TimelineEvent;
   index: number;
+  onOpen?: () => void;
   onDelete?: () => void;
 }) {
   const Icon = ICONS[event.icon] ?? Flag;
   const defining = event.importance >= 5;
   const strong = event.importance >= 4;
+  /* Your own memories open a detail view; derived events have nothing to open. */
+  const CardTag = onOpen ? "button" : "div";
 
   return (
     <motion.li
@@ -403,13 +483,24 @@ function EventRow({
         <Icon className="h-[1.05rem] w-[1.05rem]" />
       </span>
 
-      {/* card */}
-      <div
+      {/* card — a button when it opens something, otherwise a plain div. The
+          delete control is a sibling of this element, not a child, so the
+          clickable card never ends up with a nested button inside it. */}
+      <CardTag
+        {...(onOpen
+          ? {
+              type: "button" as const,
+              onClick: onOpen,
+              "aria-label": `Open memory: ${event.title}`,
+            }
+          : {})}
         className={cn(
           "min-w-0 flex-1 rounded-2xl border p-4 transition-colors sm:p-5",
           event.future
             ? "border-dashed border-line bg-transparent"
             : "border-paper/[0.07] bg-paper/[0.02] group-hover:border-paper/15",
+          onOpen &&
+            "cursor-pointer text-left hover:bg-paper/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/45",
         )}
       >
         <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
@@ -449,8 +540,16 @@ function EventRow({
           >
             {SOURCE_LABEL[event.source]}
           </span>
+          {/* Affordance that the row opens — same nudge-on-hover chevron the
+              wellbeing deep-dive cards use. */}
+          {onOpen && (
+            <span className="ml-auto inline-flex items-center gap-1 text-accent/80">
+              Details
+              <ChevronRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
+            </span>
+          )}
         </div>
-      </div>
+      </CardTag>
 
       {/* delete (manual memories only) */}
       {onDelete && (
@@ -467,17 +566,149 @@ function EventRow({
 }
 
 /* ════════════════════════════════════════════════════════════════
-   ADD MEMORY MODAL
+   MEMORY DETAIL — the full record of one memory, with edit + delete
    ════════════════════════════════════════════════════════════════ */
 
-function AddMemoryModal({
+/** One labelled fact in the detail sheet. */
+function DetailRow({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: LucideIcon;
+  label: string;
+  value: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-center gap-3 py-2.5">
+      <Icon className="h-3.5 w-3.5 shrink-0 text-paper/30" />
+      <span className="w-24 shrink-0 text-[0.7rem] font-medium uppercase tracking-wider text-paper/40">
+        {label}
+      </span>
+      <span className="min-w-0 flex-1 text-sm text-paper/80">{value}</span>
+    </div>
+  );
+}
+
+function MemoryDetailModal({
   open,
+  milestone,
+  event,
+  onClose,
+  onEdit,
+  onDelete,
+  onTogglePin,
+}: {
+  open: boolean;
+  milestone: Milestone;
+  event: TimelineEvent;
+  onClose: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+  onTogglePin: () => void;
+}) {
+  const Icon = ICONS[event.icon] ?? Flag;
+
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      title={milestone.title}
+      description={`${event.category} · ${formatDate(milestone.date)}`}
+      className="sm:max-w-lg"
+      footer={
+        <>
+          {/* `mr-auto` pushes destruction away from the confirming actions — the
+              footer is justify-end, so this is what puts Delete on the left. */}
+          <Button variant="danger" onClick={onDelete} className="mr-auto">
+            <Trash2 className="h-4 w-4" /> Delete
+          </Button>
+          <Button variant="ghost" onClick={onTogglePin}>
+            <Pin className="h-4 w-4" />
+            {milestone.pinned ? "Unpin" : "Pin"}
+          </Button>
+          <Button onClick={onEdit}>
+            <Pencil className="h-4 w-4" /> Edit
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-5">
+        {/* status line */}
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-accent/15 px-2.5 py-1 text-[0.7rem] font-semibold text-accent">
+            <Icon className="h-3 w-3" />
+            {milestone.type}
+          </span>
+          {!event.future && (
+            <span className="tabular rounded-full bg-paper/[0.06] px-2.5 py-1 text-[0.7rem] font-medium text-paper/55">
+              Day {event.dayNumber}
+            </span>
+          )}
+          {event.future && <Badge tone="ghost">upcoming</Badge>}
+          {milestone.pinned && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-paper/[0.06] px-2.5 py-1 text-[0.7rem] font-medium text-paper/55">
+              <Pin className="h-3 w-3" /> Defining moment
+            </span>
+          )}
+        </div>
+
+        {/* the memory itself */}
+        <div>
+          <p className="eyebrow mb-2">The memory</p>
+          {milestone.description?.trim() ? (
+            <p className="whitespace-pre-wrap text-[0.95rem] leading-relaxed text-paper/80">
+              {milestone.description}
+            </p>
+          ) : (
+            <p className="text-sm italic text-paper/40">
+              Nothing written down for this one yet — Edit to add the story.
+            </p>
+          )}
+        </div>
+
+        {/* the facts */}
+        <div className="divide-y divide-line border-t border-line">
+          <DetailRow
+            icon={CalendarDays}
+            label="Date"
+            value={formatDate(milestone.date)}
+          />
+          <DetailRow icon={Tag} label="Type" value={milestone.type} />
+          <DetailRow
+            icon={Hash}
+            label="Journey day"
+            value={
+              event.future
+                ? "Hasn't happened yet"
+                : `Day ${event.dayNumber} of the journey`
+            }
+          />
+          <DetailRow
+            icon={Sparkles}
+            label="Recorded"
+            value={SOURCE_LABEL[event.source]}
+          />
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════
+   MEMORY COMPOSER — adds a new memory, or edits an existing one
+   ════════════════════════════════════════════════════════════════ */
+
+function MemoryComposer({
+  open,
+  isEdit,
   draft,
   setDraft,
   onClose,
   onSave,
 }: {
   open: boolean;
+  isEdit: boolean;
   draft: Milestone;
   setDraft: (m: Milestone) => void;
   onClose: () => void;
@@ -487,14 +718,20 @@ function AddMemoryModal({
     <Modal
       open={open}
       onClose={onClose}
-      title="Add a memory"
-      description="Auto-recorded moments aside, mark something only you would know to remember."
+      title={isEdit ? "Edit memory" : "Add a memory"}
+      description={
+        isEdit
+          ? "Change what you recorded for this moment."
+          : "Auto-recorded moments aside, mark something only you would know to remember."
+      }
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>
             Cancel
           </Button>
-          <Button onClick={onSave}>Add to timeline</Button>
+          <Button onClick={onSave} disabled={!draft.title.trim()}>
+            {isEdit ? "Save changes" : "Add to timeline"}
+          </Button>
         </>
       }
     >
