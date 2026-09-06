@@ -14,6 +14,7 @@ import {
   useNotificationPermission,
   type PermissionState,
 } from "./use-notifications";
+import { usePushSubscription } from "@/lib/push";
 
 /** A compact pill switch — the app has no shared one, and this is its only user. */
 function Switch({
@@ -155,16 +156,116 @@ function PermissionBlock({
   }
 
   return (
-    <Row
-      title="System notifications"
-      hint="Permission granted. Turn this off to keep everything inside the app."
+    <div className="divide-y divide-line">
+      <Row
+        title="System notifications"
+        hint="Permission granted. Turn this off to keep everything inside the app."
+      >
+        <Switch
+          label="System notifications"
+          checked={settings.deliver}
+          onChange={(v) => update({ deliver: v })}
+        />
+      </Row>
+      {settings.deliver && <BackgroundPushRow />}
+    </div>
+  );
+}
+
+/**
+ * The "even when the app is closed" switch.
+ *
+ * This is the one setting that is genuinely per-device, so it is read from the
+ * browser's own subscription rather than from the synced settings: your Mac
+ * being subscribed says nothing about your phone, and a stored flag could
+ * disagree with reality after the browser silently drops a subscription — which
+ * it does.
+ *
+ * It only offers the switch when every precondition actually holds, and says
+ * which one is missing otherwise. Silently showing a dead toggle is how you end
+ * up believing notifications are on when nothing can ever arrive.
+ */
+function BackgroundPushRow() {
+  const {
+    subscribed,
+    busy,
+    error,
+    enable,
+    disable,
+    supported,
+    configured,
+    cloudConfigured,
+  } = usePushSubscription();
+
+  if (!supported) {
+    return (
+      <Note>
+        This browser can&apos;t receive push. On a Mac, Safari needs the app added
+        to the Dock; Chrome and Edge support it once installed.
+      </Note>
+    );
+  }
+  if (!configured) {
+    return (
+      <Note>
+        Background push isn&apos;t set up for this build — it needs a VAPID key.
+        See <code className="text-paper/70">docs/notifications.md</code>.
+      </Note>
+    );
+  }
+  if (!cloudConfigured) {
+    return (
+      <Note>
+        Background push needs cloud sync switched on. The server sends these, and
+        with a local-only install your data never leaves this device — so there is
+        nothing for it to read.
+      </Note>
+    );
+  }
+
+  return (
+    <>
+      <Row
+        title="Even when the app is closed"
+        hint="Sends from the server, so you're told without opening anything."
+      >
+        <Switch
+          label="Push when the app is closed"
+          disabled={busy || subscribed === null}
+          checked={subscribed === true}
+          onChange={(v) => void (v ? enable() : disable())}
+        />
+      </Row>
+      {error && (
+        <Note tone="warning">
+          {error === "not-signed-in"
+            ? "Sign in first — a push subscription belongs to an account."
+            : error === "denied"
+              ? "The browser blocked it. Allow notifications for this site, then try again."
+              : "Couldn't register this device. Check the connection and try again."}
+        </Note>
+      )}
+    </>
+  );
+}
+
+/** A small explanatory line, used where a switch would be a dead end. */
+function Note({
+  children,
+  tone = "muted",
+}: {
+  children: React.ReactNode;
+  tone?: "muted" | "warning";
+}) {
+  return (
+    <p
+      className={cn(
+        "py-2.5 text-xs leading-relaxed",
+        tone === "warning" ? "text-warning" : "text-paper/45",
+      )}
     >
-      <Switch
-        label="System notifications"
-        checked={settings.deliver}
-        onChange={(v) => update({ deliver: v })}
-      />
-    </Row>
+      {children}
+    </p>
   );
 }
 

@@ -21,7 +21,7 @@ still have a complete, useful feature — layers 4 and 5 are delivery mechanisms
 | 3 · Notification centre | Bell + unread count, grouped panel, deep links. | `src/components/notifications/centre.tsx` |
 | 3 · Settings pane | Permission ask, delivery options, per-rule and per-category mutes. | `src/components/notifications/settings-pane.tsx` |
 | 4 · Browser notifications | Permission flow, quiet hours, rate limit, daily digest — fires the OS-level toast. | `src/components/notifications/notifier.tsx` |
-| 5 · Push plumbing | `push` + `notificationclick` handlers in the worker, so a real server *could* deliver when the app is closed. | `public/sw.js` |
+| 5 · Background push | Delivers when the app is **closed**: a cron-driven dispatcher, per-device subscriptions, and the worker's `push` / `notificationclick` handlers. Off unless configured. | `src/app/api/push/*`, `src/lib/push*.ts`, `public/sw.js` |
 
 The store binding lives in `src/components/notifications/use-notifications.ts`,
 which is the only place the engine is called from the UI.
@@ -219,7 +219,11 @@ persisted — only your reaction to them.
 | --- | --- | --- |
 | `notify` | Your settings | **yes** — preferences should follow you |
 | `notifyState` | `readIds`, `dismissedIds`, `snoozedUntil` | **yes** — acknowledging on your phone should not leave the laptop nagging |
-| `notifyLog` | `lastSentAt`, `sentToday`, `sentOnDate`, `lastDigestOn` | **no** — per-device delivery bookkeeping |
+| `notifyLog` | `lastSentAt`, `lastSentOn`, `sentToday`, `sentOnDate`, `lastDigestOn` | **no** — per-device delivery bookkeeping |
+
+Background push adds two Postgres tables: `chronicle_push_subscriptions` (one row
+per device) and `chronicle_push_log` (the server's own copy of the delivery
+bookkeeping above). See `supabase/schema.sql`.
 
 `notifyLog` is the one deliberate exception. Each device fires its own OS
 notifications, so each keeps its own count; sharing it would let the phone's
@@ -264,36 +268,131 @@ the feature already visible above it.
 plainly and points at the browser's own site settings instead of pretending a
 retry will help.
 
-## What works when, and the honest limit
+## What works when
 
 | Situation | Centre / bell | OS notification |
 | --- | --- | --- |
-| App open | yes | yes |
-| App backgrounded, tab alive | yes, on next focus | yes |
-| App fully closed | on next launch | **no** — see below |
+| App open | yes | yes, from the page |
+| App backgrounded, tab alive | yes, on next focus | yes, from the page |
+| App fully closed | on next launch | yes, **if background push is set up** |
 
-Layer 4 fires from the page, so it needs the page alive. **The app being closed
-is the one case local rules cannot cover**, and no amount of client code changes
-that: waking a closed PWA requires a server that holds a push subscription and
-sends to it.
+Layer 4 fires from the page, so on its own it needs the page alive. Layer 5 is
+what covers a closed app, and it needs a server — there is no client-side
+substitute for waking a process that isn't running.
 
-That is not built, and is not faked. What *is* built is everything the server
-would need to talk to:
+## Background push (layer 5)
 
-- `push` in `public/sw.js` — parses the payload and calls
-  `showNotification`, with a safe fallback if the payload is absent or unparseable.
-- `notificationclick` — closes the toast and focuses an existing client on the
-  notice's `href` rather than opening a duplicate window, falling back to
-  `openWindow`.
-- Deep links already carry the resolving query (`/journal?new=1`), so a click
-  lands on the action, not just the page.
+Off unless configured. With it, the flow is:
 
-To finish it, in order: generate a VAPID key pair; add
-`pushManager.subscribe({ applicationServerKey })` behind the same settings
-toggle; store the subscription (a Supabase table alongside `chronicle_state`);
-run the rules engine server-side — it is pure and dependency-free, which is
-precisely why it lives in `lib/` and not in a component — and `web-push` the
-result on a cron. The engine needs no changes; only a caller.
+```
+scheduler ──► GET /api/push/dispatch          (Bearer CRON_SECRET)
+                 │
+                 ├─ read every chronicle_push_subscriptions row
+                 ├─ batch-read chronicle_state + chronicle_push_log
+                 │
+                 └─ per user:
+                      tz   = pickTimeZone(their devices)   ← the user's zone
+                      now  = zonedNow(tz)
+                      evaluate → buildInbox → planDelivery   ← the same pure engine
+                      web-push each device, payload tailored to its OS
+                      advance chronicle_push_log
+```
+
+The dispatcher runs **the same four pure functions the browser runs**, so a
+pushed notification and the bell cannot disagree. That is the whole reason the
+engine has no React and no browser globals in it.
+
+### The server is in the wrong timezone, deliberately corrected
+
+The engine reads local getters — `toISODate`, `getHours` — which is right in a
+browser, where "local" *is* the user, and wrong on a server, which is in UTC. Left
+alone, an Indian user's quiet hours would begin at 03:30 their time and "today"
+would roll over mid-afternoon.
+
+`zonedNow(tz)` in `lib/zoned-time.ts` returns a `Date` whose component getters
+already read as the user's wall clock, so no rule needed changing. The device's
+IANA zone is captured at subscribe time; where a user's devices disagree the
+majority wins, with an alphabetical tie-break so the choice is stable.
+
+That carrier Date is for the engine only — it does not represent the real instant
+and must never be stored. `DeliveryLog` keeps both clocks on purpose:
+`lastSentAt` is a true instant, because the minimum-gap check is a duration;
+every date field is the user's local day, because those are compared against the
+user's calendar.
+
+### Per-platform tailoring
+
+One payload, fields a platform doesn't support are simply ignored:
+
+| | Android | macOS / desktop |
+| --- | --- | --- |
+| Action buttons (**Open**, **Later**) | yes | ignored |
+| Vibration pattern | yes, longer when critical | — |
+| `renotify` over an existing tag | critical only | — |
+| `requireInteraction` | — | critical only |
+| App badge count | launcher icon | dock icon |
+
+**Later** dismisses the notification and nothing else — the point is to clear
+your lock screen *without* being pulled into the app. It resolves nothing, so the
+notice comes back by the normal rules.
+
+The badge count rides along with the push so `sw.js` can set it while the app is
+closed; the page keeps it honest afterwards and clears it when the last notice is
+read.
+
+### Setting it up
+
+1. **Cloud sync must be on.** The dispatcher reads your synced snapshot. On a
+   local-only install your data never leaves the browser, so there is nothing to
+   push from — the settings pane says so rather than offering a dead switch.
+2. Run `supabase/schema.sql` again. The push tables are additive and idempotent.
+3. `node scripts/generate-vapid.mjs`, and put the output in your environment.
+4. Set `SUPABASE_SERVICE_ROLE_KEY` and a long random `CRON_SECRET`. See
+   `.env.example` for all five.
+5. **Rebuild.** `NEXT_PUBLIC_VAPID_PUBLIC_KEY` is inlined at build time, so
+   setting it on a running server has no effect.
+6. Point a scheduler at `/api/push/dispatch` with
+   `Authorization: Bearer $CRON_SECRET`. Any of:
+   - **Vercel Cron** — add `vercel.json` as below. Vercel sends the
+     `CRON_SECRET` bearer itself. Note the Hobby plan only permits one run a
+     day, which is why this file isn't committed: on Hobby a sub-daily schedule
+     fails the deploy.
+
+     ```json
+     { "crons": [{ "path": "/api/push/dispatch", "schedule": "*/15 * * * *" }] }
+     ```
+
+   - **GitHub Actions** — a `schedule:` workflow with one `curl` step, using a
+     repository secret for the bearer.
+   - **Supabase** — `pg_cron` + `pg_net` calling the URL on a schedule.
+7. In the app: bell → gear → **Enable system notifications**, then **Even when
+   the app is closed**.
+
+Call it often — every 15 minutes is reasonable. Frequency is not how often you
+get notified; the engine's own gates decide that. A rare cron just means an
+hour-gated rule fires up to an hour late.
+
+### Operational notes
+
+- A send failing with **404 or 410** means the push service has retired that
+  endpoint, and the row is deleted. Every other failure is treated as transient
+  and the device kept — otherwise one bad afternoon would unsubscribe everybody.
+- The log only advances if at least one device accepted. Recording a send that
+  failed everywhere would burn the day's cap on a notification nobody saw.
+- Regenerating the VAPID keys silences every existing subscription. Browsers
+  reject a push signed by a key they did not subscribe with.
+- `subscribe` and `unsubscribe` take the user id from the **verified bearer
+  token**, never from the request body, and the delete is scoped to that user as
+  well as the endpoint.
+- The server is a third sender alongside your Mac and your phone, and keeps its
+  own count in `chronicle_push_log` — `notifyLog` in the browser is per-device and
+  never synced, so sharing one would let one device silence another.
+
+### iOS
+
+Web push needs the app **installed** to the home screen (16.4+); a Safari tab
+will never deliver. On macOS, Safari needs the site added to the Dock; Chrome and
+Edge work once installed.
 
 ## Notes and caveats
 

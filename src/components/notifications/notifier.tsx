@@ -76,6 +76,23 @@ export function Notifier() {
    */
   const inFlight = useRef<string | null>(null);
 
+  /**
+   * The app badge: the count on the macOS dock icon and the Android launcher
+   * icon. The worker sets it when a push arrives with the app closed; this keeps
+   * it honest while the app is open, and clears it the moment the last notice is
+   * read rather than leaving a stale number sitting on the icon.
+   *
+   * Installed PWAs only. Unsupported elsewhere, hence the capability check and
+   * the swallowed rejection.
+   */
+  useEffect(() => {
+    if (!hydrated) return;
+    if (typeof navigator === "undefined" || !("setAppBadge" in navigator)) return;
+    const unread = inbox.unread;
+    if (unread > 0) void navigator.setAppBadge(unread).catch(() => {});
+    else void navigator.clearAppBadge().catch(() => {});
+  }, [hydrated, inbox.unread]);
+
   useEffect(() => {
     if (!hydrated) return;
     if (permission !== "granted") return;
