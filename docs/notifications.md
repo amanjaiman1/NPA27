@@ -359,9 +359,19 @@ read.
      `CRON_SECRET` env var exists, Vercel sends it automatically as
      `Authorization: Bearer <secret>`, and issues a `GET`, which is exactly what
      the route checks for. See *Choosing the schedule* below.
-   - **GitHub Actions** — a `schedule:` workflow with one `curl` step, using a
-     repository secret for the bearer.
+   - **GitHub Actions** — `.github/workflows/push-notifications.yml` is
+     committed and runs every 15 minutes. This is what to use on Vercel's Hobby
+     plan, whose cron only fires once a day. It needs two repository secrets,
+     `PUSH_DISPATCH_URL` and `CRON_SECRET`, and until both exist it succeeds
+     while doing nothing rather than failing every quarter hour. The Actions tab
+     also gives you a **Run workflow** button, which is the quickest way to test
+     the whole path.
    - **Supabase** — `pg_cron` + `pg_net` calling the URL on a schedule.
+
+Running the Vercel cron *and* the workflow together is harmless. The engine's own
+gates decide whether anything is sent, so a second trigger cannot produce a second
+notification — which is also why a delayed or duplicated Actions run costs
+nothing.
 
 #### Choosing the schedule
 
