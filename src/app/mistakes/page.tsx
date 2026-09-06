@@ -423,7 +423,6 @@ export default function MistakesPage() {
               </h3>
               <Heatmap
                 cells={heatCells}
-                cellSize={13}
                 legendLow="0"
                 legendHigh="4+"
                 formatTooltip={(c) => ({

@@ -22,9 +22,10 @@ import { Loading } from "@/components/ui/loading";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { EmptyState, Chip } from "@/components/ui/misc";
+import { EmptyState, Chip, Segmented } from "@/components/ui/misc";
 import { Input, Select } from "@/components/ui/form";
 import { JournalComposer } from "@/components/journal/composer";
+import { JournalAnalysisView } from "@/components/journal/analysis";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { emptyEntry, toDraft, MOOD_LABELS } from "@/components/journal/constants";
 import {
@@ -48,6 +49,8 @@ export default function JournalPage() {
 
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<JournalEntry>(emptyEntry());
+  /** Reading the entries, or reading what they add up to. */
+  const [tab, setTab] = useState<"entries" | "analysis">("entries");
 
   const [query, setQuery] = useState("");
   const [subject, setSubject] = useState("all");
@@ -166,7 +169,7 @@ export default function JournalPage() {
       <PageHeader
         eyebrow="Daily Study Journal"
         title="Every day, written down."
-        description="The atomic unit of the Chronicle. Each entry is a permanent, searchable record — revisit any day years later and relive it."
+        description="The atomic unit of the Chronicle. Each entry is a permanent, searchable record — revisit any day years later and relive it. Switch to Analysis to see what the days add up to."
         actions={
           <Button onClick={startNew}>
             <Plus className="h-4 w-4" /> New entry
@@ -174,6 +177,20 @@ export default function JournalPage() {
         }
       />
 
+      <Segmented
+        value={tab}
+        onChange={(v) => setTab(v as "entries" | "analysis")}
+        options={[
+          { label: "Entries", value: "entries" },
+          { label: "Analysis", value: "analysis" },
+        ]}
+        className="w-fit"
+      />
+
+      {tab === "analysis" ? (
+        <JournalAnalysisView journal={journal} subjects={subjects} />
+      ) : (
+      <>
       {/* Search + filters */}
       <div className="space-y-3">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
@@ -411,6 +428,8 @@ export default function JournalPage() {
             </div>
           ))}
         </div>
+      )}
+      </>
       )}
 
       <JournalComposer open={open} onClose={() => setOpen(false)} initial={draft} />
