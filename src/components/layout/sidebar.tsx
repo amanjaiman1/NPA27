@@ -39,7 +39,10 @@ export function Sidebar({
   return (
     <aside
       className={cn(
-        "chrome-glass flex h-full flex-col border-r border-line bg-card backdrop-blur-none lg:bg-card/60 lg:backdrop-blur-xl",
+        // `sidebar-panel`, not `chrome-glass`: the glass treatment is scoped to
+        // `lg` in globals.css so the mobile drawer stays flatly opaque. See the
+        // rule there for why.
+        "sidebar-panel flex h-full flex-col border-r border-line bg-card backdrop-blur-none lg:bg-card/60 lg:backdrop-blur-xl",
         "transition-[width] duration-300 ease-out",
         collapsed ? "w-[84px]" : "w-[274px]",
       )}

@@ -1,12 +1,11 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { Sidebar } from "./sidebar";
 import { Wallpaper } from "./wallpaper";
 import { PageTransition } from "./page-transition";
-import { RouteProgress } from "./route-progress";
 import { Topbar } from "./topbar";
 import { CommandPalette } from "./command-palette";
 import { AppearanceModal } from "./appearance";
@@ -51,12 +50,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="relative flex h-[100dvh] overflow-hidden">
-      {/* Navigation feedback, above every other layer. Wrapped in Suspense
-          because it reads the search params, which Next requires a boundary for
-          during prerendering. */}
-      <Suspense fallback={null}>
-        <RouteProgress />
-      </Suspense>
+      {/* Navigation feedback is the spinner in `app/loading.tsx`, which Next
+          shows the instant a route transition starts. There used to be a thin
+          progress bar across the top here as well; two indicators for one wait
+          is one too many, and on a phone a 3px bar was the easier one to miss. */}
 
       {/* Behind everything: the chosen wallpaper, then its dim. */}
       <Wallpaper />

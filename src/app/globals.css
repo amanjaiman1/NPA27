@@ -533,6 +533,20 @@
   background-color: rgb(var(--card) / 0.94);
 }
 
+/* The sidebar is the exception, and only above `lg`.
+   On a desktop it is chrome standing beside the canvas, so it takes the same
+   firmed-up glass as the topbar. On a phone it is not chrome at all — it is a
+   full-height drawer dragged over the page — and there, any transparency means
+   the wallpaper and the page behind it print through the nav you are trying to
+   read. Below `lg` it therefore keeps the flat, fully opaque `bg-card` its class
+   list asks for; this selector deliberately mirrors the specificity of the
+   `.chrome-glass` rule above so the media query is the only thing deciding. */
+@media (min-width: 1024px) {
+  [data-wallpaper]:not([data-wallpaper="none"]) .sidebar-panel {
+    background-color: rgb(var(--card) / 0.94);
+  }
+}
+
 /* Page headers used to get their own pool of canvas colour here — a radial
    gradient anchored at the left edge, meant to read as a soft vignette behind
    the headline.
