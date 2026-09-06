@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useState } from "react";
+import { useId, useState } from "react";
 import { Plus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -63,6 +63,14 @@ export const Select = React.forwardRef<
 ));
 Select.displayName = "Select";
 
+/**
+ * Label + control + hint.
+ *
+ * The label is *associated* with the control rather than merely sitting above
+ * it: the field mints an id, points `htmlFor` at it, and passes it to the child
+ * unless the child brought its own. Without that a screen reader announces an
+ * unlabelled textbox, and clicking the label does nothing.
+ */
 export function Field({
   label,
   children,
@@ -74,11 +82,30 @@ export function Field({
   className?: string;
   hint?: string;
 }) {
+  const generatedId = useId();
+  const hintId = hint ? `${generatedId}-hint` : undefined;
+
+  // Only a single element child can be wired up; anything else is left alone.
+  let control = children;
+  let controlId: string | undefined;
+  if (React.isValidElement(children)) {
+    const props = children.props as { id?: string };
+    controlId = props.id ?? generatedId;
+    control = React.cloneElement(children as React.ReactElement<{ id?: string; "aria-describedby"?: string }>, {
+      id: controlId,
+      "aria-describedby": hintId,
+    });
+  }
+
   return (
     <div className={className}>
-      {label && <Label>{label}</Label>}
-      {children}
-      {hint && <p className="mt-1 text-[0.7rem] text-paper/35">{hint}</p>}
+      {label && <Label htmlFor={controlId}>{label}</Label>}
+      {control}
+      {hint && (
+        <p id={hintId} className="mt-1 text-[0.7rem] text-paper/35">
+          {hint}
+        </p>
+      )}
     </div>
   );
 }

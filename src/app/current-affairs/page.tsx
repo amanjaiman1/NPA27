@@ -1,7 +1,16 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Plus, Search, Bookmark, Newspaper } from "lucide-react";
+import {
+  Plus,
+  Search,
+  Bookmark,
+  Newspaper,
+  Pencil,
+  Trash2,
+  ArrowRight,
+  ExternalLink,
+} from "lucide-react";
 import { useChronicle, useHasHydrated } from "@/lib/store";
 import type { CurrentAffair, CACategory } from "@/lib/types";
 import { PageHeader } from "@/components/ui/page-header";
@@ -13,7 +22,7 @@ import { Chip, EmptyState } from "@/components/ui/misc";
 import { Modal } from "@/components/ui/modal";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { Field, Input, Textarea, Select } from "@/components/ui/form";
-import { relativeDay, toISODate, uid, cn } from "@/lib/utils";
+import { relativeDay, toISODate, uid, cn, formatDate } from "@/lib/utils";
 
 const CATEGORIES: CACategory[] = [
   "Polity",
@@ -48,6 +57,7 @@ export default function CurrentAffairsPage() {
   const items = useChronicle((s) => s.currentAffairs);
   const toggleBookmark = useChronicle((s) => s.toggleBookmark);
   const upsert = useChronicle((s) => s.upsertCurrentAffair);
+  const remove = useChronicle((s) => s.deleteCurrentAffair);
   const confirm = useConfirm();
 
   const [cat, setCat] = useState<CACategory | "all" | "saved">("all");
@@ -55,6 +65,8 @@ export default function CurrentAffairsPage() {
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<CurrentAffair>(emptyCA());
   const [tagInput, setTagInput] = useState("");
+  /** The note being read in full. A card's summary is only a preview. */
+  const [reading, setReading] = useState<CurrentAffair | null>(null);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -76,6 +88,17 @@ export default function CurrentAffairsPage() {
 
   const today = toISODate(new Date());
   const savedCount = items.filter((i) => i.bookmarked).length;
+  // Read from the store, not from the click, so the reader reflects an edit or a
+  // bookmark made while it's open.
+  const openNote = reading ? items.find((i) => i.id === reading.id) ?? null : null;
+  const isEditing = items.some((i) => i.id === draft.id);
+
+  function startEdit(note: CurrentAffair) {
+    setDraft({ ...note });
+    setTagInput(note.tags.join(", "));
+    setReading(null);
+    setOpen(true);
+  }
 
   if (!hydrated) return <Loading />;
 
@@ -131,8 +154,15 @@ export default function CurrentAffairsPage() {
       ) : (
         <div className="grid gap-3 md:grid-cols-2">
           {filtered.map((i) => (
-            <Card key={i.id} hover className="flex flex-col p-5">
-              <div className="mb-2 flex items-start justify-between gap-3">
+            <Card key={i.id} hover className="relative flex flex-col p-5">
+              {/* Stretched over the whole card so the note opens on click and on
+                  Enter, without nesting a button inside a button. */}
+              <button
+                onClick={() => setReading(i)}
+                aria-label={`Open “${i.title}”`}
+                className="absolute inset-0 z-0 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/45"
+              />
+              <div className="relative z-10 mb-2 flex items-start justify-between gap-3">
                 <Badge tone="default">{i.category}</Badge>
                 <button
                   onClick={() => toggleBookmark(i.id)}
@@ -149,13 +179,19 @@ export default function CurrentAffairsPage() {
                   />
                 </button>
               </div>
-              <h3 className="text-[0.95rem] font-semibold leading-snug text-paper">
+              <h3 className="pointer-events-none relative z-10 text-[0.95rem] font-semibold leading-snug text-paper">
                 {i.title}
               </h3>
-              <p className="mt-2 line-clamp-3 flex-1 text-sm leading-relaxed text-paper/55">
+              <p className="pointer-events-none relative z-10 mt-2 line-clamp-3 flex-1 whitespace-pre-line text-sm leading-relaxed text-paper/55">
                 {i.summary}
               </p>
-              <div className="mt-3 flex flex-wrap gap-1.5">
+              {i.summary.length > 180 && (
+                <span className="pointer-events-none relative z-10 mt-2 inline-flex items-center gap-1 text-[0.7rem] font-semibold text-accent">
+                  Read the full note
+                  <ArrowRight className="h-3 w-3" />
+                </span>
+              )}
+              <div className="pointer-events-none relative z-10 mt-3 flex flex-wrap gap-1.5">
                 {i.tags.slice(0, 4).map((t) => (
                   <span
                     key={t}
@@ -165,7 +201,7 @@ export default function CurrentAffairsPage() {
                   </span>
                 ))}
               </div>
-              <div className="mt-3 flex items-center justify-between border-t border-paper/[0.06] pt-3 text-[0.7rem] text-paper/40">
+              <div className="pointer-events-none relative z-10 mt-3 flex items-center justify-between border-t border-paper/[0.06] pt-3 text-[0.7rem] text-paper/40">
                 <span>
                   {i.source} · {relativeDay(i.date, today)}
                 </span>
@@ -179,10 +215,118 @@ export default function CurrentAffairsPage() {
         </div>
       )}
 
+
+      {/* ── The reader ───────────────────────────────────────────────────────
+          A card shows three lines; a saved note can be pages long. This is
+          where the whole thing is readable, with the line breaks it was typed
+          with, every tag, and the ways to change it. */}
+      <Modal
+        open={Boolean(openNote)}
+        onClose={() => setReading(null)}
+        title={openNote?.title}
+        className="sm:max-w-2xl"
+        footer={
+          openNote ? (
+            <>
+              <Button
+                variant="danger"
+                onClick={async () => {
+                  if (
+                    await confirm({
+                      title: "Delete this note?",
+                      description: `“${openNote.title}” will be permanently removed from the vault.`,
+                      confirmLabel: "Delete note",
+                    })
+                  ) {
+                    remove(openNote.id);
+                    setReading(null);
+                  }
+                }}
+              >
+                <Trash2 className="h-4 w-4" />
+                Delete
+              </Button>
+              <div className="flex-1" />
+              <Button variant="ghost" onClick={() => startEdit(openNote)}>
+                <Pencil className="h-4 w-4" />
+                Edit
+              </Button>
+              <Button onClick={() => setReading(null)}>Done</Button>
+            </>
+          ) : null
+        }
+      >
+        {openNote && (
+          <div className="space-y-5">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge tone="default">{openNote.category}</Badge>
+              {openNote.prelimsRelevant && <Badge tone="accent">Prelims</Badge>}
+              {openNote.mainsRelevant && <Badge tone="accent">Mains</Badge>}
+              <button
+                onClick={() => toggleBookmark(openNote.id)}
+                aria-pressed={openNote.bookmarked}
+                className={cn(
+                  "ml-auto inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[0.7rem] font-semibold transition-colors",
+                  openNote.bookmarked
+                    ? "border-accent/35 bg-accent/15 text-accent"
+                    : "border-line text-paper/55 hover:border-paper/25 hover:text-paper",
+                )}
+              >
+                <Bookmark
+                  className={cn("h-3.5 w-3.5", openNote.bookmarked && "fill-current")}
+                />
+                {openNote.bookmarked ? "Saved" : "Save"}
+              </button>
+            </div>
+
+            <p className="text-[0.7rem] text-paper/45">
+              {formatDate(openNote.date)} · {relativeDay(openNote.date, today)}
+              {openNote.source ? " · " : ""}
+              {openNote.source &&
+                (/^https?:\/\//.test(openNote.source) ? (
+                  <a
+                    href={openNote.source}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    className="inline-flex items-center gap-1 text-accent hover:underline"
+                  >
+                    Source
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
+                ) : (
+                  openNote.source
+                ))}
+            </p>
+
+            {/* `whitespace-pre-wrap` keeps the paragraphs as they were typed —
+                the card preview collapses them, which is part of why a long
+                note looked like a stub. */}
+            <div className="whitespace-pre-wrap text-[0.95rem] leading-relaxed text-paper/80">
+              {openNote.summary || (
+                <span className="text-paper/40">No summary was written for this one.</span>
+              )}
+            </div>
+
+            {openNote.tags.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 border-t border-line pt-4">
+                {openNote.tags.map((t) => (
+                  <span
+                    key={t}
+                    className="rounded-md bg-paper/[0.05] px-2 py-0.5 text-[0.7rem] text-paper/60"
+                  >
+                    #{t}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </Modal>
+
       <Modal
         open={open}
         onClose={() => setOpen(false)}
-        title="Add to the vault"
+        title={isEditing ? "Edit this note" : "Add to the vault"}
         footer={
           <>
             <Button variant="ghost" onClick={() => setOpen(false)}>
@@ -193,10 +337,14 @@ export default function CurrentAffairsPage() {
                 if (!draft.title.trim()) return;
                 if (
                   !(await confirm({
-                    title: "Add this note to the vault?",
-                    description: "It will be saved to your current affairs archive.",
+                    title: isEditing
+                      ? "Save changes to this note?"
+                      : "Add this note to the vault?",
+                    description: isEditing
+                      ? "Your edits to this note will be saved."
+                      : "It will be saved to your current affairs archive.",
                     tone: "default",
-                    confirmLabel: "Add note",
+                    confirmLabel: isEditing ? "Save changes" : "Add note",
                   }))
                 )
                   return;
