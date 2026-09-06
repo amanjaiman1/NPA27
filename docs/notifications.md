@@ -348,23 +348,45 @@ read.
 2. Run `supabase/schema.sql` again. The push tables are additive and idempotent.
 3. `node scripts/generate-vapid.mjs`, and put the output in your environment.
 4. Set `SUPABASE_SERVICE_ROLE_KEY` and a long random `CRON_SECRET`. See
-   `.env.example` for all five.
+   `.env.example` for all five. If the project was linked through Vercel's
+   Supabase integration, `SUPABASE_SERVICE_ROLE_KEY` is usually already there —
+   check before pasting a second copy.
 5. **Rebuild.** `NEXT_PUBLIC_VAPID_PUBLIC_KEY` is inlined at build time, so
    setting it on a running server has no effect.
 6. Point a scheduler at `/api/push/dispatch` with
    `Authorization: Bearer $CRON_SECRET`. Any of:
-   - **Vercel Cron** — add `vercel.json` as below. Vercel sends the
-     `CRON_SECRET` bearer itself. Note the Hobby plan only permits one run a
-     day, which is why this file isn't committed: on Hobby a sub-daily schedule
-     fails the deploy.
-
-     ```json
-     { "crons": [{ "path": "/api/push/dispatch", "schedule": "*/15 * * * *" }] }
-     ```
-
+   - **Vercel Cron** — `vercel.json` is committed and needs no glue: when a
+     `CRON_SECRET` env var exists, Vercel sends it automatically as
+     `Authorization: Bearer <secret>`, and issues a `GET`, which is exactly what
+     the route checks for. See *Choosing the schedule* below.
    - **GitHub Actions** — a `schedule:` workflow with one `curl` step, using a
      repository secret for the bearer.
    - **Supabase** — `pg_cron` + `pg_net` calling the URL on a schedule.
+
+#### Choosing the schedule
+
+Two things make this less obvious than it looks.
+
+**Vercel cron schedules are in UTC**, and `digestHour` is in the user's local
+time. The committed `0 2 * * *` is 02:00 UTC — 07:30 IST, half an hour after the
+default `digestHour` of 7.
+
+**On a once-a-day schedule, the cron time *is* the delivery time.** `planDelivery`
+refuses while `hour < digestHour`, so a single daily run that lands before the
+digest hour produces nothing at all that day — there is no second attempt to catch
+it. Hence the half-hour margin rather than aiming at exactly 07:00: a cron firing
+a few minutes early would otherwise skip the whole day.
+
+The committed value is deliberately Hobby-safe, because Hobby permits one run per
+day and rejects anything more frequent **at deploy time**. On Pro, change it to:
+
+```json
+{ "crons": [{ "path": "/api/push/dispatch", "schedule": "*/15 * * * *" }] }
+```
+
+and the margin stops mattering — with runs every 15 minutes the engine's own gates
+decide the timing, hour-gated rules fire close to their hour, and `digestHour`
+means what it says.
 7. In the app: bell → gear → **Enable system notifications**, then **Even when
    the app is closed**.
 
