@@ -51,16 +51,26 @@ export function Heatmap({
     const weeks: (HeatCell | null)[][] = [];
     for (let i = 0; i < padded.length; i += 7) weeks.push(padded.slice(i, i + 7));
 
-    const monthLabels: { col: number; label: string }[] = [];
+    const marks: { col: number; label: string }[] = [];
     let lastMonth = -1;
     weeks.forEach((week, col) => {
       const first = week.find((c) => c);
       if (!first) return;
       const m = fromISODate(first.date).getMonth();
       if (m !== lastMonth) {
-        monthLabels.push({ col, label: MONTHS[m] });
+        marks.push({ col, label: MONTHS[m] });
         lastMonth = m;
       }
+    });
+    /* A twelve-month window necessarily starts and ends inside the same month,
+       so the plain "label every change" pass printed that month's name at both
+       ends of the axis — "Sep Oct … Aug Sep", which reads like the range covers
+       thirteen months. Drop any mark with fewer than two columns to itself: it's
+       a few days' stub of a month already labelled at the other end, and there
+       is no room to print it legibly anyway. */
+    const monthLabels = marks.filter((mk, i) => {
+      const nextCol = marks[i + 1]?.col ?? weeks.length;
+      return nextCol - mk.col >= 2;
     });
     return { weeks, monthLabels };
   }, [cells]);

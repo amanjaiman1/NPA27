@@ -109,15 +109,31 @@ export default function MetricPage() {
     [lifeLog, metric, range],
   );
 
-  /** A year of days for the calendar, with levels from the metric's own spread. */
-  const heatCells = useMemo<HeatCell[]>(() => {
+  /** A year of days for the calendar, with shades from the metric's own spread. */
+  const { heatCells, recordedDates } = useMemo(() => {
     const all = lifeLog
       .map((e) => ({ date: e.date, value: metric.read(e) }))
       .filter((r): r is { date: string; value: number } => r.value != null);
-    const values = all.map((r) => r.value).sort((a, b) => a - b);
-    const at = (q: number) => values[Math.floor(values.length * q)] ?? 0;
-    const cuts = [at(0.2), at(0.4), at(0.6), at(0.8)];
     const byDate = new Map(all.map((r) => [r.date, r.value]));
+
+    /**
+     * Shade boundaries are drawn from the days that carry a reading *above zero*,
+     * not from every reading. Quantiles over the whole set let a metric with many
+     * rest days collapse the scale: three quarters of running days are 0 km, which
+     * put the 20th, 40th and 60th percentiles all on 0. Every real run then
+     * cleared all three at once and landed in the top two shades — the two
+     * lightest were never painted, so a 4 km jog looked the same as a 12 km one.
+     *
+     * Three quartile cuts over the non-zero readings give the four shades one
+     * band each.
+     */
+    const scale = all
+      .map((r) => r.value)
+      .filter((v) => v > 0)
+      .sort((a, b) => a - b);
+    const quantile = (q: number) =>
+      scale.length ? scale[Math.min(scale.length - 1, Math.floor(scale.length * q))] : 0;
+    const cuts = [quantile(0.25), quantile(0.5), quantile(0.75)];
 
     const cells: HeatCell[] = [];
     const today = new Date();
@@ -126,15 +142,22 @@ export default function MetricPage() {
       d.setDate(d.getDate() - i);
       const date = toISODate(d);
       const v = byDate.get(date);
-      let level: HeatCell["level"] = 0;
-      if (v != null && values.length) {
-        const rank = cuts.filter((c) => v > c).length;
-        level = (metric.lowerBetter ? rank : rank) as HeatCell["level"];
-        if (v > 0 && level === 0) level = 1;
-      }
+      /**
+       * Darker always means *more of the metric*, which is what the Less→More
+       * legend claims, so `lowerBetter` deliberately plays no part here — a
+       * heavy screen-time day is a dark square and the legend says so. (This
+       * used to read `metric.lowerBetter ? rank : rank`, both branches
+       * identical, which looked like an inversion that was never finished.)
+       *
+       * Level 0 is reserved for "nothing recorded at all", so it is keyed off
+       * the reading being absent rather than off its value.
+       */
+      const level = (
+        v == null || v <= 0 ? 0 : 1 + cuts.filter((c) => v > c).length
+      ) as HeatCell["level"];
       cells.push({ date, hours: v ?? 0, level });
     }
-    return cells;
+    return { heatCells: cells, recordedDates: new Set(byDate.keys()) };
   }, [lifeLog, metric]);
 
   if (!hydrated) return <Loading />;
@@ -341,7 +364,13 @@ export default function MetricPage() {
               legendLow="Less"
               legendHigh="More"
               formatTooltip={(cell) => ({
-                primary: cell.hours ? formatMetric(metric, cell.hours) : "No reading",
+                /* Keyed off whether the day was recorded, not off the value: a
+                   logged rest day is "0.0 km", not "No reading". */
+                primary: recordedDates.has(cell.date)
+                  ? metric.id === "screen"
+                    ? formatMinutesAsClock(cell.hours)
+                    : formatMetric(metric, cell.hours)
+                  : "No reading",
                 secondary: formatDate(cell.date),
               })}
             />
