@@ -347,18 +347,51 @@ export type GoalHorizon =
   | "Long-term";
 export type GoalStatus = "Active" | "Completed" | "Missed" | "Paused";
 
+/**
+ * What a goal measures itself against. `manual` is the number you type in;
+ * everything else is read from the data it names — see `lib/goals.ts` for the
+ * catalogue, including which need a linked subject and which accumulate over
+ * the goal's window rather than being a reading of right now.
+ */
+export type GoalMetric =
+  | "manual"
+  | "studyHours"
+  | "studyDays"
+  | "studyStreak"
+  | "deepWorkHours"
+  | "topicsCompleted"
+  | "revisionPasses"
+  | "mocksTaken"
+  | "mockAverage"
+  | "subjectHours"
+  | "subjectMastery"
+  | "booksCompleted"
+  | "currentAffairsLogged"
+  | "reflectionsWritten"
+  | "mistakesMastered";
+
 export interface Goal {
   id: string;
   title: string;
   horizon: GoalHorizon;
   metricLabel?: string;
   target?: number;
+  /**
+   * The progress figure. Only authoritative for a `manual` goal — when `metric`
+   * names something measurable, the live value is read from the data instead and
+   * this is ignored. See `lib/goals.ts`.
+   */
   current?: number;
   unit?: string;
   deadline?: ISODate;
   status: GoalStatus;
   createdOn: ISODate;
   linkedSubjectId?: string;
+  /**
+   * What this goal measures. Absent means `manual` — the old behaviour of typing
+   * the number in — so existing goals keep working untouched.
+   */
+  metric?: GoalMetric;
 }
 
 /* ── Books ───────────────────────────────────────────────────── */

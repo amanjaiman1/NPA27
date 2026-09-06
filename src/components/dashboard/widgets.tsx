@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import Link from "next/link";
 import {
   Flame,
@@ -48,6 +49,11 @@ import {
   currentPhase,
   daysToPrelims,
 } from "@/lib/plan";
+import {
+  computeGoalProgress,
+  byUrgency,
+  type GoalData,
+} from "@/lib/goals";
 import { Heatmap } from "@/components/charts/heatmap";
 import { BarChart } from "@/components/charts/bar-chart";
 import { Donut } from "@/components/charts/donut";
@@ -527,9 +533,32 @@ export function MockMomentumCard() {
 
 export function GoalsCard() {
   const goals = useChronicle((s) => s.goals);
-  const active = goals
-    .filter((g) => g.status === "Active" && g.target)
-    .slice(0, 4);
+  const journal = useChronicle((s) => s.journal);
+  const subjects = useChronicle((s) => s.subjects);
+  const mocks = useChronicle((s) => s.mocks);
+  const revisions = useChronicle((s) => s.revisions);
+  const books = useChronicle((s) => s.books);
+  const currentAffairs = useChronicle((s) => s.currentAffairs);
+  const reflections = useChronicle((s) => s.reflections);
+  const mistakes = useChronicle((s) => s.mistakes);
+  const lifeLog = useChronicle((s) => s.lifeLog);
+
+  /**
+   * Progress is computed the same way the Goals page computes it, from the same
+   * module — reading `goal.current` here instead would show a stale hand-typed
+   * figure next to a live one and let the two pages disagree.
+   */
+  const active = useMemo(() => {
+    const data: GoalData = {
+      journal, subjects, mocks, revisions, books, currentAffairs, reflections, mistakes, lifeLog,
+    };
+    return goals
+      .filter((g) => g.status === "Active")
+      .map((g) => computeGoalProgress(g, data))
+      .filter((p) => p.target != null)
+      .sort(byUrgency) // whatever is slipping earns the space
+      .slice(0, 4);
+  }, [goals, journal, subjects, mocks, revisions, books, currentAffairs, reflections, mistakes, lifeLog]);
 
   return (
     <Card className="p-5 sm:p-6">
@@ -543,22 +572,38 @@ export function GoalsCard() {
           <ArrowRight className="h-3.5 w-3.5" />
         </Link>
       </div>
-      <ul className="space-y-3.5">
-        {active.map((g) => {
-          const pct = Math.round(((g.current ?? 0) / (g.target ?? 1)) * 100);
-          return (
-            <li key={g.id}>
+      {active.length === 0 ? (
+        <p className="py-2 text-sm text-paper/40">
+          No active goals with a target yet.
+        </p>
+      ) : (
+        <ul className="space-y-3.5">
+          {active.map((p) => (
+            <li key={p.goal.id}>
               <div className="mb-1.5 flex items-center justify-between gap-2">
-                <span className="min-w-0 truncate text-sm text-paper/75">{g.title}</span>
+                <span className="min-w-0 truncate text-sm text-paper/75">
+                  {p.goal.title}
+                </span>
                 <span className="tabular shrink-0 text-xs text-paper/45">
-                  {g.current}/{g.target} {g.unit}
+                  {p.current ?? 0}/{p.target} {p.goal.unit || p.metric.unit}
                 </span>
               </div>
-              <Progress value={pct} />
+              <Progress
+                value={p.pct ?? 0}
+                barClassName={
+                  p.health === "achieved"
+                    ? "bg-positive"
+                    : p.health === "behind" || p.health === "missed"
+                      ? "bg-danger"
+                      : p.health === "atRisk"
+                        ? "bg-warning"
+                        : undefined
+                }
+              />
             </li>
-          );
-        })}
-      </ul>
+          ))}
+        </ul>
+      )}
     </Card>
   );
 }
