@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 
 /**
@@ -87,57 +87,10 @@ export function Lottie({
   );
 }
 
-/**
- * A Lottie with a CSS stand-in underneath, cross-faded out once the real
- * animation has its first frame up.
- *
- * This exists for the cold-start case. The player and the animation JSON are
- * both network fetches, so on a slow connection there is a window where the
- * screen would otherwise be blank — which is exactly the wait the animation was
- * added to cover. The placeholder is plain CSS in the server-rendered HTML, so
- * it is moving before any JavaScript has run.
+/*
+ * There used to be a `LottieWithFallback` here that cross-faded a CSS ring into
+ * the real Lottie once it loaded. It is gone: on a slower device the swap was
+ * slow enough to be legible, so a single refresh showed two different animations
+ * one after the other. Each wait now picks one technique and stays with it —
+ * see `ui/loading.tsx`.
  */
-export function LottieWithFallback({
-  src,
-  className,
-  fallbackClassName,
-  loop = true,
-  speed = 1,
-  staticFrame = 0,
-  label = "Loading",
-}: {
-  src: string;
-  className?: string;
-  fallbackClassName?: string;
-  loop?: boolean;
-  speed?: number;
-  staticFrame?: number;
-  label?: string;
-}) {
-  const [live, setLive] = useState(false);
-
-  return (
-    <span className={cn("relative grid place-items-center", className)}>
-      <span
-        aria-hidden
-        className={cn(
-          "absolute transition-opacity duration-300",
-          fallbackClassName,
-          live ? "opacity-0" : "opacity-100",
-        )}
-      />
-      <Lottie
-        src={src}
-        loop={loop}
-        speed={speed}
-        staticFrame={staticFrame}
-        label={label}
-        onReady={() => setLive(true)}
-        className={cn(
-          "h-full w-full transition-opacity duration-300",
-          live ? "opacity-100" : "opacity-0",
-        )}
-      />
-    </span>
-  );
-}

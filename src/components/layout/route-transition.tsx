@@ -37,8 +37,12 @@ export function beginRouteTransition() {
 const SHOW_AFTER_MS = 140;
 /** Once it *is* up, keep it up — a 50ms flash reads as a glitch. */
 const MIN_VISIBLE_MS = 450;
-/** A cancelled or failed navigation never changes the pathname; don't hang. */
-const BAIL_MS = 20_000;
+/**
+ * A cancelled or failed navigation never changes the pathname, so there has to
+ * be a ceiling. It was 20s, which is indistinguishable from a hang; a stalled
+ * indicator is worse than no indicator, so it gives up much sooner now.
+ */
+const BAIL_MS = 8_000;
 
 export function RouteTransition() {
   const pathname = usePathname();
@@ -153,9 +157,19 @@ export function RouteTransition() {
 
   return (
     <div
-      /* Swallows taps while it is up, so an impatient second tap can't queue a
-         second navigation. */
-      className="fixed inset-0 z-[90] grid place-items-center bg-ink/55 backdrop-blur-[2px] animate-fade-in-fast"
+      /**
+       * Desktop only. On a phone this did more harm than good: a slower device
+       * plus a real chunk fetch kept it on screen long enough to read as a hang,
+       * which is worse than the brief unannounced pause it was replacing. A
+       * media query rather than a JS width check, so it costs no hydration and
+       * cannot disagree with the server.
+       *
+       * `pointer-events-none` on purpose. Blocking taps would stop an impatient
+       * double-tap queueing a second navigation, but it also means a mistimed
+       * overlay traps the user — and a second navigation is harmless where being
+       * unable to touch anything is not.
+       */
+      className="pointer-events-none fixed inset-0 z-[90] hidden place-items-center bg-ink/55 backdrop-blur-[2px] animate-fade-in-fast lg:grid"
     >
       <Lottie
         src="/animations/page-transition.json"
