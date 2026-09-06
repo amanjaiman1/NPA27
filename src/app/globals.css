@@ -533,31 +533,20 @@
   background-color: rgb(var(--card) / 0.94);
 }
 
-/* Page-header text is the only copy that sits straight on the wallpaper — the
-   rest lives on cards. Rather than dim the whole screen until that one block is
-   legible (which turns every colourful wallpaper into pastel mush), give the
-   block its own pool of canvas colour that fades to nothing well before the
-   edges. It reads as a soft vignette, not a panel.
+/* Page headers used to get their own pool of canvas colour here — a radial
+   gradient anchored at the left edge, meant to read as a soft vignette behind
+   the headline.
 
-   A gradient, not a backdrop-filter: filters re-rasterise on scroll and that is
-   exactly what makes phones stutter. */
-[data-wallpaper]:not([data-wallpaper="none"]) .header-scrim {
-  position: relative;
-  isolation: isolate;
-}
-[data-wallpaper]:not([data-wallpaper="none"]) .header-scrim::before {
-  content: "";
-  position: absolute;
-  z-index: -1;
-  inset: -1.5rem -3rem -1.25rem -2rem;
-  background: radial-gradient(
-    115% 100% at 0% 45%,
-    rgb(var(--ink) / 0.88) 0%,
-    rgb(var(--ink) / 0.72) 38%,
-    rgb(var(--ink) / 0.34) 64%,
-    rgb(var(--ink) / 0) 82%
-  );
-}
+   It didn't. Because the gradient was anchored at `0% 45%` and faded out by 82%,
+   the colour only ever landed on the *top-left* of the content area: the top
+   right, bottom right and bottom left showed clean wallpaper, so instead of a
+   vignette it read as a stray tinted patch in one corner, on every single page.
+   An off-centre wash that covers one corner of the viewport is more distracting
+   than the contrast it was buying, so it's gone.
+
+   Legibility for header copy is still handled, just not by tinting the canvas:
+   the headline is full-strength `--paper`, and the muted rules below lift the
+   supporting line to 0.82 whenever a wallpaper is showing. */
 
 /* Muted text is tuned for the flat surface of a card, where 40% of the ink
    colour is a deliberate whisper. The same 40% sitting straight on a wallpaper

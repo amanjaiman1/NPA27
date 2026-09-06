@@ -25,11 +25,11 @@ export function PageHeader({
         className,
       )}
     >
-      {/* `header-scrim` gives this block its own pool of canvas colour when a
-          wallpaper is showing. That is what lets the wallpaper itself stay
-          vivid: legibility is bought locally, behind the words, instead of by
-          washing out the whole screen with a heavy dim. */}
-      <div className="header-scrim min-w-0 animate-fade-in">
+      {/* No background of its own. This block used to carry a `header-scrim`
+          pool of canvas colour, but it only ever tinted the top-left corner of
+          the page, so the header now sits straight on the wallpaper like every
+          other side. */}
+      <div className="min-w-0 animate-fade-in">
         {eyebrow && (
           <p className="eyebrow mb-3 flex items-center gap-2">
             <span className="inline-block h-1.5 w-1.5 rounded-full bg-accent" />
