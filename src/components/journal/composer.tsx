@@ -14,6 +14,7 @@ import {
   Trophy,
   TriangleAlert,
   Lightbulb,
+  Lock,
 } from "lucide-react";
 import type { JournalEntry } from "@/lib/types";
 import { useChronicle } from "@/lib/store";
@@ -63,6 +64,34 @@ function Section({
   );
 }
 
+/**
+ * A time that came from the morning check-in. Deliberately not an input: these
+ * two values are recorded once at the start of the day and the journal reflects
+ * them rather than owning them.
+ */
+function RecordedTime({
+  icon: Icon,
+  value,
+}: {
+  icon: React.ElementType;
+  value?: string;
+}) {
+  return (
+    <div
+      className="flex h-[42px] items-center gap-2.5 rounded-xl border border-line bg-paper/[0.03] px-3.5"
+      title="Recorded in your morning check-in"
+    >
+      <Icon className="h-4 w-4 shrink-0 text-paper/35" />
+      {value ? (
+        <span className="tabular text-sm text-paper/80">{value}</span>
+      ) : (
+        <span className="text-sm text-paper/35">Not recorded</span>
+      )}
+      <Lock className="ml-auto h-3 w-3 shrink-0 text-paper/25" />
+    </div>
+  );
+}
+
 export function JournalComposer({
   open,
   onClose,
@@ -77,6 +106,8 @@ export function JournalComposer({
   const subjects = useChronicle((s) => s.subjects);
   const upsert = useChronicle((s) => s.upsertJournal);
   const existingDates = useChronicle((s) => s.journal.map((j) => j.date));
+  const journal = useChronicle((s) => s.journal);
+  const lifeLog = useChronicle((s) => s.lifeLog);
   const confirm = useConfirm();
   const [draft, setDraft] = useState<JournalEntry>(() => toDraft(initial));
 
@@ -101,6 +132,22 @@ export function JournalComposer({
   function patch(p: Partial<JournalEntry>) {
     setDraft((d) => ({ ...d, ...p }));
   }
+
+  /**
+   * Wake-up and bedtime are recorded once, in the morning check-in that gates
+   * the app — they are not the journal's to edit. The form shows whatever was
+   * recorded for the day it is pointed at (following the date field), read-only,
+   * and `save` writes those values rather than anything from the draft, so the
+   * form can neither change them nor drop them.
+   */
+  const recordedSleep = (() => {
+    const day = journal.find((j) => j.date === draft.date);
+    const life = lifeLog.find((l) => l.date === draft.date);
+    return {
+      wakeTime: day?.wakeTime || life?.wakeTime || undefined,
+      sleepTime: day?.sleepTime || life?.bedtime || undefined,
+    };
+  })();
 
   // Journal entries can only be logged for today or a past day — never the future.
   const todayISO = toISODate(new Date());
@@ -132,8 +179,9 @@ export function JournalComposer({
       ...draft,
       blocks,
       totalHours,
-      wakeTime: draft.wakeTime || undefined,
-      sleepTime: draft.sleepTime || undefined,
+      // Straight from the morning check-in — see `recordedSleep`.
+      wakeTime: recordedSleep.wakeTime,
+      sleepTime: recordedSleep.sleepTime,
       highlights: draft.highlights?.trim() || undefined,
       reflection: draft.reflection?.trim() || undefined,
     };
@@ -175,28 +223,16 @@ export function JournalComposer({
               />
             </Field>
             <Field label="Wake up">
-              <div className="relative">
-                <Sunrise className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-paper/35" />
-                <Input
-                  type="time"
-                  value={draft.wakeTime ?? ""}
-                  onChange={(e) => patch({ wakeTime: e.target.value })}
-                  className="pl-9"
-                />
-              </div>
+              <RecordedTime icon={Sunrise} value={recordedSleep.wakeTime} />
             </Field>
             <Field label="Sleep">
-              <div className="relative">
-                <Moon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-paper/35" />
-                <Input
-                  type="time"
-                  value={draft.sleepTime ?? ""}
-                  onChange={(e) => patch({ sleepTime: e.target.value })}
-                  className="pl-9"
-                />
-              </div>
+              <RecordedTime icon={Moon} value={recordedSleep.sleepTime} />
             </Field>
           </div>
+          <p className="-mt-1 text-[0.7rem] text-paper/40">
+            Wake-up and bedtime come from the check-in at the start of your day —
+            they fill in here on their own.
+          </p>
         </Section>
 
         {/* Study blocks */}
