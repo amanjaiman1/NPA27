@@ -86,6 +86,20 @@ interface ChronicleState extends ChronicleData {
   updateTopic: (subjectId: string, topicId: string, patch: Partial<Topic>) => void;
   reviseTopic: (topicId: string) => void;
   setTopicStatusById: (topicId: string, status: TopicStatus) => void;
+  /** Appends a topic and returns its new id, or null if the subject is unknown. */
+  addTopic: (subjectId: string, name: string) => string | null;
+  deleteTopic: (subjectId: string, topicId: string) => void;
+  /** Sets status and confidence together; omit `confidence` to keep the higher of the two. */
+  setTopicProgress: (
+    subjectId: string,
+    topicId: string,
+    status: TopicStatus,
+    confidence?: number,
+  ) => void;
+  setTopicsStatus: (subjectId: string, topicIds: string[], status: TopicStatus) => void;
+  upsertSubject: (subject: Subject) => void;
+  /** Also removes revisions and mistakes that referenced the subject. */
+  deleteSubject: (id: string) => void;
 
   /* knowledge graph */
   addTopicLink: (source: string, target: string, relation?: string) => void;
@@ -365,6 +379,134 @@ export const useChronicle = create<ChronicleState>()(
                   ),
                 },
           ),
+        })),
+
+      addTopic: (subjectId, name) => {
+        const clean = name.trim();
+        if (!clean) return null;
+        /**
+         * Ids follow the seed's `<subjectId>-t<n>` convention, but `n` comes from
+         * a counter that has to clear every id already present — indexing off
+         * `topics.length` would collide the moment a topic in the middle has been
+         * deleted, and a duplicate id silently makes two topics move as one.
+         */
+        const sub = get().subjects.find((x) => x.id === subjectId);
+        if (!sub) return null;
+        let n = sub.topics.length;
+        let id = `${subjectId}-t${n}`;
+        while (sub.topics.some((t) => t.id === id)) {
+          n += 1;
+          id = `${subjectId}-t${n}`;
+        }
+        set((s) => ({
+          subjects: s.subjects.map((x) =>
+            x.id !== subjectId
+              ? x
+              : {
+                  ...x,
+                  topics: [
+                    ...x.topics,
+                    {
+                      id,
+                      name: clean,
+                      status: "untouched" as TopicStatus,
+                      confidence: 0,
+                      revisionCount: 0,
+                    },
+                  ],
+                },
+          ),
+        }));
+        return id;
+      },
+
+      deleteTopic: (subjectId, topicId) =>
+        set((s) => ({
+          subjects: s.subjects.map((sub) =>
+            sub.id !== subjectId
+              ? sub
+              : { ...sub, topics: sub.topics.filter((t) => t.id !== topicId) },
+          ),
+          // A link to a topic that no longer exists would draw an edge to nothing
+          // in the knowledge graph, so those go with it.
+          topicLinks: s.topicLinks.filter(
+            (l) => l.source !== topicId && l.target !== topicId,
+          ),
+        })),
+
+      /**
+       * Marks progress. Status and confidence are set together because they are
+       * two readings of the same thing — the old flow snapped confidence to a
+       * fixed number per status, so a topic you were 85% sure of dropped to 68
+       * the moment you tagged it "revised".
+       */
+      setTopicProgress: (subjectId, topicId, status, confidence) =>
+        set((s) => ({
+          subjects: s.subjects.map((sub) =>
+            sub.id !== subjectId
+              ? sub
+              : {
+                  ...sub,
+                  topics: sub.topics.map((t) =>
+                    t.id !== topicId
+                      ? t
+                      : {
+                          ...t,
+                          status,
+                          confidence:
+                            confidence != null
+                              ? Math.max(0, Math.min(100, Math.round(confidence)))
+                              : Math.max(t.confidence, STATUS_CONF[status]),
+                          lastTouched: toISODate(new Date()),
+                        },
+                  ),
+                },
+          ),
+        })),
+
+      setTopicsStatus: (subjectId, topicIds, status) => {
+        const wanted = new Set(topicIds);
+        if (!wanted.size) return;
+        set((s) => ({
+          subjects: s.subjects.map((sub) =>
+            sub.id !== subjectId
+              ? sub
+              : {
+                  ...sub,
+                  topics: sub.topics.map((t) =>
+                    !wanted.has(t.id)
+                      ? t
+                      : {
+                          ...t,
+                          status,
+                          // A bulk change is a coarse gesture, so it takes the
+                          // status's nominal confidence rather than inventing a
+                          // per-topic number.
+                          confidence: STATUS_CONF[status],
+                          lastTouched: toISODate(new Date()),
+                        },
+                  ),
+                },
+          ),
+        }));
+      },
+
+      upsertSubject: (subject) =>
+        set((s) => {
+          const idx = s.subjects.findIndex((x) => x.id === subject.id);
+          const subjects = [...s.subjects];
+          if (idx >= 0) subjects[idx] = subject;
+          else subjects.push(subject);
+          return { subjects };
+        }),
+
+      deleteSubject: (id) =>
+        set((s) => ({
+          subjects: s.subjects.filter((x) => x.id !== id),
+          // Everything that pointed at the subject goes too, rather than being
+          // left behind as rows whose subject renders as a raw slug.
+          revisions: s.revisions.filter((r) => r.subjectId !== id),
+          mistakes: s.mistakes.filter((m) => m.subjectId !== id),
         })),
 
       reviseTopic: (topicId) =>
