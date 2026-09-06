@@ -43,7 +43,9 @@ import {
   weekTotals,
   strengthLabel,
 } from "@/lib/life";
-import { toISODate, formatDate, weekday, round, cn } from "@/lib/utils";
+import { toISODate, formatDate, weekday, round, cn,
+  inferSleepHours,
+} from "@/lib/utils";
 
 const EX_TYPES: ExerciseType[] = ["Run", "Walk", "Gym", "Yoga", "Cycling", "Sports", "Other"];
 
@@ -105,6 +107,19 @@ export default function LifeDashboardPage() {
     }
     return { sleep, deep, screen };
   }, [lifeLog]);
+
+  /**
+   * Editing either clock time recalculates the sleep length, so the two can't
+   * drift apart. Both also reach the day's journal entry when saved — see
+   * `upsertLifeEntry` in the store.
+   */
+  function patchTimes(patch: { bedtime?: string; wakeTime?: string }) {
+    setDraft((d) => {
+      const next = { ...d, ...patch };
+      const hours = inferSleepHours(next.date, next.bedtime, next.wakeTime);
+      return hours > 0 ? { ...next, sleepHours: hours } : next;
+    });
+  }
 
   function openComposer() {
     setDraft(te ? { ...te } : emptyLifeEntry(today));
@@ -418,14 +433,14 @@ export default function LifeDashboardPage() {
               <Input
                 type="time"
                 value={draft.bedtime ?? ""}
-                onChange={(e) => setDraft({ ...draft, bedtime: e.target.value })}
+                onChange={(e) => patchTimes({ bedtime: e.target.value })}
               />
             </Field>
-            <Field label="Wake time">
+            <Field label="Wake time" hint="Also fills your journal entry for this day">
               <Input
                 type="time"
                 value={draft.wakeTime ?? ""}
-                onChange={(e) => setDraft({ ...draft, wakeTime: e.target.value })}
+                onChange={(e) => patchTimes({ wakeTime: e.target.value })}
               />
             </Field>
           </div>

@@ -81,6 +81,29 @@ export function clockHoursBetween(bedtime: string, wake: string): number {
  * 07:30 = 8.5h). Falls back to the crossing-midnight estimate if the dates
  * happen to produce a non-positive span.
  */
+/**
+ * Sleep length from a bedtime and a wake time, working out for itself which day
+ * the bedtime belongs to: an evening time (12:00 or later) is the night before
+ * the wake-up, anything earlier is the same morning.
+ *
+ * Used wherever the two times are entered without being asked which day the
+ * bedtime falls on — the journal entry and the life dashboard both do this.
+ */
+export function inferSleepHours(
+  wakeDate: string,
+  sleepTime?: string,
+  wakeTime?: string,
+): number {
+  if (!sleepTime || !wakeTime) return 0;
+  const hour = Number(sleepTime.split(":")[0]);
+  if (Number.isNaN(hour)) return 0;
+  const sleepDate =
+    hour >= 12
+      ? toISODate(new Date(fromISODate(wakeDate).getTime() - 86_400_000))
+      : wakeDate;
+  return sleepDuration(sleepDate, sleepTime, wakeDate, wakeTime);
+}
+
 export function sleepDuration(
   sleepDate: string,
   sleepTime: string,

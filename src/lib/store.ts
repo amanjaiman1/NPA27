@@ -3,7 +3,7 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { createSeedData, createFreshData } from "./seed";
-import { toISODate, uid } from "./utils";
+import { toISODate, uid, inferSleepHours } from "./utils";
 import { emptyEntry } from "@/components/journal/constants";
 import {
   type Surface,
@@ -207,6 +207,98 @@ function maxStatus(a: TopicStatus, b: TopicStatus): TopicStatus {
   return STATUS_RANK[a] >= STATUS_RANK[b] ? a : b;
 }
 
+
+/* ── One fact, three places to enter it ──────────────────────────────────────
+   Last night's bedtime and this morning's wake-up can be entered in the daily
+   sleep prompt, in the journal entry, or in the life dashboard. They describe
+   the same night, so whichever one is touched, the others follow. Without this
+   the times had to be typed twice — the prompt fanned out, but editing either
+   record afterwards went nowhere.
+
+   Only *present* values propagate. Emptiness never does: a journal entry for an
+   old day carries no times, and saving it must not wipe that day's life log.
+   ───────────────────────────────────────────────────────────────────────── */
+
+interface SleepTimes {
+  sleepTime?: string;
+  wakeTime?: string;
+}
+
+function hasTimes(t: SleepTimes): boolean {
+  return Boolean(t.sleepTime || t.wakeTime);
+}
+
+/** Write the times onto that date's journal entry, creating it if needed. */
+function withSleepInJournal(
+  journal: JournalEntry[],
+  date: ISODate,
+  { sleepTime, wakeTime }: SleepTimes,
+  { create }: { create: boolean },
+): JournalEntry[] {
+  const idx = journal.findIndex((j) => j.date === date);
+  const next = [...journal];
+  if (idx >= 0) {
+    next[idx] = {
+      ...next[idx],
+      ...(sleepTime ? { sleepTime } : {}),
+      ...(wakeTime ? { wakeTime } : {}),
+    };
+  } else if (create) {
+    next.push({
+      ...emptyEntry(date),
+      sleepTime,
+      wakeTime,
+      // An auto-created day has recorded sleep, not study.
+      blocks: [],
+      totalHours: 0,
+    });
+  }
+  next.sort((a, b) => a.date.localeCompare(b.date));
+  return next;
+}
+
+/**
+ * Write the times onto that date's life-dashboard entry, creating it if needed.
+ * `sleepHours` is recalculated from the two times when both are known, since
+ * they're the more precise record of the same thing.
+ */
+function withSleepInLifeLog(
+  lifeLog: LifeEntry[],
+  date: ISODate,
+  { sleepTime, wakeTime }: SleepTimes,
+  { create, sleepHours }: { create: boolean; sleepHours?: number },
+): LifeEntry[] {
+  const hours = sleepHours ?? inferSleepHours(date, sleepTime, wakeTime);
+  const idx = lifeLog.findIndex((l) => l.date === date);
+  const next = [...lifeLog];
+  if (idx >= 0) {
+    next[idx] = {
+      ...next[idx],
+      ...(sleepTime ? { bedtime: sleepTime } : {}),
+      ...(wakeTime ? { wakeTime } : {}),
+      ...(hours > 0 ? { sleepHours: hours } : {}),
+    };
+  } else if (create) {
+    next.push({
+      id: `life-${date}`,
+      date,
+      sleepHours: hours,
+      sleepQuality: 3,
+      bedtime: sleepTime,
+      wakeTime,
+      walkKm: 0,
+      runKm: 0,
+      exerciseMinutes: 0,
+      waterLiters: 2,
+      meditationMin: 0,
+      screenTimeMin: 120,
+      deepWorkHours: 0,
+    });
+  }
+  next.sort((a, b) => a.date.localeCompare(b.date));
+  return next;
+}
+
 export const useChronicle = create<ChronicleState>()(
   persist(
     (set) => ({
@@ -301,7 +393,15 @@ export const useChronicle = create<ChronicleState>()(
           if (idx >= 0) journal[idx] = entry;
           else journal.push(entry);
           journal.sort((a, b) => a.date.localeCompare(b.date));
-          return { journal };
+
+          const times = { sleepTime: entry.sleepTime, wakeTime: entry.wakeTime };
+          if (!hasTimes(times)) return { journal };
+          return {
+            journal,
+            lifeLog: withSleepInLifeLog(s.lifeLog, entry.date, times, {
+              create: true,
+            }),
+          };
         }),
       deleteJournal: (id) =>
         set((s) => ({ journal: s.journal.filter((j) => j.id !== id) })),
@@ -577,59 +677,35 @@ export const useChronicle = create<ChronicleState>()(
           if (idx >= 0) lifeLog[idx] = entry;
           else lifeLog.push(entry);
           lifeLog.sort((a, b) => a.date.localeCompare(b.date));
-          return { lifeLog };
+
+          const times = { sleepTime: entry.bedtime, wakeTime: entry.wakeTime };
+          if (!hasTimes(times)) return { lifeLog };
+          return {
+            lifeLog,
+            journal: withSleepInJournal(s.journal, entry.date, times, {
+              create: true,
+            }),
+          };
         }),
 
       logDailySleep: ({ date, promptKey, sleepTime, wakeTime, sleepHours }) =>
-        set((s) => {
-          // ── Daily journal: merge into today's entry, or create one ──
-          const jIdx = s.journal.findIndex((j) => j.date === date);
-          const journal = [...s.journal];
-          if (jIdx >= 0) {
-            journal[jIdx] = { ...journal[jIdx], wakeTime, sleepTime };
-          } else {
-            journal.push({
-              ...emptyEntry(date),
-              wakeTime,
-              sleepTime,
-              // a fresh auto-created day starts with no logged study blocks
-              blocks: [],
-              totalHours: 0,
-            });
-          }
-          journal.sort((a, b) => a.date.localeCompare(b.date));
-
-          // ── Life dashboard: merge into today's entry, or create one ──
-          const lIdx = s.lifeLog.findIndex((l) => l.date === date);
-          const lifeLog = [...s.lifeLog];
-          if (lIdx >= 0) {
-            lifeLog[lIdx] = {
-              ...lifeLog[lIdx],
-              bedtime: sleepTime,
-              wakeTime,
-              sleepHours,
-            };
-          } else {
-            lifeLog.push({
-              id: `life-${date}`,
-              date,
-              sleepHours,
-              sleepQuality: 3,
-              bedtime: sleepTime,
-              wakeTime,
-              walkKm: 0,
-              runKm: 0,
-              exerciseMinutes: 0,
-              waterLiters: 2,
-              meditationMin: 0,
-              screenTimeMin: 120,
-              deepWorkHours: 0,
-            });
-          }
-          lifeLog.sort((a, b) => a.date.localeCompare(b.date));
-
-          return { journal, lifeLog, lastSleepPrompt: promptKey };
-        }),
+        set((s) => ({
+          journal: withSleepInJournal(
+            s.journal,
+            date,
+            { sleepTime, wakeTime },
+            { create: true },
+          ),
+          lifeLog: withSleepInLifeLog(
+            s.lifeLog,
+            date,
+            { sleepTime, wakeTime },
+            // The prompt asks which day the bedtime falls on, so its own
+            // calculation is better than an inferred one.
+            { create: true, sleepHours },
+          ),
+          lastSleepPrompt: promptKey,
+        })),
     }),
     {
       name: "upsc-chronicle-store",
