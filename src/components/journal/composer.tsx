@@ -37,7 +37,7 @@ import {
   MOTIVATION_LABELS,
   FOCUS_LABELS,
 } from "./constants";
-import { round, formatHours, cn, toISODate } from "@/lib/utils";
+import { round, formatHours, cn, toISODate, formatDate } from "@/lib/utils";
 
 function Section({
   icon: Icon,
@@ -86,6 +86,13 @@ export function JournalComposer({
   }, [open]);
 
   const isEdit = existingDates.includes(initial.date);
+  /**
+   * The date is editable, so a draft can be pointed at a day that already has an
+   * entry. Saving would replace it wholesale — including anything this draft
+   * doesn't carry — so that case has to be spelled out rather than assumed.
+   */
+  const wouldReplaceAnotherDay =
+    draft.date !== initial.date && existingDates.includes(draft.date);
   const totalDraftHours = round(
     draft.blocks.reduce((a, b) => a + (Number(b.hours) || 0), 0),
     1,
@@ -101,12 +108,18 @@ export function JournalComposer({
   async function save() {
     if (
       !(await confirm({
-        title: isEdit ? "Save changes to this entry?" : "Save this journal entry?",
-        description: isEdit
-          ? "Your edits to this day will be saved."
-          : "This entry will be added to your study journal.",
-        tone: "default",
-        confirmLabel: "Save entry",
+        title: wouldReplaceAnotherDay
+          ? "Replace the entry already logged for that date?"
+          : isEdit
+            ? "Save changes to this entry?"
+            : "Save this journal entry?",
+        description: wouldReplaceAnotherDay
+          ? `${formatDate(draft.date)} already has an entry. Saving will replace it with what's in this form.`
+          : isEdit
+            ? "Your edits to this day will be saved."
+            : "This entry will be added to your study journal.",
+        tone: wouldReplaceAnotherDay ? "danger" : "default",
+        confirmLabel: wouldReplaceAnotherDay ? "Replace entry" : "Save entry",
       }))
     )
       return;

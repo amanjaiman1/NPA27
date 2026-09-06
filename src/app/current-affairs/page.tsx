@@ -136,6 +136,9 @@ export default function CurrentAffairsPage() {
                 <Badge tone="default">{i.category}</Badge>
                 <button
                   onClick={() => toggleBookmark(i.id)}
+                  aria-label={i.bookmarked ? "Remove bookmark" : "Bookmark this"}
+                  aria-pressed={i.bookmarked}
+                  title={i.bookmarked ? "Remove bookmark" : "Bookmark this"}
                   className={cn(
                     "shrink-0 transition-colors",
                     i.bookmarked ? "text-paper" : "text-paper/30 hover:text-paper/60",

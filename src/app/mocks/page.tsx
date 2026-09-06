@@ -543,6 +543,8 @@ export default function MocksPage() {
                               )
                                 remove(m.id);
                             }}
+                            aria-label={`Delete mock: ${m.name}`}
+                            title="Delete mock"
                             className="text-paper/25 opacity-0 transition-opacity hover:text-paper group-hover:opacity-100"
                           >
                             <Trash2 className="h-4 w-4" />
