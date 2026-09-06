@@ -92,7 +92,7 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
           <span
             className={cn(
               "grid h-11 w-11 shrink-0 place-items-center rounded-full",
-              danger ? "bg-danger/12 text-danger" : "bg-accent/15 text-accent",
+              danger ? "bg-danger/15 text-danger" : "bg-accent/15 text-accent",
             )}
           >
             {danger ? (

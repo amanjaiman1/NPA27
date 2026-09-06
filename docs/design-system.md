@@ -93,6 +93,80 @@ private-use codepoint.
 - Hover on a card: `-translate-y-0.5` plus `shadow-lift` and an accent-tinted
   border (`<Card hover>` does this for you).
 
+## Wallpapers
+
+A third appearance dimension, on top of surface and palette: `data-wallpaper` on
+`<html>`, rendered by `components/layout/wallpaper.tsx` as one static layer
+behind everything.
+
+| | |
+| --- | --- |
+| `none` | just the surface |
+| `mesh` `aurora` `beams` | colour, built from `--aura-1`/`--aura-2` |
+| `grid` `dots` `rings` | structure, built from `--paper` at low alpha |
+| `academy` | the still from the command-centre film |
+| `custom` | the user's own photo |
+
+Six of the eight are **pure CSS gradients keyed to the palette** — no bytes to
+download, and they re-tint themselves when the palette changes. The layer is
+deliberately static: no animation, no `filter`, no `backdrop-filter`. Measured
+on a phone at 20x CPU throttle, a wallpaper costs nothing (median 50 fps against
+51 without).
+
+**`--wp-dim` is the legibility dial.** It lays canvas colour (`--ink`) back over
+the art, which lightens on Ivory and darkens on the dark surfaces — one control
+that works in both directions. Every wallpaper ships with a default that was
+measured, not guessed: the page header's three text sizes must clear WCAG AA over
+it. The photo wallpapers need far more (0.85) than the patterns (0.10–0.40).
+
+Chrome that sits directly on the wallpaper firms up automatically — the
+`.chrome-glass` class on the topbar and sidebar goes to 94% opacity whenever a
+wallpaper is active, because translucent glass over a busy photo is where
+readability dies.
+
+A custom photo is downscaled to 1920px and re-encoded in the browser, then kept
+in **IndexedDB on the device** (`lib/wallpaper-store.ts`). It deliberately never
+enters the synced snapshot: that snapshot is one JSON row pushed on every edit,
+and a megabyte of base64 would be re-uploaded each time. Only the *id* travels.
+
+## Opening animations
+
+Every route plays a short rise-and-fade, and the page's own top-level sections
+follow in a cascade — `.page-enter` in `globals.css`, applied by
+`components/layout/page-transition.tsx`, which is keyed on the pathname so each
+navigation replays it.
+
+- **CSS, not JavaScript.** The stagger is `nth-child` animation delays, so there
+  is no per-element work on the main thread and nothing to hydrate.
+- **No exit animation, on purpose.** Waiting for the old page to leave before the
+  new one arrives reads as latency, and the point is that it feels quicker.
+- **Six steps, then stop.** Past ~0.31s of delay the cascade stops feeling like
+  choreography and starts feeling like a slow app.
+- **Sticky descendants.** An ancestor with a transform breaks
+  `position: sticky`. `animation-fill-mode: both` settles on `transform: none`
+  so stickiness returns, and direct sticky children get a plain fade instead.
+  There's a check for this in the perf probe.
+- `prefers-reduced-motion` collapses all of it via the global block at the end of
+  `globals.css` (verified: animation duration drops to 1e-05s).
+
+## Marking a day accomplished
+
+`accomplished: ISODate[]` on the store, toggled by `toggleAccomplished(date)`,
+which **returns true only on the transition into accomplished**. The celebration
+listens to that return value rather than to state, so unmarking, re-rendering or
+returning tomorrow never replays it.
+
+The celebration itself (`components/celebrate/`) is a medal whose ring sweeps in
+and then ticks, a confetti burst, the day's motivational line, and three facts
+(streak, hours logged, days to exam). The confetti is a **single canvas**, not
+DOM elements — one composited layer, colours read from the live palette, and it
+stops itself once the pieces fall. Under `prefers-reduced-motion` it doesn't run
+and the static medal carries the moment.
+
+Lines live in `lib/motivation.ts`, chosen by day index rather than at random so
+the same day always shows the same line, with streak milestones (3, 7, 14, 21,
+30, 50, 75, 100, 150, 200, 365) taking over when they land.
+
 ## Text over media
 
 Video and photography are unpredictable — bright khaki one frame, dark foliage
@@ -184,6 +258,24 @@ numbers sit on the video from `sm` up, which is what gives the clip a tall canva
 on a desktop, and drop out below `sm` so a phone keeps a hero-sized panel with
 the numbers as ordinary cards underneath. Stretching the panel on a narrow screen
 just pushed the rest of the dashboard off the first view.
+
+## A Tailwind trap worth knowing
+
+`bg-accent/12` compiles silently and emits **no CSS at all** — 12 isn't on
+Tailwind's opacity scale, which moves in steps of 5. The element just loses its
+background with no error anywhere.
+
+This has bitten the codebase twice: once it stripped the scrims off the hero
+video, and once it left every `Badge` tone, the topic-mastery ramp, the form
+focus ring and the celebration medal with no fill for several releases. So there
+is now a guard:
+
+```bash
+npm run check:classes
+```
+
+It scans for off-scale opacity modifiers and exits non-zero. Use a multiple of 5,
+or an arbitrary value (`bg-black/[0.12]`) when you really need something between.
 
 ## Adding UI
 

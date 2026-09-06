@@ -471,6 +471,8 @@ export interface Profile {
 
 export interface ChronicleData {
   profile: Profile;
+  /** Days the user has explicitly marked as accomplished. */
+  accomplished: ISODate[];
   subjects: Subject[];
   journal: JournalEntry[];
   mocks: MockTest[];

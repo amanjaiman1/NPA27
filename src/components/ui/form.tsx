@@ -21,7 +21,7 @@ export function Label({
 }
 
 const fieldBase =
-  "w-full rounded-xl border border-line bg-paper/[0.03] px-3.5 py-2.5 text-sm text-paper placeholder:text-paper/35 transition-all focus:border-accent/60 focus:bg-card focus:outline-none focus:ring-4 focus:ring-accent/12";
+  "w-full rounded-xl border border-line bg-paper/[0.03] px-3.5 py-2.5 text-sm text-paper placeholder:text-paper/35 transition-all focus:border-accent/60 focus:bg-card focus:outline-none focus:ring-4 focus:ring-accent/10";
 
 export const Input = React.forwardRef<
   HTMLInputElement,

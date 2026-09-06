@@ -13,10 +13,12 @@ import {
   Sparkles,
   TrendingUp,
   Route,
+  Check,
   Milestone as MilestoneIcon,
 } from "lucide-react";
 import { useChronicle } from "@/lib/store";
 import { HeroVideo } from "./hero-video";
+import { AccomplishButton } from "@/components/celebrate/accomplish-button";
 import {
   buildHeatmap,
   currentStreak,
@@ -28,6 +30,7 @@ import {
   avgMood,
   mockSeries,
   todayEntry,
+  isAccomplished,
 } from "@/lib/selectors";
 import {
   toISODate,
@@ -37,6 +40,7 @@ import {
   weekday,
   relativeDay,
 } from "@/lib/utils";
+import { useMounted } from "@/lib/hooks";
 import { Card } from "@/components/ui/card";
 import { RadialProgress, Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
@@ -132,6 +136,7 @@ export function CommandPanel() {
                 Log today
                 <ArrowUpRight className="h-4 w-4" />
               </Link>
+              <AccomplishButton onMedia />
               <span className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-[rgb(6,6,8)]/70 px-4 py-2.5 text-sm font-medium text-white/90">
                 <Flame className="h-4 w-4 text-accent" />
                 {streak}-day streak
@@ -328,7 +333,11 @@ export function TrendCard() {
 export function TodayCard() {
   const journal = useChronicle((s) => s.journal);
   const subjects = useChronicle((s) => s.subjects);
+  const accomplished = useChronicle((s) => s.accomplished);
+  const mounted = useMounted();
   const entry = todayEntry(journal);
+  const accomplishedToday =
+    mounted && isAccomplished(accomplished, toISODate(new Date()));
 
   if (!entry) {
     return (
@@ -346,6 +355,7 @@ export function TodayCard() {
         >
           Start today’s entry
         </Link>
+        <AccomplishButton className="mt-2.5 text-xs" />
       </Card>
     );
   }
@@ -379,13 +389,19 @@ export function TodayCard() {
           </div>
         ))}
       </div>
-      <div className="mt-4 flex gap-2 border-t border-paper/[0.06] pt-4 text-xs text-paper/50">
+      <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-paper/[0.06] pt-4 text-xs text-paper/50">
         <span className="rounded-full bg-paper/[0.05] px-2.5 py-1">
           Mood {MOOD[entry.mood]}
         </span>
         <span className="rounded-full bg-paper/[0.05] px-2.5 py-1">
           Focus {entry.focus}/5
         </span>
+        {accomplishedToday && (
+          <span className="inline-flex items-center gap-1 rounded-full border border-accent/30 bg-accent/10 px-2.5 py-1 font-semibold text-accent">
+            <Check className="h-3 w-3" />
+            Accomplished
+          </span>
+        )}
       </div>
     </Card>
   );

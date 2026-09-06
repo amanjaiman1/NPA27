@@ -6,6 +6,7 @@ import { Modal } from "@/components/ui/modal";
 import { SURFACES, PALETTES } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 import { DataBackup } from "./data-backup";
+import { WallpaperPicker } from "./wallpaper-picker";
 import { InstallCard } from "@/components/pwa/install-prompt";
 
 export function AppearanceModal({
@@ -106,6 +107,11 @@ export function AppearanceModal({
               );
             })}
           </div>
+        </section>
+
+        {/* Wallpaper */}
+        <section className="border-t border-line pt-6">
+          <WallpaperPicker />
         </section>
 
         {/* Install as an app */}

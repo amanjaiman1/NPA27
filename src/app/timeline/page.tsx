@@ -214,7 +214,7 @@ export default function TimelinePage() {
                   "absolute bottom-3 left-[1.32rem] top-2",
                   ch.future
                     ? "w-0 border-l border-dashed border-paper/20"
-                    : "w-px bg-gradient-to-b from-paper/25 via-paper/12 to-paper/[0.04]",
+                    : "w-px bg-gradient-to-b from-paper/25 via-paper/10 to-paper/[0.04]",
                 )}
               />
               <ol className="space-y-5">

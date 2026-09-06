@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { Sidebar } from "./sidebar";
+import { Wallpaper } from "./wallpaper";
+import { PageTransition } from "./page-transition";
 import { Topbar } from "./topbar";
 import { CommandPalette } from "./command-palette";
 import { AppearanceModal } from "./appearance";
@@ -48,6 +50,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="relative flex h-[100dvh] overflow-hidden">
+      {/* Behind everything: the chosen wallpaper, then its dim. */}
+      <Wallpaper />
+
       {/* Ambient canvas — two wide, very soft accent washes, scaled per surface
           by --wash. Pure black keeps the least (glow on true black just reads
           as grey); Velvet and Abyss take the most. */}
@@ -122,7 +127,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         />
         <main className="no-scrollbar relative flex-1 overflow-y-auto">
           <div className="mx-auto w-full max-w-[1240px] px-4 py-8 sm:px-6 lg:px-10 lg:py-12">
-            {children}
+            <PageTransition>{children}</PageTransition>
           </div>
         </main>
       </div>

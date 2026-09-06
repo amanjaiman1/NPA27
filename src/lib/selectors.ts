@@ -64,6 +64,31 @@ export function currentStreak(journal: JournalEntry[], today = new Date()): numb
   return streak;
 }
 
+/**
+ * Consecutive days marked accomplished, counting back from today. Today not yet
+ * marked is not a broken streak — it just isn't marked yet — so the count may
+ * start at yesterday, matching `currentStreak`.
+ */
+export function accomplishedStreak(
+  dates: string[] | undefined,
+  today = new Date(),
+): number {
+  const set = new Set(dates ?? []);
+  const d = new Date(today);
+  d.setHours(0, 0, 0, 0);
+  if (!set.has(toISODate(d))) d.setDate(d.getDate() - 1);
+  let streak = 0;
+  while (set.has(toISODate(d))) {
+    streak++;
+    d.setDate(d.getDate() - 1);
+  }
+  return streak;
+}
+
+export function isAccomplished(dates: string[] | undefined, date: string): boolean {
+  return (dates ?? []).includes(date);
+}
+
 export function longestStreak(journal: JournalEntry[]): number {
   const dates = journal
     .filter((e) => e.totalHours > 0)

@@ -70,14 +70,16 @@ export const viewport: Viewport = {
 // Apply the chosen appearance before paint to avoid a flash of the wrong look.
 const themeScript = `
 (function(){
+  var d = document.documentElement;
   try {
-    var s = localStorage.getItem('upsc-chronicle-surface') || 'white';
-    var p = localStorage.getItem('upsc-chronicle-palette') || 'rose';
-    document.documentElement.setAttribute('data-surface', s);
-    document.documentElement.setAttribute('data-palette', p);
+    d.setAttribute('data-surface', localStorage.getItem('upsc-chronicle-surface') || 'white');
+    d.setAttribute('data-palette', localStorage.getItem('upsc-chronicle-palette') || 'rose');
+    d.setAttribute('data-wallpaper', localStorage.getItem('upsc-chronicle-wallpaper') || 'none');
+    d.style.setProperty('--wp-dim', localStorage.getItem('upsc-chronicle-wallpaper-dim') || '0');
   } catch (e) {
-    document.documentElement.setAttribute('data-surface','white');
-    document.documentElement.setAttribute('data-palette','rose');
+    d.setAttribute('data-surface','white');
+    d.setAttribute('data-palette','rose');
+    d.setAttribute('data-wallpaper','none');
   }
 })();
 `;
