@@ -64,7 +64,7 @@ export function Topbar({
         </IconButton>
         <Link
           href="/"
-          aria-label="The UPSC Chronicle — home"
+          aria-label="OP NPA28 — home"
           className="flex items-center gap-2 pl-1 lg:hidden"
         >
           <Logo className="h-6 w-6" />
@@ -74,7 +74,7 @@ export function Topbar({
         <div className="hidden items-center gap-2.5 pl-2.5 lg:flex">
           {current?.icon && <current.icon className="h-4 w-4 text-accent" />}
           <span className="font-display text-sm font-semibold tracking-snugg text-paper">
-            {current?.label ?? "The UPSC Chronicle"}
+            {current?.label ?? "OP NPA28"}
           </span>
         </div>
 

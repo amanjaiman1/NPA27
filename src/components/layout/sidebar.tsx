@@ -57,7 +57,7 @@ export function Sidebar({
           {!collapsed && (
             <div className="min-w-0 leading-tight animate-fade-in-fast">
               <p className="truncate font-display text-[1rem] font-bold tracking-tightest text-paper">
-                UPSC Chronicle
+                OP NPA28
               </p>
               <p className="truncate text-[0.72rem] text-paper/40">
                 Prep, documented

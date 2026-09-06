@@ -1,7 +1,7 @@
 {
   "id": "/?source=pwa",
-  "name": "The UPSC Chronicle",
-  "short_name": "Chronicle",
+  "name": "OP NPA28",
+  "short_name": "OP NPA28",
   "description": "A personal operating system for the UPSC journey. Document and visualise every day of preparation from Day 1 until final selection.",
   "start_url": "/?source=pwa",
   "scope": "/",
