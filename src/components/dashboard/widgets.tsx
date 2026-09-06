@@ -18,7 +18,6 @@ import {
 } from "lucide-react";
 import { useChronicle } from "@/lib/store";
 import { HeroVideo } from "./hero-video";
-import { AccomplishButton } from "@/components/celebrate/accomplish-button";
 import {
   buildHeatmap,
   currentStreak,
@@ -136,7 +135,6 @@ export function CommandPanel() {
                 Log today
                 <ArrowUpRight className="h-4 w-4" />
               </Link>
-              <AccomplishButton onMedia />
               <span className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-[rgb(6,6,8)]/70 px-4 py-2.5 text-sm font-medium text-white/90">
                 <Flame className="h-4 w-4 text-accent" />
                 {streak}-day streak
@@ -355,7 +353,6 @@ export function TodayCard() {
         >
           Start today’s entry
         </Link>
-        <AccomplishButton className="mt-2.5 text-xs" />
       </Card>
     );
   }

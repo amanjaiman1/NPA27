@@ -133,7 +133,9 @@ export function AccomplishedModal({
             className="relative w-full max-w-md overflow-hidden rounded-t-3xl border border-line bg-card shadow-lift sm:rounded-3xl"
           >
             {/* the burst sits behind the content, framed by the medal */}
-            <Confetti fire={open} />
+            <div className="pointer-events-none absolute inset-0 z-0">
+              <Confetti fire={open} />
+            </div>
             <div className="pointer-events-none absolute -top-24 left-1/2 h-56 w-56 -translate-x-1/2 rounded-full bg-accent/20 blur-3xl" />
 
             <button
@@ -144,7 +146,7 @@ export function AccomplishedModal({
               <X className="h-4 w-4" />
             </button>
 
-            <div className="relative px-6 pb-6 pt-9 text-center sm:px-8">
+            <div className="relative z-10 px-6 pb-6 pt-9 text-center sm:px-8">
               <div className="mx-auto grid place-items-center">
                 <Medal />
               </div>

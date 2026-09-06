@@ -70,11 +70,11 @@ interface ChronicleState extends ChronicleData {
   deleteJournal: (id: string) => void;
 
   /**
-   * Mark or unmark a day as accomplished. Returns true when the day *became*
-   * accomplished, which is the signal the celebration listens for — so
-   * unmarking, or a re-render, never re-fires it.
+   * Mark a day accomplished. Returns true only when the day *became*
+   * accomplished — that's the signal the celebration listens for, so saving an
+   * entry twice, or a re-render, never re-fires it. Idempotent by design.
    */
-  toggleAccomplished: (date: ISODate) => boolean;
+  markAccomplished: (date: ISODate) => boolean;
 
   /* mocks */
   upsertMock: (m: MockTest) => void;
@@ -279,17 +279,13 @@ export const useChronicle = create<ChronicleState>()(
       updateProfile: (patch) =>
         set((s) => ({ profile: { ...s.profile, ...patch } })),
 
-      toggleAccomplished: (date) => {
+      markAccomplished: (date) => {
         let became = false;
         set((s) => {
           const list = s.accomplished ?? [];
-          const has = list.includes(date);
-          became = !has;
-          return {
-            accomplished: has
-              ? list.filter((d) => d !== date)
-              : [...list, date].sort(),
-          };
+          if (list.includes(date)) return {};
+          became = true;
+          return { accomplished: [...list, date].sort() };
         });
         return became;
       },

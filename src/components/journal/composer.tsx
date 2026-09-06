@@ -30,6 +30,7 @@ import {
   ListEditor,
 } from "@/components/ui/form";
 import { AttachmentField } from "./attachments";
+import { AccomplishedModal } from "@/components/celebrate/accomplished-modal";
 import {
   toDraft,
   mergeByKey,
@@ -38,7 +39,15 @@ import {
   MOTIVATION_LABELS,
   FOCUS_LABELS,
 } from "./constants";
-import { round, formatHours, cn, toISODate, formatDate } from "@/lib/utils";
+import {
+  round,
+  formatHours,
+  cn,
+  toISODate,
+  formatDate,
+  daysBetween,
+} from "@/lib/utils";
+import { accomplishedStreak } from "@/lib/selectors";
 
 function Section({
   icon: Icon,
@@ -108,8 +117,21 @@ export function JournalComposer({
   const existingDates = useChronicle((s) => s.journal.map((j) => j.date));
   const journal = useChronicle((s) => s.journal);
   const lifeLog = useChronicle((s) => s.lifeLog);
+  const profile = useChronicle((s) => s.profile);
+  const markAccomplished = useChronicle((s) => s.markAccomplished);
   const confirm = useConfirm();
   const [draft, setDraft] = useState<JournalEntry>(() => toDraft(initial));
+  /**
+   * Set when a save *creates* a day's entry, which is what earns the
+   * celebration. Editing a day you already logged doesn't re-run it, and the
+   * values are captured here so the popup reads correctly after the form closes.
+   */
+  const [celebration, setCelebration] = useState<{
+    date: string;
+    hours: number;
+    streak: number;
+    total: number;
+  } | null>(null);
 
   useEffect(() => {
     if (open) setDraft(toDraft(initial));
@@ -185,12 +207,40 @@ export function JournalComposer({
       highlights: draft.highlights?.trim() || undefined,
       reflection: draft.reflection?.trim() || undefined,
     };
+    // Whether this is a day's first entry has to be read before the write.
+    const isNewDay = !existingDates.includes(entry.date);
     upsert(entry);
+
+    if (isNewDay && markAccomplished(entry.date)) {
+      // Read back rather than reusing the render's copy, so the streak counts
+      // the day just added.
+      const marked = useChronicle.getState().accomplished ?? [];
+      setCelebration({
+        date: entry.date,
+        hours: entry.totalHours,
+        streak: accomplishedStreak(marked),
+        total: marked.length,
+      });
+    }
+
     onSaved?.(entry);
     onClose();
   }
 
   return (
+    <>
+      {celebration && (
+        <AccomplishedModal
+          open
+          onClose={() => setCelebration(null)}
+          date={celebration.date}
+          journeyDay={daysBetween(profile.startDate, celebration.date)}
+          streak={celebration.streak}
+          totalAccomplished={celebration.total}
+          hoursToday={celebration.hours}
+          daysToExam={daysBetween(toISODate(new Date()), profile.examDate)}
+        />
+      )}
     <Modal
       open={open}
       onClose={onClose}
@@ -463,5 +513,6 @@ export function JournalComposer({
         </Section>
       </div>
     </Modal>
+    </>
   );
 }
