@@ -89,16 +89,19 @@ self.addEventListener("message", (event) => {
 // -------------------------------------------------------------- notifications
 
 /**
- * Server-sent push. Nothing sends these yet — real background push needs a
- * VAPID key pair, a stored subscription and something running the rules engine
- * server-side (see docs/notifications.md). The handler exists so that when a
- * sender is added, the client half is already correct: the payload shape it
- * expects is `{ title, body, href, tag }`, exactly what the in-page notifier
- * passes to `showNotification`.
+ * Server-sent push, from `/api/push/dispatch`.
  *
- * A push with no payload, or one that isn't JSON, still shows something rather
- * than nothing — a silent push that displays no notification costs the origin
- * its push permission in some browsers.
+ * The payload is `{ title, body, href, tag }` plus optional per-platform extras
+ * the dispatcher fills in from the subscribing device's OS — `actions` and
+ * `vibrate` for Android, `requireInteraction` for a desktop. Anything a platform
+ * doesn't support it simply ignores, so there is no branching here: every field
+ * is passed through and the browser decides.
+ *
+ * Everything is validated rather than trusted. A push arrives from the network,
+ * and `showNotification` throws on a malformed option — which would mean *no*
+ * notification, and a push that shows nothing costs the origin its push
+ * permission in some browsers. So a bad payload degrades to a plain, correct
+ * notification instead of none.
  */
 self.addEventListener("push", (event) => {
   let payload = {};
@@ -111,21 +114,69 @@ self.addEventListener("push", (event) => {
       payload = {};
     }
   }
+  if (typeof payload !== "object" || payload === null) payload = {};
 
-  const title = payload.title || "OP NPA28";
-  const href = typeof payload.href === "string" ? payload.href : "/";
+  const str = (v, fallback) => (typeof v === "string" && v ? v : fallback);
+  const title = str(payload.title, "OP NPA28");
+  const href = str(payload.href, "/");
 
-  event.waitUntil(
-    self.registration.showNotification(title, {
-      body: payload.body || "Something needs your attention.",
-      // Re-using a tag replaces the previous notification about the same thing
-      // instead of stacking duplicates on the lock screen.
-      tag: payload.tag || "chronicle",
-      icon: "/icons/icon-192.png",
-      badge: "/icons/icon-192.png",
-      data: { href },
-    }),
-  );
+  const options = {
+    body: str(payload.body, "Something needs your attention."),
+    // Re-using a tag replaces the previous notification about the same thing
+    // instead of stacking duplicates on the lock screen.
+    tag: str(payload.tag, "chronicle"),
+    icon: "/icons/icon-192.png",
+    badge: "/icons/icon-192.png",
+    // The href travels in `data` so `notificationclick` can route without
+    // re-parsing the body.
+    data: { href },
+  };
+
+  // Android renders these as buttons. Each needs a string `action` and `title`,
+  // and the platform caps how many it will show — two is safely within it.
+  if (Array.isArray(payload.actions)) {
+    const actions = payload.actions
+      .filter(
+        (a) =>
+          a && typeof a.action === "string" && typeof a.title === "string",
+      )
+      .slice(0, 2)
+      .map((a) => ({ action: a.action, title: a.title }));
+    if (actions.length) options.actions = actions;
+  }
+
+  // `renotify` without a `tag` is a TypeError, so it is only honoured when one
+  // is actually set.
+  if (payload.renotify === true && options.tag) options.renotify = true;
+  if (payload.requireInteraction === true) options.requireInteraction = true;
+  if (
+    Array.isArray(payload.vibrate) &&
+    payload.vibrate.length &&
+    payload.vibrate.every((n) => typeof n === "number" && n >= 0)
+  ) {
+    options.vibrate = payload.vibrate;
+  }
+
+  /**
+   * The badge — the number on the macOS dock icon or the Android launcher icon.
+   * Setting it here is the whole point of sending the count with the push: the
+   * app was never opened, so nothing on the page could have set it.
+   *
+   * Installed PWAs only, and not supported everywhere, so a rejection is
+   * swallowed. It must not be allowed to fail the event and take the
+   * notification down with it.
+   */
+  const badgeCount = payload.badgeCount;
+  if (typeof badgeCount === "number" && Number.isFinite(badgeCount)) {
+    try {
+      if (badgeCount > 0) self.navigator.setAppBadge?.(badgeCount);
+      else self.navigator.clearAppBadge?.();
+    } catch {
+      /* not supported here; the notification still shows */
+    }
+  }
+
+  event.waitUntil(self.registration.showNotification(title, options));
 });
 
 /**
@@ -136,6 +187,15 @@ self.addEventListener("push", (event) => {
  */
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
+
+  /**
+   * "Later" dismisses and does nothing else — the point of the button is to get
+   * the notification off your lock screen *without* being pulled into the app.
+   * The notice itself is untouched and will be offered again by the normal rules,
+   * which is the honest behaviour: nothing was resolved.
+   */
+  if (event.action === "later") return;
+
   const href = event.notification.data?.href || "/";
   const target = new URL(href, self.location.origin);
 

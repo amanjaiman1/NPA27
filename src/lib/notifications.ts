@@ -849,8 +849,18 @@ export function inQuietHours(hour: number, from: number, to: number): boolean {
 }
 
 export interface DeliveryLog {
-  /** `dedupeKey` → ISO timestamp of the last delivery for it. */
+  /**
+   * `dedupeKey` → ISO timestamp of the last delivery. An absolute instant, used
+   * only for the minimum-gap check, which is a duration and so is
+   * timezone-independent.
+   */
   lastSentAt: Record<string, string>;
+  /**
+   * `dedupeKey` → the *local calendar date* of the last delivery, in the user's
+   * zone. Stored rather than derived from `lastSentAt`, because deriving it
+   * requires a timezone and the server's is not the user's.
+   */
+  lastSentOn: Record<string, ISODate>;
   /** Deliveries made on `sentOnDate`, for the per-day cap. */
   sentToday: number;
   sentOnDate: ISODate | null;
@@ -859,6 +869,7 @@ export interface DeliveryLog {
 
 export const EMPTY_DELIVERY_LOG: DeliveryLog = {
   lastSentAt: {},
+  lastSentOn: {},
   sentToday: 0,
   sentOnDate: null,
   lastDigestOn: null,
@@ -929,9 +940,19 @@ export function planDelivery(
     const critical = n.priority === "critical";
     if (!critical && sentToday + picked.length >= cfg.maxPerDay) continue;
     if (!critical && !gapOk) continue;
-    /** One interruption per subject per day, however often it re-appears. */
-    const last = l.lastSentAt?.[n.dedupeKey];
-    if (last && toISODate(new Date(last)) === today) continue;
+    /**
+     * One interruption per subject per day, however often it re-appears.
+     *
+     * Compared against the stored local *date*, never re-derived from the
+     * timestamp. `toISODate(new Date(lastSentAt))` would convert an absolute
+     * instant using whatever timezone the caller happens to be in, while `today`
+     * comes from `now` — fine in a browser, where those are the same zone, and
+     * wrong on the server, which runs in UTC and evaluates in the user's zone.
+     * That mismatch silently disabled this gate whenever the two disagreed about
+     * the date, so the day is recorded explicitly instead.
+     */
+    const lastOn = l.lastSentOn?.[n.dedupeKey];
+    if (lastOn && lastOn === today) continue;
     picked.push(n);
     /** One at a time when not digesting; the rest wait for the next gap. */
     if (picked.length >= 1) break;
@@ -953,9 +974,15 @@ export function recordDelivery(
   const today = toISODate(now);
   const sentToday = l.sentOnDate === today ? l.sentToday : 0;
   const lastSentAt = { ...(l.lastSentAt ?? {}) };
-  for (const n of notices) lastSentAt[n.dedupeKey] = now.toISOString();
+  const lastSentOn = { ...(l.lastSentOn ?? {}) };
+  for (const n of notices) {
+    lastSentAt[n.dedupeKey] = now.toISOString();
+    // The local day, recorded rather than left to be re-derived later.
+    lastSentOn[n.dedupeKey] = today;
+  }
   return {
     lastSentAt,
+    lastSentOn,
     sentToday: sentToday + (digest ? 1 : notices.length),
     sentOnDate: today,
     lastDigestOn: digest ? today : l.lastDigestOn,
