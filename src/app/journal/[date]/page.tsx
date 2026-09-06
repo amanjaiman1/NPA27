@@ -185,9 +185,11 @@ export default function JournalDayPage() {
         </div>
       </div>
 
-      {/* Header */}
+      {/* Header. This page builds its own instead of using PageHeader, so it has
+          to opt into `header-scrim` explicitly — without it the date headline is
+          the one piece of large copy in the app sitting raw on the wallpaper. */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
+        <div className="header-scrim min-w-0">
           <p className="eyebrow mb-2">
             {date === today
               ? "Today"

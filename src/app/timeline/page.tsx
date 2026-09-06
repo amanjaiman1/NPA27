@@ -307,8 +307,11 @@ function LegacyHero({
         </div>
       </div>
       <div className="grid grid-cols-2 gap-px border-t border-paper/[0.06] bg-paper/[0.04] sm:grid-cols-3 lg:grid-cols-6">
+        {/* Cells are `bg-card`, not `bg-ink`: the panel around them is a
+            translucent gradient, so canvas-coloured tiles read as holes punched
+            through the wallpaper rather than as a surface. */}
         {cells.map((c) => (
-          <div key={c.label} className="bg-ink p-4">
+          <div key={c.label} className="bg-card p-4">
             <p className="text-[0.65rem] font-medium uppercase tracking-wider text-paper/40">
               {c.label}
             </p>
@@ -392,7 +395,7 @@ function EventRow({
         className={cn(
           "relative z-10 grid h-[2.45rem] w-[2.45rem] shrink-0 place-items-center rounded-full border transition-colors",
           event.future
-            ? "border-dashed border-paper/25 bg-ink text-paper/40"
+            ? "border-dashed border-paper/25 bg-card text-paper/40"
             : defining
               ? "border-transparent bg-accent text-accent-fg shadow-soft"
               : strong

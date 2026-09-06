@@ -291,12 +291,19 @@ export default function JournalPage() {
         <div className="space-y-8">
           {groups.map((group) => (
             <div key={group.key}>
-              <div className="sticky top-14 z-10 mb-3 flex items-center gap-3 bg-ink py-1.5 sm:bg-ink/85 sm:backdrop-blur-xl">
-                <h2 className="text-sm font-semibold tracking-snugg text-paper">
+              {/* Two floating pills, not a full-bleed bar. A pinned band has to
+                  occlude the cards sliding underneath it, which means an opaque
+                  fill — and a full-width opaque fill of *canvas* colour is what
+                  read as a slab pasted over the wallpaper. Shrinking the opaque
+                  area down to the words themselves keeps the label readable
+                  while the artwork stays visible right across the row. Same
+                  glass recipe as the topbar, so it reads as chrome rather than
+                  as a patch of the wrong colour. */}
+              <div className="sticky top-14 z-10 mb-3 flex items-center justify-between gap-3 py-1.5">
+                <h2 className="chrome-glass rounded-full border border-line bg-card/95 px-3.5 py-1.5 text-sm font-semibold tracking-snugg text-paper shadow-soft backdrop-blur-none sm:bg-card/80 sm:backdrop-blur-xl">
                   {group.label}
                 </h2>
-                <div className="h-px flex-1 bg-paper/[0.08]" />
-                <span className="tabular text-xs text-paper/40">
+                <span className="chrome-glass tabular rounded-full border border-line bg-card/95 px-3 py-1.5 text-xs text-paper/55 shadow-soft backdrop-blur-none sm:bg-card/80 sm:backdrop-blur-xl">
                   {group.entries.length} days · {group.hours}h
                 </span>
               </div>

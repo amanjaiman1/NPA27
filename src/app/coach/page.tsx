@@ -215,8 +215,10 @@ function SignalRow({ ctx }: { ctx: MentorContext }) {
   ];
   return (
     <div className="grid grid-cols-2 gap-px overflow-hidden border-t border-paper/[0.06] bg-paper/[0.04] sm:grid-cols-3 lg:grid-cols-6">
+      {/* Cells are `bg-card`, not `bg-ink`: this strip sits straight on the
+          wallpaper, and the canvas colour would repaint a hole through it. */}
       {signals.map((s) => (
-        <div key={s.label} className="bg-ink p-4">
+        <div key={s.label} className="bg-card p-4">
           <div className="flex items-center gap-1.5 text-paper/40">
             <s.icon className="h-3.5 w-3.5" />
             <span className="text-[0.65rem] font-medium uppercase tracking-wider">
