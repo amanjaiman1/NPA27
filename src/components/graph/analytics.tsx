@@ -174,12 +174,12 @@ export function KnowledgeDensity({
       {/* subject connectivity */}
       <Card className="p-5">
         <p className="eyebrow mb-3">Knowledge density by subject</p>
-        <div className="grid gap-x-8 gap-y-2 sm:grid-cols-2">
+        <div className="grid gap-x-8 gap-y-2 sm:grid-cols-2 [&>*]:min-w-0">
           {subjects.map((s) => (
             <button
               key={s.id}
               onClick={() => onSelect(s.id)}
-              className="flex items-center gap-3 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-paper/[0.04]"
+              className="flex w-full min-w-0 items-center gap-3 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-paper/[0.04]"
             >
               <span className="min-w-0 flex-1 truncate text-sm text-paper/70">
                 {s.name}

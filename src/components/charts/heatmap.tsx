@@ -75,18 +75,25 @@ export function Heatmap({
       <div className="mb-1 flex h-3">
         <div className="mr-1 hidden w-5 shrink-0 sm:block" />
         <div
-          className="relative flex-1 text-[0.6rem] text-paper/35"
+          className="relative flex-1 overflow-hidden text-[0.6rem] text-paper/35"
           style={{ maxWidth: maxGridWidth }}
         >
-          {monthLabels.map((m) => (
-            <span
-              key={`${m.col}-${m.label}`}
-              className="absolute whitespace-nowrap"
-              style={{ left: `${(m.col / weeks.length) * 100}%` }}
-            >
-              {m.label}
-            </span>
-          ))}
+          {monthLabels.map((m) => {
+            const pct = (m.col / weeks.length) * 100;
+            // A label in the last stretch of the track is anchored to the right
+            // instead, so it stays readable and — more importantly — can't hang
+            // past the edge and stretch every ancestor with it.
+            const nearEnd = pct > 88;
+            return (
+              <span
+                key={`${m.col}-${m.label}`}
+                className="absolute whitespace-nowrap"
+                style={nearEnd ? { right: 0 } : { left: `${pct}%` }}
+              >
+                {m.label}
+              </span>
+            );
+          })}
         </div>
       </div>
 

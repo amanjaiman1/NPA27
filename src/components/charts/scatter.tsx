@@ -20,7 +20,7 @@ export function ScatterChart({
   formatY?: (v: number) => string;
 }) {
   const [ref, width] = useMeasure<HTMLDivElement>();
-  const w = Math.max(width, 280);
+  const w = width > 0 ? width : 280;
 
   const geom = useMemo(() => {
     if (!points.length) return null;
@@ -85,7 +85,13 @@ export function ScatterChart({
           Not enough data to plot.
         </p>
       ) : (
-        <svg width={w} height={height}>
+        <svg
+          viewBox={`0 0 ${w} ${height}`}
+          width="100%"
+          height={height}
+          preserveAspectRatio="none"
+          className="block"
+        >
           {/* y ticks */}
           {geom.ticksY.map((v, i) => (
             <g key={`y${i}`}>

@@ -13,7 +13,10 @@ export function Card({
   return (
     <div
       className={cn(
-        "rounded-2xl border border-line bg-card shadow-soft",
+        // min-w-0: a card must be able to shrink to the column it's in. Without
+        // it, `min-width: auto` lets the widest word inside stretch the layout
+        // past the viewport — the cause of the mobile overflow on several pages.
+        "min-w-0 rounded-2xl border border-line bg-card shadow-soft",
         hover &&
           "transition-all duration-300 ease-out hover:-translate-y-0.5 hover:border-accent/35 hover:shadow-lift",
         className,

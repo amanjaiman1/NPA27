@@ -41,7 +41,7 @@ export function BarChart({
   const max = Math.max(...data.map((d) => d.value), target ?? 0, 1);
 
   return (
-    <div className={cn("w-full", className)}>
+    <div className={cn("w-full min-w-0", className)}>
       <div
         className="relative flex items-end justify-between gap-1.5"
         style={{ height }}

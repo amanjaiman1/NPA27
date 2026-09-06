@@ -145,7 +145,7 @@ export default function HeatmapPage() {
         <Heatmap cells={cells} cellSize={13} />
       </Card>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid gap-4 lg:grid-cols-2 [&>*]:min-w-0">
         <Card className="p-6">
           <p className="eyebrow mb-1">Monthly volume</p>
           <h3 className="mb-5 text-base font-semibold text-paper">

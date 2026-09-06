@@ -136,7 +136,7 @@ export function Segmented<T extends string>({
   return (
     <div
       className={cn(
-        "inline-flex items-center gap-0.5 rounded-full border border-line bg-card p-1 shadow-soft",
+        "no-scrollbar flex max-w-full items-center gap-0.5 overflow-x-auto rounded-full border border-line bg-card p-1 shadow-soft",
         className,
       )}
     >
@@ -145,7 +145,7 @@ export function Segmented<T extends string>({
           key={o.value}
           onClick={() => onChange(o.value)}
           className={cn(
-            "rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all duration-200",
+            "shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all duration-200",
             value === o.value
               ? "bg-accent text-accent-fg shadow-accent"
               : "text-paper/55 hover:bg-paper/[0.05] hover:text-paper",

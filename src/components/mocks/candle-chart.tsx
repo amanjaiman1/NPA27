@@ -23,7 +23,7 @@ export function CandleChart({
 }) {
   const [ref, width] = useMeasure<HTMLDivElement>();
   const [hover, setHover] = useState<number | null>(null);
-  const w = Math.max(width, 320);
+  const w = width > 0 ? width : 320;
 
   const geom = useMemo(() => {
     const priceBottom = height - VOL_H - PAD.bottom;
@@ -76,10 +76,12 @@ export function CandleChart({
   const hc = hover != null ? candles[hover] : null;
 
   return (
-    <div ref={ref} className={cn("relative w-full", className)}>
+    <div ref={ref} className={cn("relative w-full min-w-0", className)}>
       <svg
-        width={w}
+        viewBox={`0 0 ${w} ${height}`}
+        width="100%"
         height={height}
+        preserveAspectRatio="none"
         onMouseMove={onMove}
         onMouseLeave={() => setHover(null)}
         className="block"

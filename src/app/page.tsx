@@ -28,16 +28,16 @@ export default function CommandCenter() {
       <StatStrip />
 
       <div className="grid gap-4 lg:grid-cols-3">
-        <div className="space-y-4 lg:col-span-2">
+        <div className="min-w-0 space-y-4 lg:col-span-2">
           <HeatmapCard />
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-2 [&>*]:min-w-0">
             <TrendCard />
             <FocusDonut />
           </div>
           <CoachNudge />
         </div>
 
-        <div className="space-y-4">
+        <div className="min-w-0 space-y-4">
           <TodayCard />
           <ThisWeekCard />
           <MockMomentumCard />
