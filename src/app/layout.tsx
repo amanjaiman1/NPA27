@@ -30,10 +30,10 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
-  title: "The UPSC Chronicle — Your Preparation, Documented",
+  title: "OP NPA28 — Your Preparation, Documented",
   description:
     "A personal operating system for the UPSC journey. Document and visualize every day of preparation from Day 1 until final selection.",
-  applicationName: "The UPSC Chronicle",
+  applicationName: "OP NPA28",
   keywords: [
     "UPSC",
     "Civil Services",
@@ -45,7 +45,7 @@ export const metadata: Metadata = {
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
-    title: "Chronicle",
+    title: "OP NPA28",
     statusBarStyle: "default",
   },
   icons: {

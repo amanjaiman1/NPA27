@@ -58,7 +58,7 @@ export function Login() {
         <div className="mb-8 flex flex-col items-center text-center">
           <Logo className="h-11 w-11" />
           <h1 className="mt-5 font-display text-[1.75rem] font-bold tracking-tightest text-paper">
-            The UPSC Chronicle
+            OP NPA28
           </h1>
           <p className="mt-1 text-sm text-paper/50">
             {mode === "signin"

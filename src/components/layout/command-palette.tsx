@@ -149,7 +149,7 @@ export function CommandPalette({
               <span className="flex items-center gap-1">
                 <CornerDownLeft className="h-3 w-3" /> open
               </span>
-              <span className="ml-auto font-display font-semibold">The UPSC Chronicle</span>
+              <span className="ml-auto font-display font-semibold">OP NPA28</span>
             </div>
           </motion.div>
         </motion.div>

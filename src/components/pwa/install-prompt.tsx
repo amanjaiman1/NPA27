@@ -34,7 +34,7 @@ export function InstallPrompt() {
           transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
           className="fixed inset-x-3 bottom-3 z-[60] sm:inset-x-auto sm:bottom-5 sm:right-5 sm:w-[22rem]"
           role="dialog"
-          aria-label="Install The UPSC Chronicle"
+          aria-label="Install OP NPA28"
         >
           <div className="relative overflow-hidden rounded-2xl border border-line bg-card/95 p-4 shadow-lift backdrop-blur-xl">
             {/* accent bloom in the corner */}
@@ -54,7 +54,7 @@ export function InstallPrompt() {
               </span>
               <div className="min-w-0">
                 <p className="font-display text-[0.95rem] font-medium tracking-tight text-paper">
-                  Install the Chronicle
+                  Install OP NPA28
                 </p>
                 <p className="mt-0.5 text-xs leading-relaxed text-paper/50">
                   Keep it one tap away on your home screen — full screen, no
@@ -119,7 +119,7 @@ export function InstallCard() {
     <div>
       <p className="eyebrow mb-1">Install as an app</p>
       <p className="mb-3 text-xs leading-relaxed text-paper/45">
-        Add the Chronicle to your home screen or desktop for a full-screen,
+        Add OP NPA28 to your home screen or desktop for a full-screen,
         offline-capable app — your data stays on the device and syncs when
         you&apos;re back online.
       </p>
@@ -127,7 +127,7 @@ export function InstallCard() {
       {installed ? (
         <p className="flex items-center gap-2 rounded-xl border border-accent/30 bg-accent/10 px-3 py-2.5 text-xs text-paper/80">
           <Check className="h-3.5 w-3.5 shrink-0 text-accent" />
-          Installed — you&apos;re running the Chronicle as an app.
+          Installed — you&apos;re running OP NPA28 as an app.
         </p>
       ) : canInstall ? (
         <button
@@ -135,7 +135,7 @@ export function InstallCard() {
           className="flex w-full items-center justify-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-sm font-medium text-accent-fg shadow-soft transition-all hover:opacity-90"
         >
           <Download className="h-4 w-4" />
-          Install the Chronicle
+          Install OP NPA28
         </button>
       ) : needsIosInstructions ? (
         <p className="flex items-start gap-2 rounded-xl border border-line bg-paper/[0.03] px-3 py-2.5 text-xs leading-relaxed text-paper/65">
