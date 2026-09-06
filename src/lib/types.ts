@@ -65,6 +65,19 @@ export interface RevisionSession {
   subjectId?: string;
   topic: string;
   minutes?: number;
+  /**
+   * The scheduled `RevisionItem` this session was logged against, when it came
+   * from picking something off the revision queue rather than being typed in
+   * freehand. Its presence is what lets saving the day advance that item's
+   * spaced-repetition schedule.
+   */
+  revisionItemId?: string;
+  /**
+   * Whether it actually came back. `undefined` reads as recalled — you would not
+   * be logging the session otherwise — while an explicit `false` sends the item
+   * back to the start of the ladder.
+   */
+  recalled?: boolean;
 }
 
 /** A mock attempted on a day (lightweight reference or inline note). */

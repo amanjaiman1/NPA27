@@ -30,6 +30,7 @@ import {
   ListEditor,
 } from "@/components/ui/form";
 import { AttachmentField } from "./attachments";
+import { RevisionPicker } from "./revision-picker";
 import { AccomplishedModal } from "@/components/celebrate/accomplished-modal";
 import {
   toDraft,
@@ -119,6 +120,7 @@ export function JournalComposer({
   const lifeLog = useChronicle((s) => s.lifeLog);
   const profile = useChronicle((s) => s.profile);
   const markAccomplished = useChronicle((s) => s.markAccomplished);
+  const applyJournalRevisions = useChronicle((s) => s.applyJournalRevisions);
   const confirm = useConfirm();
   const [draft, setDraft] = useState<JournalEntry>(() => toDraft(initial));
   /**
@@ -210,6 +212,12 @@ export function JournalComposer({
     // Whether this is a day's first entry has to be read before the write.
     const isNewDay = !existingDates.includes(entry.date);
     upsert(entry);
+    /**
+     * Anything ticked off the revision queue moves its schedule on. This runs
+     * after the entry is stored so the two can't disagree, and it's idempotent —
+     * re-saving the same day won't walk an item further up the ladder.
+     */
+    applyJournalRevisions(entry);
 
     if (isNewDay && markAccomplished(entry.date)) {
       // Read back rather than reusing the render's copy, so the streak counts
@@ -360,6 +368,16 @@ export function JournalComposer({
           />
         </Section>
 
+        {/* Full width rather than in the grid below: this is a queue you read
+            and tick, not a one-line chip field. */}
+        <Section icon={Repeat} title="Revision">
+          <RevisionPicker
+            date={draft.date}
+            sessions={draft.revisionSessions ?? []}
+            onChange={(revisionSessions) => patch({ revisionSessions })}
+          />
+        </Section>
+
         <div className="grid gap-7 sm:grid-cols-2">
           <Section icon={BookOpen} title="Books studied">
             <ListEditor
@@ -371,22 +389,6 @@ export function JournalComposer({
                 })
               }
               placeholder="Book title"
-            />
-          </Section>
-          <Section icon={Repeat} title="Revision sessions">
-            <ListEditor
-              variant="chips"
-              items={(draft.revisionSessions ?? []).map((r) => r.topic)}
-              onChange={(items) =>
-                patch({
-                  revisionSessions: mergeByKey(
-                    items,
-                    draft.revisionSessions ?? [],
-                    "topic",
-                  ),
-                })
-              }
-              placeholder="Topic revised"
             />
           </Section>
           <Section icon={Newspaper} title="Current affairs">

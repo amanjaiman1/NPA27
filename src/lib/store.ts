@@ -3,7 +3,8 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { createSeedData, createFreshData } from "./seed";
-import { toISODate, uid } from "./utils";
+import { toISODate, fromISODate, uid } from "./utils";
+import { applyRevision, resolveTopicId } from "./revision";
 import { emptyEntry } from "@/components/journal/constants";
 import {
   type Surface,
@@ -31,6 +32,7 @@ import type {
   CurrentAffair,
   RevisionItem,
   Review,
+  Subject,
   Topic,
   TopicStatus,
   TopicLink,
@@ -118,9 +120,18 @@ interface ChronicleState extends ChronicleData {
 
   /* revision (spaced repetition) */
   reviseItem: (id: string, remembered: boolean) => void;
+  upsertRevision: (item: RevisionItem) => void;
+  deleteRevision: (id: string) => void;
+  /**
+   * Advances every scheduled item a journal entry says was revised, and credits
+   * the matching syllabus topic. Returns how many items moved, so the caller can
+   * tell the user. Safe to call repeatedly for the same day.
+   */
+  applyJournalRevisions: (entry: JournalEntry) => number;
 
   /* reviews */
   upsertReview: (r: Review) => void;
+  deleteReview: (id: string) => void;
 
   /* habits */
   toggleHabit: (habitId: string, date: string) => void;
@@ -182,7 +193,6 @@ export const SNAPSHOT_KEYS = [
 
 export type CloudSnapshot = Pick<ChronicleState, (typeof SNAPSHOT_KEYS)[number]>;
 
-const SR_INTERVALS = [1, 3, 7, 14, 30, 60];
 const MISTAKE_INTERVALS = [1, 3, 7, 16, 35];
 
 const STATUS_CONF: Record<TopicStatus, number> = {
@@ -207,9 +217,38 @@ function maxStatus(a: TopicStatus, b: TopicStatus): TopicStatus {
   return STATUS_RANK[a] >= STATUS_RANK[b] ? a : b;
 }
 
+/**
+ * Credits a set of syllabus topics with one revision each — the same +6
+ * confidence, `revisionCount` bump and upward-only status ratchet that
+ * `reviseTopic` applies to a single topic. Shared so that reviewing from the
+ * Revision page and reviewing via a journal entry treat the syllabus identically.
+ */
+function creditTopics(subjects: Subject[], topicIds: string[]): Subject[] {
+  if (!topicIds.length) return subjects;
+  const wanted = new Set(topicIds);
+  return subjects.map((sub) =>
+    !sub.topics.some((t) => wanted.has(t.id))
+      ? sub
+      : {
+          ...sub,
+          topics: sub.topics.map((t) => {
+            if (!wanted.has(t.id)) return t;
+            const confidence = Math.min(100, t.confidence + 6);
+            return {
+              ...t,
+              revisionCount: t.revisionCount + 1,
+              lastTouched: toISODate(new Date()),
+              confidence,
+              status: maxStatus(t.status, statusFromConfidence(confidence)),
+            };
+          }),
+        },
+  );
+}
+
 export const useChronicle = create<ChronicleState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       ...createFreshData(),
       surface: DEFAULT_SURFACE,
       palette: DEFAULT_PALETTE,
@@ -512,27 +551,80 @@ export const useChronicle = create<ChronicleState>()(
           currentAffairs: s.currentAffairs.filter((c) => c.id !== id),
         })),
 
+      /**
+       * Reviewing from the Revision page. The ladder itself lives in
+       * `lib/revision.ts` so that this and the journal fan-out below can't drift
+       * apart, and so it can be tested without a store.
+       */
       reviseItem: (id, remembered) =>
-        set((s) => ({
-          revisions: s.revisions.map((it): RevisionItem => {
-            if (it.id !== id) return it;
-            const reps = remembered ? it.repetitions + 1 : 0;
-            const interval = SR_INTERVALS[Math.min(reps, SR_INTERVALS.length - 1)];
-            const next = new Date();
-            next.setDate(next.getDate() + interval);
-            return {
-              ...it,
-              repetitions: reps,
-              intervalDays: interval,
-              lastRevised: toISODate(new Date()),
-              nextDue: toISODate(next),
-              confidence: Math.max(
-                1,
-                Math.min(5, it.confidence + (remembered ? 1 : -1)),
-              ),
-            };
-          }),
-        })),
+        set((s) => {
+          const item = s.revisions.find((it) => it.id === id);
+          if (!item) return {};
+          const revisions = s.revisions.map((it) =>
+            it.id === id ? applyRevision(it, remembered, new Date()) : it,
+          );
+          // A successful recall also counts towards the syllabus topic, if the
+          // item's free-text name resolves to one.
+          const topicId = remembered ? resolveTopicId(item, s.subjects) : null;
+          return topicId
+            ? { revisions, subjects: creditTopics(s.subjects, [topicId]) }
+            : { revisions };
+        }),
+
+      upsertRevision: (item) =>
+        set((s) => {
+          const idx = s.revisions.findIndex((x) => x.id === item.id);
+          const revisions = [...s.revisions];
+          if (idx >= 0) revisions[idx] = item;
+          else revisions.push(item);
+          revisions.sort((a, b) => a.nextDue.localeCompare(b.nextDue));
+          return { revisions };
+        }),
+
+      deleteRevision: (id) =>
+        set((s) => ({ revisions: s.revisions.filter((r) => r.id !== id) })),
+
+      /**
+       * The bridge from the Daily Journal to the revision queue: picking items in
+       * the composer records them on the entry, and saving the day advances their
+       * schedules here.
+       *
+       * Two things this has to get right. It schedules from the entry's own date
+       * rather than from now, so back-filling yesterday doesn't push the next pass
+       * a day late. And it is idempotent — an item already marked revised on that
+       * date is left alone, so editing and re-saving a day cannot walk the ladder
+       * forward again (which would silently push a topic from a 3-day interval out
+       * to 60 by re-saving five times).
+       */
+      applyJournalRevisions: (entry) => {
+        const s = get();
+        const linked = (entry.revisionSessions ?? []).filter((r) => r.revisionItemId);
+        if (!linked.length) return 0;
+
+        const creditedTopics: string[] = [];
+        let advanced = 0;
+        const revisions = s.revisions.map((it) => {
+          const hit = linked.find((l) => l.revisionItemId === it.id);
+          if (!hit) return it;
+          if (it.lastRevised === entry.date) return it; // already counted for this day
+          const remembered = hit.recalled !== false;
+          advanced++;
+          if (remembered) {
+            const topicId = resolveTopicId(it, s.subjects);
+            if (topicId) creditedTopics.push(topicId);
+          }
+          return applyRevision(it, remembered, fromISODate(entry.date));
+        });
+
+        if (!advanced) return 0;
+        set({
+          revisions,
+          ...(creditedTopics.length
+            ? { subjects: creditTopics(s.subjects, creditedTopics) }
+            : {}),
+        });
+        return advanced;
+      },
 
       upsertReview: (r) =>
         set((s) => {
@@ -542,6 +634,9 @@ export const useChronicle = create<ChronicleState>()(
           else reviews.unshift(r);
           return { reviews };
         }),
+
+      deleteReview: (id) =>
+        set((s) => ({ reviews: s.reviews.filter((r) => r.id !== id) })),
 
       toggleHabit: (habitId, date) =>
         set((s) => ({
