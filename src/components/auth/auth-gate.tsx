@@ -4,7 +4,7 @@ import { useAuth } from "./auth-provider";
 import { useSync } from "./sync-provider";
 import { Login } from "./login";
 import { useHasHydrated } from "@/lib/store";
-import { LottieWithFallback } from "@/components/ui/lottie";
+import { Lottie } from "@/components/ui/lottie";
 
 function FullScreen({ label }: { label: string }) {
   return (
@@ -13,12 +13,12 @@ function FullScreen({ label }: { label: string }) {
         <div className="absolute inset-0 bg-aura" />
       </div>
       <div className="flex flex-col items-center gap-5 text-center">
-        {/* Signing in and the first cloud pull are both cold-start waits, so
-            they get the same ring the app boots with. */}
-        <LottieWithFallback
+        {/* Unlike the boot gate, this one runs *after* hydration — React is
+            already going — so the real animation can play, and no CSS stand-in
+            is needed. One animation, again. */}
+        <Lottie
           src="/animations/boot.json"
           className="h-24 w-24"
-          fallbackClassName="boot-ring h-[4.5rem] w-[4.5rem]"
           staticFrame={18}
           label={label}
         />

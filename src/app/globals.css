@@ -738,8 +738,10 @@ samp {
      slow connection there is a window where the screen would otherwise be blank
      — precisely the wait the animation exists to cover. This is plain CSS in the
      server-rendered HTML, so it is already turning before any JavaScript has
-     run, and `LottieWithFallback` cross-fades it out once the real first frame
-     is up. The hues track the reference: cyan into blue into magenta.
+     run. It is the *only* thing shown for that wait — an earlier version faded
+     the real Lottie in on top once it loaded, but on a slower device the hand-off
+     was legible and a single refresh appeared to play two different animations.
+     The hues track the reference: cyan into blue into magenta.
 
      The conic gradient is masked into an annulus rather than drawn as a border,
      because a border cannot take a gradient. Both mask properties are set; only

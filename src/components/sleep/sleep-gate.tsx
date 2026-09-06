@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Moon, Sunrise, ArrowRight } from "lucide-react";
-import { LottieWithFallback } from "@/components/ui/lottie";
+import { BootRing } from "@/components/ui/loading";
 import { useChronicle, useHasHydrated } from "@/lib/store";
 import { useMounted } from "@/lib/hooks";
 import { Logo } from "@/components/layout/logo";
@@ -240,13 +240,9 @@ export function SleepGate({ children }: { children: React.ReactNode }) {
   if (!mounted || !hydrated) {
     return (
       <FullScreen>
-        <LottieWithFallback
-          src="/animations/boot.json"
-          className="h-28 w-28"
-          fallbackClassName="boot-ring h-[5.25rem] w-[5.25rem]"
-          staticFrame={18}
-          label="Loading the Chronicle"
-        />
+        {/* CSS, not the Lottie: this wait ends at hydration, so a JS player
+            cannot start until it is over. One animation, no hand-off. */}
+        <BootRing className="h-[5.25rem] w-[5.25rem]" />
       </FullScreen>
     );
   }

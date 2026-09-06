@@ -143,19 +143,25 @@ by `scripts/extract-lottie.py` because `lottie-web` cannot read the zip.
 
 | Wait | What you see | Where it lives |
 | --- | --- | --- |
-| Browser refresh / cold start | A cyan→blue→magenta gradient ring | `SleepGate`, via `.boot-ring` + `animations/boot.json` |
-| Page to page | Three quiet dots over a dimmed scrim | `RouteTransition`, via `animations/page-transition.json` |
+| Browser refresh / cold start | A cyan→blue→magenta gradient ring | `SleepGate`, via `.boot-ring` |
+| Page to page (**desktop only**) | Three quiet dots over a dimmed scrim | `RouteTransition`, via `animations/page-transition.json` |
+| Sign-in / first cloud pull | The gradient ring, the real Lottie | `AuthGate`, via `animations/boot.json` |
+
+**One wait, one animation.** An earlier version faded a CSS ring into the real
+Lottie once it loaded; on a slower device that hand-off was slow enough to be
+legible, so a single refresh appeared to play two different animations. Each wait
+now picks one technique and stays with it.
 
 **The cold-start ring is CSS, not Lottie, and it has to be.** That wait *ends* at
 hydration — the moment React takes over is the moment the app is usable — and a
 Lottie player is JavaScript, so it cannot start until the wait is already over.
 Measured on a throttled cold load, the pre-hydration window was about 3.6s and
 the Lottie never mounted at all: the boot branch unmounted before its dynamic
-import resolved. So `.boot-ring` in `globals.css` reproduces the reference as a
-masked conic gradient, which is in the server-rendered HTML and therefore turning
-before a single line of JavaScript has run. `LottieWithFallback` still swaps the
-real animation in if it does get there first, which is what happens on the
-auth/sync screens — those are genuine post-hydration waits.
+import even resolved. So `.boot-ring` in `globals.css` reproduces the reference as
+a masked conic gradient, which is in the server-rendered HTML and therefore
+turning before a single line of JavaScript has run. `loading (1).lottie` itself
+plays on the auth/sync screens, which are genuine post-hydration waits and need no
+stand-in.
 
 **The page-to-page overlay is driven from the tap, not from the router.**
 `app/loading.tsx` looks like the right tool and is not: Next only falls back to
@@ -169,8 +175,19 @@ click, on `popstate`, and on an explicit `beginRouteTransition()` for
 `useSearchParams` change plus two animation frames, so it lifts only once the
 next page has painted.
 
-It waits 140ms before appearing, so a warm navigation shows nothing, and stays a
-minimum of 450ms once it does, because a 50ms flash reads as a glitch.
+It waits 140ms before appearing, so a warm navigation shows nothing, stays a
+minimum of 450ms once it does because a 50ms flash reads as a glitch, and gives up
+after 8s — a stalled indicator is worse than no indicator. It sets
+`pointer-events: none`: blocking taps would stop an impatient double-tap queueing
+a second navigation, but a mistimed overlay would then trap the user, and a second
+navigation is harmless where that is not.
+
+**It is desktop only** (`hidden lg:grid`, so `display: none` below 1024px, which
+also removes it from the accessibility and hit-testing trees). On a phone it did
+more harm than good: a slower device plus a real chunk fetch kept it on screen
+long enough to read as a hang, which is worse than the brief unannounced pause it
+was replacing. `PageLoading` carries the same cut-off, so neither path shows a
+page-to-page animation on a phone.
 
 The dots are three light greys, which sit well on the four dark surfaces and all
 but vanish on the light one. `.lottie-neutral` inverts them under
