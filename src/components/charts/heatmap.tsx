@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { HeatCell } from "@/lib/selectors";
 import { fromISODate, formatDate, formatHours } from "@/lib/utils";
 import { cn } from "@/lib/utils";
@@ -16,21 +16,31 @@ const LEVEL_BG = [
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const WEEKDAY_LABELS = ["", "Mon", "", "Wed", "", "Fri", ""];
 
+/** Height reserved above the grid for the month labels. */
+const MONTH_ROW_H = 16;
+/** Below this a square stops reading as a square, so the grid scrolls instead. */
+const MIN_CELL = 11;
+
 export function Heatmap({
   cells,
   className,
-  cellSize = 12,
+  cellSize = 20,
   gap = 3,
+  visibleWeeks = 13,
   formatTooltip,
   legendLow = "Less",
   legendHigh = "More",
 }: {
   cells: HeatCell[];
   className?: string;
-  /** Treated as the *maximum* column size on wide screens. The grid shrinks
-   *  fluidly to fit narrower containers so it never scrolls horizontally. */
+  /** Upper bound on a square's size. Squares never grow past this. */
   cellSize?: number;
   gap?: number;
+  /**
+   * How many week columns to aim to fit across the visible area — 13 is about
+   * three months. The grid scrolls horizontally for everything older.
+   */
+  visibleWeeks?: number;
   formatTooltip?: (cell: HeatCell) => { primary: string; secondary: string };
   legendLow?: string;
   legendHigh?: string;
@@ -40,6 +50,29 @@ export function Heatmap({
     x: number;
     y: number;
   } | null>(null);
+
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [viewport, setViewport] = useState(0);
+
+  // Squares are sized from the width actually available, so the "three months
+  // across" target holds on a phone as well as in a wide card.
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setViewport(el.clientWidth);
+    const ro = new ResizeObserver((entries) => {
+      const w = entries[0]?.contentRect.width;
+      if (w) setViewport(w);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const cell =
+    viewport > 0
+      ? Math.max(MIN_CELL, Math.min(cellSize, Math.floor(viewport / visibleWeeks) - gap))
+      : cellSize;
+  const colWidth = cell + gap;
 
   // Build week columns. Pad the start so the first column begins on Sunday.
   const { weeks, monthLabels } = useMemo(() => {
@@ -68,97 +101,100 @@ export function Heatmap({
 
        When a name repeats, keep the *last* occurrence. The right-hand end of the
        axis is the month you are in now, and that is the label that has to be
-       right; the earlier one is a few days' stub of a month a year ago. Dropping
-       the short stub instead — whichever end it fell on — is what left the axis
-       ending on "Aug" while the final squares were September. */
+       right; the earlier one is a few days' stub of a month a year ago. */
     const monthLabels = marks.filter(
       (mk, i) => !marks.some((other, j) => j > i && other.label === mk.label),
     );
     return { weeks, monthLabels };
   }, [cells]);
 
-  // Cap the grid width on wide screens; below that it fills 100% of its
-  // container, so the squares scale down instead of overflowing.
-  const maxGridWidth = weeks.length * (cellSize + gap);
+  const contentWidth = weeks.length * colWidth - gap;
+
+  /**
+   * Open on the most recent weeks. The grid runs oldest-to-newest left-to-right,
+   * so "now" lives at the far right and the useful default is scrolled fully over
+   * — you then scroll back through the history. Re-runs when the geometry changes
+   * (first measure, resize) rather than on every render, so it never fights a
+   * scroll in progress.
+   */
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (el) el.scrollLeft = el.scrollWidth;
+  }, [weeks.length, colWidth]);
 
   return (
-    <div className={cn("relative w-full overflow-hidden", className)}>
-      {/* Month labels — aligned over the columns area */}
-      <div className="mb-1 flex h-3">
-        <div className="mr-1 hidden w-5 shrink-0 sm:block" />
-        <div
-          className="relative flex-1 overflow-hidden text-[0.6rem] text-paper/35"
-          style={{ maxWidth: maxGridWidth }}
-        >
-          {monthLabels.map((m, i) => {
-            const pct = (m.col / weeks.length) * 100;
-            /* A label at the very end of the track is pinned to the right edge so
-               it stays readable and can't hang past the end.
-               Only the *last* label may be pinned, though. The threshold used to
-               apply to any label, and on a 53-column year the second-last month
-               already sits at ~89% — so it and the final month both resolved to
-               `right: 0` and were drawn one on top of the other. Everything else
-               keeps its true position, which also matters for short windows: when
-               the current month spans several columns its mark can sit well left
-               of the edge, and pinning it regardless would misplace it. */
-            const isLast = i === monthLabels.length - 1;
-            const nearEnd = isLast && pct > 88;
-            return (
-              <span
-                key={`${m.col}-${m.label}`}
-                className="absolute whitespace-nowrap"
-                style={nearEnd ? { right: 0 } : { left: `${pct}%` }}
-              >
-                {m.label}
-              </span>
-            );
-          })}
-        </div>
-      </div>
-
+    <div className={cn("relative w-full", className)}>
       <div className="flex">
-        {/* Weekday labels — hidden on phones to free up width */}
-        <div className="mr-1 hidden w-5 shrink-0 flex-col gap-[2px] sm:flex sm:gap-[3px]">
+        {/* Weekday labels — pinned outside the scroller so they stay put while
+            the grid moves. Offset by the month row so rows line up. Hidden on
+            phones, where the width is better spent on squares. */}
+        <div
+          className="mr-1.5 hidden shrink-0 flex-col sm:flex"
+          style={{ gap, marginTop: MONTH_ROW_H }}
+        >
           {WEEKDAY_LABELS.map((d, i) => (
             <span
               key={i}
-              className="flex flex-1 items-center text-[0.55rem] leading-none text-paper/30"
+              className="flex items-center text-[0.55rem] leading-none text-paper/30"
+              style={{ height: cell }}
             >
               {d}
             </span>
           ))}
         </div>
 
-        {/* Week columns — flex so they fill the available width and stay square */}
+        {/* The scroller. `min-w-0` is what lets it shrink inside the flex row
+            instead of pushing the page wider than the screen. */}
         <div
-          className="flex flex-1 gap-[2px] sm:gap-[3px]"
-          style={{ maxWidth: maxGridWidth }}
+          ref={scrollRef}
+          onScroll={() => setHover(null)}
+          className="no-scrollbar min-w-0 flex-1 overflow-x-auto overscroll-x-contain"
         >
-          {weeks.map((week, ci) => (
-            <div key={ci} className="flex flex-1 flex-col gap-[2px] sm:gap-[3px]">
-              {week.map((cell, ri) =>
-                cell ? (
-                  <div
-                    key={cell.date}
-                    onMouseEnter={(e) => {
-                      const r = e.currentTarget.getBoundingClientRect();
-                      setHover({ cell, x: r.left + r.width / 2, y: r.top });
-                    }}
-                    onMouseLeave={() => setHover(null)}
-                    className={cn(
-                      "aspect-square w-full rounded-[2px] transition-colors duration-150 hover:ring-1 hover:ring-accent/50",
-                      LEVEL_BG[cell.level],
-                    )}
-                  />
-                ) : (
-                  <div
-                    key={`empty-${ci}-${ri}`}
-                    className="aspect-square w-full"
-                  />
-                ),
-              )}
+          <div style={{ width: contentWidth }}>
+            {/* Month labels — inside the scroller, so they travel with the
+                columns they name, and positioned by column offset rather than by
+                percentage, so they sit exactly over them. */}
+            <div className="relative" style={{ height: MONTH_ROW_H }}>
+              {monthLabels.map((m) => (
+                <span
+                  key={`${m.col}-${m.label}`}
+                  className="absolute top-0 whitespace-nowrap text-[0.6rem] text-paper/35"
+                  style={{ left: m.col * colWidth }}
+                >
+                  {m.label}
+                </span>
+              ))}
             </div>
-          ))}
+
+            <div className="flex" style={{ gap }}>
+              {weeks.map((week, ci) => (
+                <div key={ci} className="flex flex-col" style={{ gap }}>
+                  {week.map((c, ri) =>
+                    c ? (
+                      <div
+                        key={c.date}
+                        onMouseEnter={(e) => {
+                          const r = e.currentTarget.getBoundingClientRect();
+                          setHover({ cell: c, x: r.left + r.width / 2, y: r.top });
+                        }}
+                        onMouseLeave={() => setHover(null)}
+                        className={cn(
+                          "rounded-[2px] transition-colors duration-150 hover:ring-1 hover:ring-accent/50",
+                          LEVEL_BG[c.level],
+                        )}
+                        style={{ width: cell, height: cell }}
+                      />
+                    ) : (
+                      <div
+                        key={`empty-${ci}-${ri}`}
+                        style={{ width: cell, height: cell }}
+                      />
+                    ),
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -172,6 +208,7 @@ export function Heatmap({
           />
         ))}
         <span>{legendHigh}</span>
+        <span className="ml-auto text-paper/30">scroll back for earlier months</span>
       </div>
 
       {/* Tooltip */}

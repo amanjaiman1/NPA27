@@ -142,7 +142,7 @@ export default function HeatmapPage() {
         <h3 className="mb-5 text-base font-semibold text-paper">
           The year at a glance
         </h3>
-        <Heatmap cells={cells} cellSize={13} />
+        <Heatmap cells={cells} />
       </Card>
 
       <div className="grid gap-4 lg:grid-cols-2 [&>*]:min-w-0">
