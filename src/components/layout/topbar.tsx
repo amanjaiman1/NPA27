@@ -62,7 +62,11 @@ export function Topbar({
         <IconButton label="Open menu" onClick={onOpenDrawer} className="lg:hidden">
           <Menu className="h-5 w-5" />
         </IconButton>
-        <Link href="/" className="flex items-center gap-2 pl-1 lg:hidden">
+        <Link
+          href="/"
+          aria-label="The UPSC Chronicle — home"
+          className="flex items-center gap-2 pl-1 lg:hidden"
+        >
           <Logo className="h-6 w-6" />
         </Link>
 

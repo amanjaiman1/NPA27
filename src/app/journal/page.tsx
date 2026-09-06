@@ -57,18 +57,17 @@ export default function JournalPage() {
   const [toggles, setToggles] = useState({ mock: false, photos: false, wins: false });
   const [showFilters, setShowFilters] = useState(false);
 
-  // open composer when navigated with ?new=1
+  // Open the composer when navigated with ?new=1 — but only once the store has
+  // hydrated, or today's entry wouldn't be found yet and the draft would open
+  // blank over the top of it.
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    if (typeof window === "undefined" || !hydrated) return;
     if (new URLSearchParams(window.location.search).get("new") === "1") {
-      const today = toISODate(new Date());
-      const existing = journal.find((j) => j.date === today);
-      setDraft(existing ? toDraft(existing) : emptyEntry());
-      setOpen(true);
+      startNew();
       window.history.replaceState({}, "", "/journal");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [hydrated]);
 
   const subjectName = (id: string) =>
     subjects.find((s) => s.id === id)?.name ?? "Unassigned";
@@ -135,8 +134,16 @@ export default function JournalPage() {
     (to ? 1 : 0) +
     Object.values(toggles).filter(Boolean).length;
 
+  /**
+   * "New entry" means *today's* entry, and today usually already exists — the
+   * daily sleep prompt creates it with the wake and bedtime it recorded. Opening
+   * a blank draft here didn't just hide those values, it wiped them on save,
+   * because `upsertJournal` replaces the entry for that date.
+   */
   function startNew() {
-    setDraft(emptyEntry());
+    const today = toISODate(new Date());
+    const existing = journal.find((j) => j.date === today);
+    setDraft(existing ? toDraft(existing) : emptyEntry());
     setOpen(true);
   }
   function startEdit(e: JournalEntry) {
@@ -370,6 +377,8 @@ export default function JournalPage() {
                               ev.stopPropagation();
                               startEdit(e);
                             }}
+                            aria-label={`Edit entry for ${e.date}`}
+                            title="Edit entry"
                             className="grid h-8 w-8 place-items-center rounded-lg text-paper/35 opacity-0 transition-all hover:bg-paper/[0.06] hover:text-paper group-hover:opacity-100"
                           >
                             <Pencil className="h-3.5 w-3.5" />
@@ -386,6 +395,8 @@ export default function JournalPage() {
                               )
                                 deleteJournal(e.id);
                             }}
+                            aria-label={`Delete entry for ${e.date}`}
+                            title="Delete entry"
                             className="grid h-8 w-8 place-items-center rounded-lg text-paper/35 opacity-0 transition-all hover:bg-paper/[0.06] hover:text-paper group-hover:opacity-100"
                           >
                             <Trash2 className="h-3.5 w-3.5" />

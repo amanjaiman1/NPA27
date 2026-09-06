@@ -140,6 +140,8 @@ export default function GoalsPage() {
                             )
                               remove(g.id);
                           }}
+                          aria-label={`Delete goal: ${g.title}`}
+                          title="Delete goal"
                           className="text-paper/25 opacity-0 transition-opacity hover:text-paper group-hover:opacity-100"
                         >
                           <Trash2 className="h-3.5 w-3.5" />

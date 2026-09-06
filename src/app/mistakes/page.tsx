@@ -610,6 +610,8 @@ export default function MistakesPage() {
                                 )
                                   remove(m.id);
                               }}
+                              aria-label={`Delete mistake: ${m.topic}`}
+                              title="Delete mistake"
                               className="text-paper/30 transition-colors hover:text-paper"
                             >
                               <Trash2 className="h-4 w-4" />
