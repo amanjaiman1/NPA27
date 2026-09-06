@@ -119,10 +119,16 @@ that works in both directions. Every wallpaper ships with a default that was
 measured, not guessed: the page header's three text sizes must clear WCAG AA over
 it. The photo wallpapers need far more (0.85) than the patterns (0.10–0.40).
 
-Chrome that sits directly on the wallpaper firms up automatically — the
-`.chrome-glass` class on the topbar and sidebar goes to 94% opacity whenever a
+Chrome that sits directly on the wallpaper firms up automatically — `.chrome-glass`
+on the topbar, and `.sidebar-panel` on the sidebar, go to 94% opacity whenever a
 wallpaper is active, because translucent glass over a busy photo is where
 readability dies.
+
+The sidebar's rule is scoped to `lg` and up, which is the one place the two
+differ. Above `lg` the sidebar is chrome standing beside the canvas and reads well
+as glass. Below it, the same element is a full-height drawer pulled over the page,
+and any transparency there prints the wallpaper and the page through the nav you
+are trying to read — so on a phone it stays flatly opaque `bg-card`.
 
 A custom photo is downscaled to 1920px and re-encoded in the browser, then kept
 in **IndexedDB on the device** (`lib/wallpaper-store.ts`). It deliberately never

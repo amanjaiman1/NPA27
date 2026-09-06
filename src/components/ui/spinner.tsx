@@ -1,22 +1,29 @@
 import { cn } from "@/lib/utils";
 
 /**
- * The waiting state, drawn as the app's own mark in motion.
+ * The waiting state: a small ring with one bright arc travelling around it.
  *
- * The logo is a ring — the cycle of days — with one bright node for today. Here
- * the rings hold still and the node orbits them, so a spinner reads as the same
- * object as the brand rather than a generic wheel bolted on. Only the node and
- * its spoke rotate, which is also the cheap half: two small shapes on the
- * compositor instead of the whole glyph.
+ * Deliberately plain. This replaced a spinner drawn from the app's logo mark,
+ * which was distinctive but too much of an event for something that should
+ * appear and disappear unnoticed — a loading indicator is furniture, not
+ * branding.
+ *
+ * The colour is `--paper`, the foreground token, not a literal white: `--paper`
+ * resolves to near-white on all four dark surfaces and inverts to near-black on
+ * the light one, so the arc stays visible whatever surface is chosen. Hard-coding
+ * white would make it invisible on the default white surface.
+ *
+ * Both circles rotate as one `<svg>` element rather than an inner `<g>`, so the
+ * transform origin is the element box and needs no `fill-box` correction. It is
+ * a single composited transform on two shapes.
  *
  * `prefers-reduced-motion` is neutralised globally in `globals.css`, so this
- * settles into a static mark for anyone who has asked for that.
+ * settles into a static ring for anyone who has asked for that.
  */
 export function Spinner({
   className,
-  /** Seconds per revolution. Slower than a default spinner on purpose — it
-   *  should feel like a clock, not a buffering wheel. */
-  speed = 1.6,
+  /** Seconds per revolution. */
+  speed = 0.8,
   label,
 }: {
   className?: string;
@@ -30,53 +37,35 @@ export function Spinner({
       aria-live="polite"
     >
       <svg
-        viewBox="0 0 32 32"
+        viewBox="0 0 24 24"
         fill="none"
-        className={cn("h-7 w-7", className)}
+        className={cn("h-5 w-5 animate-spin", className)}
+        style={{ animationDuration: `${speed}s` }}
         aria-hidden
       >
-        <circle cx="16" cy="16" r="12.5" className="stroke-paper/20" strokeWidth="1.5" />
-        <circle cx="16" cy="16" r="7" className="stroke-paper/10" strokeWidth="1.5" />
-        {/* The orbiting half. `transform-box: fill-box` plus a 50% origin keeps
-            the rotation centred on the glyph in every browser — an SVG group
-            otherwise spins around the viewport origin. */}
-        <g
-          className="animate-spin"
-          style={{
-            animationDuration: `${speed}s`,
-            transformBox: "fill-box",
-            transformOrigin: "50% 50%",
-          }}
-        >
-          <line
-            x1="16"
-            y1="3.5"
-            x2="16"
-            y2="9"
-            className="stroke-accent/50"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-          />
-          <circle cx="16" cy="3.5" r="2.4" className="fill-accent" />
-        </g>
+        {/* The track, so the arc reads as travelling around something rather
+            than floating on its own. */}
+        <circle
+          cx="12"
+          cy="12"
+          r="9.25"
+          className="stroke-paper/15"
+          strokeWidth="2.5"
+        />
+        {/* Circumference is 2π·9.25 ≈ 58.1; a 15.5 dash leaves a little over a
+            quarter of the ring lit. Round caps keep it from reading as a wedge. */}
+        <circle
+          cx="12"
+          cy="12"
+          r="9.25"
+          className="stroke-paper"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeDasharray="15.5 58.1"
+        />
       </svg>
       {label && <span className="text-sm text-paper/55">{label}</span>}
       {!label && <span className="sr-only">Loading</span>}
     </span>
-  );
-}
-
-/** Centred spinner for a whole screen or a tall empty panel. */
-export function SpinnerBlock({
-  label,
-  className,
-}: {
-  label?: string;
-  className?: string;
-}) {
-  return (
-    <div className={cn("grid place-items-center py-16", className)}>
-      <Spinner className="h-9 w-9" label={label} />
-    </div>
   );
 }

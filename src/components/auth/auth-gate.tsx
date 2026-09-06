@@ -13,8 +13,7 @@ function FullScreen({ label }: { label: string }) {
         <div className="absolute inset-0 bg-aura" />
       </div>
       <div className="flex flex-col items-center gap-5 text-center">
-        {/* The mark itself, with today's node orbiting — see `Spinner`. */}
-        <Spinner className="h-10 w-10" />
+        <Spinner className="h-6 w-6" />
         <span className="text-sm text-paper/55">{label}</span>
       </div>
     </div>
