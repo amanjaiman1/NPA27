@@ -12,8 +12,8 @@
  * Bump CACHE_VERSION to retire every previous cache on the next activation.
  */
 
-// v4 — the command centre gained a phone-sized poster frame.
-const CACHE_VERSION = "v4";
+// v5 — the two loading animations joined the precached shell.
+const CACHE_VERSION = "v5";
 const SHELL_CACHE = `chronicle-shell-${CACHE_VERSION}`;
 const PAGE_CACHE = `chronicle-pages-${CACHE_VERSION}`;
 const ASSET_CACHE = `chronicle-assets-${CACHE_VERSION}`;
@@ -32,6 +32,11 @@ const SHELL_ASSETS = [
   // deliberately leaves alone.
   "/media/hero-poster.jpg",
   "/media/hero-poster-sm.jpg",
+  // The loading animations, 15 KB together. These specifically must not be
+  // fetched over the network on a cold start: the boot ring exists to cover a
+  // slow connection, so waiting for the network to deliver it would defeat it.
+  "/animations/boot.json",
+  "/animations/page-transition.json",
   "/icons/icon-192.png",
   "/icons/icon-512.png",
   "/icons/icon-maskable-192.png",

@@ -733,6 +733,53 @@ samp {
     font-feature-settings: "tnum";
   }
 
+  /* Stand-in for the cold-start Lottie ring (`public/loading (1).lottie`).
+     The Lottie player and the animation JSON are both network fetches, so on a
+     slow connection there is a window where the screen would otherwise be blank
+     — precisely the wait the animation exists to cover. This is plain CSS in the
+     server-rendered HTML, so it is already turning before any JavaScript has
+     run, and `LottieWithFallback` cross-fades it out once the real first frame
+     is up. The hues track the reference: cyan into blue into magenta.
+
+     The conic gradient is masked into an annulus rather than drawn as a border,
+     because a border cannot take a gradient. Both mask properties are set; only
+     WebKit still needs the prefix. */
+  .boot-ring {
+    border-radius: 9999px;
+    background: conic-gradient(
+      from 210deg,
+      #22d3ee,
+      #2b4cff,
+      #7c2bf0,
+      #ff2bd6,
+      #22d3ee
+    );
+    -webkit-mask: radial-gradient(
+      farthest-side,
+      transparent 52%,
+      #000 53%
+    );
+    mask: radial-gradient(farthest-side, transparent 52%, #000 53%);
+    animation: boot-ring-spin 1.4s linear infinite;
+  }
+
+  @keyframes boot-ring-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  /* The page-transition dots (`public/loading (2).lottie`) are three light
+     greys — 174–216 — which sit beautifully on the four dark surfaces and all
+     but vanish on the one light one, where they measure under 1.5:1 against the
+     canvas. Inverting luminance there maps them to the equivalent dark greys.
+     The dots are very close to neutral, so an invert shifts no hue; recolouring
+     the Lottie's fills at runtime would be the alternative, and this is one line
+     instead of a JSON walk. */
+  [data-surface="white"] .lottie-neutral {
+    filter: invert(1);
+  }
+
   /* Pill button */
   .btn {
     display: inline-flex;

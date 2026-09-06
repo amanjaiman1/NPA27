@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Moon, Sunrise, Loader2, ArrowRight } from "lucide-react";
+import { Moon, Sunrise, ArrowRight } from "lucide-react";
+import { LottieWithFallback } from "@/components/ui/lottie";
 import { useChronicle, useHasHydrated } from "@/lib/store";
 import { useMounted } from "@/lib/hooks";
 import { Logo } from "@/components/layout/logo";
@@ -231,13 +232,21 @@ export function SleepGate({ children }: { children: React.ReactNode }) {
 
   // Avoid deciding before the persisted store has loaded, otherwise we'd flash
   // the prompt over an already-answered day.
+  //
+  // This gate wraps the whole app from `app/layout.tsx`, which makes it *the*
+  // screen you see on a browser refresh — so it carries the cold-start ring.
+  // Everything downstream only renders once `hydrated` is true, which is why a
+  // page's own `!hydrated` branch is never reached on a cold start.
   if (!mounted || !hydrated) {
     return (
       <FullScreen>
-        <div className="flex items-center gap-2 text-sm text-paper/55">
-          <Loader2 className="h-4 w-4 animate-spin" />
-          Loading…
-        </div>
+        <LottieWithFallback
+          src="/animations/boot.json"
+          className="h-28 w-28"
+          fallbackClassName="boot-ring h-[5.25rem] w-[5.25rem]"
+          staticFrame={18}
+          label="Loading the Chronicle"
+        />
       </FullScreen>
     );
   }

@@ -135,6 +135,47 @@ in **IndexedDB on the device** (`lib/wallpaper-store.ts`). It deliberately never
 enters the synced snapshot: that snapshot is one JSON row pushed on every edit,
 and a megabyte of base64 would be re-uploaded each time. Only the *id* travels.
 
+## Loading states
+
+There are two waits, they are different events, and they get different
+animations. Both come from dotLottie files in `public/`, unpacked to plain JSON
+by `scripts/extract-lottie.py` because `lottie-web` cannot read the zip.
+
+| Wait | What you see | Where it lives |
+| --- | --- | --- |
+| Browser refresh / cold start | A cyan→blue→magenta gradient ring | `SleepGate`, via `.boot-ring` + `animations/boot.json` |
+| Page to page | Three quiet dots over a dimmed scrim | `RouteTransition`, via `animations/page-transition.json` |
+
+**The cold-start ring is CSS, not Lottie, and it has to be.** That wait *ends* at
+hydration — the moment React takes over is the moment the app is usable — and a
+Lottie player is JavaScript, so it cannot start until the wait is already over.
+Measured on a throttled cold load, the pre-hydration window was about 3.6s and
+the Lottie never mounted at all: the boot branch unmounted before its dynamic
+import resolved. So `.boot-ring` in `globals.css` reproduces the reference as a
+masked conic gradient, which is in the server-rendered HTML and therefore turning
+before a single line of JavaScript has run. `LottieWithFallback` still swaps the
+real animation in if it does get there first, which is what happens on the
+auth/sync screens — those are genuine post-hydration waits.
+
+**The page-to-page overlay is driven from the tap, not from the router.**
+`app/loading.tsx` looks like the right tool and is not: Next only falls back to
+that boundary when a segment suspends, and because the router prefetches every
+link in the viewport, navigation normally resolves *inside* the transition. With
+a route's page chunk deliberately stalled for three seconds, the boundary
+rendered zero times while the old page sat there — which is the whole "did my tap
+register?" complaint. `RouteTransition` therefore starts on a capture-phase
+click, on `popstate`, and on an explicit `beginRouteTransition()` for
+`router.push` callers like the command palette; it ends when `usePathname` /
+`useSearchParams` change plus two animation frames, so it lifts only once the
+next page has painted.
+
+It waits 140ms before appearing, so a warm navigation shows nothing, and stays a
+minimum of 450ms once it does, because a 50ms flash reads as a glitch.
+
+The dots are three light greys, which sit well on the four dark surfaces and all
+but vanish on the light one. `.lottie-neutral` inverts them under
+`[data-surface="white"]`; they are near-neutral, so nothing shifts hue.
+
 ## Opening animations
 
 Every route plays a short rise-and-fade, and the page's own top-level sections

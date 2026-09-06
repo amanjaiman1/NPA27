@@ -6,6 +6,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Search, CornerDownLeft, ArrowUp, ArrowDown } from "lucide-react";
 import { searchableNavItems } from "@/lib/nav";
 import { cn } from "@/lib/utils";
+import { beginRouteTransition } from "./route-transition";
 
 export function CommandPalette({
   open,
@@ -43,6 +44,9 @@ export function CommandPalette({
   }, [query]);
 
   function go(href: string) {
+    // A programmatic push raises no click, so the transition overlay has to be
+    // told explicitly or navigating from the palette shows no feedback at all.
+    beginRouteTransition();
     router.push(href);
     onClose();
   }
