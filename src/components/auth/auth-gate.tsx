@@ -1,11 +1,10 @@
 "use client";
 
-import { Loader2 } from "lucide-react";
 import { useAuth } from "./auth-provider";
 import { useSync } from "./sync-provider";
 import { Login } from "./login";
 import { useHasHydrated } from "@/lib/store";
-import { Logo } from "@/components/layout/logo";
+import { Spinner } from "@/components/ui/spinner";
 
 function FullScreen({ label }: { label: string }) {
   return (
@@ -13,12 +12,10 @@ function FullScreen({ label }: { label: string }) {
       <div className="pointer-events-none fixed inset-0 -z-10">
         <div className="absolute inset-0 bg-aura" />
       </div>
-      <div className="flex flex-col items-center gap-4 text-center">
-        <Logo className="h-10 w-10" />
-        <div className="flex items-center gap-2 text-sm text-paper/55">
-          <Loader2 className="h-4 w-4 animate-spin" />
-          {label}
-        </div>
+      <div className="flex flex-col items-center gap-5 text-center">
+        {/* The mark itself, with today's node orbiting — see `Spinner`. */}
+        <Spinner className="h-10 w-10" />
+        <span className="text-sm text-paper/55">{label}</span>
       </div>
     </div>
   );
