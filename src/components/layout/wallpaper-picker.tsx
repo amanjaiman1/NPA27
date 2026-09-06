@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Check, ImagePlus, Loader2, Trash2, AlertTriangle } from "lucide-react";
 import { useChronicle } from "@/lib/store";
-import { WALLPAPERS, wallpaperMeta } from "@/lib/wallpaper";
+import { WALLPAPERS, WALLPAPER_GROUPS, wallpaperMeta } from "@/lib/wallpaper";
 import {
   MAX_BYTES,
   clearCustomWallpaper,
@@ -74,46 +74,61 @@ export function WallpaperPicker() {
         they re-colour with it and cost nothing to load.
       </p>
 
-      <div className="grid grid-cols-3 gap-2.5">
-        {WALLPAPERS.map((w) => {
-          const active = wallpaper === w.id;
-          const isCustom = w.id === "custom";
-          const swatch =
-            isCustom && customUrl ? `url(${customUrl}) center/cover` : w.swatch;
-          return (
-            <button
-              key={w.id}
-              onClick={() => {
-                if (isCustom && !customUrl) fileRef.current?.click();
-                else setWallpaper(w.id);
-              }}
-              className={cn(
-                "group relative flex flex-col items-start gap-2 rounded-xl border p-2.5 text-left transition-all",
-                active
-                  ? "border-accent ring-1 ring-accent/40"
-                  : "border-line hover:border-paper/30",
-              )}
-            >
-              <span
-                className="grid h-11 w-full place-items-center overflow-hidden rounded-lg border border-line"
-                style={{ background: swatch }}
-              >
-                {isCustom && !customUrl && (
-                  <ImagePlus className="h-4 w-4 text-paper/60" />
-                )}
-              </span>
-              <span className="truncate text-[0.7rem] font-medium text-paper">
-                {w.label}
-              </span>
-              {active && (
-                <span className="absolute right-1.5 top-1.5 grid h-5 w-5 place-items-center rounded-full bg-accent text-accent-fg">
-                  <Check className="h-3 w-3" />
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </div>
+      {WALLPAPER_GROUPS.map((group) => {
+        const items = WALLPAPERS.filter((w) => w.group === group.id);
+        if (!items.length) return null;
+        return (
+          <div key={group.id} className="mb-4 last:mb-0">
+            <p className="mb-2 flex items-baseline gap-2 text-[0.7rem] font-semibold text-paper/55">
+              {group.label}
+              <span className="font-normal text-paper/35">{group.hint}</span>
+            </p>
+            <div className="grid grid-cols-3 gap-2.5">
+              {items.map((w) => {
+                const active = wallpaper === w.id;
+                const isCustom = w.id === "custom";
+                const swatch =
+                  isCustom && customUrl
+                    ? `url(${customUrl}) center/cover`
+                    : w.swatch;
+                return (
+                  <button
+                    key={w.id}
+                    onClick={() => {
+                      if (isCustom && !customUrl) fileRef.current?.click();
+                      else setWallpaper(w.id);
+                    }}
+                    title={w.hint}
+                    className={cn(
+                      "group relative flex min-w-0 flex-col items-start gap-2 rounded-xl border p-2.5 text-left transition-all",
+                      active
+                        ? "border-accent ring-1 ring-accent/40"
+                        : "border-line hover:border-paper/30",
+                    )}
+                  >
+                    <span
+                      className="grid h-11 w-full place-items-center overflow-hidden rounded-lg border border-line"
+                      style={{ background: swatch }}
+                    >
+                      {isCustom && !customUrl && (
+                        <ImagePlus className="h-4 w-4 text-paper/60" />
+                      )}
+                    </span>
+                    <span className="w-full truncate text-[0.7rem] font-medium text-paper">
+                      {w.label}
+                    </span>
+                    {active && (
+                      <span className="absolute right-1.5 top-1.5 grid h-5 w-5 place-items-center rounded-full bg-accent text-accent-fg">
+                        <Check className="h-3 w-3" />
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
 
       <input
         ref={fileRef}

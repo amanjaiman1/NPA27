@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { Search, CornerDownLeft, ArrowUp, ArrowDown } from "lucide-react";
-import { allNavItems } from "@/lib/nav";
+import { searchableNavItems } from "@/lib/nav";
 import { cn } from "@/lib/utils";
 
 export function CommandPalette({
@@ -21,8 +21,8 @@ export function CommandPalette({
 
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return allNavItems;
-    return allNavItems.filter(
+    if (!q) return searchableNavItems;
+    return searchableNavItems.filter(
       (i) =>
         i.label.toLowerCase().includes(q) ||
         i.short.toLowerCase().includes(q) ||

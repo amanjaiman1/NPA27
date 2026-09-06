@@ -18,6 +18,10 @@ import {
   Sparkles,
   Trophy,
   HeartPulse,
+  Moon,
+  Footprints,
+  Scale,
+  Smartphone,
   type LucideIcon,
 } from "lucide-react";
 
@@ -85,7 +89,23 @@ export const navGroups: NavGroup[] = [
   },
 ];
 
+/**
+ * The four life metrics that have a page of their own. These are deliberately
+ * kept out of `navGroups` — four more rows would crowd the sidebar — but they
+ * still belong in the command palette, so that "running" or "weight" typed into
+ * ⌘K goes straight there.
+ */
+export const metricNavItems: NavItem[] = [
+  { label: "Sleep", href: "/wellbeing/sleep", icon: Moon, short: "Every night, hours & quality over time" },
+  { label: "Running", href: "/wellbeing/running", icon: Footprints, short: "Distance run by day, week, month, year" },
+  { label: "Weight", href: "/wellbeing/weight", icon: Scale, short: "Weight trend and seven-day average" },
+  { label: "Screen time", href: "/wellbeing/screen", icon: Smartphone, short: "Where the hours leak" },
+];
+
 export const allNavItems: NavItem[] = navGroups.flatMap((g) => g.items);
+
+/** Everything the command palette should be able to reach. */
+export const searchableNavItems: NavItem[] = [...allNavItems, ...metricNavItems];
 
 export function findNavItem(pathname: string): NavItem | undefined {
   if (pathname === "/") return allNavItems[0];
