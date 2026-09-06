@@ -103,10 +103,47 @@ async function dispatch(request: Request) {
    * subscribers into a few hundred round trips and blow any serverless time
    * limit long before it finished.
    */
-  const [{ data: states }, { data: logs }] = await Promise.all([
+  const [
+    { data: states, error: statesError },
+    { data: logs, error: logsError },
+  ] = await Promise.all([
     admin.from("chronicle_state").select("user_id, data").in("user_id", userIds),
     admin.from("chronicle_push_log").select("user_id, log").in("user_id", userIds),
   ]);
+
+  /**
+   * Both errors are fatal, and the log one especially so.
+   *
+   * Every rate limit — one interruption per subject per day, the per-day cap,
+   * one digest per day — lives in `chronicle_push_log`. If it cannot be read, an
+   * empty log looks exactly like "nothing has ever been sent", so every run would
+   * consider itself the first: on a fifteen-minute schedule that is the same
+   * notification every fifteen minutes, indefinitely.
+   *
+   * These were previously ignored, which made a missing table or a read-only
+   * database — Postgres 25006, which a project hitting its disk limit will
+   * produce — fail silently in the one direction that spams the user. Refusing
+   * to send is the safe failure.
+   */
+  if (logsError) {
+    return NextResponse.json(
+      {
+        error:
+          "Could not read chronicle_push_log, so rate limits cannot be honoured. Refusing to send.",
+        detail: logsError.message,
+      },
+      { status: 500 },
+    );
+  }
+  if (statesError) {
+    return NextResponse.json(
+      {
+        error: "Could not read chronicle_state, so there is nothing to evaluate.",
+        detail: statesError.message,
+      },
+      { status: 500 },
+    );
+  }
 
   const snapshots = new Map<string, Snapshot>();
   for (const row of states ?? []) {
@@ -183,23 +220,47 @@ async function dispatch(request: Request) {
     }
   }
 
-  await Promise.all([
+  const [logWrite, pruneWrite] = await Promise.all([
     logUpserts.length
       ? admin.from("chronicle_push_log").upsert(logUpserts, { onConflict: "user_id" })
-      : Promise.resolve(),
+      : Promise.resolve({ error: null }),
     deadEndpoints.length
       ? admin
           .from("chronicle_push_subscriptions")
           .delete()
           .in("endpoint", deadEndpoints)
-      : Promise.resolve(),
+      : Promise.resolve({ error: null }),
   ]);
+
+  /**
+   * A failed log write cannot be undone — the notifications have already gone.
+   * But it must not pass quietly: until it succeeds the rate limits are not
+   * being recorded, so the next run will send the same thing again. Reporting it
+   * as a hard failure is what makes that visible in the cron's own logs instead
+   * of only in the user's notification tray.
+   */
+  if (logWrite.error) {
+    return NextResponse.json(
+      {
+        error:
+          "Sent, but could not record the delivery log — rate limits are not persisting, so this will repeat.",
+        detail: logWrite.error.message,
+        users: byUser.size,
+        sent,
+        skipped,
+      },
+      { status: 500 },
+    );
+  }
 
   return NextResponse.json({
     ok: true,
     users: byUser.size,
     sent,
     pruned: deadEndpoints.length,
+    // Surfaced rather than swallowed: a dead endpoint that cannot be removed
+    // will just fail again on every future run.
+    pruneFailed: pruneWrite.error ? pruneWrite.error.message : undefined,
     skipped,
   });
 }
