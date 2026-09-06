@@ -12,8 +12,8 @@
  * Bump CACHE_VERSION to retire every previous cache on the next activation.
  */
 
-// v4 — the command centre gained a phone-sized poster frame.
-const CACHE_VERSION = "v4";
+// v5 — four new metric routes under /wellbeing, and a reworked wallpaper layer.
+const CACHE_VERSION = "v5";
 const SHELL_CACHE = `chronicle-shell-${CACHE_VERSION}`;
 const PAGE_CACHE = `chronicle-pages-${CACHE_VERSION}`;
 const ASSET_CACHE = `chronicle-assets-${CACHE_VERSION}`;
