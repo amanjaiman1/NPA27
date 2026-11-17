@@ -9,6 +9,7 @@ import type {
   TopicStatus,
 } from "./types";
 import { daysBetween, round, avg } from "./utils";
+import { completedTopicsOf } from "./topics";
 
 /* ════════════════════════════════════════════════════════════════
    Reading the syllabus as a whole.
@@ -152,14 +153,15 @@ export function buildLinkage(
     hit.mistakes += 1;
     if (m.status !== "Mastered") hit.openMistakes += 1;
   }
-  /* Journal entries name completed topics without a subject, so a mention is
-     credited to that name under every subject — the alternative is dropping the
-     signal entirely, and a topic name is specific enough in practice. */
+  /* A completion picked from the syllabus carries its subject, so it is
+     credited to exactly that topic. Free-text ones name no subject, so those are
+     credited to the name under every subject — the alternative is dropping the
+     signal, and a topic name is specific enough in practice. */
   for (const e of journal) {
-    for (const name of e.topicsCompleted ?? []) {
-      const n = name.trim().toLowerCase();
+    for (const c of completedTopicsOf(e)) {
+      const n = c.name.trim().toLowerCase();
       if (!n) continue;
-      const hit = touch(`*::${n}`);
+      const hit = touch(c.subjectId && c.topicId ? key(c.subjectId, c.name) : `*::${n}`);
       hit.journalMentions += 1;
     }
   }
@@ -187,7 +189,7 @@ export function linkageFor(
     revisionDue: own?.revisionDue ?? false,
     mistakes: own?.mistakes ?? 0,
     openMistakes: own?.openMistakes ?? 0,
-    journalMentions: mentions?.journalMentions ?? 0,
+    journalMentions: (own?.journalMentions ?? 0) + (mentions?.journalMentions ?? 0),
   };
 }
 

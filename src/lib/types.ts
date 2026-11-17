@@ -8,6 +8,60 @@
 export type ISODate = string; // "yyyy-mm-dd"
 export type Theme = "dark" | "light";
 
+/**
+ * The appearance the user picked: always light, always dark, or whichever the
+ * device is set to (most phones switch at sunset). Synced with the account.
+ */
+export type ThemeMode = "light" | "dark" | "system";
+
+/* ── Attached files ─────────────────────────────────────────── */
+
+export type FileKind = "image" | "pdf" | "text" | "document";
+
+/**
+ * A file the user attached to a journal day.
+ *
+ * Only this description travels with the synced snapshot (a couple of hundred
+ * bytes). The bytes themselves live in Supabase Storage, in a private bucket,
+ * under the account's own folder, and are read through short-lived signed
+ * links. Storage's row-level security is what keeps one account's files away
+ * from every other account.
+ *
+ * A file belongs to the journal: it exists while at least one journal day
+ * lists it in `fileIds`. Goals and Life Dashboard days only point at it, so
+ * removing it from a goal never deletes it, and the same file is never stored
+ * twice (records are unique by content hash).
+ */
+export interface FileRecord {
+  id: string;
+  /** Lower-case hex SHA-256 of the stored bytes. */
+  sha256: string;
+  /** Object path inside the bucket: `<user id>/<sha256>`. */
+  path: string;
+  /** The file's name as the user knows it. */
+  name: string;
+  /** MIME type it was stored with. */
+  type: string;
+  /** Bytes stored, after any image downscaling. */
+  size: number;
+  width?: number;
+  height?: number;
+  /** When it was first attached (ISO timestamp). */
+  addedAt: string;
+}
+
+/**
+ * A topic recorded as completed on a journal day. `topicId` is set when it was
+ * picked from the syllabus tracker, which is what lets the day move that
+ * topic's progress and schedule its revision; free-text topics still work.
+ */
+export interface TopicCompletion {
+  id: string;
+  name: string;
+  subjectId?: string;
+  topicId?: string;
+}
+
 /* ── Syllabus / Subjects ─────────────────────────────────────── */
 
 export type PaperCode =
@@ -126,6 +180,12 @@ export interface JournalEntry {
   /* study */
   blocks: StudyBlock[];
   totalHours: number;
+  /** Topics finished this day, linked to the syllabus where possible. */
+  completedTopics?: TopicCompletion[];
+  /**
+   * @deprecated The free-text list used before topics linked to the syllabus.
+   * Read through `completedTopicsOf` (lib/topics.ts); new saves never write it.
+   */
   topicsCompleted?: string[];
   booksStudied?: BookRead[];
   revisionSessions?: RevisionSession[];
@@ -145,6 +205,9 @@ export interface JournalEntry {
   highlights?: string;
   reflection?: string;
   tags?: string[];
+
+  /** Files attached to this day: ids into `ChronicleData.files`. */
+  fileIds?: string[];
 
   /** @deprecated Kept only for entries saved before photos were removed. */
   attachments?: Attachment[];
@@ -325,25 +388,48 @@ export interface ExerciseLog {
 
 /* ── Life Dashboard (unified daily life log) ─────────────────── */
 
-/** One record per day capturing every lifestyle metric, so daily/weekly
- *  analytics and cross-metric correlations all read from one place. */
+/**
+ * One record per day for the Life Dashboard.
+ *
+ * Every measurement is optional, and absent means *not recorded*, which is not
+ * the same as zero: a day you didn't note your water is missing from the water
+ * average, while a day you logged 0 km run is a genuine rest day. Earlier
+ * versions filled blanks with defaults (2 L of water, 120 minutes of screen
+ * time) that then counted as real readings.
+ */
 export interface LifeEntry {
   id: string;
   date: ISODate; // unique per day
-  sleepHours: number;
-  sleepQuality: number; // 1-5
+  sleepHours?: number;
+  sleepQuality?: number; // 1-5
   bedtime?: string;
   wakeTime?: string;
-  walkKm: number;
-  runKm: number;
-  exerciseMinutes: number;
+  walkKm?: number;
+  runKm?: number;
+  exerciseMinutes?: number;
   exerciseType?: ExerciseType;
-  waterLiters: number;
-  meditationMin: number;
+  waterLiters?: number;
+  meditationMin?: number;
   weightKg?: number;
-  screenTimeMin: number;
-  deepWorkHours: number;
+  screenTimeMin?: number;
+  deepWorkHours?: number;
+  /** A line about the day. */
+  note?: string;
+  /** Journal files linked to this day: ids into `ChronicleData.files`. */
+  fileIds?: string[];
 }
+
+/** The Life Dashboard measurements a user can choose to track. */
+export type LifeField =
+  | "sleep"
+  | "exercise"
+  | "walk"
+  | "run"
+  | "water"
+  | "meditation"
+  | "screen"
+  | "weight"
+  | "deepWork";
 
 /* ── Goals ───────────────────────────────────────────────────── */
 
@@ -376,7 +462,43 @@ export type GoalMetric =
   | "booksCompleted"
   | "currentAffairsLogged"
   | "reflectionsWritten"
-  | "mistakesMastered";
+  | "mistakesMastered"
+  | "milestones";
+
+export type GoalCategory =
+  | "Study"
+  | "Syllabus"
+  | "Revision"
+  | "Mock tests"
+  | "Current affairs"
+  | "Health"
+  | "Personal";
+
+export type GoalPriority = "High" | "Medium" | "Low";
+
+/** A step on the way to a goal, ticked off by hand. */
+export interface GoalMilestone {
+  id: string;
+  title: string;
+  dueOn?: ISODate;
+  /** The day it was ticked off. Absent while it is still open. */
+  doneOn?: ISODate;
+}
+
+/** A reading of a hand-tracked goal, kept each time the number is updated. */
+export interface GoalProgressEntry {
+  id: string;
+  date: ISODate;
+  value: number;
+  note?: string;
+}
+
+/** A dated thought about the goal: what's working, what isn't. */
+export interface GoalNote {
+  id: string;
+  date: ISODate;
+  text: string;
+}
 
 export interface Goal {
   id: string;
@@ -400,6 +522,18 @@ export interface Goal {
    * the number in — so existing goals keep working untouched.
    */
   metric?: GoalMetric;
+  category?: GoalCategory;
+  priority?: GoalPriority;
+  /** Set when the goal is marked completed; cleared if it is reopened. */
+  completedOn?: ISODate;
+  milestones?: GoalMilestone[];
+  /** History of a hand-tracked goal's number, oldest first. */
+  progressLog?: GoalProgressEntry[];
+  notes?: GoalNote[];
+  /** Journal days that belong with this goal. */
+  journalDates?: ISODate[];
+  /** Journal files linked to the goal: ids into `ChronicleData.files`. */
+  fileIds?: string[];
 }
 
 /* ── Books ───────────────────────────────────────────────────── */
@@ -527,6 +661,11 @@ export interface Profile {
   timezone?: string;
   /** Whether the built-in CSE 2027 week-by-week roadmap is shown. */
   useRoadmap?: boolean;
+  /**
+   * The Life Dashboard measurements this person tracks. Absent means all of
+   * them; the form and the dashboard only show what is listed.
+   */
+  lifeFields?: LifeField[];
   /** Set when first-run setup is finished. Absent means setup is still due. */
   onboardedAt?: ISODate;
 }
@@ -554,4 +693,6 @@ export interface ChronicleData {
   reviews: Review[];
   topicLinks: TopicLink[];
   selection: SelectionStage[];
+  /** Every file attached in the journal. See `FileRecord`. */
+  files: FileRecord[];
 }

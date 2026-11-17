@@ -118,6 +118,7 @@ export function useNotifications() {
       reviews,
       topicLinks: [],
       selection: [],
+      files: [],
     };
   }, [
     hydrated,

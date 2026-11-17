@@ -416,6 +416,7 @@ export function createAccountTemplate(setup: AccountSetup, today = new Date()): 
     reviews: [],
     topicLinks: buildTopicLinks(subjects, todayISO),
     selection: buildSelection(setup.targetExam),
+    files: [],
   };
 }
 
