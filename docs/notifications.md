@@ -288,10 +288,11 @@ Off unless configured. With it, the flow is:
 scheduler ──► GET /api/push/dispatch          (Bearer CRON_SECRET)
                  │
                  ├─ read every chronicle_push_subscriptions row
-                 ├─ batch-read chronicle_state + chronicle_push_log
+                 ├─ batch-read trimmed snapshots (chronicle_dispatch_snapshots)
+                 │    + chronicle_push_log
                  │
                  └─ per user:
-                      tz   = pickTimeZone(their devices)   ← the user's zone
+                      tz   = profile.timezone ?? pickTimeZone(their devices)
                       now  = zonedNow(tz)
                       evaluate → buildInbox → planDelivery   ← the same pure engine
                       web-push each device, payload tailored to its OS
@@ -319,6 +320,27 @@ and must never be stored. `DeliveryLog` keeps both clocks on purpose:
 `lastSentAt` is a true instant, because the minimum-gap check is a duration;
 every date field is the user's local day, because those are compared against the
 user's calendar.
+
+### Accounts
+
+Each account's notifications are its own: preferences (`notify`) and what has
+been read, dismissed or snoozed (`notifyState`) live in that account's snapshot,
+and the dispatcher evaluates every user against their own data, their own zone and
+their own delivery log. Two details matter on a shared computer:
+
+- **Signing out unsubscribes this device** from the account (before the session
+  ends, so the server can be told). A browser that changes hands never keeps
+  receiving the previous person's notifications. Signing back in and turning
+  "Even when the app is closed" on again re-subscribes it.
+- **A device belongs to whoever last subscribed it.** `/api/push/subscribe`
+  takes the user from the verified token and upserts on the endpoint, so the same
+  browser subscribing under a new account moves the row to that account.
+
+The dispatcher reads snapshots through `chronicle_dispatch_snapshots`, a
+service-role-only function that strips journal prose, mistake text and reflection
+content before anything leaves the database. The rules only need dates, hours and
+schedules, and the trimmed copy is a fraction of the size. Until that migration is
+applied, the route falls back to reading whole rows.
 
 ### Per-platform tailoring
 
