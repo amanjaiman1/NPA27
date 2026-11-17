@@ -12,7 +12,6 @@ import {
   draftsDiffer,
   entryFromDraft,
   inputDef,
-  sleepFromTimes,
   type LifeDraft,
   type LifeNumberKey,
 } from "@/lib/life-entry";
@@ -21,7 +20,9 @@ import { Button } from "@/components/ui/button";
 import { Field, Input, Select } from "@/components/ui/form";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { FileLinker } from "@/components/attachments/file-linker";
-import { cn, formatDate, formatHours, toISODate } from "@/lib/utils";
+import { cn, formatDate, toISODate } from "@/lib/utils";
+import { timeFormatOf } from "@/lib/sleep";
+import { SleepTimes } from "@/components/sleep/sleep-editor";
 import { shiftDay } from "@/lib/life";
 
 function FieldError({ children }: { children?: string }) {
@@ -98,7 +99,7 @@ export function LifeForm({
   const dirty = draftsDiffer(draft, base);
   const { entry, errors } = entryFromDraft(draft, today, saved);
   const valid = Object.keys(errors).length === 0;
-  const timesHours = sleepFromTimes(draft.bedtime, draft.wakeTime);
+  const format = timeFormatOf(profile);
 
   async function changeDate(day: ISODate) {
     if (!day || day === draft.date) return;
@@ -140,17 +141,7 @@ export function LifeForm({
   }
 
   function setTime(which: "bedtime" | "wakeTime", value: string) {
-    setDraft((d) => {
-      const next = { ...d, [which]: value };
-      // Keep the hours in step with the times, unless they were typed by hand.
-      const before = sleepFromTimes(d.bedtime, d.wakeTime);
-      const after = sleepFromTimes(next.bedtime, next.wakeTime);
-      const typed = d.numbers.sleepHours.trim();
-      if (after != null && (typed === "" || (before != null && Number(typed) === before))) {
-        next.numbers = { ...d.numbers, sleepHours: String(after) };
-      }
-      return next;
-    });
+    setDraft((d) => ({ ...d, [which]: value }));
   }
 
   const show = (k: keyof typeof errors) => (touched || draft.numbers[k as LifeNumberKey] !== base.numbers[k as LifeNumberKey] ? errors[k] : undefined);
@@ -259,20 +250,20 @@ export function LifeForm({
           <Group key={g.title} icon={g.icon} title={g.title}>
             {g.title === "Sleep" ? (
               <>
-                <div className="grid grid-cols-2 gap-4">
-                  <Field label="Bedtime">
-                    <Input type="time" value={draft.bedtime} onChange={(e) => setTime("bedtime", e.target.value)} />
-                  </Field>
-                  <Field label="Woke up">
-                    <Input type="time" value={draft.wakeTime} onChange={(e) => setTime("wakeTime", e.target.value)} />
-                  </Field>
-                </div>
+                <SleepTimes
+                  date={draft.date}
+                  bedtime={draft.bedtime}
+                  wakeTime={draft.wakeTime}
+                  onBedtime={(v) => setTime("bedtime", v)}
+                  onWakeTime={(v) => setTime("wakeTime", v)}
+                  format={format}
+                  target={profile.sleepTarget}
+                />
+                <FieldError>{touched ? errors.sleepTimes : undefined}</FieldError>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     {numberInput("sleepHours")}
-                    {timesHours != null && (
-                      <p className="mt-1 text-[0.7rem] text-paper/50">From the times: {formatHours(timesHours)}</p>
-                    )}
+                    <p className="mt-1 text-[0.7rem] text-paper/50">Leave empty to count bedtime to wake-up.</p>
                   </div>
                   <div>
                     <p className="mb-2 text-[0.78rem] font-semibold tracking-snugg text-paper/60">How well you slept</p>
@@ -288,7 +279,7 @@ export function LifeForm({
                             "h-9 flex-1 rounded-xl border text-xs font-semibold transition-all",
                             draft.sleepQuality != null && v <= draft.sleepQuality
                               ? "border-accent bg-accent text-accent-fg"
-                              : "border-line bg-paper/[0.03] text-paper/55 hover:border-paper/25 hover:text-paper",
+                              : "field border-line bg-paper/[0.03] text-paper/55 hover:border-paper/25 hover:text-paper",
                           )}
                         >
                           {v}

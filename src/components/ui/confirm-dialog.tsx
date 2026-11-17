@@ -73,6 +73,7 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
       <Modal
         open={state.open}
         onClose={() => settle(false)}
+        ariaLabel={state.title}
         className="sm:max-w-md"
         footer={
           <>
