@@ -27,18 +27,19 @@ Note the naming: **`ink` is the background and `paper` is the foreground**, and
 they swap with the surface. A tint like `bg-paper/[0.04]` is therefore a subtle
 recessed fill on every surface, not a light or dark one.
 
-### Theme: Light, Dark and Auto
+### Theme: Light, Dark, Blue Glass and Auto
 
-There are two surfaces and three choices. The choice (`themeMode` on the store:
-`light`, `dark` or `system`) is what syncs with the account, so it follows the
-person to every device. The surface it resolves to is what the CSS sees, as
-`data-surface` on `<html>`.
+There are three surfaces and four choices. The choice (`themeMode` on the
+store: `light`, `dark`, `blue` or `system`) is what syncs with the account, so
+it follows the person to every device. The surface it resolves to is what the
+CSS sees, as `data-surface` on `<html>`.
 
 | Choice | Surface | Canvas | Cards | Text | `--wash` |
 | --- | --- | --- | --- | --- | --- |
 | **Light** (default) | `white` | warm ivory `#f6f4f0` | white | near-black | 0.55 |
 | **Dark** | `black` | near-black `rgb(11 11 13)` | `rgb(22 22 25)` | soft white `rgb(238 238 242)` | 0.32 |
-| **Auto** | either | follows the device's `prefers-color-scheme`, live | | | |
+| **Blue Glass** | `blue` | pale sky `rgb(226 237 249)` and its sky | frosted white glass | deep navy `#0C1D38` | 1 |
+| **Auto** | `white` or `black` | follows the device's `prefers-color-scheme`, live | | | |
 
 Dark is a night theme, not an OLED one. On true `#000`, cards, inputs and
 dialogs melted into the floor, so the canvas is lifted slightly, cards sit a
@@ -54,7 +55,9 @@ the old `upsc-chronicle-surface:<id>` key, and to `matchMedia` for Auto) and
 sets `data-surface` before any CSS is applied. `ThemeModeSync`
 (`components/pwa/theme-mode-sync.tsx`) then keeps Auto in step when the device
 switches between day and night. The e2e run checks the surface at the moment
-`<body>` appears, before the app's scripts run.
+`<body>` appears, before the app's scripts run, for Dark and for Blue Glass.
+A switch made in Appearance eases colours across for under half a second
+(`data-appearance-switching`, set by `lib/theme.ts`).
 
 **Older choices.** There used to be five surfaces: Ivory, Pure Black, Indigo,
 Velvet and Abyss. Ivory becomes Light and the other four become Dark
@@ -62,12 +65,59 @@ Velvet and Abyss. Ivory becomes Light and the other four become Dark
 and in `normalizeSnapshot`, so a device still on an older version can't bring
 them back.
 
+### Blue Glass (`data-surface="blue"`)
+
+The third theme: frosted panes on a pale sky-blue canvas, with soft blue-grey
+shadows and a navy type colour. It is a surface of its own, not Light with a
+tint, so it sets every token itself in the "Blue Glass" section of
+`globals.css`, placed after the palettes on purpose:
+
+| Group | Tokens | Blue Glass values |
+| --- | --- | --- |
+| Canvas | `--ink`, `--aura-1`, `--aura-2`, `--wash` | pale sky; cyan and azure glows; full wash |
+| Panes | `--card`, `--line`, `--shadow`, `--scrim` | near-white; cool hairline; blue-grey shadow; navy scrim |
+| Text | `--paper`, `--quiet`, `--quiet-canvas` | deep navy; the floor for quiet text on a pane and on the canvas |
+| Accent | `--accent`, `--accent-ink`, `--accent-fg`, `--selection` | royal blue fills `#1A50CC`; deeper `#1646BA` for accent text and icons; white on fills |
+| Status | `--positive` `--warning` `--danger` `--info` | deepened so small text clears 4.5:1 on its own tint |
+| Charts | `--bloom-1…6` | led by the theme's blue, then cyan, violet, green, amber and rose, far enough apart to tell series apart |
+| Hero | `--hero-ink`, `--hero-tile`, `--hero-ring` | the dashboard hero becomes deep sapphire with frosted tiles |
+
+**It brings its own colours.** The palette and the wallpaper rest while Blue
+Glass is on (`themeHasOwnColours` in `lib/theme.ts`; `Wallpaper` renders
+nothing, and every wallpaper rule in `globals.css` excludes
+`[data-surface="blue"]`). Both choices are kept and come back with Light, Dark
+or Auto, and Appearance says so beside each picker.
+
+**The sky.** `.bg-aura` on Blue Glass is daylight from the top, pale cyan and
+light azure pooled in the upper corners, softer pools through the middle where
+the panes sit, and cooler blues low down. It is static and every pool fades to
+nothing, so it has no edges wherever it is used (the app canvas, the morning
+check-in, the boot screen, the public pages).
+
+**Readable on glass.** The quiet text steps (`text-paper/25` to `/65`) are
+raised to a floor on Blue Glass (`--quiet`, 0.66), and further on the open
+canvas (`--quiet-canvas`, 0.74), so secondary text still reads as secondary
+and none of it falls under AA. Placeholders, chart labels and accent text are
+covered the same way. Measured with a script that samples the real rendered
+background behind every visible piece of text, on 35 screens at desktop,
+tablet and phone sizes: on Blue Glass one of about 1,700 text items was
+flagged, the tiny notification count, where the sample catches the bar around
+the badge (worked out from its colours it is about 6:1); with Liquid Glass on,
+none of about 1,660. For comparison, the same check flags about 40 items on
+Dark and over 900 on Light, mostly its deliberately faint secondary text.
+
+**Materials.** Blue Glass is frosted by design, so it uses the glass
+materials below whether Liquid Glass is on or off. On its own its panes are
+firmer (62% white, with an icy fall-off and a bright rim); with Liquid Glass
+on they become clearer (42%) and pick up the corner glint over a more
+colourful sky. The desktop sidebar floats as a pane of its own, inset and
+rounded like the top bar; nothing else about the navigation changes.
+
 ### Liquid Glass (`data-material`)
 
-An appearance mode, separate from the theme. The theme says Light or Dark;
-the material says how surfaces are drawn on it. All four combinations exist
-(Light or Dark, each Standard or Liquid Glass), and changing one never
-changes the other.
+An appearance mode, separate from the theme. The theme says Light, Dark or
+Blue Glass; the material says how surfaces are drawn on it. Every combination
+exists, and changing one never changes the other.
 
 | Setting | Store / synced key | On `<html>` | Pre-paint key |
 | --- | --- | --- | --- |
@@ -77,60 +127,75 @@ changes the other.
 Both travel with the account like the theme: synced in the snapshot, painted
 by the inline script before first paint, reset to Standard on sign-out, and
 never read from another account's keys. `applyMaterial` in `lib/theme.ts`
-puts them on screen; while switching it sets `data-material-switching` for
-under half a second so surfaces ease across.
+puts them on screen and eases the switch like a theme change.
 
-**Materials.** All the rules live in one section of `globals.css` and every
-selector is scoped to `[data-material="glass"]`, so Standard is unchanged.
-They map from what the markup already says, rather than a new class on every
-component:
+**Materials.** All the rules live in one section of `globals.css`. Every
+selector is scoped to `[data-material="glass"]` or `[data-surface="blue"]`, so
+Standard on Light and Dark is unchanged. They map from what the markup already
+says, rather than a new class on every component:
 
 | Material | Matched by | Treatment |
 | --- | --- | --- |
 | panel | `bg-card` (and `/60` `/80` `/85` `/95`) | translucent tint, top sheen, corner glint, lit edge; no blur |
-| overlay | `bg-card` + `shadow-lift`, or `.glass-overlay` | firmer tint, `blur(30px) saturate(1.8)` |
-| chrome | `.chrome-glass`, `.sidebar-panel`, `.glass-sticky` | translucent tint, `blur(22px) saturate(1.7)` |
+| inner pane | a panel inside a panel, dialog or `.glass-overlay` | on Blue Glass lighter and flat, so layers read as layers; elsewhere the same as a panel |
+| overlay | `bg-card` + `shadow-lift`, or `.glass-overlay` | firmer tint, `blur(28–32px)` |
+| chrome | `.chrome-glass`, `.sidebar-panel`, `.glass-sticky` | the most translucent layer, `blur(22–26px)` |
 | field | `.field` (every `Input`, `Select`, `Textarea`, time button) | lighter recess, visible edge, brighter on focus |
+| ghost | `.glass-ghost` (outline buttons, filter toggles at rest) | on Blue Glass a faint frosted fill |
 | accent | `bg-accent` | a soft gloss and a lit top edge |
 
 The attribute part of each selector sits in `:where()`, so a rule has the
 weight of a single utility class: it beats the utility it replaces (it comes
 later in the file) and still loses to `hover:` and `focus:` states. The edge
 colour only replaces the plain `border-line`, so accent, warning and selected
-borders keep their colour.
+borders keep their colour. The chrome rule doubles its classes on purpose:
+Tailwind appends responsive variants (`sm:bg-card/80`, `lg:backdrop-blur-xl`)
+after this file, and on glass the material, not the utility, has to decide.
+
+**Tokens, and why the two never stack.** Each rule reads `--glass-*` tokens,
+and only the values change between combinations. The token blocks are wrapped
+in `:where()`, so they all weigh nothing and their order in the file is their
+precedence: Light glass, Dark glass, Blue Glass, Blue Glass with Liquid Glass,
+firmer panes over a wallpaper, phones, the no-blur fallback, then Reduce
+transparency, which therefore wins over everything before it. A surface is
+tinted and blurred once, whatever is switched on.
 
 Light glass is white panes at about 55% over a brighter canvas glow; Dark
 glass is smoked charcoal panes at about 52% with a fine lit edge. Both keep
 the theme's text colours, so contrast stays where the theme put it. Over a
 wallpaper the panes firm up (74% and 68%) so text stays legible.
 
-**Where blur goes.** Only where content moves or opens underneath: dialogs,
-menus, the palette, tooltips, the bars and sticky headers. Cards sit on the
-canvas, which is soft light with nothing sharp in it, so blurring it would
-cost frames on every scroll and change nothing visible; their glass comes from
+**Where blur goes.** Only where content moves or opens underneath: menus,
+popovers, tooltips, the bars and sticky headers. Cards sit on the canvas,
+which is soft light with nothing sharp in it, so blurring it would cost frames
+on every scroll and change nothing visible; their glass comes from
 translucency, the sheen, the glint and the edge, all painted as backgrounds
-and shadows on the element itself. There are no pseudo-elements and no extra
-layers. Phones use smaller blur radii.
+and shadows on the element itself. A dialog or the palette sits over a scrim
+that is already blurred, so it skips its own blur (`.glass-on-scrim`). There
+are no pseudo-elements and no extra layers. Phones use smaller blur radii.
 
 Measured with a scripted three-second scroll at 4x CPU throttling in headless
-Chromium: phone-sized views held 60 fps in all four combinations with no long
-frames, and desktop views ran the same in both materials (about 35–46 fps,
-the same range as Standard, in that software-rendered setup).
+Chromium, on the journal, dashboard and Life Dashboard: phone-sized views held
+60 fps in every look, and on desktop Blue Glass (42–57 fps) and Liquid Glass
+(45–59 fps) ran at or above Light and Dark Standard (37–47 fps) in that
+software-rendered setup.
 
 **Fallbacks.** *Reduce transparency* (in Appearance, or the device's own
 `prefers-reduced-transparency`) makes every glass surface 94–98% solid and
 turns blur off, in the same theme; in Standard it makes the frosted bars
 solid. A browser without `backdrop-filter` gets nearly solid bars and
-dialogs instead of see-through ones.
+dialogs instead of see-through ones. With reduced motion, switching is
+instant.
 
-
+### Palettes (`data-palette`)
 
 Crimson (default), Amber, Teal, Violet, Emerald, Coral.
 
 Each palette declares its **dark-surface** values, then a
 `[data-surface="white"][data-palette="…"]` block deepens the accent so it keeps
 roughly 4.5:1 against the ivory canvas — the fill stays vivid, small accent text
-stays legible. Add a palette by declaring both blocks and appending to
+stays legible. Blue Glass sets its own accent and chart colours after these
+blocks, so the palette rests while it's on. Add a palette by declaring both blocks and appending to
 `PALETTES` in `src/lib/theme.ts`.
 
 ## Type
@@ -336,7 +401,9 @@ command centre hero passes every region at the worst frame of its loop.
 The topbar is a **floating pill** (`rounded-full bg-card/80 backdrop-blur-xl`)
 inset from the edges, with round icon buttons. The sidebar is a translucent
 card-coloured rail whose active item is a filled accent pill. The ambient
-background is deliberately quiet: two very soft accent washes, no texture.
+background is deliberately quiet: two very soft accent washes, no texture. On
+Blue Glass the desktop sidebar floats too, as a rounded pane inset like the
+top bar; its width, collapse and items are the same.
 
 ## Data colour
 
@@ -354,8 +421,8 @@ background is deliberately quiet: two very soft accent washes, no texture.
 The command centre used to play a looping film behind the greeting. It was
 retired along with journal photos: nothing in the app downloads video now. The
 panel is painted in CSS from the palette (two radial `--aura` washes and an
-accent gradient on a near-black card), so it costs no bytes and re-tints with
-the accent. It keeps the `.on-media` class, which pins its copy to a fixed
+accent gradient on a near-black card, deep sapphire on Blue Glass through the
+`--hero-*` tokens), so it costs no bytes and re-tints with the accent. It keeps the `.on-media` class, which pins its copy to a fixed
 light-on-dark palette on every surface.
 
 The one image left in `public/media/` is the still behind the optional
@@ -366,8 +433,10 @@ time someone chooses that wallpaper.
 ### Performance rules that still apply
 
 - **No `backdrop-filter` on anything that scrolls.** The sticky topbar re-blurs
-  the page behind it on every scroll tick, so it is opaque below `sm` and
-  frosted only on desktop. Use a flat translucent fill instead.
+  the page behind it on every scroll tick, so in Standard it is opaque below
+  `sm` and frosted only on desktop. Liquid Glass and Blue Glass frost the bars
+  on phones too, with a smaller radius (16px), measured at 60 fps; cards never
+  blur. Use a flat translucent fill instead.
 - **Don't transform-animate blurred layers on phones.** The drifting aura orbs
   are 130px blurs; animating them is continuous GPU work. They're `hidden sm:block`.
 - `content-visibility: auto` on the cards below the fold was tried and removed:
@@ -392,10 +461,21 @@ npm run check:classes
 It scans for off-scale opacity modifiers and exits non-zero. Use a multiple of 5,
 or an arbitrary value (`bg-black/[0.12]`) when you really need something between.
 
+A second trap: with no `@tailwind variants` directive, Tailwind appends every
+variant utility (`hover:`, `focus:`, `sm:`, `lg:`, `placeholder:`) **after**
+`globals.css`. That is why hover and focus colours beat the theme and glass
+overrides, as intended, but it also means a rule meant to win over a variant
+needs one step more weight: the glass chrome rule doubles its classes, and the
+Blue Glass placeholder rule adds `:is(input, textarea)`.
+
 ## Adding UI
 
 Reach for the primitives in `src/components/ui` — `Card`, `Button`, `Badge`,
 `Segmented`, `Chip`, `Progress`, `Modal`, `PageHeader`, `Stat`, `EmptyState` —
 before writing new class strings. When you do write them, compose from the
-tokens (`bg-card`, `border-line`, `text-paper/55`, `bg-accent`) so both
-surfaces and all six palettes keep working.
+tokens (`bg-card`, `border-line`, `text-paper/55`, `bg-accent`) so all three
+themes, both materials and all six palettes keep working. The glass materials
+find surfaces by those classes, plus a few hooks: `field` on any hand-styled
+input or select, `glass-ghost` on an outline control with no fill,
+`.glass-overlay` on a custom floating panel, and `glass-on-scrim` on a dialog
+that sits over a blurred scrim.
