@@ -130,7 +130,7 @@ export function AccomplishedModal({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 16, scale: 0.97 }}
             transition={{ type: "spring", stiffness: 260, damping: 24 }}
-            className="relative w-full max-w-md overflow-hidden rounded-t-3xl border border-line bg-card shadow-lift sm:rounded-3xl"
+            className="glass-on-scrim relative w-full max-w-md overflow-hidden rounded-t-3xl border border-line bg-card shadow-lift sm:rounded-3xl"
           >
             {/* the burst sits behind the content, framed by the medal */}
             <div className="pointer-events-none absolute inset-0 z-0">

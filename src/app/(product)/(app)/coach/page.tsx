@@ -721,7 +721,7 @@ function TalkView({
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && send(input)}
             placeholder="Ask about your preparation…"
-            className="h-11 flex-1 rounded-xl border border-line bg-paper/[0.03] px-4 text-sm text-paper placeholder:text-paper/35 focus:border-paper/25 focus:outline-none"
+            className="field h-11 flex-1 rounded-xl border border-line bg-paper/[0.03] px-4 text-sm text-paper placeholder:text-paper/35 focus:border-paper/25 focus:outline-none"
           />
           <button
             onClick={() => send(input)}

@@ -89,7 +89,7 @@ export function Modal({
             exit={{ opacity: 0, scale: 0.98, y: 8 }}
             transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
             className={cn(
-              "relative flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-3xl border border-line bg-card shadow-lift sm:max-w-lg sm:rounded-3xl",
+              "glass-on-scrim relative flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-3xl border border-line bg-card shadow-lift sm:max-w-lg sm:rounded-3xl",
               className,
             )}
           >

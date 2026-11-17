@@ -91,7 +91,7 @@ export function CommandPalette({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.98, y: -4 }}
             transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
-            className="relative w-full max-w-xl overflow-hidden rounded-3xl border border-line bg-card shadow-lift"
+            className="glass-on-scrim relative w-full max-w-xl overflow-hidden rounded-3xl border border-line bg-card shadow-lift"
           >
             <div className="flex items-center gap-3 border-b border-line px-4">
               <Search className="h-4 w-4 text-paper/40" />

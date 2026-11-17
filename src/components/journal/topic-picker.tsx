@@ -143,7 +143,7 @@ export function TopicPicker({
           aria-controls={listId}
           aria-autocomplete="list"
           placeholder="Search the syllabus or type a topic…"
-          className="w-full rounded-xl border border-line bg-paper/[0.03] py-2.5 pl-10 pr-3.5 text-sm text-paper placeholder:text-paper/40 transition-all focus:border-accent/60 focus:bg-card focus:outline-none focus:ring-4 focus:ring-accent/10"
+          className="field w-full rounded-xl border border-line bg-paper/[0.03] py-2.5 pl-10 pr-3.5 text-sm text-paper placeholder:text-paper/40 transition-all focus:border-accent/60 focus:bg-card focus:outline-none focus:ring-4 focus:ring-accent/10"
         />
       </div>
 

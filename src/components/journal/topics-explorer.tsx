@@ -169,7 +169,7 @@ export function TopicsExplorer({ onNewEntry }: { onNewEntry: () => void }) {
                 "inline-flex shrink-0 items-center gap-2 rounded-xl border px-3.5 py-2.5 text-sm transition-colors",
                 showFilters || filters
                   ? "border-paper/25 bg-paper/[0.06] text-paper"
-                  : "border-line text-paper/65 hover:border-paper/25 hover:text-paper",
+                  : "glass-ghost border-line text-paper/65 hover:border-paper/25 hover:text-paper",
               )}
             >
               <SlidersHorizontal className="h-4 w-4" />
