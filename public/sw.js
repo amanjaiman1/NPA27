@@ -12,8 +12,8 @@
  * Bump CACHE_VERSION to retire every previous cache on the next activation.
  */
 
-// v6 — accounts: the auth screens arrived and the dashboard film was retired.
-const CACHE_VERSION = "v6";
+// v7 — the app is now called DoOrDie; the precached manifest and offline page changed.
+const CACHE_VERSION = "v7";
 const SHELL_CACHE = `chronicle-shell-${CACHE_VERSION}`;
 const PAGE_CACHE = `chronicle-pages-${CACHE_VERSION}`;
 const ASSET_CACHE = `chronicle-assets-${CACHE_VERSION}`;
@@ -111,7 +111,7 @@ self.addEventListener("push", (event) => {
   if (typeof payload !== "object" || payload === null) payload = {};
 
   const str = (v, fallback) => (typeof v === "string" && v ? v : fallback);
-  const title = str(payload.title, "OP NPA28");
+  const title = str(payload.title, "DoOrDie");
   const href = str(payload.href, "/");
 
   const options = {

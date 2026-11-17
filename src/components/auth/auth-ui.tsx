@@ -18,7 +18,7 @@ export function AuthFrame({ children }: { children: React.ReactNode }) {
         <Link href="/welcome" className="mb-7 flex flex-col items-center text-center">
           <Logo className="h-11 w-11" />
           <span className="mt-4 font-display text-[1.6rem] font-bold tracking-tightest text-paper">
-            OP NPA28
+            DoOrDie
           </span>
           <span className="mt-0.5 text-xs text-paper/50">Your UPSC preparation, documented</span>
         </Link>
