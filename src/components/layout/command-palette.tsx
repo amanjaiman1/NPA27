@@ -158,7 +158,7 @@ export function CommandPalette({
               <span className="flex items-center gap-1">
                 <CornerDownLeft className="h-3 w-3" /> open
               </span>
-              <span className="ml-auto font-display font-semibold">OP NPA28</span>
+              <span className="ml-auto font-display font-semibold">DoOrDie</span>
             </div>
           </motion.div>
         </motion.div>

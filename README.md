@@ -1,4 +1,4 @@
-# OP NPA28 — UPSC Chronicle
+# DoOrDie — UPSC Chronicle
 
 A personal operating system for UPSC preparation: daily journal, study hours,
 syllabus progress, revision, mocks, mistakes, goals, wellbeing, reflections and

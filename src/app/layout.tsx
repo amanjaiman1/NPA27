@@ -26,10 +26,10 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
-  title: "OP NPA28 — Your Preparation, Documented",
+  title: "DoOrDie — Your Preparation, Documented",
   description:
     "A personal operating system for the UPSC journey. Document and visualize every day of preparation from Day 1 until final selection.",
-  applicationName: "OP NPA28",
+  applicationName: "DoOrDie",
   keywords: [
     "UPSC",
     "Civil Services",
@@ -41,7 +41,7 @@ export const metadata: Metadata = {
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
-    title: "OP NPA28",
+    title: "DoOrDie",
     statusBarStyle: "default",
   },
   icons: {

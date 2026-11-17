@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#f6f4f0" />
-    <title>Offline · OP NPA28</title>
+    <title>Offline · DoOrDie</title>
     <link rel="icon" href="/icons/icon-192.png" type="image/png" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
     <!--
@@ -212,10 +212,13 @@
     </main>
 
     <script>
-      // Match the surface the user chose in the app, and retry automatically
-      // the moment the connection returns.
+      // Match the surface the signed-in account chose (appearance is saved per
+      // account, under keys ending in its id), and retry automatically the
+      // moment the connection returns.
       try {
-        var s = localStorage.getItem("upsc-chronicle-surface") || "white";
+        var session = JSON.parse(localStorage.getItem("upsc-chronicle-auth") || "null");
+        var id = session && session.user && session.user.id ? session.user.id : "local";
+        var s = localStorage.getItem("upsc-chronicle-surface:" + id) || "white";
         document.documentElement.setAttribute("data-surface", s);
       } catch (e) {}
       window.addEventListener("online", function () {
