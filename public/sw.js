@@ -12,8 +12,9 @@
  * Bump CACHE_VERSION to retire every previous cache on the next activation.
  */
 
-// v7 — the app is now called DoOrDie; the precached manifest and offline page changed.
-const CACHE_VERSION = "v7";
+// v8 — the dashboard moved to /dashboard and "/" became the public site; the
+// precached manifest and offline page link there now.
+const CACHE_VERSION = "v8";
 const SHELL_CACHE = `chronicle-shell-${CACHE_VERSION}`;
 const PAGE_CACHE = `chronicle-pages-${CACHE_VERSION}`;
 const ASSET_CACHE = `chronicle-assets-${CACHE_VERSION}`;
@@ -112,7 +113,7 @@ self.addEventListener("push", (event) => {
 
   const str = (v, fallback) => (typeof v === "string" && v ? v : fallback);
   const title = str(payload.title, "DoOrDie");
-  const href = str(payload.href, "/");
+  const href = str(payload.href, "/dashboard");
 
   const options = {
     body: str(payload.body, "Something needs your attention."),
@@ -190,7 +191,7 @@ self.addEventListener("notificationclick", (event) => {
    */
   if (event.action === "later") return;
 
-  const href = event.notification.data?.href || "/";
+  const href = event.notification.data?.href || "/dashboard";
   const target = new URL(href, self.location.origin);
 
   event.waitUntil(

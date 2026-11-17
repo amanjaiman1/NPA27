@@ -79,7 +79,7 @@ export async function POST(request: Request) {
   const base: PushPayload = {
     title: "Background push is working",
     body: "This is a test. Real notifications follow your schedule and quiet hours.",
-    href: "/",
+    href: "/dashboard",
     tag: "chronicle-test",
     // Deliberately absent: no badgeCount. A test should not leave a number on
     // your dock for something that was never real.

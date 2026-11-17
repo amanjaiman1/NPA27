@@ -48,7 +48,7 @@ export function Sidebar({
       {/* Brand */}
       <div className="flex items-center gap-3 px-4 py-5">
         <Link
-          href="/"
+          href="/dashboard"
           onClick={onNavigate}
           className="flex items-center gap-3 overflow-hidden"
         >
@@ -102,10 +102,7 @@ export function Sidebar({
             )}
             <ul className="space-y-1">
               {group.items.map((item) => {
-                const active =
-                  item.href === "/"
-                    ? pathname === "/"
-                    : pathname.startsWith(item.href);
+                const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
                 const Icon = item.icon;
                 return (
                   <li key={item.href}>

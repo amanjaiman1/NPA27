@@ -849,6 +849,114 @@ samp {
   }
 }
 
+/* ── Public site: long-form text ──────────────────────────────────────
+   Guides and legal pages are written as plain h2 / p / ul / table elements
+   (components/marketing/prose.tsx) and styled here, so the content files
+   read like text rather than a wall of utility classes.
+   ─────────────────────────────────────────────────────────────────── */
+
+.prose-doordie {
+  color: rgb(var(--paper) / 0.82);
+  font-size: 1.0625rem;
+  line-height: 1.75;
+}
+.prose-doordie > * + * {
+  margin-top: 1.15em;
+}
+.prose-doordie h2 {
+  margin-top: 2.1em;
+  font-size: 1.55rem;
+  line-height: 1.25;
+  font-weight: 700;
+  color: rgb(var(--paper));
+  scroll-margin-top: 6rem;
+}
+.prose-doordie h3 {
+  margin-top: 1.7em;
+  font-size: 1.18rem;
+  line-height: 1.35;
+  font-weight: 700;
+  color: rgb(var(--paper));
+  scroll-margin-top: 6rem;
+}
+.prose-doordie h2 + *,
+.prose-doordie h3 + * {
+  margin-top: 0.65em;
+}
+.prose-doordie a {
+  color: rgb(var(--accent));
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+.prose-doordie strong {
+  color: rgb(var(--paper));
+  font-weight: 600;
+}
+.prose-doordie ul,
+.prose-doordie ol {
+  padding-left: 1.35em;
+}
+.prose-doordie ul {
+  list-style: disc;
+}
+.prose-doordie ol {
+  list-style: decimal;
+}
+.prose-doordie li + li {
+  margin-top: 0.45em;
+}
+.prose-doordie li::marker {
+  color: rgb(var(--paper) / 0.45);
+}
+.prose-doordie blockquote {
+  border-left: 3px solid rgb(var(--accent) / 0.6);
+  padding-left: 1em;
+  color: rgb(var(--paper) / 0.75);
+}
+.prose-doordie .table-wrap {
+  overflow-x: auto;
+}
+.prose-doordie table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+  line-height: 1.55;
+}
+.prose-doordie th,
+.prose-doordie td {
+  border: 1px solid rgb(var(--line));
+  padding: 0.55em 0.75em;
+  text-align: left;
+  vertical-align: top;
+}
+.prose-doordie th {
+  background: rgb(var(--paper) / 0.04);
+  color: rgb(var(--paper));
+  font-weight: 600;
+}
+.prose-doordie hr {
+  margin: 2.5em 0;
+  border-color: rgb(var(--line));
+}
+.prose-doordie code {
+  border-radius: 0.35rem;
+  background: rgb(var(--paper) / 0.06);
+  padding: 0.1em 0.35em;
+  font-size: 0.92em;
+}
+.prose-doordie figure {
+  margin-top: 2em;
+  margin-bottom: 2em;
+}
+.prose-doordie figcaption {
+  margin-top: 0.6em;
+  text-align: center;
+  font-size: 0.8rem;
+  color: rgb(var(--paper) / 0.55);
+}
+
 /* Reduced motion respect */
 @media (prefers-reduced-motion: reduce) {
   *,

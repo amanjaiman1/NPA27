@@ -178,7 +178,8 @@ async function main() {
 
   try {
     await scenario("1. Registration gives each account its own clean chronicle", async () => {
-      await page.goto(APP);
+      // "/" is the public site; the app itself sends a signed-out visitor to welcome.
+      await page.goto(`${APP}/dashboard`);
       await page.waitForURL(/\/welcome/);
       await signUp(page, A.name, A.email);
       await onboard(page, A.name);

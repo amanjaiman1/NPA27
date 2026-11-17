@@ -3,10 +3,7 @@
 > A performance terminal for UPSC mocks. Not a scorecard — an instrument panel.
 > It tracks Prelims & Mains scores, subject-wise accuracy, negative marking,
 > time per section, and surfaces **why** marks are improving or declining, with
-> AI-style recommendations on what to fix next.
-
-Built for **Aman Jaiman** · Mission: National Police Academy (IPS) · do-or-die
-**CSE 2027** · Optional: Sociology.
+> rule-based recommendations on what to fix next.
 
 ## 1. Data structures
 
@@ -77,9 +74,10 @@ Each driver is tagged positive/negative and ranked by magnitude, producing a
 plain-English explanation like *"Scores have dipped — down 6 pts. Driver:
 Economy accuracy down 15 pts; negatives +4 marks."*
 
-### AI recommendations
+### Recommendations
 
-`recommendations` emits up to six prioritised cards from the data: shore up the
+Rule-based, not a language model. `recommendations` emits up to six
+prioritised cards from the data: shore up the
 weakest subject, tame negative marking (elimination rule), lift/!trim attempt
 rate, cap time on inefficient sections (high time + low accuracy), reverse a
 recent decline, and keep banking the strongest subject.
@@ -100,7 +98,7 @@ Hand-built SVG, grayscale (direction shown via fill/hollow + arrows, not colour)
 
 ```
 ┌──────────────────────────────────────────────────────────────────┐
-│  MOCK ANALYTICS · Aman's performance terminal                      │
+│  MOCK ANALYTICS · your performance terminal                        │
 │  [Prelims GS][CSAT][Mains][Sectional][All]            [+ Log mock] │
 ├──────────────────────────────────────────────────────────────────┤
 │ LATEST 118/200 ▲+4 │ AVG 58% │ BEST 71% │ ACC 64% │ NEG −16 │ PROJ 122 │  ← ticker strip
@@ -115,7 +113,7 @@ Hand-built SVG, grayscale (direction shown via fill/hollow + arrows, not colour)
 │  ⤴ WHY YOUR MARKS ARE MOVING            58% → 64%                  │
 │  ▲ Accuracy +6 pts   ▼ Economy −15 pts   ▲ Environment +13 pts    │
 ├───────────────────────────────┬──────────────────────────────────┤
-│  Subject-wise accuracy bars   │  ✦ AI recommendations (HIGH/MED)  │
+│  Subject-wise accuracy bars   │  ✦ Recommendations (HIGH/MED)     │
 ├───────────────────────────────┴──────────────────────────────────┤
 │  Time vs accuracy by section   │   Mock log table                 │
 └──────────────────────────────────────────────────────────────────┘

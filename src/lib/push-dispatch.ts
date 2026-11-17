@@ -184,7 +184,7 @@ export function decideForUser(
      * A digest links home rather than to any one page — sending it to the top
      * notice's destination would quietly drop everything else it mentions.
      */
-    href: digest ? "/" : lead.href,
+    href: digest ? "/dashboard" : lead.href,
     tag: digest ? "chronicle-digest" : lead.dedupeKey,
     // Everything still unread, not just what is being sent — the badge is a
     // count of what is waiting, and one push may stand for several notices.

@@ -112,7 +112,7 @@ export function DangerZone() {
             if (!ok) return;
             resetData();
             await eraseAccountFromDevice(accountId);
-            window.location.replace("/");
+            window.location.replace("/dashboard");
           }}
         >
           <Trash2 className="h-4 w-4" /> Erase all data
