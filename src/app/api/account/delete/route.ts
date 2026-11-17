@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { adminClient, userIdFromToken } from "@/lib/supabase-admin";
+import { FILE_BUCKET } from "@/lib/files";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -13,8 +15,9 @@ export const dynamic = "force-dynamic";
  * calling this, which mints a new one, so a session left open on a borrowed
  * computer can't be used to destroy the account later.
  *
- * Deleting the auth user cascades (`on delete cascade`) to the snapshot, the
- * push subscriptions and the delivery log, in one database operation.
+ * Attached files are deleted from Storage first. Then deleting the auth user
+ * cascades (`on delete cascade`) to the snapshot, the push subscriptions and
+ * the delivery log, in one database operation.
  */
 const MAX_TOKEN_AGE_SECONDS = 10 * 60;
 const CONFIRM_PHRASE = "DELETE";
@@ -64,9 +67,33 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: `Type ${CONFIRM_PHRASE} to confirm.` }, { status: 400 });
   }
 
+  // Attached files first: Storage objects aren't tied to the auth user, so
+  // deleting the user alone would leave them behind. If this fails the account
+  // is kept, so the student can retry rather than end up with orphaned files.
+  if (!(await removeAllFiles(admin, userId))) {
+    return NextResponse.json({ error: "Your attached files couldn't be deleted. Try again." }, { status: 500 });
+  }
+
   const { error } = await admin.auth.admin.deleteUser(userId);
   if (error) {
     return NextResponse.json({ error: "The account couldn't be deleted. Try again." }, { status: 500 });
   }
   return NextResponse.json({ ok: true });
+}
+
+/** Deletes every object in the account's folder of the attachments bucket. */
+async function removeAllFiles(admin: SupabaseClient, userId: string): Promise<boolean> {
+  const bucket = admin.storage.from(FILE_BUCKET);
+  for (let round = 0; round < 20; round++) {
+    const { data, error } = await bucket.list(userId, { limit: 1000 });
+    if (error) {
+      // No bucket means the attachments migration was never run: nothing to delete.
+      return /not found/i.test(error.message);
+    }
+    const paths = (data ?? []).filter((o) => o.id).map((o) => `${userId}/${o.name}`);
+    if (!paths.length) return true;
+    const removed = await bucket.remove(paths);
+    if (removed.error) return false;
+  }
+  return false;
 }

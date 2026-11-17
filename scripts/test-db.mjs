@@ -51,6 +51,8 @@ const SUPABASE_SHIM = `
 async function main() {
   const db = new PGlite();
   await db.exec(SUPABASE_SHIM);
+  // Supabase Storage's tables and helper, which the attachments migration uses.
+  await db.exec(read("supabase/tests/storage_shim.sql"));
 
   await db.exec(read("supabase/schema.sql"));
   const migrations = readdirSync(join(root, "supabase/migrations"))
