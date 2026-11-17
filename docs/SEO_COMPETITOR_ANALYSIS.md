@@ -39,8 +39,8 @@ The results for UPSC tracking searches fall into three groups.
 | Countdown sites ([upsctimer.com](https://www.upsctimer.com/), [watchisup.com](https://www.watchisup.com/exam/upsc-prelims)) | Days, hours and minutes to Prelims 2027 | Free | Compete with the countdown tool. DoOrDie's version adds UPSC's full schedule with its source and a study-hours planner. |
 | Spaced repetition apps ([Smaranly](https://smaranly.com/), [Mindcup](https://mindcup.in/), [UPSCAnki](https://upscanki.harmnix.com/)) | Fact-level flashcards on their own review schedules (Smaranly and Mindcup use the FSRS algorithm) | Varies | Card-level memorisation. DoOrDie schedules revision of whole topics and mistakes, which suits reading-heavy UPSC subjects; the two can be used together. |
 
-Also seen: GitHub projects of the same kind (personal UPSC trackers), Gumroad
-and Scribd printable planners and tracker PDFs, and planner "kits" sold through
+Also seen: personal UPSC tracker projects shared by their makers, Gumroad and
+Scribd printable planners and tracker PDFs, and planner "kits" sold through
 link-in-bio pages.
 
 ## 2. Store apps
@@ -90,7 +90,7 @@ sources for factual claims and a free tool or feature that does the tedious part
 - Free, with no ads, no paid tier and no referral gate.
 - Runs in any modern browser, installs as an app, works offline and syncs
   across devices.
-- Analytics never runs inside the app, and the source code is public.
+- Analytics never runs inside the app.
 - The public pages say what the product does not do.
 
 **Gaps (where competitors are ahead)**
@@ -120,6 +120,6 @@ listed under "bigger bets" in the roadmap and was not built here.
 4. **Keep dates current.** The countdown and calendar pages must be updated the
    day UPSC publishes the CSE 2027 notification (13 January 2027), and every
    "2027" mention needs a review after Prelims.
-5. **Earn links honestly:** the public GitHub repository, being listed in "free
-   UPSC tools" roundups, and helpful answers in aspirant communities that link
-   only when the link answers the question.
+5. **Earn links honestly:** being listed in "free UPSC tools" roundups, the
+   free tools being useful enough to share, and helpful answers in aspirant
+   communities that link only when the link answers the question.

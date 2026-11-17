@@ -76,9 +76,6 @@ export function SiteFooter() {
             © {year} {SITE.name}. An independent preparation tool, not affiliated with or endorsed by UPSC or the
             Government of India.
           </p>
-          <a href={SITE.repository} className="shrink-0 hover:text-paper" rel="noopener">
-            Source code on GitHub
-          </a>
         </Container>
       </div>
     </footer>

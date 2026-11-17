@@ -53,10 +53,11 @@ export const SITE = {
     height: 630,
     alt: "DoOrDie, a UPSC preparation tracker, showing a study dashboard with hours, syllabus progress and revisions due",
   },
-  /** The public source code. */
-  repository: "https://github.com/amanjaiman1/NPA27",
-  maker: "Aman Jaiman",
-  /** Shown on the contact page when set. */
+  /**
+   * The only way the site gives to reach its owner, shown on the contact page
+   * (which the privacy policy and terms point to). The site names no person
+   * and links to no code host; use an address that is fine to publish.
+   */
   contactEmail: process.env.NEXT_PUBLIC_CONTACT_EMAIL?.trim() || null,
   /** Google Search Console ownership token. Public by design; removing it un-verifies the site. */
   googleVerification: "VLuFtKkzlfkVgvIH-R34-EQzd3ntjZ5FjUffHpd-Sng",

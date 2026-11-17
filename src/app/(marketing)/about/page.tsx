@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { pageMetadata } from "@/lib/seo/metadata";
 import { PAGES } from "@/lib/seo/pages";
-import { SITE } from "@/lib/seo/config";
 import { PageHero } from "@/components/marketing/page-hero";
 import { Band, Container, CtaBanner } from "@/components/marketing/ui";
 import { Prose } from "@/components/marketing/prose";
@@ -19,8 +18,8 @@ export default function AboutPage() {
         intro={
           <p>
             DoOrDie is a free UPSC preparation tracker: one private place for an aspirant&apos;s daily study log,
-            syllabus progress, revision and mock tests. This page explains why it exists, who makes it, and what it will
-            and will not do.
+            syllabus progress, revision and mock tests. This page explains why it exists and what it will and will not
+            do.
           </p>
         }
       />
@@ -35,9 +34,8 @@ export default function AboutPage() {
               study next, what is slipping, and whether it is working, are hard to answer.
             </p>
             <p>
-              DoOrDie was built by {SITE.maker}, a Civil Services aspirant, as the tracker he wanted for his own
-              preparation. It is now open to any aspirant who wants the same: one daily entry that feeds a syllabus
-              tracker, a revision schedule, mock analytics, goals and reviews.
+              DoOrDie keeps all of it in one place. One daily entry feeds a syllabus tracker, a revision schedule, mock
+              analytics, goals and reviews, so those questions have answers. It is free for any aspirant.
             </p>
 
             <h2>What we believe</h2>
@@ -77,7 +75,7 @@ export default function AboutPage() {
               DoOrDie is a web app that works in the browser on phones and computers and can be installed like an app. It
               keeps working offline and syncs to your account when you reconnect. Accounts and data are stored with
               Supabase, using database rules that stop any account from reading another&apos;s. The site is hosted on
-              Vercel. The source code is public on <a href={SITE.repository}>GitHub</a>.
+              Vercel.
             </p>
 
             <h2>How the guides are written</h2>

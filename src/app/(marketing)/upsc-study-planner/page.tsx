@@ -75,8 +75,8 @@ const FAQS: FaqItem[] = [
     a: (
       <>
         There is an optional CSE 2027 roadmap: a week-by-week plan running from June 2026 that takes GS Paper II, then
-        III, I and IV, with Sociology as the optional alongside. It is one person&apos;s order of attack, not a plan
-        built for you, so it is off by default. Switch it on in Settings if it suits you.
+        III, I and IV, with Sociology as the optional alongside. It is a fixed plan rather than one built around you,
+        so it is off by default. Switch it on in Settings if it suits you.
       </>
     ),
   },

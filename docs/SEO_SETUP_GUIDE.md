@@ -43,7 +43,7 @@ production deployment → ⋯ → Redeploy).
 | Variable | Needed? | Example | What it does |
 | --- | --- | --- | --- |
 | `NEXT_PUBLIC_SITE_URL` | Strongly recommended | `https://example.com` | The address used in canonical links, the sitemap, robots.txt and social previews. Use the main domain from step 1, with `https://` and no trailing slash. Without it, Vercel's production domain is used, which may not be the one you want. |
-| `NEXT_PUBLIC_CONTACT_EMAIL` | Optional | `hello@example.com` | Shown on `/contact`. Without it, the page offers GitHub issues only. Use an address you're happy to publish. |
+| `NEXT_PUBLIC_CONTACT_EMAIL` | Recommended | `hello@example.com` | Shown on `/contact`, which the privacy policy and terms point to. It is the only way the site offers to reach you, so without it visitors have no contact route. The site names no person, so use an address that doesn't show your name, for example a separate one made for DoOrDie. |
 | `NEXT_PUBLIC_GA_MEASUREMENT_ID` | Optional | `G-XXXXXXXXXX` | Turns on Google Analytics, with a consent banner, on the public pages only. See step 6. |
 | `NEXT_PUBLIC_BING_SITE_VERIFICATION` | Optional | `1A2B3C…` | Bing Webmaster Tools' verification code. See step 5. |
 

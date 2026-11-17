@@ -155,7 +155,7 @@ export const PAGES = {
     label: "About",
     title: "About DoOrDie",
     description:
-      "Why DoOrDie exists, who builds it, and the principles it is built on: your data is private, the product is honest about what it does, and it is not affiliated with UPSC.",
+      "Why DoOrDie exists and the principles behind it: your data is private, the product is honest about what it does, and it is not affiliated with UPSC.",
     kind: "company",
     updated: LAUNCH,
   },

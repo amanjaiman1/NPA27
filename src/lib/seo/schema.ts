@@ -32,8 +32,6 @@ export function siteGraph(): Json {
         name: SITE.name,
         url: absoluteUrl("/"),
         logo: { "@type": "ImageObject", url: absoluteUrl(SITE.logo), width: 512, height: 512 },
-        founder: { "@type": "Person", name: SITE.maker },
-        sameAs: [SITE.repository],
       },
       {
         "@type": "WebSite",

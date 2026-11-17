@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { pageMetadata } from "@/lib/seo/metadata";
 import { PAGES } from "@/lib/seo/pages";
-import { SITE } from "@/lib/seo/config";
 import { PageHero } from "@/components/marketing/page-hero";
 import { Band, Container } from "@/components/marketing/ui";
 import { Prose } from "@/components/marketing/prose";
@@ -38,8 +37,8 @@ export default function PrivacyPolicyPage() {
 
             <h2 id="who">Who we are</h2>
             <p>
-              DoOrDie is an independent web app for organising UPSC preparation, run by {SITE.maker} (&ldquo;we&rdquo;,
-              &ldquo;us&rdquo;). This policy covers the DoOrDie website and app. You can reach us through the{" "}
+              DoOrDie (&ldquo;we&rdquo;, &ldquo;us&rdquo;) is an independent web app for organising UPSC
+              preparation. This policy covers the DoOrDie website and app. You can reach us through the{" "}
               <Link href={PAGES.contact.path}>contact page</Link>.
             </p>
 

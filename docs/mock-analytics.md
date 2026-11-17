@@ -3,10 +3,7 @@
 > A performance terminal for UPSC mocks. Not a scorecard — an instrument panel.
 > It tracks Prelims & Mains scores, subject-wise accuracy, negative marking,
 > time per section, and surfaces **why** marks are improving or declining, with
-> AI-style recommendations on what to fix next.
-
-Built for **Aman Jaiman** · Mission: National Police Academy (IPS) · do-or-die
-**CSE 2027** · Optional: Sociology.
+> rule-based recommendations on what to fix next.
 
 ## 1. Data structures
 
@@ -101,7 +98,7 @@ Hand-built SVG, grayscale (direction shown via fill/hollow + arrows, not colour)
 
 ```
 ┌──────────────────────────────────────────────────────────────────┐
-│  MOCK ANALYTICS · Aman's performance terminal                      │
+│  MOCK ANALYTICS · your performance terminal                        │
 │  [Prelims GS][CSAT][Mains][Sectional][All]            [+ Log mock] │
 ├──────────────────────────────────────────────────────────────────┤
 │ LATEST 118/200 ▲+4 │ AVG 58% │ BEST 71% │ ACC 64% │ NEG −16 │ PROJ 122 │  ← ticker strip
