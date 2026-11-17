@@ -223,7 +223,7 @@ export const WALLPAPERS: WallpaperMeta[] = [
   {
     id: "academy",
     label: "The Academy",
-    hint: "A still from your film",
+    hint: "A still of the Academy",
     group: "photo",
     swatch: "url('/media/hero-poster-sm.jpg') center 38%/cover",
     dim: 0.85,

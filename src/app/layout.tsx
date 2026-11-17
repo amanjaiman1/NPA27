@@ -1,11 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Comfortaa, Poppins } from "next/font/google";
 import "./globals.css";
-import { AppShell } from "@/components/layout/app-shell";
 import { AuthProvider } from "@/components/auth/auth-provider";
-import { SyncProvider } from "@/components/auth/sync-provider";
-import { AuthGate } from "@/components/auth/auth-gate";
-import { SleepGate } from "@/components/sleep/sleep-gate";
 import { ConfirmProvider } from "@/components/ui/confirm-dialog";
 import { PwaLayer } from "@/components/pwa/pwa-layer";
 
@@ -67,15 +63,29 @@ export const viewport: Viewport = {
   userScalable: true,
 };
 
-// Apply the chosen appearance before paint to avoid a flash of the wrong look.
+/**
+ * Apply the signed-in account's appearance before paint, to avoid a flash of
+ * the wrong look. Appearance is per account: the keys carry the account id,
+ * read here from the saved session (or "local" when accounts are off). With no
+ * session, the defaults — so a sign-in screen never wears the last person's look.
+ */
+const cloud = Boolean(
+  process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+);
 const themeScript = `
 (function(){
   var d = document.documentElement;
   try {
-    d.setAttribute('data-surface', localStorage.getItem('upsc-chronicle-surface') || 'white');
-    d.setAttribute('data-palette', localStorage.getItem('upsc-chronicle-palette') || 'rose');
-    d.setAttribute('data-wallpaper', localStorage.getItem('upsc-chronicle-wallpaper') || 'none');
-    d.style.setProperty('--wp-dim', localStorage.getItem('upsc-chronicle-wallpaper-dim') || '0');
+    var id = ${cloud ? "null" : "'local'"};
+    if (!id) {
+      var s = JSON.parse(localStorage.getItem('upsc-chronicle-auth') || 'null');
+      id = s && s.user && s.user.id ? s.user.id : null;
+    }
+    var get = function (k, f) { return (id && localStorage.getItem('upsc-chronicle-' + k + ':' + id)) || f; };
+    d.setAttribute('data-surface', get('surface', 'white'));
+    d.setAttribute('data-palette', get('palette', 'rose'));
+    d.setAttribute('data-wallpaper', get('wallpaper', 'none'));
+    d.style.setProperty('--wp-dim', get('wallpaper-dim', '0'));
   } catch (e) {
     d.setAttribute('data-surface','white');
     d.setAttribute('data-palette','rose');
@@ -108,16 +118,10 @@ export default function RootLayout({
         className={`${poppins.variable} ${comfortaa.variable} antialiased`}
       >
         <AuthProvider>
-          <SyncProvider>
-            <ConfirmProvider>
-              <AuthGate>
-                <SleepGate>
-                  <AppShell>{children}</AppShell>
-                </SleepGate>
-              </AuthGate>
-              <PwaLayer />
-            </ConfirmProvider>
-          </SyncProvider>
+          <ConfirmProvider>
+            {children}
+            <PwaLayer />
+          </ConfirmProvider>
         </AuthProvider>
       </body>
     </html>

@@ -103,10 +103,20 @@ async function dispatch(request: Request) {
    * subscribers into a few hundred round trips and blow any serverless time
    * limit long before it finished.
    */
-  const [{ data: states }, { data: logs }] = await Promise.all([
-    admin.from("chronicle_state").select("user_id, data").in("user_id", userIds),
+  /**
+   * The snapshots come trimmed — no journal prose, no photos, no long notes —
+   * from `chronicle_dispatch_snapshots`, which is most of the egress this route
+   * used to cost. Before that migration is applied, fall back to whole rows.
+   */
+  const [trimmed, { data: logs }] = await Promise.all([
+    admin.rpc("chronicle_dispatch_snapshots", { p_user_ids: userIds }),
     admin.from("chronicle_push_log").select("user_id, log").in("user_id", userIds),
   ]);
+  let states = trimmed.data as { user_id: string; data: unknown }[] | null;
+  if (trimmed.error) {
+    const full = await admin.from("chronicle_state").select("user_id, data").in("user_id", userIds);
+    states = full.data;
+  }
 
   const snapshots = new Map<string, Snapshot>();
   for (const row of states ?? []) {
@@ -120,6 +130,11 @@ async function dispatch(request: Request) {
   const at = new Date();
   let sent = 0;
   const skipped: { user: string; reason: string }[] = [];
+  /**
+   * The response is printed in the scheduler's log, which is public for a public
+   * repository, so accounts are only ever identified by a short prefix.
+   */
+  const short = (id: string) => `${id.slice(0, 8)}…`;
   const deadEndpoints: string[] = [];
   const logUpserts: { user_id: string; log: DeliveryLog; updated_at: string }[] = [];
 
@@ -131,7 +146,7 @@ async function dispatch(request: Request) {
       at,
     );
     if (!decision.send) {
-      skipped.push({ user: userId, reason: decision.reason });
+      skipped.push({ user: short(userId), reason: decision.reason });
       continue;
     }
 
@@ -179,7 +194,7 @@ async function dispatch(request: Request) {
         updated_at: at.toISOString(),
       });
     } else {
-      skipped.push({ user: userId, reason: "Every device failed." });
+      skipped.push({ user: short(userId), reason: "Every device failed." });
     }
   }
 

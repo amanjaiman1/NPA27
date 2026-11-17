@@ -145,7 +145,7 @@ by `scripts/extract-lottie.py` because `lottie-web` cannot read the zip.
 | --- | --- | --- |
 | Browser refresh / cold start | A cyan→blue→magenta gradient ring | `SleepGate`, via `.boot-ring` |
 | Page to page (**desktop only**) | Three quiet dots over a dimmed scrim | `RouteTransition`, via `animations/page-transition.json` |
-| Sign-in / first cloud pull | The gradient ring, the real Lottie | `AuthGate`, via `animations/boot.json` |
+| Signing in, loading an account, first cloud pull | The gradient ring | `BootScreen` in `components/account/boot-screen.tsx`, via `.boot-ring` |
 
 **One wait, one animation.** An earlier version faded a CSS ring into the real
 Lottie once it loaded; on a slower device that hand-off was slow enough to be
@@ -270,58 +270,28 @@ background is deliberately quiet: two very soft accent washes, no texture.
 
 ## Media assets
 
-Source clips are optimised into `public/media/` — never referenced raw, and
-always in **two renditions**: a desktop cut and a phone cut. The clip behind the
-command centre came in as a 7.2 MB 1080×1920 portrait with `moov` at the end,
-meaning a browser had to download the whole file before the first frame. The
-recipe:
+The command centre used to play a looping film behind the greeting. It was
+retired along with journal photos: nothing in the app downloads video now. The
+panel is painted in CSS from the palette (two radial `--aura` washes and an
+accent gradient on a near-black card), so it costs no bytes and re-tints with
+the accent. It keeps the `.on-media` class, which pins its copy to a fixed
+light-on-dark palette on every surface.
 
-```bash
-ffmpeg -i source.mp4 -an \
-  -vf "fps=24,crop=1080:1200:0:480,scale=720:800:flags=lanczos,hqdn3d=4:3:6:4" \
-  -c:v libx264 -crf 32 -preset slow -g 48 -pix_fmt yuv420p \
-  -movflags +faststart public/media/hero-loop.mp4      # 3.1 MB, starts instantly
+The one image left in `public/media/` is the still behind the optional
+"The Academy" wallpaper (`hero-poster.jpg`, 61 KB, and a 30 KB phone cut used as
+its picker swatch). It isn't precached; the service worker caches it the first
+time someone chooses that wallpaper.
 
-ffmpeg -ss 2.2 -i source.mp4 \
-  -vf "crop=1080:1200:0:480,scale=720:800" -frames:v 1 -q:v 6 \
-  public/media/hero-poster.jpg                          # 61 KB
-```
+### Performance rules that still apply
 
-Drop the audio (backgrounds are always muted), centre-crop to something closer to
-the box it fills, denoise before encoding (it buys a lot of bitrate on noisy
-footage), and always `+faststart`. The poster is mandatory: it paints
-immediately, and it's the *only* thing downloaded for anyone on reduced-motion,
-Save-Data or a 2G connection — see `components/dashboard/hero-video.tsx`, which
-also pauses the clip off-screen and in hidden tabs.
-
-### Performance rules for media panels
-
-Measured on the command centre with a 4x–20x CPU handicap and Fast 3G, these are
-the things that actually moved the needle — and one that didn't:
-
-- **No `backdrop-filter` over video, or on anything that scrolls.** A blurred
-  region compositing over moving frames re-rasterises every frame; the sticky
-  topbar re-blurs the page behind it on every scroll tick. Both are now opaque
-  below `sm` and frosted only on desktop. Use a flat translucent fill instead.
+- **No `backdrop-filter` on anything that scrolls.** The sticky topbar re-blurs
+  the page behind it on every scroll tick, so it is opaque below `sm` and
+  frosted only on desktop. Use a flat translucent fill instead.
 - **Don't transform-animate blurred layers on phones.** The drifting aura orbs
   are 130px blurs; animating them is continuous GPU work. They're `hidden sm:block`.
-- **Serve a phone rendition** and attach the video on `requestIdleCallback`, not
-  on mount, so it never competes with hydration.
-- **Pause off-screen and in hidden tabs** (`IntersectionObserver` +
-  `visibilitychange`).
 - `content-visibility: auto` on the cards below the fold was tried and removed:
-  54 fps without it, 55 with one wrapper, 49 applied per card. It bought nothing
-  here and added a scroll-height quirk. Measure before keeping a trick like that.
-
-Result on that harness (median of three runs — a single run swings by ±5 fps, so
-don't trust one): scroll went from 42 to 51 fps, main-thread blocking from 1916 ms
-to 1109 ms, and the hero from 3.15 MB to 1.40 MB on a phone.
-
-The panel itself is responsive about how much film it shows: the four headline
-numbers sit on the video from `sm` up, which is what gives the clip a tall canvas
-on a desktop, and drop out below `sm` so a phone keeps a hero-sized panel with
-the numbers as ordinary cards underneath. Stretching the panel on a narrow screen
-just pushed the rest of the dashboard off the first view.
+  it bought nothing here and added a scroll-height quirk. Measure before keeping
+  a trick like that.
 
 ## A Tailwind trap worth knowing
 
@@ -329,7 +299,7 @@ just pushed the rest of the dashboard off the first view.
 Tailwind's opacity scale, which moves in steps of 5. The element just loses its
 background with no error anywhere.
 
-This has bitten the codebase twice: once it stripped the scrims off the hero
+This has bitten the codebase twice: once it stripped the scrims off the old hero
 video, and once it left every `Badge` tone, the topic-mastery ramp, the form
 focus ring and the celebration medal with no fill for several releases. So there
 is now a guard:

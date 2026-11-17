@@ -30,7 +30,6 @@ export function emptyEntry(date = toISODate(new Date())): JournalEntry {
     highlights: "",
     reflection: "",
     tags: [],
-    attachments: [],
   };
 }
 
@@ -49,26 +48,8 @@ export function toDraft(entry: JournalEntry): JournalEntry {
     failures: [...(entry.failures ?? [])],
     lessons: [...(entry.lessons ?? [])],
     tags: [...(entry.tags ?? [])],
-    attachments: (entry.attachments ?? []).map((a) => ({ ...a })),
     motivation: entry.motivation ?? entry.focus ?? 3,
   };
-}
-
-/** Count how many sections of an entry carry content (for richness hints). */
-export function entryRichness(e: JournalEntry): number {
-  let n = 0;
-  if (e.totalHours > 0) n++;
-  if (e.topicsCompleted?.length) n++;
-  if (e.booksStudied?.length) n++;
-  if (e.revisionSessions?.length) n++;
-  if (e.mocksAttempted?.length) n++;
-  if (e.currentAffairs?.length) n++;
-  if (e.wins?.length) n++;
-  if (e.failures?.length) n++;
-  if (e.lessons?.length) n++;
-  if (e.reflection?.trim()) n++;
-  if (e.attachments?.length) n++;
-  return n;
 }
 
 

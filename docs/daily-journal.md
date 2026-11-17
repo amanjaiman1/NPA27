@@ -1,3 +1,9 @@
+> **Update — accounts:** photos and attachments were retired to keep each
+> account's synced data small (base64 images in the snapshot were the biggest
+> cost on Supabase's free plan). Entries saved before still load and export, and
+> Settings → Data can remove their old photos. The sections below that describe
+> attachments, the "Has photos" filter and the gallery are kept as history.
+
 # Daily Journal — Module Design
 
 > Every day of preparation becomes a separate, permanent historical record. A

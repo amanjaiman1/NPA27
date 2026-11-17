@@ -29,7 +29,6 @@ import {
   RatingPicker,
   ListEditor,
 } from "@/components/ui/form";
-import { AttachmentField } from "./attachments";
 import { RevisionPicker } from "./revision-picker";
 import { AccomplishedModal } from "@/components/celebrate/accomplished-modal";
 import {
@@ -505,14 +504,6 @@ export function JournalComposer({
             placeholder="deep-work, revision…"
           />
         </Field>
-
-        {/* Memory */}
-        <Section icon={BookOpen} title="Photos & attachments">
-          <AttachmentField
-            attachments={draft.attachments ?? []}
-            onChange={(a) => patch({ attachments: a })}
-          />
-        </Section>
       </div>
     </Modal>
     </>

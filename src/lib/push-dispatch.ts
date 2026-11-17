@@ -16,7 +16,7 @@ import {
   type NotifyState,
   type Notice,
 } from "./notifications";
-import { pickTimeZone, zonedNow, zonedDayAndHour } from "./zoned-time";
+import { isValidTimeZone, pickTimeZone, zonedNow, zonedDayAndHour } from "./zoned-time";
 
 /** A device row, as stored in `chronicle_push_subscriptions`. */
 export interface SubscriptionRow {
@@ -130,10 +130,14 @@ export function decideForUser(
   /**
    * The user's zone, not the server's. Without this every scheduling decision
    * would be made in UTC: quiet hours would start at the wrong time of day and
-   * "today" would roll over mid-afternoon. Falls back to UTC when no device has
-   * ever reported one.
+   * "today" would roll over mid-afternoon. The zone chosen in the profile wins;
+   * otherwise the one the devices report; UTC only when neither exists.
    */
-  const tz = pickTimeZone(rows.map((r) => r.timezone)) ?? "UTC";
+  const profileZone = snapshot.profile?.timezone;
+  const tz =
+    (isValidTimeZone(profileZone) ? (profileZone as string) : null) ??
+    pickTimeZone(rows.map((r) => r.timezone)) ??
+    "UTC";
   const now = zonedNow(tz, at);
   const { date: today } = zonedDayAndHour(tz, at);
 
