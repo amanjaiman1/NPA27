@@ -27,20 +27,40 @@ Note the naming: **`ink` is the background and `paper` is the foreground**, and
 they swap with the surface. A tint like `bg-paper/[0.04]` is therefore a subtle
 recessed fill on every surface, not a light or dark one.
 
-### Surfaces (`data-surface`)
+### Theme: Light, Dark and Auto
 
-| id | Name | Canvas | Aura | `--wash` |
-| --- | --- | --- | --- | --- |
-| `white` | **Ivory** (default) | warm off-white `#f6f4f0`, white cards | crimson + blue | 0.55 |
-| `black` | **Pure Black** | true `#000`, cards at `#0d0d0f` | rose + indigo | 0.40 |
-| `navy` | **Indigo** | deep blue night `#0f1221` | blue + violet | 0.80 |
-| `velvet` | **Velvet** | aubergine `#100719` | violet + magenta | 1 |
-| `abyss` | **Abyss** | deep ocean `#030e14` | cyan + electric blue | 1 |
+There are two surfaces and three choices. The choice (`themeMode` on the store:
+`light`, `dark` or `system`) is what syncs with the account, so it follows the
+person to every device. The surface it resolves to is what the CSS sees, as
+`data-surface` on `<html>`.
 
-Each surface owns its glow through `--aura-1`/`--aura-2`, which is what makes
-Velvet and Abyss feel different rather than just darker — the palette only drives
-the accent and chart colours. `--wash` scales the whole ambient layer: Pure Black
-keeps the least of it, because glow over true black just reads as grey.
+| Choice | Surface | Canvas | Cards | Text | `--wash` |
+| --- | --- | --- | --- | --- | --- |
+| **Light** (default) | `white` | warm ivory `#f6f4f0` | white | near-black | 0.55 |
+| **Dark** | `black` | near-black `rgb(11 11 13)` | `rgb(22 22 25)` | soft white `rgb(238 238 242)` | 0.32 |
+| **Auto** | either | follows the device's `prefers-color-scheme`, live | | | |
+
+Dark is a night theme, not an OLED one. On true `#000`, cards, inputs and
+dialogs melted into the floor, so the canvas is lifted slightly, cards sit a
+clear step above it, and hairlines (`--line: 46 46 52`) actually show. The
+quietest text steps (`text-paper/25` to `/60`) and the faint wells
+(`bg-paper/[0.02]` to `[0.04]`) are lifted one step on Dark only, so secondary
+text clears AA there. Those overrides are wrapped in `:where()`, so they keep
+the specificity of a plain utility and hover or focus colours still win.
+
+**No flash on load.** The inline script in `app/layout.tsx` runs before first
+paint. It reads the account's `upsc-chronicle-theme:<id>` key (falling back to
+the old `upsc-chronicle-surface:<id>` key, and to `matchMedia` for Auto) and
+sets `data-surface` before any CSS is applied. `ThemeModeSync`
+(`components/pwa/theme-mode-sync.tsx`) then keeps Auto in step when the device
+switches between day and night. The e2e run checks the surface at the moment
+`<body>` appears, before the app's scripts run.
+
+**Older choices.** There used to be five surfaces: Ivory, Pure Black, Indigo,
+Velvet and Abyss. Ivory becomes Light and the other four become Dark
+(`themeModeFromSurface` in `lib/theme.ts`), both in the store migration (v12)
+and in `normalizeSnapshot`, so a device still on an older version can't bring
+them back.
 
 ### Palettes (`data-palette`)
 
@@ -113,7 +133,7 @@ on a phone at 20x CPU throttle, a wallpaper costs nothing (median 50 fps against
 51 without).
 
 **`--wp-dim` is the legibility dial.** It lays canvas colour (`--ink`) back over
-the art, which lightens on Ivory and darkens on the dark surfaces — one control
+the art, which lightens on Light and darkens on Dark — one control
 that works in both directions. Every wallpaper ships with a default that was
 measured, not guessed: the page header's three text sizes must clear WCAG AA over
 it. The photo wallpaper needs far more (0.85) than the patterns (0.10–0.40).
@@ -189,7 +209,7 @@ long enough to read as a hang, which is worse than the brief unannounced pause i
 was replacing. `PageLoading` carries the same cut-off, so neither path shows a
 page-to-page animation on a phone.
 
-The dots are three light greys, which sit well on the four dark surfaces and all
+The dots are three light greys, which sit well on the dark surface and all
 but vanish on the light one. `.lottie-neutral` inverts them under
 `[data-surface="white"]`; they are near-neutral, so nothing shifts hue.
 
@@ -237,7 +257,7 @@ Video and photography are unpredictable — bright khaki one frame, dark foliage
 the next — so a region sitting on media gets the `.on-media` class. It pins that
 subtree to a fixed light-on-dark palette (`--paper` white, `--card` near-black,
 `--line` a soft grey), which means every token-based utility inside it resolves
-correctly on all five surfaces without a single conditional.
+correctly on both surfaces without a single conditional.
 
 On top of the media, stack cheap scrims rather than one flat overlay: a base
 tint, a horizontal gradient darkest where the copy sits, a vertical gradient,
@@ -316,5 +336,5 @@ or an arbitrary value (`bg-black/[0.12]`) when you really need something between
 Reach for the primitives in `src/components/ui` — `Card`, `Button`, `Badge`,
 `Segmented`, `Chip`, `Progress`, `Modal`, `PageHeader`, `Stat`, `EmptyState` —
 before writing new class strings. When you do write them, compose from the
-tokens (`bg-card`, `border-line`, `text-paper/55`, `bg-accent`) so all three
+tokens (`bg-card`, `border-line`, `text-paper/55`, `bg-accent`) so both
 surfaces and all six palettes keep working.

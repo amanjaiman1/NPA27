@@ -115,8 +115,8 @@ export default function ProgressTrackerPage() {
               Weekly, monthly and yearly reviews arrive already measured from your journal and mocks.
             </FeatureCard>
             <FeatureCard icon={HeartPulse} title="Life dashboard">
-              Sleep, exercise, water, screen time and deep work next to your study hours, with the correlations between
-              them.
+              Sleep, exercise, water, screen time and deep work next to your study hours, with reports over any period
+              you choose.
             </FeatureCard>
             <FeatureCard icon={Flag} title="Timeline and milestones">
               The milestones of your preparation and each exam stage, from Prelims to the final list, attempt by attempt.

@@ -1,112 +1,140 @@
-# Life Dashboard — Module Design
+# Life Dashboard
 
-> A lifestyle command centre for the UPSC aspirant. It tracks the inputs —
-> sleep, movement, water, meditation, weight, screen time and deep work — and
-> then **correlates them with study performance** to reveal which habits
-> actually move the needle. Built on the conviction that the body carries the
-> mind.
+The Life Dashboard (`/wellbeing`) tracks the habits around study: sleep,
+movement, water, meditation, screen time, weight and deep work. It reports on
+them over any period, next to what the journal says about study.
 
-## 1. Tracked metrics & data structure
+Three rules run through every number on the page:
 
-One unified record per day (`LifeEntry` in `src/lib/types.ts`):
+1. **Only what was recorded counts.** An empty box is saved as "not
+   recorded". A day without a water reading is left out of the water average;
+   it is never a day of 0 litres. A typed 0 is a real 0.
+2. **Every number says what it stands on**: how many days carry a reading,
+   over what period, and how it is worked out.
+3. **Patterns are described as things that go together, never as causes**, and
+   only once there are enough days for them to mean anything.
+
+## The record
+
+One record per day (`LifeEntry` in `src/lib/types.ts`). Every reading is
+optional.
 
 ```
 LifeEntry (unique per date)
 ├─ sleepHours, sleepQuality (1–5), bedtime, wakeTime
-├─ walkKm, runKm, exerciseMinutes, exerciseType
-├─ waterLiters
-├─ meditationMin
-├─ weightKg
-├─ screenTimeMin
-└─ deepWorkHours
+├─ exerciseMinutes, exerciseType, walkKm, runKm
+├─ waterLiters, meditationMin, screenTimeMin, weightKg
+├─ deepWorkHours
+├─ note        a line about the day
+└─ fileIds     journal files linked to the day (references, never copies)
 ```
 
-Keeping everything in one daily row (rather than scattered logs) is what makes
-cross-metric correlation trivial — every series is just a `date → value` map.
-Study hours, mood and revision counts are read from the Daily Journal; mock
-scores from the Mock module. Persist **migration v5** backfills `lifeLog` for
-returning users.
+Study hours and mood are read from the Daily Journal, not stored twice.
 
-### Relational mapping (future backend)
+## What you track
 
-```
-life_log(id, user_id, date, sleep_hours, sleep_quality, bedtime, wake_time,
-         walk_km, run_km, exercise_minutes, exercise_type, water_liters,
-         meditation_min, weight_kg, screen_time_min, deep_work_hours)
-```
+`profile.lifeFields` lists the measurements a person tracks, chosen in
+**What you track** on the page or from the form. Until they choose,
+`trackedFields` (in `src/lib/life.ts`) uses the fields they have actually
+recorded, and a short core list (sleep, exercise, water, screen time) for a log
+that is still empty. The form asks only for tracked fields and the reports
+cover only those. Readings already saved for an untracked field are kept.
 
-## 2. Daily analytics
+## Logging a day
 
-The **Today** snapshot shows each metric against its target (sleep 7.5h, deep
-work 6h, water 3L, meditation 15m, exercise 30m, walk 5km, screen ≤90m, plus
-weight) with a progress bar that fills toward the goal — or, for screen time,
-toward a ceiling. One-tap **Log today** opens the composer for the full set.
+`components/life/life-form.tsx`, backed by the pure functions in
+`src/lib/life-entry.ts`:
 
-## 3. Weekly analytics
+- Boxes start empty unless that day already has a reading. Nothing is
+  pre-filled with a typical value.
+- Changing the date loads what is saved for that day. If there are unsaved
+  changes, the form asks before discarding them. Future dates are refused.
+- Bedtime and wake time fill in the hours slept (across midnight, to the
+  minute) unless the hours were typed by hand.
+- Each number is checked against a sensible range (sleep 0–24 h, screen time
+  0–1440 min, weight 20–300 kg, …) and errors show next to the field.
+- Sleep quality can be cleared back to "not rated".
+- Journal files can be linked to the day. Links are saved immediately and
+  never copy the file (see [attachments](./attachments.md)).
+- Saving a day with nothing in it removes the day instead of storing an empty
+  record.
 
-`weeklyReport` computes a trailing-7-day average for six key metrics, the delta
-vs the previous week (coloured by whether "up" is good for that metric), and a
-14-day sparkline. Three 21-day trend charts (sleep bars vs target, deep-work
-line, screen-time line) show the medium-term shape.
+The morning check-in (`logDailySleep`) records only what it asks: bedtime, wake
+time and hours slept. It no longer creates a journal entry or fills in other
+readings.
 
-## 4. Correlation engine
+### What older versions wrote
 
-Pure functions in `src/lib/life.ts`:
+The old form and the old morning check-in filled every box with a default:
+sleep quality 3, 2 L of water, 120 minutes of screen time and zero for every
+activity. `normalizeSnapshot` (in `src/lib/account/normalize.ts`) treats that
+exact combination as invented and turns those readings back into "not
+recorded". A day where anything was changed keeps every value as entered. The
+journal entries the check-in used to create (no study, all ratings 3, nothing
+written) are removed, and their bed and wake times move to the Life Dashboard
+day. Both clean-ups run in the v12 store migration and on every snapshot pulled
+from the cloud, and both are idempotent.
 
-- `pearson(pairs)` — Pearson correlation coefficient (guards n < 3 and zero
-  variance).
-- `align(mapX, mapY)` — pairs two date-keyed series over their common dates.
-- `strengthLabel(r)` — negligible / weak / moderate / strong / very strong.
+## Reports
 
-### Lifestyle factors affecting performance (the headline)
+`buildLifeReport` in `src/lib/life.ts`, shown by
+`components/life/life-report.tsx`.
 
-`factorImpact` correlates **every lifestyle metric** against daily study hours
-(the performance proxy) and ranks them by |r|, tagging each *helps* or *hurts*.
-This directly answers the module's goal — *which lifestyle factors affect UPSC
-performance* — e.g. sleep and deep work help; screen time hurts. (Deep work is
-excluded from this list since it's essentially study itself.)
+- **Period**: 7, 30 or 90 days, this month, last month, this year, or custom
+  dates. A period can't run past today. Each one is compared with the same
+  number of days immediately before it.
+- **Headline numbers**, grouped Study, Sleep, Movement, Wellbeing and Mind. Each
+  card shows the value (or "Not recorded"), "recorded on X of Y days", and the
+  change from the previous period, coloured by whether higher or lower is
+  better for that measure. "How numbers are worked out" shows a plain sentence
+  for each.
+- **Chart** by day, week or month (by the length of the period) for study,
+  sleep, active days, screen time or mood. A period with nothing recorded is a
+  dashed gap, never a zero bar.
+- **Observations**, in hours and days, never percentages: study against the
+  previous period, consistency and longest run, sleep and study, exercise and
+  study, strongest weekday, and a bedtime that moves around. A comparison
+  between two groups of days needs at least `MIN_GROUP` (4) days on each side.
+- **Habits and study** (`factorLinks`): how each tracked habit moves with study
+  hours on the same day, using only days that carry both. Shown only with at
+  least `MIN_PAIRS` (10) shared days, labelled from "No clear link" to "Very
+  strong link", with the sample size.
+- **Day by day** table: every reading for each day, a dash for "not recorded",
+  links to the journal day, and an edit button. It shows days with something
+  logged by default, with a switch to show every day.
 
-### Correlation reports (the requested examples)
+The correlation matrix and the three scatter reports were removed. They ranked
+habits as "helps" or "hurts" from as few as six days (the scatter reports from
+three), counted the invented default readings as real ones, and read as
+findings when they weren't.
 
-`correlationReports` produces the three example reports as scatter plots with a
-regression line, the coefficient, sample size, and a plain-English insight:
+## Links to the rest of the app
 
-1. **Study hours vs sleep quality** (same-day).
-2. **Mock score vs exercise consistency** (weekly: exercise-days/week vs avg
-   mock %).
-3. **Mood vs revision completion** (same-day mood vs revision sessions).
+- **Goals**: active goals in the Health category or measured by deep-work hours
+  are listed on the page and link to the goal. The report counts goals
+  completed in the period.
+- **Journal**: today's study hours link to today's entry; the table links each
+  day to its journal entry. A journal day links back with
+  `/wellbeing?date=<day>`, which opens the form on that day.
+- **Deep dives**: sleep, running, weight and screen time each have a page at
+  `/wellbeing/<metric>`, shown for tracked fields. Their charts also show
+  unrecorded periods as gaps.
 
-### Correlation matrix
-
-`correlationMatrix` renders a 6×6 grayscale `MatrixHeatmap` of pairwise
-relationship strength (|r| × 100) among Study, Deep work, Sleep, Exercise, Water
-and Screen — a quick scan of what's entangled with what.
-
-### Honest data note
-
-The seed induces realistic relationships (well-rested days → more output;
-heavier screen time → fewer study hours; rising exercise consistency alongside
-rising mock scores) so the reports are populated immediately — but every
-coefficient shown is computed live from the actual data via Pearson's r, not
-hard-coded. As real logging replaces the seed, the correlations track reality.
-
-## 5. Dashboard layout
+## Layout
 
 ```
 ┌──────────────────────────────────────────────────────────────────┐
-│  LIFE DASHBOARD — "The body carries the mind."        [+ Log today]│
+│  LIFE DASHBOARD          [What you track]  [Log today / Edit today]│
 ├──────────────────────────────────────────────────────────────────┤
-│  TODAY: Sleep · Deep work · Water · Meditation ·                   │
-│         Exercise · Walk · Screen · Weight   (vs targets)           │
+│  TODAY: one tile per tracked field, "Not logged" when empty;      │
+│         journal hours today; files linked today                   │
 ├──────────────────────────────────────────────────────────────────┤
-│  THIS WEEK vs LAST: 6 metric tiles (avg, Δ, sparkline)             │
-│  Sleep (21d bars) · Deep work (21d line) · Screen (21d line)       │
+│  HEALTH AND DEEP-WORK GOALS                                       │
 ├──────────────────────────────────────────────────────────────────┤
-│  LIFESTYLE FACTORS AFFECTING STUDY  (ranked diverging bars ±r)     │
+│  REPORTS: period picker · coverage line                           │
+│  headline cards by group · chart · observations · habits & study  │
+│  day-by-day table                                                 │
 ├──────────────────────────────────────────────────────────────────┤
-│  CORRELATION REPORTS (scatter + r + insight) ×3                    │
-│  Study↔Sleep quality · Mocks↔Exercise · Mood↔Revision             │
-├──────────────────────────────────────────────────────────────────┤
-│  CORRELATION MATRIX (6×6 strength heatmap)                         │
+│  GO DEEPER: sleep · running · weight · screen time                │
 └──────────────────────────────────────────────────────────────────┘
 ```

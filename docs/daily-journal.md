@@ -1,17 +1,80 @@
-> **Update — accounts:** photos and attachments were retired to keep each
-> account's synced data small (base64 images in the snapshot were the biggest
-> cost on Supabase's free plan). Entries saved before still load and export, and
-> Settings → Data can remove their old photos. The sections below that describe
-> attachments, the "Has photos" filter and the gallery are kept as history.
+# Daily Journal
 
-# Daily Journal — Module Design
+One entry per calendar day (`JournalEntry` in `src/lib/types.ts`, unique by
+`date`). This page describes how it works now; the original design is kept at
+the end as history.
+
+## Writing a day
+
+The composer (`components/journal/composer.tsx`) is one modal in the order a
+day is usually logged: date, study (subject and hours), topics completed,
+revision, how the day felt, notes, files and goals. Wins, setbacks, lessons,
+books, current affairs, mocks and tags sit under **More details**, closed
+unless the day already has some. There is no "are you sure?" step: **Save
+entry** (or **Save changes**) saves. Closing with unsaved changes asks first.
+
+Saving goes through `saveJournalEntry` in the store, which handles everything
+the day touches in one update:
+
+- **Changing the date moves the entry** rather than copying it, along with its
+  goal links. If the new date already has an entry, the composer warns that
+  saving replaces it.
+- **Topics completed** are picked from the syllabus (`TopicPicker`). Free-text
+  topics still work, and ones typed on earlier days are offered again. A newly
+  finished syllabus topic moves from untouched to learning (never backwards),
+  and a tick box (on by default) puts it on the revision queue, first due the
+  next day and never in the past.
+- **Revision** ticked off is rescheduled, as before.
+- **Goals this day served** links the day to goals; the goal shows the day and
+  its files.
+- The day's **first real entry marks the day accomplished** and plays the
+  celebration. (The morning check-in used to create an empty placeholder entry
+  first, so this never fired.)
+
+## Files
+
+Photos, PDFs, notes and documents can be attached to a day: up to 10 per day
+and 5 MB each, with phone photos resized first. They're stored once in private
+cloud storage, can be previewed, replaced and removed, and goals and Life
+Dashboard days can link to them without copies. See
+[attachments](./attachments.md).
+
+## Topics completed
+
+Old entries kept topics as plain text. `upgradeEntryTopics` (in `lib/topics.ts`)
+links each one to the syllabus when the name matches exactly one topic, and
+leaves it as your own topic otherwise; it runs in the v12 store migration and
+on every snapshot pulled from the cloud. Nothing is guessed: "Introduction",
+which exists in several subjects, stays unlinked.
+
+## Finding things
+
+`/journal` has three views:
+
+- **Entries**: search across notes, topics, wins, books, revision, tags, subject
+  names and file names; filters for subject, date range, sort, and *Has files*,
+  *Has mock*, *Wins logged*. Grouped by month, 45 days at a time.
+- **Topics** (`components/journal/topics-explorer.tsx`): every completed topic
+  joined to the syllabus, the revision queue and the mistake notebook. Search by
+  topic, subject or paper; filter by subject, source (syllabus or your own),
+  status, revision state and date range; sort by recent, oldest, name, times
+  done or subject. Select topics to **add them to revision**, **mark revised** or
+  **mark mastered** together. Each topic opens its subject
+  (`/subjects?subject=<id>`) or the days it was recorded.
+- **Analysis**: the patterns across days, as before.
+
+`/journal/<date>` shows one day in full, with its files, the goals it served,
+the topics it completed (linked to their subjects) and the Life Dashboard
+readings for the same date.
+
+## History: the original module design
 
 > Every day of preparation becomes a separate, permanent historical record. A
 > candidate should be able to open any date — years later — and *relive* it:
 > what they studied, how they felt, what they won and lost, and the photos that
 > framed the day.
 
-## 1. Database schema
+### 1. Database schema
 
 The journal is keyed by **one entry per calendar day** (`date` is unique). It is
 defined in `src/lib/types.ts` and persisted via the Zustand store (localStorage
@@ -64,7 +127,7 @@ quality ~0.72) to stay within localStorage limits.
 new fields (motivation, wins/failures/lessons, books, revisions, mocks, current
 affairs, attachments) onto any v1 entries so older data renders cleanly.
 
-### Relational mapping (future backend)
+#### Relational mapping (future backend)
 
 ```
 journal_entries(id, user_id, date, wake_time, sleep_time, total_hours,
@@ -79,7 +142,7 @@ entry_failures / entry_lessons / entry_tags (entry_id, idx, text)
 attachments(id, entry_id, kind, name, url, caption, size)
 ```
 
-## 2. UI wireframe
+### 2. UI wireframe
 
 **List / timeline** (`/journal`)
 
@@ -130,7 +193,7 @@ attachments(id, entry_id, kind, name, url, caption, size)
 └───────────────────────────────────────────────────────────────┘
 ```
 
-## 3. Daily entry flow
+### 3. Daily entry flow
 
 1. **Trigger** — "Log today" (top bar / dashboard), "New entry" (journal), or
    "Create this entry" on an empty day detail. ⌘K → Daily Journal also works.
@@ -145,7 +208,7 @@ attachments(id, entry_id, kind, name, url, caption, size)
    ‹ / › navigation to the adjacent day (you can browse straight through the
    year). Editing re-opens the same composer pre-filled.
 
-## 4. Search & filtering
+### 4. Search & filtering
 
 - **Search** runs across reflection, highlight, wins, failures, lessons, topics,
   tags, book titles, current-affairs titles, revision topics, and subject names.

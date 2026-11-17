@@ -6,9 +6,13 @@ reviews. Each person who signs up gets their own private chronicle, synced acros
 their devices through Supabase and kept within Supabase's free plan.
 
 - **Stack:** Next.js 14 (App Router), React 18, TypeScript, Tailwind, Zustand,
-  Supabase (Auth + Postgres), deployed on Vercel.
+  Supabase (Auth, Postgres and Storage), deployed on Vercel.
 - **How accounts, sync and isolation work:** [`docs/accounts.md`](docs/accounts.md).
 - **Notifications and background push:** [`docs/notifications.md`](docs/notifications.md).
+- **Files attached to journal days:** [`docs/attachments.md`](docs/attachments.md).
+- **The four everyday modules:** [Daily Journal](docs/daily-journal.md),
+  [Life Dashboard](docs/life-dashboard.md), and the theme in the
+  [design system](docs/design-system.md).
 - **The public site and SEO:** [below](#public-site-and-seo), and the setup steps
   in [`docs/SEO_SETUP_GUIDE.md`](docs/SEO_SETUP_GUIDE.md).
 
@@ -31,8 +35,8 @@ user, data saved only in that browser. That's the quickest way to work on the UI
 
 `scripts/mock-supabase.mjs` is a local stand-in for Supabase: email/password
 auth, password-reset links (printed in its terminal instead of emailed), account
-deletion, and the real schema, migrations and Row Level Security running in an
-in-memory Postgres.
+deletion, file storage for attachments, and the real schema, migrations and Row
+Level Security running in an in-memory Postgres.
 
 ```bash
 node scripts/mock-supabase.mjs --print-env > .env.local   # points the app at the mock
@@ -47,9 +51,9 @@ people. Delete `.env.local` when you're done, and never deploy with it.
 
 | Command | What it checks |
 | --- | --- |
-| `npm test` | Unit tests: the three-way merge, the sync engine with two simulated devices (offline edits, clashes, stale devices), per-account browser storage, the one-time move of pre-account data, and the new-account template. |
+| `npm test` | Unit tests: the three-way merge, the sync engine with two simulated devices (offline edits, clashes, stale devices), per-account browser storage, the one-time move of pre-account data, the new-account template, attached-file rules, completed topics, Life Dashboard reports and form, goals, the clean-up of data older versions wrote, and saving a journal day. |
 | `npm run test:db` | Applies `supabase/schema.sql` and every migration (twice, to prove they re-run safely) to a throwaway Postgres with Supabase's roles, then runs `supabase/tests/rls_isolation.sql`. |
-| `npm run test:e2e` | 14 browser scenarios against the mock: two accounts in one browser, a second device, simultaneous edits, direct database access with another account's token, sign-out, the owner's existing data, a fresh account, account deletion and password reset. Needs `npx playwright install chromium` once. It builds the app against the mock, so run `npm run build` again afterwards. |
+| `npm run test:e2e` | 15 browser scenarios against the mock: two accounts in one browser, the theme following an account with no light flash, a second device, simultaneous edits, direct database access with another account's token, attached files (stored once, linked to a goal without a copy, unreadable by another account, deleted with the last day that holds them), sign-out, the owner's existing data, a fresh account, account deletion (including its files) and password reset. Needs `npx playwright install chromium` once. It builds the app against the mock, so run `npm run build` again afterwards. |
 | `npm run lint`, `npx tsc --noEmit`, `npm run check:classes` | Lint, types, and the Tailwind opacity guard. |
 
 To check isolation on the **real** project, paste `supabase/tests/rls_isolation.sql`
@@ -97,10 +101,13 @@ Docs: [setup steps](docs/SEO_SETUP_GUIDE.md) ·
 In the Supabase SQL Editor, run these files in order:
 
 1. `supabase/schema.sql` — the tables and their Row Level Security policies.
-2. Every file in `supabase/migrations/`, oldest first. Today that's
-   `20261115120000_multi_user_sync.sql`, which adds versioned saves, server-side
-   timestamps, the write function the app uses, and the trimmed snapshot reader
-   for the push dispatcher.
+2. Every file in `supabase/migrations/`, oldest first. Today that's:
+   - `20261115120000_multi_user_sync.sql`: versioned saves, server-side
+     timestamps, the write function the app uses, and the trimmed snapshot
+     reader for the push dispatcher.
+   - `20261118120000_journal_attachments.sql`: the private Storage bucket for
+     files attached to journal days, its owner-only policies, and a dispatcher
+     snapshot that leaves file details out. See [`docs/attachments.md`](docs/attachments.md).
 
 All of them are additive and safe to re-run: nothing is dropped or rewritten, and
 existing data keeps working. A SQL file in the repo does nothing until you run it.
@@ -135,9 +142,10 @@ Vercel → Project → Settings → Environment Variables.
 
 ## Deploy to Vercel
 
-1. Run the SQL migration in Supabase **first**. A new build talking to an
+1. Run the SQL migrations in Supabase **first**. A new build talking to an
    un-migrated database shows "Cloud sync needs a database update" and keeps
-   changes on the device until it can save them.
+   changes on the device until it can save them. Without the attachments
+   migration everything works except attaching files, which shows an error.
 2. Set the environment variables above, then deploy (`git push` to the
    production branch, or **Redeploy** in Vercel).
 3. Add the production URLs to Supabase's Redirect URLs (see the table above).
@@ -184,8 +192,10 @@ matters, and it is driven by how often whole snapshots are downloaded:
   bytes) and downloads the data only when another device changed it.
 - Saves upload the snapshot and receive only the new version back.
 - The push dispatcher reads a trimmed copy without long text.
-- Journal photos and the dashboard video were removed; there is nothing large to
-  sync or serve.
+- Attached files go to Storage, never into the synced data: each costs about
+  200 bytes of sync whatever its size. Each file is stored once, photos are
+  resized before upload, and the app holds each account to 100 MB of the free
+  1 GB. See [`docs/attachments.md`](docs/attachments.md).
 
 **To watch usage:** Dashboard → Organization → **Usage** shows egress, database
 size and monthly active users against the plan. `supabase/usage.sql` (read-only)
@@ -196,6 +206,8 @@ Usage page stays comfortably inside the plan.
 ## Manual steps for the owner
 
 - [ ] Run `supabase/migrations/20261115120000_multi_user_sync.sql` in the SQL Editor.
+- [ ] Run `supabase/migrations/20261118120000_journal_attachments.sql` in the SQL Editor
+      (journal attachments).
 - [ ] Run `supabase/tests/rls_isolation.sql` and confirm `All isolation checks passed`.
 - [ ] Set Site URL and the two Redirect URLs in Authentication → URL Configuration.
 - [ ] Configure custom SMTP, or decide to run with "Confirm email" off.

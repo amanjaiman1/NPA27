@@ -271,7 +271,7 @@ export default function HomePage() {
               searchable later.
             </FeatureCard>
             <FeatureCard icon={HeartPulse} title="Sleep and wellbeing" href={`${PAGES.features.path}#wellbeing`} linkLabel="More about it">
-              Sleep, exercise, screen time and deep work beside your study hours, with the correlations between them.
+              Sleep, exercise, screen time and deep work beside your study hours, with reports over any period you choose.
             </FeatureCard>
           </div>
         </Container>
