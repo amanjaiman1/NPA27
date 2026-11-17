@@ -52,6 +52,9 @@ export const metadata: Metadata = {
     apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180" }],
   },
   formatDetection: { telephone: false },
+  // Google Search Console ownership check. Google re-checks it from time to
+  // time, so removing it un-verifies the site.
+  verification: { google: "VLuFtKkzlfkVgvIH-R34-EQzd3ntjZ5FjUffHpd-Sng" },
 };
 
 export const viewport: Viewport = {
