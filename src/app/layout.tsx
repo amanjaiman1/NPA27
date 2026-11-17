@@ -102,11 +102,15 @@ const themeScript = `
     var dark = mode === 'dark' || (mode === 'system' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
     d.setAttribute('data-surface', dark ? 'black' : 'white');
     d.setAttribute('data-theme-mode', mode);
+    // Liquid Glass is its own choice, on top of either theme.
+    d.setAttribute('data-material', get('material', 'standard') === 'glass' ? 'glass' : 'standard');
+    if (get('transparency', '') === 'reduced') d.setAttribute('data-transparency', 'reduced');
     d.setAttribute('data-palette', get('palette', 'rose'));
     d.setAttribute('data-wallpaper', get('wallpaper', 'none'));
     d.style.setProperty('--wp-dim', get('wallpaper-dim', '0'));
   } catch (e) {
     d.setAttribute('data-surface','white');
+    d.setAttribute('data-material','standard');
     d.setAttribute('data-palette','rose');
     d.setAttribute('data-wallpaper','none');
   }
@@ -128,7 +132,7 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" data-surface="white" data-palette="rose" suppressHydrationWarning>
+    <html lang="en" data-surface="white" data-material="standard" data-palette="rose" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
         <script dangerouslySetInnerHTML={{ __html: installCaptureScript }} />

@@ -1,5 +1,6 @@
 import type { ExerciseType, ISODate, LifeEntry, LifeField } from "./types";
 import { round } from "./utils";
+import { checkSleep, hoursFromTimes, isClock, MAX_SLEEP_HOURS, sleepMinutes } from "./sleep";
 
 /* ════════════════════════════════════════════════════════════════
    The Life Dashboard form, as pure functions.
@@ -33,7 +34,8 @@ export interface LifeInputDef {
 }
 
 export const LIFE_INPUTS: LifeInputDef[] = [
-  { key: "sleepHours", field: "sleep", label: "Hours slept", unit: "h", min: 0, max: 24, step: "0.25" },
+  // Time asleep, only when it differs from bedtime to wake-up (lay awake, woke in the night).
+  { key: "sleepHours", field: "sleep", label: "Time asleep, if different", unit: "h", min: 0.25, max: MAX_SLEEP_HOURS, step: "0.25" },
   { key: "exerciseMinutes", field: "exercise", label: "Exercise", unit: "min", min: 0, max: 600, step: "5", integer: true },
   { key: "walkKm", field: "walk", label: "Walked", unit: "km", min: 0, max: 100, step: "0.1" },
   { key: "runKm", field: "run", label: "Ran", unit: "km", min: 0, max: 100, step: "0.1" },
@@ -61,10 +63,9 @@ export interface LifeDraft {
   note: string;
 }
 
-export type LifeDraftErrors = Partial<Record<LifeNumberKey | "date" | "sleepQuality", string>>;
+export type LifeDraftErrors = Partial<Record<LifeNumberKey | "date" | "sleepQuality" | "sleepTimes", string>>;
 
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
-const CLOCK = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 /** The form's starting state for a day: what is saved, and blanks for the rest. */
 export function draftFromEntry(date: ISODate, entry?: LifeEntry): LifeDraft {
@@ -72,6 +73,12 @@ export function draftFromEntry(date: ISODate, entry?: LifeEntry): LifeDraft {
   for (const d of LIFE_INPUTS) {
     const v = entry?.[d.key];
     numbers[d.key] = typeof v === "number" && Number.isFinite(v) ? String(v) : "";
+  }
+  // Hours that are simply bedtime to wake-up aren't a separate answer: the box
+  // is for time asleep when it differs, so it starts empty.
+  const fromTimes = entry ? sleepMinutes(entry.date, entry.bedtime, entry.wakeTime) : null;
+  if (fromTimes != null && typeof entry?.sleepHours === "number" && Math.abs(entry.sleepHours * 60 - fromTimes) <= 2) {
+    numbers.sleepHours = "";
   }
   return {
     date,
@@ -84,17 +91,9 @@ export function draftFromEntry(date: ISODate, entry?: LifeEntry): LifeDraft {
   };
 }
 
-/**
- * Hours between a bedtime and a wake time, across midnight, or null until both
- * are set. Kept to two decimals so 23:20 → 06:40 reads back as 7h 20m.
- */
-export function sleepFromTimes(bedtime: string, wakeTime: string): number | null {
-  if (!CLOCK.test(bedtime) || !CLOCK.test(wakeTime)) return null;
-  const [bh, bm] = bedtime.split(":").map(Number);
-  const [wh, wm] = wakeTime.split(":").map(Number);
-  let mins = wh * 60 + wm - (bh * 60 + bm);
-  if (mins <= 0) mins += 24 * 60;
-  return round(mins / 60, 2);
+/** Hours from bedtime to wake-up for the draft's day, or null until both are set. */
+export function sleepFromTimes(draft: Pick<LifeDraft, "date" | "bedtime" | "wakeTime">): number | null {
+  return hoursFromTimes(draft.date, draft.bedtime, draft.wakeTime) ?? null;
 }
 
 /**
@@ -135,11 +134,15 @@ export function entryFromDraft(
       errors.sleepQuality = "Rate from 1 to 5.";
     } else entry.sleepQuality = draft.sleepQuality;
   }
-  if (CLOCK.test(draft.bedtime)) entry.bedtime = draft.bedtime;
-  if (CLOCK.test(draft.wakeTime)) entry.wakeTime = draft.wakeTime;
-  // Both times and no hours typed: the night's length is known, so use it.
-  if (entry.sleepHours == null && !errors.sleepHours) {
-    const h = sleepFromTimes(draft.bedtime, draft.wakeTime);
+  if (isClock(draft.bedtime)) entry.bedtime = draft.bedtime;
+  if (isClock(draft.wakeTime)) entry.wakeTime = draft.wakeTime;
+  if (entry.bedtime && entry.wakeTime) {
+    const check = checkSleep(draft.date, entry.bedtime, entry.wakeTime);
+    if (!check.ok) errors.sleepTimes = check.message;
+  }
+  // No time asleep typed: the night's length is bedtime to wake-up.
+  if (entry.sleepHours == null && !errors.sleepHours && !errors.sleepTimes) {
+    const h = sleepFromTimes(draft);
     if (h != null) entry.sleepHours = h;
   }
   if (draft.exerciseType) entry.exerciseType = draft.exerciseType;

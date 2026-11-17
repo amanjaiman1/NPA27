@@ -1,5 +1,6 @@
 import type { ISODate, JournalEntry, LifeEntry, LifeField } from "./types";
 import { daysBetween, fromISODate, round, toISODate } from "./utils";
+import { countedSleepHours, MAX_SLEEP_HOURS } from "./sleep";
 
 /* ════════════════════════════════════════════════════════════════
    LIFE DASHBOARD ANALYTICS
@@ -83,14 +84,13 @@ export function fieldRecorded(e: LifeEntry, field: LifeField): boolean {
 
 /**
  * The fields a person tracks. Their own choice when they've made one;
- * otherwise whatever they have actually recorded, so a form that has never
- * been used for weight doesn't ask for it; and a short core list for a log
- * that is still empty.
+ * otherwise the short core list plus anything else they have recorded, so a
+ * form never used for weight doesn't ask for it, and logging one reading
+ * never hides the others.
  */
 export function trackedFields(chosen: LifeField[] | undefined, lifeLog: LifeEntry[] = []): LifeField[] {
   if (chosen?.length) return ALL_LIFE_FIELDS.filter((f) => chosen.includes(f));
-  const used = ALL_LIFE_FIELDS.filter((f) => lifeLog.some((e) => fieldRecorded(e, f)));
-  return used.length ? used : CORE_LIFE_FIELDS;
+  return ALL_LIFE_FIELDS.filter((f) => CORE_LIFE_FIELDS.includes(f) || lifeLog.some((e) => fieldRecorded(e, f)));
 }
 
 export function todayEntry(lifeLog: LifeEntry[], today = toISODate(new Date())): LifeEntry | undefined {
@@ -364,11 +364,12 @@ const SPECS: MetricSpec[] = [
     better: "higher",
     field: "sleep",
     measure: (r) => {
-      const v = values(r.life, (e) => (e.sleepHours && e.sleepHours > 0 ? e.sleepHours : undefined));
+      const v = values(r.life, countedSleepHours);
       const m = mean(v);
       return [m == null ? null : round(m, 1), v.length];
     },
-    basis: (rec, days) => `Average over the ${nightsWord(rec)} recorded, of ${days}.`,
+    basis: (rec, days) =>
+      `Average over the ${nightsWord(rec)} recorded, of ${days}. A stored night over ${MAX_SLEEP_HOURS} hours can't be right, so it isn't counted.`,
   },
   {
     id: "sleepQuality",
@@ -704,7 +705,7 @@ function bucketsFor(span: DateSpan, journal: JournalEntry[], lifeLog: LifeEntry[
   const buckets: ReportBucket[] = ranges.map((r) => {
     const j = journal.filter((e) => e.date >= r.from && e.date <= r.to);
     const l = lifeLog.filter((e) => e.date >= r.from && e.date <= r.to);
-    const nights = values(l, (e) => (e.sleepHours && e.sleepHours > 0 ? e.sleepHours : undefined));
+    const nights = values(l, countedSleepHours);
     const screens = values(l, (e) => e.screenTimeMin);
     let activityDays = 0;
     let activeDays = 0;
@@ -745,7 +746,7 @@ function dailyRows(span: DateSpan, journal: JournalEntry[], lifeLog: LifeEntry[]
       date,
       study: je ? round(je.totalHours || 0, 1) : null,
       mood: je ? je.mood : null,
-      sleep: le?.sleepHours && le.sleepHours > 0 ? le.sleepHours : null,
+      sleep: countedSleepHours(le) ?? null,
       quality: num(le?.sleepQuality),
       bedtime: le?.bedtime || je?.sleepTime || undefined,
       wake: le?.wakeTime || je?.wakeTime || undefined,
@@ -821,8 +822,9 @@ function observationsFor(
     const rested: number[] = [];
     const short: number[] = [];
     for (const [date, e] of lifeByDate) {
-      if (!e.sleepHours || e.sleepHours <= 0 || !studyByDate.has(date)) continue;
-      (e.sleepHours >= 7 ? rested : short).push(studyByDate.get(date)!);
+      const h = countedSleepHours(e);
+      if (h == null || !studyByDate.has(date)) continue;
+      (h >= 7 ? rested : short).push(studyByDate.get(date)!);
     }
     if (rested.length >= MIN_GROUP && short.length >= MIN_GROUP) {
       const a = mean(rested)!;
@@ -1005,7 +1007,7 @@ export interface FactorLink {
 }
 
 const FACTORS: { id: string; label: string; field: LifeField; read: (e: LifeEntry) => number | undefined; up: string; down: string }[] = [
-  { id: "sleepHours", label: "Sleep hours", field: "sleep", read: (e) => (e.sleepHours && e.sleepHours > 0 ? e.sleepHours : undefined), up: "Longer nights tend to come before longer study days.", down: "Longer nights tend to come before shorter study days." },
+  { id: "sleepHours", label: "Sleep hours", field: "sleep", read: countedSleepHours, up: "Longer nights tend to come before longer study days.", down: "Longer nights tend to come before shorter study days." },
   { id: "sleepQuality", label: "Sleep quality", field: "sleep", read: (e) => e.sleepQuality, up: "Better-rated nights tend to come before longer study days.", down: "Better-rated nights tend to come before shorter study days." },
   { id: "exercise", label: "Exercise minutes", field: "exercise", read: (e) => e.exerciseMinutes, up: "More exercise tends to go with more study the same day.", down: "More exercise tends to go with less study the same day." },
   { id: "walk", label: "Walking", field: "walk", read: (e) => e.walkKm, up: "Longer walks tend to go with more study.", down: "Longer walks tend to go with less study." },

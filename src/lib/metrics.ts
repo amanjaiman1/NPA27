@@ -2,6 +2,7 @@ import type { LucideIcon } from "lucide-react";
 import { Moon, Footprints, Scale, Smartphone } from "lucide-react";
 import type { LifeEntry } from "./types";
 import { LIFE_TARGETS } from "./life";
+import { countedSleepHours } from "./sleep";
 
 /* ════════════════════════════════════════════════════════════════
    The four life metrics that get a page of their own.
@@ -55,7 +56,7 @@ export const METRICS: Record<MetricId, MetricDef> = {
     icon: Moon,
     unit: "h",
     unitLong: "hours",
-    read: (e) => (e.sleepHours != null && e.sleepHours > 0 ? e.sleepHours : undefined),
+    read: countedSleepHours,
     rollUp: "mean",
     chart: "bars",
     target: LIFE_TARGETS.sleepHours,
