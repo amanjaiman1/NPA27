@@ -105,7 +105,6 @@ behind everything.
 | `mesh` `aurora` `beams` | colour, built from `--aura-1`/`--aura-2` |
 | `grid` `dots` `rings` | structure, built from `--paper` at low alpha |
 | `academy` | the still from the command-centre film |
-| `custom` | the user's own photo |
 
 Six of the eight are **pure CSS gradients keyed to the palette** — no bytes to
 download, and they re-tint themselves when the palette changes. The layer is
@@ -117,7 +116,7 @@ on a phone at 20x CPU throttle, a wallpaper costs nothing (median 50 fps against
 the art, which lightens on Ivory and darkens on the dark surfaces — one control
 that works in both directions. Every wallpaper ships with a default that was
 measured, not guessed: the page header's three text sizes must clear WCAG AA over
-it. The photo wallpapers need far more (0.85) than the patterns (0.10–0.40).
+it. The photo wallpaper needs far more (0.85) than the patterns (0.10–0.40).
 
 Chrome that sits directly on the wallpaper firms up automatically — `.chrome-glass`
 on the topbar, and `.sidebar-panel` on the sidebar, go to 94% opacity whenever a
@@ -130,10 +129,11 @@ as glass. Below it, the same element is a full-height drawer pulled over the pag
 and any transparency there prints the wallpaper and the page through the nav you
 are trying to read — so on a phone it stays flatly opaque `bg-card`.
 
-A custom photo is downscaled to 1920px and re-encoded in the browser, then kept
-in **IndexedDB on the device** (`lib/wallpaper-store.ts`). It deliberately never
-enters the synced snapshot: that snapshot is one JSON row pushed on every edit,
-and a megabyte of base64 would be re-uploaded each time. Only the *id* travels.
+There used to be a "Your photo" wallpaper (`custom`): the user's own image, kept
+in IndexedDB on the device. It was removed to save storage. A saved choice of it
+now reads as plain (`normalizeWallpaper` in `lib/account/normalize.ts`), and the
+stored photos are deleted from the device when an account loads
+(`deleteWallpaperPhotos` in `lib/wallpaper.ts`).
 
 ## Loading states
 

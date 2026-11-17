@@ -515,16 +515,12 @@
     radial-gradient(34% 34% at 34% 64%, rgb(226 232 240 / 0.16), transparent 72%);
 }
 
-/* Image wallpapers: the still from the command-centre film, or the user's own
-   photo (served from an IndexedDB blob URL set inline by the component). */
-[data-wallpaper="academy"] .wallpaper-art,
-[data-wallpaper="custom"] .wallpaper-art {
+/* Image wallpaper: a still of the Academy. */
+[data-wallpaper="academy"] .wallpaper-art {
+  background-image: url("/media/hero-poster.jpg");
   background-position: center 38%;
   background-size: cover;
   background-repeat: no-repeat;
-}
-[data-wallpaper="academy"] .wallpaper-art {
-  background-image: url("/media/hero-poster.jpg");
 }
 
 /* Chrome sits directly on the wallpaper, so it firms up when one is showing —

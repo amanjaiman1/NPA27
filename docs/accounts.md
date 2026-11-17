@@ -8,7 +8,7 @@ enforced, layer by layer, and how one account's data moves between its devices.
 | Kind | Examples | Where it lives |
 | --- | --- | --- |
 | **Private, per account** | Profile and exam date, journal, study hours, syllabus progress, revision schedule, mocks, mistakes, goals, books' progress, current affairs, reviews, reflections, habits, life log, knowledge-graph links, accomplished days, notification preferences and read state, appearance | The account's snapshot: one `chronicle_state` row, mirrored in the browser under the account's own keys |
-| **Per account, per device** | Notification delivery bookkeeping, the custom wallpaper photo, the last-synced copy used for merging | Browser only, under keys or IndexedDB slots that carry the account id |
+| **Per account, per device** | Notification delivery bookkeeping, the last-synced copy used for merging | Browser only, under keys or IndexedDB slots that carry the account id |
 | **Device-wide, not personal** | Sidebar collapsed, PWA install prompt dismissed | Browser only |
 | **Shared reference** | The GS syllabus and its topics, the standard book list, habit suggestions, the curated links between syllabus topics, the optional CSE 2027 roadmap | Code (`lib/seed.ts`, `lib/plan.ts`). Each account gets its own copy at setup, so progress on it is private |
 
@@ -46,7 +46,6 @@ upsc-chronicle-surface|palette|…:<id>      appearance, read by the pre-paint s
 upsc-chronicle-ready:<id>                  this browser has completed a sync
 upsc-chronicle-conflicts:<id>              edits that clashed between devices
 IndexedDB upsc-chronicle-sync / <id>       the last-synced copy, for merging
-IndexedDB upsc-chronicle-media / custom:<id>  the custom wallpaper photo
 ```
 
 With no active account, every read returns nothing and every write is dropped.

@@ -1,16 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { Check, ImagePlus, Loader2, Trash2, AlertTriangle } from "lucide-react";
+import { Check } from "lucide-react";
 import { useChronicle } from "@/lib/store";
 import { WALLPAPERS, WALLPAPER_GROUPS, wallpaperMeta } from "@/lib/wallpaper";
-import {
-  MAX_BYTES,
-  clearCustomWallpaper,
-  compressImage,
-  loadCustomWallpaper,
-  saveCustomWallpaper,
-} from "@/lib/wallpaper-store";
 import { cn } from "@/lib/utils";
 
 /**
@@ -25,46 +17,6 @@ export function WallpaperPicker() {
   const dim = useChronicle((s) => s.wallpaperDim);
   const setWallpaper = useChronicle((s) => s.setWallpaper);
   const setDim = useChronicle((s) => s.setWallpaperDim);
-
-  const fileRef = useRef<HTMLInputElement>(null);
-  const [customUrl, setCustomUrl] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  // Show the stored photo in its own swatch, if there is one.
-  useEffect(() => {
-    let url: string | null = null;
-    void loadCustomWallpaper().then((blob) => {
-      if (!blob) return;
-      url = URL.createObjectURL(blob);
-      setCustomUrl(url);
-    });
-    return () => {
-      if (url) URL.revokeObjectURL(url);
-    };
-  }, []);
-
-  async function handleFile(file: File) {
-    setBusy(true);
-    setError(null);
-    try {
-      const blob = await compressImage(file);
-      if (blob.size > MAX_BYTES) {
-        setError("That image is still too large after compression. Try a smaller one.");
-        return;
-      }
-      await saveCustomWallpaper(blob);
-      setCustomUrl((old) => {
-        if (old) URL.revokeObjectURL(old);
-        return URL.createObjectURL(blob);
-      });
-      setWallpaper("custom");
-    } catch {
-      setError("Couldn't read that image. PNG or JPEG works best.");
-    } finally {
-      setBusy(false);
-    }
-  }
 
   return (
     <div>
@@ -86,18 +38,10 @@ export function WallpaperPicker() {
             <div className="grid grid-cols-3 gap-2.5">
               {items.map((w) => {
                 const active = wallpaper === w.id;
-                const isCustom = w.id === "custom";
-                const swatch =
-                  isCustom && customUrl
-                    ? `url(${customUrl}) center/cover`
-                    : w.swatch;
                 return (
                   <button
                     key={w.id}
-                    onClick={() => {
-                      if (isCustom && !customUrl) fileRef.current?.click();
-                      else setWallpaper(w.id);
-                    }}
+                    onClick={() => setWallpaper(w.id)}
                     title={w.hint}
                     className={cn(
                       "group relative flex min-w-0 flex-col items-start gap-2 rounded-xl border p-2.5 text-left transition-all",
@@ -107,13 +51,9 @@ export function WallpaperPicker() {
                     )}
                   >
                     <span
-                      className="grid h-11 w-full place-items-center overflow-hidden rounded-lg border border-line"
-                      style={{ background: swatch }}
-                    >
-                      {isCustom && !customUrl && (
-                        <ImagePlus className="h-4 w-4 text-paper/60" />
-                      )}
-                    </span>
+                      className="h-11 w-full overflow-hidden rounded-lg border border-line"
+                      style={{ background: w.swatch }}
+                    />
                     <span className="w-full truncate text-[0.7rem] font-medium text-paper">
                       {w.label}
                     </span>
@@ -129,18 +69,6 @@ export function WallpaperPicker() {
           </div>
         );
       })}
-
-      <input
-        ref={fileRef}
-        type="file"
-        accept="image/png,image/jpeg,image/webp"
-        className="hidden"
-        onChange={(e) => {
-          const f = e.target.files?.[0];
-          if (f) void handleFile(f);
-          e.target.value = "";
-        }}
-      />
 
       {/* Dim: the one control that keeps text readable over anything. */}
       {wallpaper !== "none" && (
@@ -168,49 +96,6 @@ export function WallpaperPicker() {
             at {Math.round(wallpaperMeta(wallpaper).dim * 100)}%.
           </p>
         </div>
-      )}
-
-      <div className="mt-3 flex flex-wrap items-center gap-2">
-        <button
-          onClick={() => fileRef.current?.click()}
-          disabled={busy}
-          className="inline-flex items-center gap-2 rounded-full border border-line bg-card px-3.5 py-2 text-xs font-semibold text-paper/75 transition-colors hover:border-paper/25 hover:text-paper disabled:opacity-50"
-        >
-          {busy ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          ) : (
-            <ImagePlus className="h-3.5 w-3.5" />
-          )}
-          {customUrl ? "Replace photo" : "Use your own photo"}
-        </button>
-        {customUrl && (
-          <button
-            onClick={() => {
-              void clearCustomWallpaper();
-              setCustomUrl((old) => {
-                if (old) URL.revokeObjectURL(old);
-                return null;
-              });
-              if (wallpaper === "custom") setWallpaper("none");
-            }}
-            className="inline-flex items-center gap-1.5 rounded-full border border-line px-3.5 py-2 text-xs font-medium text-paper/55 transition-colors hover:border-danger/40 hover:text-danger"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-            Remove
-          </button>
-        )}
-      </div>
-
-      {error ? (
-        <p className="mt-2.5 flex items-start gap-1.5 rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-[0.7rem] text-danger">
-          <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-          {error}
-        </p>
-      ) : (
-        <p className="mt-2 text-[0.7rem] leading-relaxed text-paper/35">
-          Your photo is downscaled in the browser and kept on this device only —
-          it never goes into the cloud backup, so syncing stays fast.
-        </p>
       )}
     </div>
   );
