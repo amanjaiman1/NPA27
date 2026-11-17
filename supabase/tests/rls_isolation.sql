@@ -31,7 +31,7 @@ do $$
 declare r record;
 begin
   select * into r from public.save_chronicle_state(
-    '{"profile":{"name":"A"},"journal":[{"date":"2026-11-01","totalHours":6,"reflection":"private A"}]}'::jsonb, 0);
+    '{"profile":{"name":"A"},"journal":[{"date":"2026-11-01","totalHours":6,"reflection":"private A","fileIds":["f1"]}],"files":[{"id":"f1","name":"private notes.pdf"}]}'::jsonb, 0);
   if not r.saved or r.version <> 1 then
     raise exception 'FAIL: first save for A should create version 1, got saved=% version=%', r.saved, r.version;
   end if;
@@ -162,13 +162,88 @@ begin
   end if;
 end $$;
 
+-- ── Attached files: each account's Storage folder is its own ──────
+-- These write rows straight into storage.objects, which is how the policies
+-- are evaluated; no file is uploaded. Everything is rolled back at the end.
+reset role;
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-4000-8000-00000000000a","role":"authenticated"}', true);
+
+do $$
+begin
+  insert into storage.objects (bucket_id, name)
+  values ('chronicle-attachments', 'a0000000-0000-4000-8000-00000000000a/' || repeat('a', 64));
+
+  begin
+    insert into storage.objects (bucket_id, name)
+    values ('chronicle-attachments', 'b0000000-0000-4000-8000-00000000000b/' || repeat('a', 64));
+    raise exception 'FAIL: A stored a file in B''s folder';
+  exception when insufficient_privilege then null;
+  end;
+
+  begin
+    insert into storage.objects (bucket_id, name)
+    values ('chronicle-attachments', 'a0000000-0000-4000-8000-00000000000a/notes.pdf');
+    raise exception 'FAIL: a file name that is not a content hash was accepted';
+  exception when insufficient_privilege then null;
+  end;
+end $$;
+
+reset role;
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"b0000000-0000-4000-8000-00000000000b","role":"authenticated"}', true);
+
+do $$
+declare n int;
+begin
+  insert into storage.objects (bucket_id, name)
+  values ('chronicle-attachments', 'b0000000-0000-4000-8000-00000000000b/' || repeat('b', 64));
+
+  select count(*) into n from storage.objects where bucket_id = 'chronicle-attachments';
+  if n <> 1 then raise exception 'FAIL: B can see % attached files, expected only its own', n; end if;
+
+  select count(*) into n from storage.objects where name like 'a0000000-%';
+  if n <> 0 then raise exception 'FAIL: B can see A''s attached file'; end if;
+
+  -- Attempts on A's file either affect nothing or are refused outright
+  -- (Supabase blocks direct deletes from storage tables); both are fine.
+  begin
+    update storage.objects set name = 'b0000000-0000-4000-8000-00000000000b/' || repeat('c', 64)
+     where name like 'a0000000-%';
+  exception when others then null;
+  end;
+  begin
+    delete from storage.objects where name like 'a0000000-%';
+  exception when others then null;
+  end;
+end $$;
+
+reset role;
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-4000-8000-00000000000a","role":"authenticated"}', true);
+
+do $$
+declare n int;
+begin
+  select count(*) into n from storage.objects
+   where name = 'a0000000-0000-4000-8000-00000000000a/' || repeat('a', 64);
+  if n <> 1 then raise exception 'FAIL: A''s attached file was moved or deleted by another account'; end if;
+
+  select count(*) into n from storage.objects where name like 'b0000000-%';
+  if n <> 0 then raise exception 'FAIL: A can see B''s attached file'; end if;
+end $$;
+
 -- ── Signed-out (anon) callers get nothing ─────────────────────────
 reset role;
 set local role anon;
 select set_config('request.jwt.claims', '{"role":"anon"}', true);
 
 do $$
+declare n int;
 begin
+  select count(*) into n from storage.objects where bucket_id = 'chronicle-attachments';
+  if n <> 0 then raise exception 'FAIL: an anonymous caller can see % attached files', n; end if;
+
   begin
     perform 1 from public.chronicle_state;
     raise exception 'FAIL: an anonymous caller could read chronicle_state';
@@ -197,6 +272,10 @@ begin
     array['a0000000-0000-4000-8000-00000000000a']::uuid[]);
   if j ? 'reflection' then raise exception 'FAIL: dispatcher snapshot still carries journal text'; end if;
   if (j ->> 'totalHours')::numeric <> 6 then raise exception 'FAIL: dispatcher snapshot lost study hours'; end if;
+
+  select data into j from public.chronicle_dispatch_snapshots(
+    array['a0000000-0000-4000-8000-00000000000a']::uuid[]);
+  if j ? 'files' then raise exception 'FAIL: dispatcher snapshot carries file descriptions'; end if;
 
   -- A write that bypasses the save function still moves the version on, so a
   -- device holding the old version can never silently overwrite it.

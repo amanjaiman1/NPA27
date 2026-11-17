@@ -1,10 +1,12 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Database, Download, ImageOff, RefreshCw, Split } from "lucide-react";
+import { Database, Download, ImageOff, Paperclip, RefreshCw, Split } from "lucide-react";
 import { useChronicle, readCloudSnapshot } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import { ACCOUNT_FILE_QUOTA, totalFileBytes } from "@/lib/files";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { DataBackup } from "@/components/layout/data-backup";
 import { useAccount } from "@/components/account/account-session";
@@ -31,6 +33,7 @@ function download(name: string, value: unknown) {
 export function DataSettings() {
   const { mode, sync, syncNow, conflicts, dismissConflicts } = useAccount();
   const journal = useChronicle((s) => s.journal);
+  const files = useChronicle((s) => s.files);
   const removeLegacyAttachments = useChronicle((s) => s.removeLegacyAttachments);
   const confirm = useConfirm();
   const [removed, setRemoved] = useState<number | null>(null);
@@ -46,6 +49,8 @@ export function DataSettings() {
       return 0;
     }
   }, [journal]);
+
+  const fileBytes = useMemo(() => totalFileBytes(files), [files]);
 
   const legacy = useMemo(() => {
     let count = 0;
@@ -87,10 +92,29 @@ export function DataSettings() {
           )}
         </div>
 
+        <div className="rounded-2xl border border-line p-4" data-testid="file-usage">
+          <p className="flex items-center gap-2 text-sm font-semibold text-paper">
+            <Paperclip className="h-4 w-4 text-accent" /> Attached files
+          </p>
+          <p className="mt-1 text-xs leading-relaxed text-paper/55">
+            {files.length === 0
+              ? "No files attached yet. Files you attach to journal days are kept in private storage that only your account can open."
+              : `${files.length} file${files.length === 1 ? "" : "s"}, ${formatBytes(fileBytes)} of your ${formatBytes(ACCOUNT_FILE_QUOTA)}. Each file is stored once, however many days, goals or Life Dashboard days use it.`}
+          </p>
+          {files.length > 0 && (
+            <Progress
+              value={(fileBytes / ACCOUNT_FILE_QUOTA) * 100}
+              className="mt-3"
+              barClassName={fileBytes / ACCOUNT_FILE_QUOTA > 0.9 ? "bg-danger" : "bg-accent"}
+            />
+          )}
+        </div>
+
         <div>
           <p className="mb-1 text-sm font-semibold text-paper">Backup &amp; restore</p>
           <p className="mb-3 text-xs leading-relaxed text-paper/50">
-            A JSON file of everything you&apos;ve logged, held by you, independent of the cloud.
+            A JSON file of everything you&apos;ve logged, held by you, independent of the cloud. It lists your attached
+            files but doesn&apos;t contain them: open a file from its journal day to download it.
           </p>
           <DataBackup />
         </div>
@@ -122,8 +146,8 @@ export function DataSettings() {
               <ImageOff className="h-4 w-4 text-accent" /> Old journal photos
             </p>
             <p className="mt-1 text-xs leading-relaxed text-paper/55">
-              {legacy.count} photo{legacy.count === 1 ? "" : "s"} ({formatBytes(legacy.bytes)}) from before
-              photos were retired are still stored with your data, and are re-sent every time it syncs.
+              {legacy.count} photo{legacy.count === 1 ? "" : "s"} ({formatBytes(legacy.bytes)}) from an older
+              version are stored inside your data rather than as files, and are re-sent every time it syncs.
               Download your data first to keep a copy, then remove them.
             </p>
             <Button

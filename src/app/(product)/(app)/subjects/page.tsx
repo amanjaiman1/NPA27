@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   ChevronRight,
@@ -319,12 +319,15 @@ function SubjectCard({
   linkage,
   today,
   onEdit,
+  focused = false,
 }: {
   subject: Subject;
   hours: number;
   linkage: LinkageIndex;
   today: string;
   onEdit: () => void;
+  /** Opened from a link elsewhere (`/subjects?subject=<id>`): start expanded and in view. */
+  focused?: boolean;
 }) {
   const addTopic = useChronicle((s) => s.addTopic);
   const setTopicsStatus = useChronicle((s) => s.setTopicsStatus);
@@ -333,11 +336,19 @@ function SubjectCard({
   const mistakes = useChronicle((s) => s.mistakes);
   const confirm = useConfirm();
 
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(focused);
   const [adding, setAdding] = useState("");
   const [selecting, setSelecting] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [statusFilter, setStatusFilter] = useState<"all" | TopicStatus>("all");
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!focused) return;
+    setOpen(true);
+    const t = setTimeout(() => cardRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 120);
+    return () => clearTimeout(t);
+  }, [focused]);
 
   const r = rollupSubject(subject, hours, linkage, today);
 
@@ -382,7 +393,11 @@ function SubjectCard({
   }
 
   return (
-    <Card className="group overflow-hidden">
+    <Card
+      ref={cardRef}
+      id={`subject-${subject.id}`}
+      className={cn("group scroll-mt-24 overflow-hidden", focused && "ring-2 ring-accent/40")}
+    >
       <div className="flex items-center gap-4 p-5">
         <button
           onClick={() => setOpen((o) => !o)}
@@ -588,6 +603,12 @@ export default function SubjectsPage() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<Subject>(emptySubject());
+  /** `/subjects?subject=<id>`, from a topic link elsewhere: open that subject. */
+  const [focusId, setFocusId] = useState<string | null>(null);
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get("subject");
+    if (id) setFocusId(id);
+  }, []);
 
   const hoursMap = useMemo(() => {
     const m = new Map<string, number>();
@@ -970,6 +991,7 @@ export default function SubjectsPage() {
                       linkage={linkage}
                       today={today}
                       onEdit={() => openEdit(s)}
+                      focused={focusId === s.id}
                     />
                   ))}
                 </div>

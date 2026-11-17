@@ -91,10 +91,15 @@ await db.exec(`
   alter default privileges in schema public grant all on tables to anon, authenticated, service_role;
   alter default privileges in schema public grant all on functions to anon, authenticated, service_role;
 `);
+// Supabase Storage's tables, so the attachments migration and its policies run.
+await db.exec(read("supabase/tests/storage_shim.sql"));
 await db.exec(read("supabase/schema.sql"));
 for (const f of readdirSync(join(root, "supabase/migrations")).filter((f) => f.endsWith(".sql")).sort()) {
   await db.exec(read(join("supabase/migrations", f)));
 }
+
+/** Object bytes, keyed by `<bucket>/<name>`. Their rows live in storage.objects. */
+const blobs = new Map();
 
 // PGlite has one connection, so requests take turns.
 let queue = Promise.resolve();
@@ -184,12 +189,20 @@ async function findUser(where, value) {
 const CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET,POST,PUT,PATCH,DELETE,OPTIONS",
-  "Access-Control-Allow-Headers": "*",
+  // `*` doesn't cover Authorization for browsers, so the common ones are named.
+  "Access-Control-Allow-Headers":
+    "*, authorization, apikey, content-type, x-upsert, cache-control, x-client-info, accept-profile, content-profile, prefer",
   "Access-Control-Expose-Headers": "*",
 };
 function send(res, status, body) {
   res.writeHead(status, { ...CORS, "Content-Type": "application/json" });
   res.end(body === undefined ? "" : JSON.stringify(body));
+}
+
+async function rawBody(req) {
+  const chunks = [];
+  for await (const c of req) chunks.push(c);
+  return Buffer.concat(chunks);
 }
 const authError = (res, status, code, msg) => send(res, status, { code: status, error_code: code, msg });
 const pgError = (res, e) =>
@@ -342,13 +355,138 @@ async function handleRest(req, res, url) {
   }
 }
 
+/* ── storage ────────────────────────────────────────────────────── */
+
+const storageError = (res, status, error, message) => send(res, status, { statusCode: String(status), error, message });
+
+async function bucketRow(id) {
+  const r = await asAdmin(() => db.query("select * from storage.buckets where id = $1", [id]));
+  return r.rows[0] ?? null;
+}
+
+/**
+ * The slice of the Storage API the app uses: upload, signed links, list and
+ * delete. Every object row is read and written as the caller, so the bucket's
+ * policies decide exactly as they would on Supabase; only the bytes are kept
+ * in memory here.
+ */
+async function handleStorage(req, res, url) {
+  const path = decodeURIComponent(url.pathname.replace(/^\/storage\/v1/, ""));
+  const claims = bearerClaims(req) ?? { role: "anon" };
+
+  // A signed link being followed, or one being minted.
+  let m = /^\/object\/sign\/([^/]+)\/(.+)$/.exec(path);
+  if (m && req.method === "GET") {
+    const tok = verify(url.searchParams.get("token"));
+    const key = `${m[1]}/${m[2]}`;
+    if (!tok || tok.url !== key) return storageError(res, 400, "InvalidJWT", "invalid signature");
+    const blob = blobs.get(key);
+    if (!blob) return storageError(res, 404, "not_found", "Object not found");
+    const headers = { ...CORS, "Content-Type": blob.type, "Content-Length": blob.bytes.length, "Cache-Control": "max-age=3600" };
+    const dl = url.searchParams.get("download");
+    if (dl !== null) headers["Content-Disposition"] = `attachment; filename="${(dl || m[2].split("/").pop()).replace(/"/g, "")}"`;
+    res.writeHead(200, headers);
+    return res.end(blob.bytes);
+  }
+  if (m && req.method === "POST") {
+    const b = await body(req);
+    const rows = await asCaller(claims, () =>
+      db.query("select id from storage.objects where bucket_id = $1 and name = $2", [m[1], m[2]]),
+    );
+    if (!rows.rows.length) return storageError(res, 400, "not_found", "Object not found");
+    const now = Math.floor(Date.now() / 1000);
+    const token = sign({ url: `${m[1]}/${m[2]}`, iat: now, exp: now + Math.max(1, Number(b.expiresIn) || 60) });
+    return send(res, 200, {
+      signedURL: `/object/sign/${m[1]}/${m[2].split("/").map(encodeURIComponent).join("/")}?token=${token}`,
+    });
+  }
+
+  m = /^\/object\/list\/([^/]+)$/.exec(path);
+  if (m && req.method === "POST") {
+    const b = await body(req);
+    const prefix = String(b.prefix ?? "").replace(/\/+$/, "");
+    const rows = await asCaller(claims, () =>
+      db.query(
+        "select id, name, to_json(created_at) #>> '{}' as created_at, to_json(updated_at) #>> '{}' as updated_at, metadata from storage.objects where bucket_id = $1 and name like $2 order by name limit $3 offset $4",
+        [m[1], prefix ? `${prefix}/%` : "%", Number(b.limit) || 100, Number(b.offset) || 0],
+      ),
+    );
+    return send(res, 200, rows.rows.map((r) => ({ ...r, name: prefix ? r.name.slice(prefix.length + 1) : r.name })));
+  }
+
+  m = /^\/object\/([^/]+)$/.exec(path);
+  if (m && req.method === "DELETE") {
+    const b = await body(req);
+    const names = Array.isArray(b.prefixes) ? b.prefixes.map(String) : [];
+    const deleted = [];
+    for (const name of names) {
+      const r = await asCaller(claims, () =>
+        db.query("delete from storage.objects where bucket_id = $1 and name = $2 returning id, name, bucket_id", [m[1], name]),
+      );
+      for (const row of r.rows) {
+        blobs.delete(`${m[1]}/${row.name}`);
+        deleted.push(row);
+      }
+    }
+    return send(res, 200, deleted);
+  }
+
+  m = /^\/object\/([^/]+)\/(.+)$/.exec(path);
+  if (m && (req.method === "POST" || req.method === "PUT")) {
+    const bytes = await rawBody(req);
+    const bucket = await bucketRow(m[1]);
+    if (!bucket) return storageError(res, 404, "Bucket not found", "Bucket not found");
+    const type = String(req.headers["content-type"] ?? "application/octet-stream").split(";")[0].trim();
+    if (bucket.file_size_limit && bytes.length > Number(bucket.file_size_limit))
+      return storageError(res, 413, "Payload too large", "The object exceeded the maximum allowed size");
+    if (bucket.allowed_mime_types?.length && !bucket.allowed_mime_types.includes(type))
+      return storageError(res, 415, "invalid_mime_type", `mime type ${type} is not supported`);
+    try {
+      await asCaller(claims, () =>
+        db.query("insert into storage.objects (bucket_id, name, owner, owner_id, metadata) values ($1, $2, $3, $4, $5)", [
+          m[1],
+          m[2],
+          claims.sub ?? null,
+          claims.sub ?? null,
+          JSON.stringify({ size: bytes.length, mimetype: type }),
+        ]),
+      );
+    } catch (e) {
+      if (e.code === "23505") return storageError(res, 409, "Duplicate", "The resource already exists");
+      if (e.code === "42501") return storageError(res, 403, "Unauthorized", "new row violates row-level security policy");
+      throw e;
+    }
+    blobs.set(`${m[1]}/${m[2]}`, { bytes, type });
+    console.log(`  stored ${m[2]} (${bytes.length} bytes, ${type})`);
+    return send(res, 200, { Key: `${m[1]}/${m[2]}`, Id: randomUUID() });
+  }
+  return storageError(res, 404, "not_found", `no mock for ${req.method} ${path}`);
+}
+
 createServer(async (req, res) => {
   const url = new URL(req.url, `http://localhost:${PORT}`);
   if (req.method === "OPTIONS") return send(res, 204);
   try {
     if (url.pathname.startsWith("/auth/v1")) return await handleAuth(req, res, url);
     if (url.pathname.startsWith("/rest/v1")) return await handleRest(req, res, url);
+    if (url.pathname.startsWith("/storage/v1")) return await handleStorage(req, res, url);
     if (url.pathname === "/__mock/last-email") return send(res, 200, lastEmail);
+    if (url.pathname === "/__mock/storage") {
+      // By owner id (works after the account is gone) or by email.
+      const user = url.searchParams.get("user");
+      const r = await asAdmin(() =>
+        user
+          ? db.query(
+              "select name, (metadata ->> 'size')::int as size from storage.objects where split_part(name, '/', 1) = $1 order by name",
+              [user],
+            )
+          : db.query(
+              "select o.name, (o.metadata ->> 'size')::int as size from storage.objects o join auth.users u on u.id::text = split_part(o.name, '/', 1) where u.email = $1 order by o.name",
+              [String(url.searchParams.get("email") ?? "").toLowerCase()],
+            ),
+      );
+      return send(res, 200, r.rows.map((row) => ({ ...row, stored: blobs.has(`chronicle-attachments/${row.name}`) })));
+    }
     if (url.pathname === "/__mock/snapshot") {
       const r = await asAdmin(() =>
         db.query(

@@ -129,21 +129,54 @@ async function signOut(page) {
   await page.waitForURL(/\/welcome/);
 }
 
-async function writeJournal(page, highlight) {
+/** Today's entry in the composer (new or existing). */
+async function openComposer(page) {
   await page.goto(`${APP}/journal?new=1`);
-  const composer = page.getByRole("dialog", { name: /journal entry/ });
+  const composer = page.getByRole("dialog", { name: /^(New|Edit) entry$/ });
   await composer.waitFor();
-  // The morning check-in creates today's entry with no study blocks yet.
-  if ((await composer.locator("select").count()) === 0) {
-    await composer.getByRole("button", { name: "Add block" }).click();
-  }
-  await composer.locator("select").first().selectOption({ label: "Polity & Governance" });
-  await composer.locator('input[type="number"]').first().fill("5");
-  await composer.getByPlaceholder("One line that captures the day").fill(highlight);
-  await composer.getByRole("button", { name: "Save entry" }).click();
-  await page.getByRole("button", { name: "Save entry" }).last().click(); // the confirmation
-  await composer.waitFor({ state: "detached" });
+  return composer;
 }
+
+/** Picks files in the composer and waits until each is uploaded and attached. */
+async function attachFiles(composer, files) {
+  await composer.getByTestId("attachment-input").setInputFiles(files);
+  for (const f of files) await composer.getByRole("button", { name: `Preview ${f.name}` }).waitFor({ timeout: 20_000 });
+}
+
+async function saveComposer(page, composer) {
+  await composer.getByRole("button", { name: /^Save (entry|changes)$/ }).click();
+  await composer.waitFor({ state: "detached" });
+  // The day's first real entry is celebrated (the morning check-in no longer
+  // pre-creates it). Close the celebration so the run can carry on.
+  const party = page.getByRole("dialog", { name: "Day accomplished" });
+  try {
+    await party.waitFor({ timeout: 2500 });
+  } catch {
+    return;
+  }
+  await party.getByRole("button", { name: "Keep going" }).click();
+  await party.waitFor({ state: "detached" });
+}
+
+async function writeJournal(page, highlight, { files } = {}) {
+  const composer = await openComposer(page);
+  if ((await composer.getByLabel("Subject 1", { exact: true }).count()) === 0) {
+    await composer.getByRole("button", { name: "Add a subject" }).click();
+  }
+  await composer.getByLabel("Subject 1", { exact: true }).selectOption({ label: "Polity & Governance" });
+  await composer.getByLabel("Hours for subject 1", { exact: true }).fill("5");
+  await composer.getByPlaceholder("One line that captures the day").fill(highlight);
+  if (files) await attachFiles(composer, files);
+  await saveComposer(page, composer); // no confirmation step any more
+}
+
+/** A 1×1 PNG and a short text file, as Playwright file payloads. */
+const PNG = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+  "base64",
+);
+const textFile = (name, text) => ({ name, mimeType: "text/plain", buffer: Buffer.from(text) });
+const storedFor = (userId) => mock(`/__mock/storage?user=${userId}`);
 
 async function addHabit(page, name, { navigate = true } = {}) {
   if (navigate) await page.goto(`${APP}/habits`);
@@ -198,17 +231,39 @@ async function main() {
       await writeJournal(page, "A-only highlight");
       await page.goto(`${APP}/settings#appearance`);
       await page.getByRole("button", { name: /Teal/ }).click();
+      await page.getByRole("radio", { name: /^Dark/ }).click();
       await page.getByRole("switch", { name: "Daily digest" }).click();
       await waitFor("A's edits in the cloud", async () => {
         const c = await cloudOf(A.email);
-        return c && JSON.stringify(c.data).includes("A-only highlight") && c.data.palette === "lagoon" && c.data.notify?.digest === false;
+        return (
+          c &&
+          JSON.stringify(c.data).includes("A-only highlight") &&
+          c.data.palette === "lagoon" &&
+          c.data.themeMode === "dark" &&
+          c.data.notify?.digest === false
+        );
       });
       check((await page.evaluate(() => document.documentElement.dataset.palette)) === "lagoon", "A's palette applied");
+      check((await page.evaluate(() => document.documentElement.dataset.surface)) === "black", "A's dark theme applied");
+      // Record the theme the moment <body> appears, before the app's scripts run.
+      await page.addInitScript(() => {
+        new MutationObserver((_, obs) => {
+          if (!document.body) return;
+          window.__firstPaintSurface = document.documentElement.dataset.surface ?? null;
+          obs.disconnect();
+        }).observe(document, { childList: true, subtree: true });
+      });
+      await page.reload();
+      check(
+        (await page.evaluate(() => window.__firstPaintSurface)) === "black",
+        "the dark theme isn't painted before the app loads (a light flash)",
+      );
       await signOut(page);
       const keys = Object.keys(await storageOf(page));
       check(!keys.some((k) => k.includes(ids.A)), `A's data left in the browser after sign-out: ${keys.filter((k) => k.includes(ids.A))}`);
       check(!keys.includes("upsc-chronicle-auth"), "the session was removed");
       check((await page.evaluate(() => document.documentElement.dataset.palette)) === "rose", "the signed-out screen uses the default look");
+      check((await page.evaluate(() => document.documentElement.dataset.surface)) === "white", "the signed-out screen is light");
     });
 
     await scenario("3. B, on the same browser, sees none of A's data", async () => {
@@ -220,6 +275,7 @@ async function main() {
       await page.getByText("Daily Journal").first().waitFor();
       check(!(await page.content()).includes("A-only highlight"), "B can see A's journal");
       check((await page.evaluate(() => document.documentElement.dataset.palette)) === "rose", "B inherited A's look");
+      check((await page.evaluate(() => document.documentElement.dataset.surface)) === "white", "B inherited A's theme");
       await writeJournal(page, "B-only highlight");
       await waitFor("B's entry in the cloud", async () => JSON.stringify((await cloudOf(B.email))?.data ?? "").includes("B-only highlight"));
       const b = await cloudOf(B.email);
@@ -247,6 +303,7 @@ async function main() {
       await phonePage.goto(`${APP}/journal/${today()}`);
       await phonePage.getByText("A-only highlight").waitFor();
       check((await phonePage.evaluate(() => document.documentElement.dataset.palette)) === "lagoon", "appearance didn't follow A to the phone");
+      check((await phonePage.evaluate(() => document.documentElement.dataset.surface)) === "black", "the theme didn't follow A to the phone");
     });
 
     await scenario("6. Edits made on both devices at once are all kept", async () => {
@@ -285,7 +342,113 @@ async function main() {
       check(JSON.stringify((await cloudOf(B.email)).data).includes("B-only highlight"), "B's data changed");
     });
 
-    await scenario("8. After sign-out nothing private is reachable", async () => {
+    await scenario("8. Attached files are stored once, linked without copies, and private", async () => {
+      const p = phonePage;
+      let composer = await openComposer(p);
+      await attachFiles(composer, [
+        { name: "map.png", mimeType: "image/png", buffer: PNG },
+        textFile("plan.txt", "Polity: chapters 4 to 6\n"),
+      ]);
+      await saveComposer(p, composer);
+      const cloud = await waitFor("both files in A's cloud copy", async () => {
+        const c = await cloudOf(A.email);
+        return c?.data?.files?.length === 2 ? c : null;
+      });
+      check(cloud.data.files.every((f) => f.path.startsWith(`${ids.A}/`)), "a file was stored outside A's folder");
+      check(!JSON.stringify(cloud.data).includes("base64"), "file contents went into the synced data");
+      const day = cloud.data.journal.find((e) => e.date === today());
+      check(day?.fileIds?.length === 2, "today's entry doesn't hold both files");
+      check((await storedFor(ids.A)).length === 2, "Storage doesn't hold exactly two objects for A");
+
+      // The same bytes under another name: linked to the stored copy, not uploaded again.
+      composer = await openComposer(p);
+      await composer.getByTestId("attachment-input").setInputFiles([textFile("plan-copy.txt", "Polity: chapters 4 to 6\n")]);
+      await composer.getByText("“plan.txt” is already attached to this day.").waitFor();
+      await composer.getByRole("button", { name: "Cancel" }).click();
+      await composer.waitFor({ state: "detached" });
+      check((await storedFor(ids.A)).length === 2, "a duplicate upload was stored");
+
+      // Link the photo to a goal: a reference, not a copy.
+      await p.goto(`${APP}/goals`);
+      await p.getByRole("button", { name: "New goal" }).first().click();
+      const form = p.getByRole("dialog", { name: "New goal" });
+      await form.getByLabel("Name", { exact: true }).fill("Finish Polity notes");
+      await form.getByRole("button", { name: "Add goal" }).click();
+      await form.waitFor({ state: "detached" });
+      await p.getByRole("button", { name: "Open goal: Finish Polity notes" }).click();
+      const detail = p.getByRole("dialog", { name: "Finish Polity notes" });
+      await detail.getByRole("button", { name: /^Journal & files/ }).click();
+      await detail.getByRole("button", { name: "Link a file from the journal" }).click();
+      const picker = p.getByRole("dialog", { name: "Link files from your journal" });
+      await picker.getByRole("button", { name: /map\.png/ }).click();
+      await picker.getByRole("button", { name: /^Link 1 file/ }).click();
+      await detail.getByRole("button", { name: "Preview map.png" }).waitFor();
+      const linked = await waitFor("the goal's link in the cloud", async () => {
+        const c = await cloudOf(A.email);
+        const g = c?.data?.goals?.find((x) => x.title === "Finish Polity notes");
+        return g?.fileIds?.length === 1 ? c : null;
+      });
+      check(linked.data.files.length === 2 && (await storedFor(ids.A)).length === 2, "linking made a copy");
+
+      // Unlinking keeps the file with its journal day.
+      await detail.getByRole("button", { name: "Unlink map.png" }).click();
+      await waitFor("the goal's link removed", async () => {
+        const g = (await cloudOf(A.email)).data.goals.find((x) => x.title === "Finish Polity notes");
+        return g && !g.fileIds;
+      });
+      check((await cloudOf(A.email)).data.files.length === 2, "unlinking deleted the file");
+
+      // Another account can't read, list, overwrite or delete A's files.
+      const { access_token: aToken } = await sessionOf(p);
+      const bLogin = await (
+        await fetch(`${MOCK}/auth/v1/token?grant_type=password`, {
+          method: "POST",
+          headers: { apikey: mockEnv.NEXT_PUBLIC_SUPABASE_ANON_KEY, "Content-Type": "application/json" },
+          body: JSON.stringify({ email: B.email, password: PASSWORD }),
+        })
+      ).json();
+      const as = (token, extra = {}) => ({ apikey: mockEnv.NEXT_PUBLIC_SUPABASE_ANON_KEY, Authorization: `Bearer ${token}`, ...extra });
+      const aPath = cloud.data.files[0].path;
+      const signAs = (token) =>
+        fetch(`${MOCK}/storage/v1/object/sign/chronicle-attachments/${aPath}`, {
+          method: "POST",
+          headers: as(token, { "Content-Type": "application/json" }),
+          body: JSON.stringify({ expiresIn: 60 }),
+        });
+      check((await signAs(aToken)).status === 200, "A can't open A's own file");
+      check((await signAs(bLogin.access_token)).status !== 200, "B got a link to A's file");
+      const listed = await (
+        await fetch(`${MOCK}/storage/v1/object/list/chronicle-attachments`, {
+          method: "POST",
+          headers: as(bLogin.access_token, { "Content-Type": "application/json" }),
+          body: JSON.stringify({ prefix: ids.A }),
+        })
+      ).json();
+      check(Array.isArray(listed) && listed.length === 0, "B can list A's folder");
+      const put = await fetch(`${MOCK}/storage/v1/object/chronicle-attachments/${ids.A}/intruder`, {
+        method: "POST",
+        headers: as(bLogin.access_token, { "Content-Type": "text/plain" }),
+        body: "not yours",
+      });
+      check(put.status === 403, `B writing into A's folder returned ${put.status}, expected 403`);
+      await fetch(`${MOCK}/storage/v1/object/chronicle-attachments`, {
+        method: "DELETE",
+        headers: as(bLogin.access_token, { "Content-Type": "application/json" }),
+        body: JSON.stringify({ prefixes: [aPath] }),
+      });
+      check((await storedFor(ids.A)).length === 2, "B deleted A's file");
+
+      // Removing a file from the only day that holds it deletes it from Storage too.
+      composer = await openComposer(p);
+      await composer.getByRole("button", { name: "Remove plan.txt" }).click();
+      await saveComposer(p, composer);
+      await waitFor("plan.txt removed from the cloud and from Storage", async () => {
+        const c = await cloudOf(A.email);
+        return c.data.files.length === 1 && (await storedFor(ids.A)).length === 1;
+      });
+    });
+
+    await scenario("9. After sign-out nothing private is reachable", async () => {
       await signOut(page);
       await page.goto(`${APP}/journal/${today()}`);
       await page.waitForURL(/\/login/);
@@ -294,13 +457,13 @@ async function main() {
       check(!keys.some((k) => k.startsWith("upsc-chronicle-store")), `stores left behind: ${keys}`);
     });
 
-    await scenario("9. Notification preferences are per account", async () => {
+    await scenario("10. Notification preferences are per account", async () => {
       const a = await cloudOf(A.email);
       const b = await cloudOf(B.email);
       check(a.data.notify.digest === false && b.data.notify?.digest !== false, "digest settings crossed accounts");
     });
 
-    await scenario("10. Pre-account data on the owner's browser moves into the owner's account only", async () => {
+    await scenario("11. Pre-account data on the owner's browser moves into the owner's account only", async () => {
       const owner = await (await fetch(`${MOCK}/auth/v1/signup`, {
         method: "POST",
         headers: { apikey: mockEnv.NEXT_PUBLIC_SUPABASE_ANON_KEY, "Content-Type": "application/json" },
@@ -342,7 +505,7 @@ async function main() {
     });
 
     const cPage = await (await browser.newContext()).newPage();
-    await scenario("11. A fresh account starts clean, with only reference content", async () => {
+    await scenario("12. A fresh account starts clean, with only reference content", async () => {
       await signIn(cPage, C.email);
       await onboard(cPage, C.name);
       await passSleepPromptIfShown(cPage);
@@ -356,9 +519,12 @@ async function main() {
       }
       check(c.data.subjects.every((s) => s.topics.every((t) => t.status === "untouched")), "C starts with progress");
       check(c.data.subjects.length > 10 && c.data.books.length > 0, "C is missing the reference syllabus");
+      ids.C = (await sessionOf(cPage)).user.id;
+      await writeJournal(cPage, "C entry", { files: [textFile("c-notes.txt", "C's private notes\n")] });
+      await waitFor("C's file in Storage", async () => (await storedFor(ids.C)).length === 1);
     });
 
-    await scenario("12. Deleting an account removes only that account", async () => {
+    await scenario("13. Deleting an account removes only that account", async () => {
       await cPage.goto(`${APP}/settings#danger`);
       await cPage.getByRole("button", { name: "Delete my account" }).click();
       const dialog = cPage.getByRole("dialog", { name: "Delete your account?" });
@@ -370,6 +536,8 @@ async function main() {
       const emails = (await mock("/__mock/rows")).map((r) => r.email);
       check(!emails.includes(C.email), "C's row survived");
       check(emails.includes(A.email) && emails.includes(B.email), "deleting C touched other accounts");
+      check((await storedFor(ids.C)).length === 0, "C's files survived the account deletion");
+      check((await storedFor(ids.A)).length === 1, "deleting C touched A's files");
       const keys = Object.keys(await storageOf(cPage));
       check(!keys.some((k) => k.startsWith("upsc-chronicle-store:")), "C's data stayed in the browser");
       await signIn(cPage, C.email);

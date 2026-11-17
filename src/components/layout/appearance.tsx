@@ -1,41 +1,72 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, Check } from "lucide-react";
+import { ArrowRight, Check, Moon, Sun, SunMoon } from "lucide-react";
 import { useChronicle } from "@/lib/store";
 import { Modal } from "@/components/ui/modal";
-import { SURFACES, PALETTES } from "@/lib/theme";
+import { THEME_MODES, PALETTES, type ThemeMode } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 import { WallpaperPicker } from "./wallpaper-picker";
 import { InstallCard } from "@/components/pwa/install-prompt";
 
-/** Background, colouring and wallpaper. Saved with the account, like everything else. */
+const MODE_ICON: Record<ThemeMode, typeof Sun> = { light: Sun, dark: Moon, system: SunMoon };
+
+/** A miniature of the app on a surface: canvas, a card, a line of text and the accent. */
+function ThemePreview({ mode }: { mode: ThemeMode }) {
+  const half = (surface: "white" | "black") => (
+    <span data-surface={surface} className="flex h-full flex-1 flex-col gap-1 bg-ink p-1.5">
+      <span className="block h-1.5 w-8 rounded-full bg-paper/70" />
+      <span className="mt-auto flex flex-col gap-1 rounded-md border border-line bg-card p-1.5">
+        <span className="block h-1 w-10 rounded-full bg-paper/40" />
+        <span className="block h-1.5 w-6 rounded-full bg-accent" />
+      </span>
+    </span>
+  );
+  return (
+    <span className="flex h-14 w-full overflow-hidden rounded-lg border border-line">
+      {mode === "light" && half("white")}
+      {mode === "dark" && half("black")}
+      {mode === "system" && (
+        <>
+          {half("white")}
+          {half("black")}
+        </>
+      )}
+    </span>
+  );
+}
+
+/** Theme, colouring and wallpaper. Saved with the account, like everything else. */
 export function AppearanceControls() {
-  const surface = useChronicle((s) => s.surface);
+  const mode = useChronicle((s) => s.themeMode);
   const palette = useChronicle((s) => s.palette);
-  const setSurface = useChronicle((s) => s.setSurface);
+  const setThemeMode = useChronicle((s) => s.setThemeMode);
   const setPalette = useChronicle((s) => s.setPalette);
 
   return (
     <div className="space-y-7">
       <section>
-        <p className="eyebrow mb-3">Background</p>
-        <div className="grid grid-cols-3 gap-2.5">
-          {SURFACES.map((s) => {
-            const active = surface === s.id;
+        <p className="eyebrow mb-3">Theme</p>
+        <div className="grid grid-cols-3 gap-2.5" role="radiogroup" aria-label="Theme">
+          {THEME_MODES.map((m) => {
+            const active = mode === m.id;
+            const Icon = MODE_ICON[m.id];
             return (
               <button
-                key={s.id}
-                onClick={() => setSurface(s.id)}
-                aria-pressed={active}
+                key={m.id}
+                onClick={() => setThemeMode(m.id)}
+                role="radio"
+                aria-checked={active}
                 className={cn(
-                  "group relative flex flex-col items-start gap-2 rounded-xl border p-3 text-left transition-all",
+                  "group relative flex flex-col items-start gap-2 rounded-xl border p-2.5 text-left transition-all",
                   active ? "border-accent ring-1 ring-accent/40" : "border-line hover:border-paper/30",
                 )}
               >
-                <span className="h-12 w-full rounded-lg border border-line" style={{ background: s.swatch }} />
-                <span className="text-xs font-medium text-paper">{s.label}</span>
-                <span className="text-[0.65rem] text-paper/45">{s.hint}</span>
+                <ThemePreview mode={m.id} />
+                <span className="flex items-center gap-1.5 text-xs font-semibold text-paper">
+                  <Icon className="h-3.5 w-3.5" /> {m.label}
+                </span>
+                <span className="text-[0.65rem] leading-snug text-paper/55">{m.hint}</span>
                 {active && (
                   <span className="absolute right-2 top-2 grid h-5 w-5 place-items-center rounded-full bg-accent text-accent-fg">
                     <Check className="h-3 w-3" />

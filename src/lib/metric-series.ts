@@ -57,7 +57,8 @@ export interface MetricSeries {
   /** Change against that previous window, as a fraction (0.12 = +12%). */
   change: number | null;
   /** Mean by weekday, Monday first. */
-  byWeekday: { label: string; value: number }[];
+  /** Mean per weekday; null for a weekday with no readings in the window. */
+  byWeekday: { label: string; value: number | null }[];
   /** Consecutive days up to today satisfying the metric's active test. */
   streak: number;
   longestStreak: number;
@@ -207,7 +208,7 @@ export function buildMetricSeries(
       hits.map((r) => r.value),
       "mean",
     );
-    return { label, value: s.mean ?? 0 };
+    return { label, value: s.mean ?? null };
   });
 
   // ── streaks ───────────────────────────────────────────────────────────────

@@ -22,9 +22,18 @@ import {
   Lightbulb,
   NotebookPen,
   Quote,
+  Paperclip,
+  HeartPulse,
+  ListChecks,
+  BookMarked,
 } from "lucide-react";
 import { useChronicle, useHasHydrated } from "@/lib/store";
-import type { JournalEntry } from "@/lib/types";
+import type { FileRecord, JournalEntry } from "@/lib/types";
+import { completedTopicsOf, findTopic } from "@/lib/topics";
+import { filesByIds } from "@/lib/files";
+import { STATUS_LABEL } from "@/lib/subjects";
+import { FileTile } from "@/components/attachments/file-tile";
+import { FilePreview } from "@/components/attachments/file-preview";
 import { Loading } from "@/components/ui/loading";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -124,12 +133,24 @@ export default function JournalDayPage() {
   const deleteJournal = useChronicle((s) => s.deleteJournal);
   const confirm = useConfirm();
 
+  const files = useChronicle((s) => s.files);
+  const goals = useChronicle((s) => s.goals);
+  const lifeLog = useChronicle((s) => s.lifeLog);
+
   const date = String(params?.date ?? "");
   const entry = useMemo(
     () => journal.find((e) => e.date === date),
     [journal, date],
   );
   const [open, setOpen] = useState(false);
+  const [preview, setPreview] = useState<FileRecord | null>(null);
+  const topics = useMemo(() => (entry ? completedTopicsOf(entry) : []), [entry]);
+  const dayFiles = useMemo(() => filesByIds(files, entry?.fileIds), [files, entry]);
+  const dayGoals = useMemo(() => goals.filter((g) => g.journalDates?.includes(date)), [goals, date]);
+  const life = useMemo(() => {
+    const l = lifeLog.find((x) => x.date === date);
+    return l && (l.sleepHours || l.exerciseMinutes || l.runKm || l.walkKm || l.note) ? l : null;
+  }, [lifeLog, date]);
 
   const subjectName = (id: string) =>
     subjects.find((s) => s.id === id)?.name ?? "Unassigned";
@@ -205,16 +226,21 @@ export default function JournalDayPage() {
             </Button>
             <Button
               variant="ghost"
+              aria-label="Delete this entry"
               onClick={async () => {
+                const own = dayFiles.filter((f) =>
+                  journal.every((j) => j.date === date || !j.fileIds?.includes(f.id)),
+                ).length;
                 if (
                   await confirm({
                     title: "Delete this journal entry?",
                     description:
-                      "This day's entry will be permanently removed from your Chronicle.",
+                      "This day's entry will be permanently removed" +
+                      (own ? `, with its ${own} attached file${own === 1 ? "" : "s"}.` : "."),
                     confirmLabel: "Delete entry",
                   })
                 ) {
-                  deleteJournal(entry.id);
+                  deleteJournal(entry.date);
                   router.push("/journal");
                 }
               }}
@@ -262,7 +288,7 @@ export default function JournalDayPage() {
                     <Sunrise className="h-4 w-4 text-paper/40" /> Wake
                   </span>
                   <span className="tabular text-sm text-paper">
-                    {entry.wakeTime || "—"}
+                    {entry.wakeTime || lifeLog.find((l) => l.date === date)?.wakeTime || "—"}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
@@ -270,7 +296,7 @@ export default function JournalDayPage() {
                     <Moon className="h-4 w-4 text-paper/40" /> Sleep
                   </span>
                   <span className="tabular text-sm text-paper">
-                    {entry.sleepTime || "—"}
+                    {entry.sleepTime || lifeLog.find((l) => l.date === date)?.bedtime || "—"}
                   </span>
                 </div>
                 <div className="flex items-center justify-between border-t border-paper/[0.06] pt-3">
@@ -329,17 +355,86 @@ export default function JournalDayPage() {
             </SectionCard>
           )}
 
+          {/* Files, goals and the life side of the same day */}
+          {(dayFiles.length > 0 || dayGoals.length > 0 || life) && (
+            <div className="grid gap-4 lg:grid-cols-3">
+              {dayFiles.length > 0 && (
+                <SectionCard icon={Paperclip} title="Files" count={dayFiles.length}>
+                  <ul className="space-y-1.5">
+                    {dayFiles.map((f) => (
+                      <li key={f.id}>
+                        <FileTile record={f} onOpen={() => setPreview(f)} />
+                      </li>
+                    ))}
+                  </ul>
+                </SectionCard>
+              )}
+              {dayGoals.length > 0 && (
+                <SectionCard icon={Target} title="Goals this day served" count={dayGoals.length}>
+                  <ul className="space-y-1.5">
+                    {dayGoals.map((g) => (
+                      <li key={g.id}>
+                        <Link
+                          href={`/goals?goal=${encodeURIComponent(g.id)}`}
+                          className="flex items-center justify-between gap-2 text-sm text-paper/80 hover:text-accent"
+                        >
+                          <span className="min-w-0 truncate">{g.title}</span>
+                          <ChevronRight className="h-3.5 w-3.5 shrink-0 text-paper/40" />
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </SectionCard>
+              )}
+              {life && (
+                <SectionCard icon={HeartPulse} title="Life Dashboard">
+                  <ul className="space-y-1.5 text-sm text-paper/75">
+                    {life.sleepHours ? <li>Slept {formatHours(life.sleepHours)}</li> : null}
+                    {life.exerciseMinutes ? (
+                      <li>
+                        {life.exerciseMinutes} min {life.exerciseType ? life.exerciseType.toLowerCase() : "exercise"}
+                      </li>
+                    ) : null}
+                    {life.runKm ? <li>Ran {life.runKm} km</li> : null}
+                    {life.walkKm ? <li>Walked {life.walkKm} km</li> : null}
+                    {life.note ? <li className="text-paper/60">“{life.note}”</li> : null}
+                  </ul>
+                  <Link
+                    href={`/wellbeing?date=${date}`}
+                    className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-accent hover:underline"
+                  >
+                    Open this day <ChevronRight className="h-3 w-3" />
+                  </Link>
+                </SectionCard>
+              )}
+            </div>
+          )}
+
           {/* What you covered */}
           <div className="grid gap-4 sm:grid-cols-2">
-            {entry.topicsCompleted?.length ? (
-              <SectionCard icon={Target} title="Topics completed" count={entry.topicsCompleted.length}>
-                <div className="flex flex-wrap gap-1.5">
-                  {entry.topicsCompleted.map((t, i) => (
-                    <Badge key={i} tone="default">
-                      {t}
-                    </Badge>
-                  ))}
-                </div>
+            {topics.length ? (
+              <SectionCard icon={ListChecks} title="Topics completed" count={topics.length}>
+                <ul className="flex flex-wrap gap-1.5">
+                  {topics.map((t) => {
+                    const found = t.topicId ? findTopic(subjects, t.topicId) : null;
+                    return (
+                      <li key={t.id}>
+                        {found ? (
+                          <Link
+                            href={`/subjects?subject=${encodeURIComponent(found.subject.id)}`}
+                            title={`${found.subject.name} · ${STATUS_LABEL[found.topic.status]}`}
+                            className="inline-flex items-center gap-1.5 rounded-full border border-line bg-paper/[0.05] px-2.5 py-1 text-[0.72rem] font-semibold text-paper/80 transition-colors hover:border-accent/40 hover:text-accent"
+                          >
+                            <BookMarked className="h-3 w-3 text-accent" />
+                            {found.topic.name}
+                          </Link>
+                        ) : (
+                          <Badge tone="default">{t.name}</Badge>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
               </SectionCard>
             ) : null}
 
@@ -488,7 +583,15 @@ export default function JournalDayPage() {
         </motion.div>
       )}
 
-      <JournalComposer open={open} onClose={() => setOpen(false)} initial={draft} />
+      <JournalComposer
+        open={open}
+        onClose={() => setOpen(false)}
+        initial={draft}
+        onSaved={(e) => {
+          if (e.date !== date) router.replace(`/journal/${e.date}`);
+        }}
+      />
+      <FilePreview record={preview} open={Boolean(preview)} onClose={() => setPreview(null)} />
     </div>
   );
 }

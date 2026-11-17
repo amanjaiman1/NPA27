@@ -31,14 +31,36 @@ export interface NavItem {
   href: string;
   icon: LucideIcon;
   short: string; // for command palette keyword / tooltip
+  /** A one-word name for tight spaces (the phone's bottom bar). */
+  tab?: string;
 }
 
 export interface NavGroup {
   label: string;
   items: NavItem[];
+  /** Drawn larger, as tiles, at the top of the sidebar. */
+  prominent?: boolean;
 }
 
+/**
+ * The four sections used every day. They lead the sidebar as tiles and make
+ * up the bottom bar on a phone; they appear nowhere else in the navigation.
+ */
+export const essentialNavItems: NavItem[] = [
+  { label: "Daily Journal", href: "/journal", icon: NotebookPen, short: "Log today", tab: "Journal" },
+  { label: "Goals", href: "/goals", icon: Target, short: "What you're chasing", tab: "Goals" },
+  {
+    label: "Life Dashboard",
+    href: "/wellbeing",
+    icon: HeartPulse,
+    short: "Sleep, movement, reports & patterns",
+    tab: "Life",
+  },
+  { label: "Revision", href: "/revision", icon: Repeat, short: "Spaced repetition", tab: "Revision" },
+];
+
 export const navGroups: NavGroup[] = [
+  { label: "Essentials", items: essentialNavItems, prominent: true },
   {
     label: "Command",
     items: [
@@ -50,10 +72,10 @@ export const navGroups: NavGroup[] = [
   {
     label: "Daily Engine",
     items: [
-      { label: "Daily Journal", href: "/journal", icon: NotebookPen, short: "Log today" },
       { label: "Current Affairs", href: "/current-affairs", icon: Newspaper, short: "News vault" },
-      { label: "Revision", href: "/revision", icon: Repeat, short: "Spaced repetition" },
       { label: "Mistake Tracker", href: "/mistakes", icon: TriangleAlert, short: "Learn from errors" },
+      { label: "Habits", href: "/habits", icon: ListChecks, short: "Daily disciplines" },
+      { label: "Library", href: "/books", icon: BookOpen, short: "Book progress" },
     ],
   },
   {
@@ -70,15 +92,6 @@ export const navGroups: NavGroup[] = [
     items: [
       { label: "Reviews", href: "/reviews", icon: CalendarCheck, short: "Weekly · Monthly · Yearly" },
       { label: "Reflections", href: "/reflections", icon: Quote, short: "Emotional journal" },
-    ],
-  },
-  {
-    label: "Life & Discipline",
-    items: [
-      { label: "Habits", href: "/habits", icon: ListChecks, short: "Daily disciplines" },
-      { label: "Life Dashboard", href: "/wellbeing", icon: HeartPulse, short: "Sleep, movement, focus & correlations" },
-      { label: "Goals", href: "/goals", icon: Target, short: "What you're chasing" },
-      { label: "Library", href: "/books", icon: BookOpen, short: "Book progress" },
     ],
   },
   {
@@ -121,5 +134,9 @@ export const allNavItems: NavItem[] = navGroups.flatMap((g) => g.items);
 export const searchableNavItems: NavItem[] = [...allNavItems, ...metricNavItems];
 
 export function findNavItem(pathname: string): NavItem | undefined {
-  return allNavItems.find((i) => pathname === i.href || pathname.startsWith(`${i.href}/`));
+  return allNavItems.find((i) => isActivePath(pathname, i.href));
+}
+
+export function isActivePath(pathname: string, href: string): boolean {
+  return pathname === href || pathname.startsWith(`${href}/`);
 }

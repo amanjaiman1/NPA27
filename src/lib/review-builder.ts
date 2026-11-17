@@ -8,6 +8,7 @@ import type {
 } from "./types";
 import { fromISODate, toISODate, daysBetween, round, avg, uid } from "./utils";
 import { weekNumberFor, currentPhase } from "./plan";
+import { countCompletedTopics } from "./topics";
 
 /* ════════════════════════════════════════════════════════════════
    Reviews, mostly written for you.
@@ -210,7 +211,7 @@ export function computeReviewMetrics(
     avgHoursPerDay: days > 0 ? round(totalHours / days, 1) : 0,
     avgHoursPerActiveDay: active.length ? round(totalHours / active.length, 1) : 0,
     consistency: days > 0 ? round(entries.length / days, 4) : 0,
-    topics: entries.reduce((a, e) => a + (e.topicsCompleted?.length ?? 0), 0),
+    topics: entries.reduce((a, e) => a + countCompletedTopics(e), 0),
     revisions: entries.reduce((a, e) => a + (e.revisionSessions?.length ?? 0), 0),
     books: entries.reduce((a, e) => a + (e.booksStudied?.length ?? 0), 0),
     currentAffairs: entries.reduce((a, e) => a + (e.currentAffairs?.length ?? 0), 0),

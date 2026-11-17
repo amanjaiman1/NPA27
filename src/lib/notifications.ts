@@ -679,7 +679,7 @@ export function evaluate(
     if (s.hours > 0) sleepByDate.set(s.date, s.hours);
   }
   for (const l of data.lifeLog ?? []) {
-    if (l.sleepHours > 0) sleepByDate.set(l.date, l.sleepHours);
+    if (l.sleepHours != null && l.sleepHours > 0) sleepByDate.set(l.date, l.sleepHours);
   }
   const windowStart = shift(today, -6);
   const recentSleep = [...sleepByDate.entries()]

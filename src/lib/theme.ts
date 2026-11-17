@@ -1,64 +1,83 @@
+import type { ThemeMode } from "./types";
+
 /* ════════════════════════════════════════════════════════════════
-   Appearance — the user-choosable look of the Chronicle.
-   Two independent dimensions:
-     • Surface  — the canvas the app sits on
-     • Palette  — the accent + data colours used everywhere inside
-   The actual colour values live as CSS variables in globals.css; this
-   module only carries the ids + preview swatches for the picker UI.
+   Appearance — day and night, plus an accent.
+
+     • Theme mode — Light, Dark, or Auto (follow the device). The mode is
+       what's saved and synced; the screen shows its *resolved* surface,
+       which is the `data-surface` attribute on <html>:
+         "white"  the Ivory day surface
+         "black"  the charcoal night surface
+     • Palette — the accent and the six chart colours, on either surface.
+
+   The colour values live as CSS variables in globals.css; this module
+   carries the ids, the picker's metadata, and the one function that puts
+   a mode on screen. The inline script in app/layout.tsx does the same
+   before first paint, so a reload never flashes the wrong theme.
    ════════════════════════════════════════════════════════════════ */
 
-export type Surface = "white" | "black" | "navy" | "velvet" | "abyss";
+export type { ThemeMode } from "./types";
+
+/** The two surfaces the CSS knows. */
+export type Surface = "white" | "black";
 export type Palette = "rose" | "sunset" | "lagoon" | "orchid" | "meadow" | "ember";
 
-export const DEFAULT_SURFACE: Surface = "white";
+export const DEFAULT_THEME_MODE: ThemeMode = "light";
 export const DEFAULT_PALETTE: Palette = "rose";
 
-export interface SurfaceMeta {
-  id: Surface;
+export interface ThemeModeMeta {
+  id: ThemeMode;
   label: string;
   hint: string;
-  /** Preview of the canvas — any CSS `background` value, gradients included. */
-  swatch: string;
-  dark: boolean;
 }
 
-export const SURFACES: SurfaceMeta[] = [
-  {
-    id: "white",
-    label: "Ivory",
-    hint: "Warm & bright",
-    swatch: "linear-gradient(150deg, #fffefc 0%, #f2efe9 100%)",
-    dark: false,
-  },
-  {
-    id: "black",
-    label: "Pure Black",
-    hint: "True #000 · OLED",
-    swatch: "linear-gradient(150deg, #0d0d0f 0%, #000 100%)",
-    dark: true,
-  },
-  {
-    id: "navy",
-    label: "Indigo",
-    hint: "Deep blue night",
-    swatch: "linear-gradient(150deg, #23305c 0%, #0f1221 100%)",
-    dark: true,
-  },
-  {
-    id: "velvet",
-    label: "Velvet",
-    hint: "Aubergine & magenta",
-    swatch: "linear-gradient(150deg, #4a2470 0%, #130a1c 70%)",
-    dark: true,
-  },
-  {
-    id: "abyss",
-    label: "Abyss",
-    hint: "Deep ocean & neon cyan",
-    swatch: "linear-gradient(150deg, #0e5a66 0%, #041016 70%)",
-    dark: true,
-  },
+export const THEME_MODES: ThemeModeMeta[] = [
+  { id: "light", label: "Light", hint: "Warm ivory, for the day" },
+  { id: "dark", label: "Dark", hint: "Soft charcoal, for the night" },
+  { id: "system", label: "Auto", hint: "Follows your device's day and night setting" },
 ];
+
+export function isThemeMode(v: unknown): v is ThemeMode {
+  return v === "light" || v === "dark" || v === "system";
+}
+
+/**
+ * The mode a saved surface from an older version meant. There used to be five
+ * surfaces; Ivory was the day theme and the other four were dark ones, so any
+ * of those becomes Dark.
+ */
+export function themeModeFromSurface(surface: unknown): ThemeMode {
+  if (surface === "white") return "light";
+  if (surface === "black" || surface === "navy" || surface === "velvet" || surface === "abyss") return "dark";
+  return DEFAULT_THEME_MODE;
+}
+
+export const DARK_QUERY = "(prefers-color-scheme: dark)";
+
+export function systemPrefersDark(): boolean {
+  try {
+    return typeof window !== "undefined" && window.matchMedia(DARK_QUERY).matches;
+  } catch {
+    return false;
+  }
+}
+
+export function surfaceFor(mode: ThemeMode, prefersDark = systemPrefersDark()): Surface {
+  if (mode === "dark") return "black";
+  if (mode === "light") return "white";
+  return prefersDark ? "black" : "white";
+}
+
+/** Puts a mode on screen. Safe to call on the server, where it does nothing. */
+export function applyThemeMode(mode: ThemeMode): Surface {
+  const surface = surfaceFor(mode);
+  if (typeof document !== "undefined") {
+    const root = document.documentElement;
+    if (root.getAttribute("data-surface") !== surface) root.setAttribute("data-surface", surface);
+    root.setAttribute("data-theme-mode", mode);
+  }
+  return surface;
+}
 
 export interface PaletteMeta {
   id: Palette;
@@ -107,9 +126,6 @@ export const PALETTES: PaletteMeta[] = [
   },
 ];
 
-export function isSurface(v: unknown): v is Surface {
-  return SURFACES.some((s) => s.id === v);
-}
 export function isPalette(v: unknown): v is Palette {
   return PALETTES.some((p) => p.id === v);
 }

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { PanelLeftClose, Search, Palette, Command } from "lucide-react";
-import { visibleNavGroups } from "@/lib/nav";
+import { isActivePath, visibleNavGroups } from "@/lib/nav";
 import { cn } from "@/lib/utils";
 import { Logo } from "./logo";
 import { useChronicle } from "@/lib/store";
@@ -92,8 +92,47 @@ export function Sidebar({
       </div>
 
       {/* Nav */}
-      <nav className="mask-fade-b no-scrollbar mt-5 flex-1 space-y-6 overflow-y-auto px-3 pb-4">
-        {groups.map((group) => (
+      <nav className="mask-fade-b no-scrollbar mt-5 flex-1 space-y-6 overflow-y-auto px-3 pb-4" aria-label="Main">
+        {groups.map((group) =>
+          group.prominent ? (
+            <div key={group.label}>
+              {!collapsed && (
+                <p className="px-4 pb-2 text-[0.62rem] font-semibold uppercase tracking-[0.14em] text-paper/45">
+                  {group.label}
+                </p>
+              )}
+              <ul className={cn(collapsed ? "space-y-1" : "grid grid-cols-2 gap-1.5")}>
+                {group.items.map((item) => {
+                  const active = isActivePath(pathname, item.href);
+                  const Icon = item.icon;
+                  return (
+                    <li key={item.href}>
+                      <Link
+                        href={item.href}
+                        onClick={onNavigate}
+                        title={collapsed ? item.label : undefined}
+                        aria-current={active ? "page" : undefined}
+                        className={cn(
+                          "group flex transition-all duration-200",
+                          collapsed
+                            ? "justify-center rounded-full py-2.5"
+                            : "flex-col gap-2 rounded-2xl border px-3 py-3",
+                          active
+                            ? "border-accent/35 bg-accent/[0.12] text-accent"
+                            : "border-line bg-paper/[0.03] text-paper/75 hover:border-paper/25 hover:text-paper",
+                        )}
+                      >
+                        <Icon className={cn("h-[1.15rem] w-[1.15rem] shrink-0", active ? "text-accent" : "text-paper/55 group-hover:text-paper")} />
+                        {!collapsed && (
+                          <span className="truncate text-[0.8rem] font-semibold tracking-snugg">{item.tab ?? item.label}</span>
+                        )}
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ) : (
           <div key={group.label}>
             {!collapsed && (
               <p className="px-4 pb-2 text-[0.62rem] font-semibold uppercase tracking-[0.14em] text-paper/30">
@@ -102,7 +141,7 @@ export function Sidebar({
             )}
             <ul className="space-y-1">
               {group.items.map((item) => {
-                const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+                const active = isActivePath(pathname, item.href);
                 const Icon = item.icon;
                 return (
                   <li key={item.href}>
@@ -110,6 +149,7 @@ export function Sidebar({
                       href={item.href}
                       onClick={onNavigate}
                       title={collapsed ? item.label : undefined}
+                      aria-current={active ? "page" : undefined}
                       className={cn(
                         "group relative flex items-center gap-3 rounded-full px-3.5 py-2.5 text-sm transition-all duration-200",
                         collapsed && "justify-center px-0",
@@ -137,7 +177,8 @@ export function Sidebar({
               })}
             </ul>
           </div>
-        ))}
+          ),
+        )}
       </nav>
 
       {/* Footer: profile + controls */}

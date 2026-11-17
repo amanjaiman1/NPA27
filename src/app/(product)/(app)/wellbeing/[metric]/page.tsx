@@ -176,9 +176,10 @@ export default function MetricPage() {
         ? series.change < 0
         : series.change > 0;
 
+  // A period with no reading is a gap in the chart, not a zero.
   const chartData = series.buckets.map((b) => ({
     label: b.label,
-    value: b.value ?? 0,
+    value: b.recorded ? (b.value ?? null) : null,
     sublabel: b.full,
     meta: `${b.full} · ${b.recorded ? formatMetric(metric, b.value) : "no reading"}`,
   }));
@@ -306,7 +307,9 @@ export default function MetricPage() {
             </div>
             {metric.chart === "line" ? (
               <LineChart
-                data={chartData.filter((d) => d.value > 0)}
+                data={chartData
+                  .filter((d) => d.value != null && d.value > 0)
+                  .map((d) => ({ ...d, value: d.value as number }))}
                 height={220}
                 target={metric.target}
                 formatValue={(v) => formatMetric(metric, v)}

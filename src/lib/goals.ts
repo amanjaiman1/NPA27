@@ -2,8 +2,10 @@ import type {
   Book,
   CurrentAffair,
   Goal,
+  GoalCategory,
   GoalHorizon,
   GoalMetric,
+  GoalPriority,
   ISODate,
   JournalEntry,
   LifeEntry,
@@ -15,6 +17,7 @@ import type {
 } from "./types";
 import { fromISODate, toISODate, daysBetween, round, avg } from "./utils";
 import { currentStreak, subjectMastery } from "./selectors";
+import { countCompletedTopics } from "./topics";
 
 /* ════════════════════════════════════════════════════════════════
    Goals that measure themselves.
@@ -202,7 +205,76 @@ export const GOAL_METRICS: MetricDef[] = [
     href: "/mistakes",
     hint: "Mistakes that have graduated to mastered, all time.",
   },
+  {
+    /* For goals that are a list of steps rather than a number: "finish
+       Laxmikanth" as its parts. The target is however many steps there are. */
+    id: "milestones",
+    label: "Milestones ticked off",
+    unit: "steps",
+    kind: "snapshot",
+    source: "This goal",
+    href: "/goals",
+    hint: "Progress is the share of this goal's milestones you've ticked off.",
+  },
 ];
+
+/* ── categories and priorities ───────────────────────────────── */
+
+export const GOAL_CATEGORIES: GoalCategory[] = [
+  "Study",
+  "Syllabus",
+  "Revision",
+  "Mock tests",
+  "Current affairs",
+  "Health",
+  "Personal",
+];
+
+export const GOAL_PRIORITIES: GoalPriority[] = ["High", "Medium", "Low"];
+
+const PRIORITY_RANK: Record<GoalPriority, number> = { High: 0, Medium: 1, Low: 2 };
+
+/** The category a metric naturally belongs to, as the form's starting point. */
+export function suggestedCategory(metric: GoalMetric | undefined): GoalCategory {
+  switch (metric) {
+    case "studyHours":
+    case "studyDays":
+    case "studyStreak":
+    case "subjectHours":
+    case "deepWorkHours":
+      return "Study";
+    case "topicsCompleted":
+    case "subjectMastery":
+    case "booksCompleted":
+      return "Syllabus";
+    case "revisionPasses":
+    case "mistakesMastered":
+      return "Revision";
+    case "mocksTaken":
+    case "mockAverage":
+      return "Mock tests";
+    case "currentAffairsLogged":
+      return "Current affairs";
+    case "reflectionsWritten":
+      return "Personal";
+    default:
+      return "Study";
+  }
+}
+
+export function goalCategory(goal: Goal): GoalCategory {
+  return goal.category ?? suggestedCategory(goal.metric);
+}
+
+export function goalPriority(goal: Goal): GoalPriority {
+  return goal.priority ?? "Medium";
+}
+
+/** Milestones done and in total. */
+export function milestoneCounts(goal: Goal): { done: number; total: number } {
+  const list = goal.milestones ?? [];
+  return { done: list.filter((m) => m.doneOn).length, total: list.length };
+}
 
 export function metricDef(id: GoalMetric | undefined): MetricDef {
   return GOAL_METRICS.find((m) => m.id === (id ?? "manual")) ?? GOAL_METRICS[0];
@@ -348,7 +420,7 @@ export function measureGoal(
         1,
       );
     case "topicsCompleted":
-      return entries.reduce((a, e) => a + (e.topicsCompleted?.length ?? 0), 0);
+      return entries.reduce((a, e) => a + countCompletedTopics(e), 0);
     case "revisionPasses":
       // Reads the schedule rather than the journal's free-text sessions, so it
       // counts real passes over tracked items however they were logged.
@@ -390,6 +462,8 @@ export function measureGoal(
       return inRange(data.reflections, w, today).length;
     case "mistakesMastered":
       return data.mistakes.filter((m) => m.status === "Mastered").length;
+    case "milestones":
+      return milestoneCounts(goal).done;
     default:
       return goal.current ?? 0;
   }
@@ -458,11 +532,23 @@ export function computeGoalProgress(
   const metric = metricDef(goal.metric);
   const window = goalWindow(goal, today);
   const tracked = metric.id !== "manual";
-  const target = goal.target && goal.target > 0 ? goal.target : null;
+  const steps = milestoneCounts(goal);
+  // A milestone goal's target is its number of steps, whatever was typed.
+  const target =
+    metric.id === "milestones"
+      ? steps.total > 0
+        ? steps.total
+        : null
+      : goal.target && goal.target > 0
+        ? goal.target
+        : null;
 
   let problem: string | null = null;
   if (metric.needsSubject && !goal.linkedSubjectId) {
     problem = "Pick a subject for this metric to mean anything.";
+  }
+  if (metric.id === "milestones" && steps.total === 0) {
+    problem = "Add milestones to this goal to track it.";
   }
 
   const current = measureGoal(goal, data, window, today);
@@ -634,9 +720,91 @@ export function paceNote(p: GoalProgress): string {
     return p.overdue
       ? `Deadline passed ${Math.abs(p.daysToDeadline ?? 0)} day${Math.abs(p.daysToDeadline ?? 0) === 1 ? "" : "s"} ago.`
       : "The window closed short of the target.";
+  if (p.metric.id === "milestones") {
+    const left = (p.target ?? 0) - (p.current ?? 0);
+    return `${p.current ?? 0} of ${p.target} milestones done${left > 0 ? `, ${left} to go` : ""}.`;
+  }
   if (p.metric.kind !== "sum")
     return `${p.current ?? 0}${p.metric.unit === "%" ? "%" : ""} of ${p.target} needed.`;
   if (p.requiredPerDay != null && p.window.daysLeft > 0)
     return `${p.requiredPerDay} ${p.goal.unit || p.metric.unit} a day for the last ${p.window.daysLeft} day${p.window.daysLeft === 1 ? "" : "s"}.`;
   return `${p.window.daysLeft === 0 ? "Last day" : "Keep going"} — ${round((p.target ?? 0) - (p.current ?? 0), 1)} ${p.goal.unit || p.metric.unit} to go.`;
+}
+
+/* ── views of the portfolio ──────────────────────────────────── */
+
+export type GoalView = "active" | "overdue" | "completed" | "paused" | "all";
+
+export const GOAL_VIEWS: { id: GoalView; label: string }[] = [
+  { id: "active", label: "Active" },
+  { id: "overdue", label: "Overdue" },
+  { id: "completed", label: "Completed" },
+  { id: "paused", label: "Paused" },
+  { id: "all", label: "All" },
+];
+
+/**
+ * Overdue means still open after its time: past the deadline, or a recurring
+ * window that closed short of the target. Overdue goals are also active.
+ */
+export function isOverdue(p: GoalProgress): boolean {
+  return p.goal.status === "Active" && (p.overdue || p.health === "missed");
+}
+
+export function inGoalView(p: GoalProgress, view: GoalView): boolean {
+  switch (view) {
+    case "active":
+      return p.goal.status === "Active";
+    case "overdue":
+      return isOverdue(p);
+    case "completed":
+      return p.goal.status === "Completed";
+    case "paused":
+      return p.goal.status === "Paused";
+    default:
+      return true;
+  }
+}
+
+export function goalViewCounts(progress: GoalProgress[]): Record<GoalView, number> {
+  const out: Record<GoalView, number> = { active: 0, overdue: 0, completed: 0, paused: 0, all: progress.length };
+  for (const p of progress) {
+    if (p.goal.status === "Active") out.active++;
+    if (isOverdue(p)) out.overdue++;
+    if (p.goal.status === "Completed") out.completed++;
+    if (p.goal.status === "Paused") out.paused++;
+  }
+  return out;
+}
+
+/** High priority first, then the usual urgency order. */
+export function byPriority(a: GoalProgress, b: GoalProgress): number {
+  const r = PRIORITY_RANK[goalPriority(a.goal)] - PRIORITY_RANK[goalPriority(b.goal)];
+  return r !== 0 ? r : byUrgency(a, b);
+}
+
+/**
+ * The checks a goal must pass before it's saved. Returns field → message, so
+ * the form can show each next to its field.
+ */
+export function validateGoal(goal: Goal, today: ISODate, isNew: boolean): Partial<Record<"title" | "target" | "subject" | "deadline" | "milestones", string>> {
+  const errors: Partial<Record<"title" | "target" | "subject" | "deadline" | "milestones", string>> = {};
+  const title = goal.title.trim();
+  if (!title) errors.title = "Give the goal a name.";
+  else if (title.length > 120) errors.title = "Keep the name under 120 characters.";
+  const def = metricDef(goal.metric);
+  if (def.needsSubject && !goal.linkedSubjectId) errors.subject = "Choose the subject this goal measures.";
+  if (def.id !== "milestones" && goal.target != null) {
+    if (!Number.isFinite(goal.target) || goal.target < 0) errors.target = "The target can't be negative.";
+    else if (def.unit === "%" && goal.target > 100) errors.target = "A percentage target can't be over 100.";
+  }
+  if (def.id === "milestones" && !(goal.milestones ?? []).some((m) => m.title.trim())) {
+    errors.milestones = "Add at least one milestone.";
+  }
+  if (goal.deadline) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(goal.deadline)) errors.deadline = "Pick a valid date.";
+    else if (isNew && goal.deadline < today) errors.deadline = "A new goal's target date can't be in the past.";
+    else if (goal.deadline < goal.createdOn) errors.deadline = "The target date is before the goal was set.";
+  }
+  return errors;
 }

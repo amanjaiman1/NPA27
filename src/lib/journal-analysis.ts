@@ -1,6 +1,7 @@
 import type { ISODate, JournalEntry, Subject } from "./types";
 import { fromISODate, toISODate, round } from "./utils";
 import { currentStreak, longestStreak } from "./selectors";
+import { countCompletedTopics } from "./topics";
 
 /* ════════════════════════════════════════════════════════════════
    Journal analytics. Pure functions over the daily journal that roll a
@@ -265,7 +266,7 @@ export function analyseJournal(
       ),
       avgMood: mean(es.map((e) => e.mood).filter((v) => v > 0)),
       avgFocus: mean(es.map((e) => e.focus).filter((v) => v > 0)),
-      topics: es.reduce((a, e) => a + (e.topicsCompleted?.length ?? 0), 0),
+      topics: es.reduce((a, e) => a + countCompletedTopics(e), 0),
       revisions: es.reduce((a, e) => a + (e.revisionSessions?.length ?? 0), 0),
       mocks: es.reduce((a, e) => a + (e.mocksAttempted?.length ?? 0), 0),
       books: es.reduce((a, e) => a + (e.booksStudied?.length ?? 0), 0),
@@ -368,7 +369,7 @@ export function analyseJournal(
       avgHoursPerDay,
       avgHoursPerActiveDay: active.length ? round(hours / active.length, 2) : 0,
       consistency: windowDays > 0 ? round(inWindow.length / windowDays, 4) : 0,
-      topics: sum((e) => e.topicsCompleted?.length ?? 0),
+      topics: sum((e) => countCompletedTopics(e)),
       revisions: sum((e) => e.revisionSessions?.length ?? 0),
       mocks: sum((e) => e.mocksAttempted?.length ?? 0),
       books: sum((e) => e.booksStudied?.length ?? 0),

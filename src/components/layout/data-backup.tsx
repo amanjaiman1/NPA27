@@ -10,9 +10,10 @@ import {
 import type { CloudSnapshot } from "@/lib/store";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { useAccount } from "@/components/account/account-session";
+import { dropForeignFiles } from "@/lib/files";
 
 /** Bumped alongside the store's persisted `version`. Stamped into backups. */
-const BACKUP_SCHEMA_VERSION = 11;
+const BACKUP_SCHEMA_VERSION = 12;
 const BACKUP_APP_ID = "the-upsc-chronicle";
 
 type Note = { kind: "ok" | "err"; text: string } | null;
@@ -92,7 +93,8 @@ export function DataBackup() {
       });
       if (!ok) return;
 
-      applyCloudSnapshot(data);
+      // Files exported from another account can't be opened from this one.
+      applyCloudSnapshot(dropForeignFiles(data, accountId));
       setNote({ kind: "ok", text: "Backup restored. Your chronicle is back." });
     } catch {
       setNote({ kind: "err", text: "Couldn't read that file. Make sure it's a valid backup." });

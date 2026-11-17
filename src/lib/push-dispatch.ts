@@ -166,6 +166,7 @@ export function decideForUser(
     reviews: snapshot.reviews ?? [],
     topicLinks: snapshot.topicLinks ?? [],
     selection: snapshot.selection ?? [],
+    files: [],
   };
   if (!data.profile) return { send: false, reason: "Snapshot has no profile." };
 

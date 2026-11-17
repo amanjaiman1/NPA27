@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   Moon,
@@ -13,107 +13,161 @@ import {
   Scale,
   ChevronRight,
   Plus,
-  ArrowUp,
-  ArrowDown,
-  Minus,
+  Pencil,
   Sparkles,
-  GitCompareArrows,
+  BookOpen,
+  Paperclip,
+  SlidersHorizontal,
+  Target,
 } from "lucide-react";
 import { useChronicle, useHasHydrated } from "@/lib/store";
-import type { LifeEntry, ExerciseType } from "@/lib/types";
+import type { ISODate, LifeEntry, LifeField } from "@/lib/types";
 import { PageHeader } from "@/components/ui/page-header";
 import { Loading } from "@/components/ui/loading";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Modal } from "@/components/ui/modal";
-import { useConfirm } from "@/components/ui/confirm-dialog";
-import { Field, Input, Select, RatingPicker } from "@/components/ui/form";
-import { LineChart } from "@/components/charts/line-chart";
-import { BarChart } from "@/components/charts/bar-chart";
 import { Sparkline } from "@/components/charts/sparkline";
-import { ScatterChart } from "@/components/charts/scatter";
-import { MatrixHeatmap } from "@/components/charts/matrix";
-import {
-  LIFE_TARGETS,
-  todayEntry,
-  weeklyReport,
-  factorImpact,
-  correlationReports,
-  correlationMatrix,
-  weekTotals,
-  strengthLabel,
-} from "@/lib/life";
-import {
-  METRIC_IDS,
-  METRICS,
-  formatMetric,
-  formatMinutesAsClock,
-} from "@/lib/metrics";
-import { toISODate, formatDate, weekday, round, cn } from "@/lib/utils";
+import { LifeForm, TrackedFieldsDialog } from "@/components/life/life-form";
+import { LifeReportPanel } from "@/components/life/life-report";
+import { LIFE_TARGETS, todayEntry, trackedFields, type DateSpan } from "@/lib/life";
+import { computeGoalProgress, goalCategory, type GoalData } from "@/lib/goals";
+import { METRIC_IDS, METRICS, formatMetric, formatMinutesAsClock, type MetricId } from "@/lib/metrics";
+import { toISODate, formatDate, formatHours, round } from "@/lib/utils";
 
-const EX_TYPES: ExerciseType[] = ["Run", "Walk", "Gym", "Yoga", "Cycling", "Sports", "Other"];
+/** Which tracked field each deep-dive page belongs to. */
+const DEEP_DIVE_FIELD: Record<MetricId, LifeField> = {
+  sleep: "sleep",
+  running: "run",
+  weight: "weight",
+  screen: "screen",
+};
 
-function emptyLifeEntry(date: string): LifeEntry {
-  return {
-    id: `life-${date}`,
-    date,
-    sleepHours: 7,
-    sleepQuality: 3,
-    bedtime: "23:00",
-    wakeTime: "06:00",
-    walkKm: 0,
-    runKm: 0,
-    exerciseMinutes: 0,
-    waterLiters: 2,
-    meditationMin: 0,
-    screenTimeMin: 120,
-    deepWorkHours: 0,
-  };
+interface Tile {
+  field: LifeField;
+  icon: typeof Moon;
+  label: string;
+  value: number | undefined;
+  unit: string;
+  target?: number;
+  lowerBetter?: boolean;
+  detail?: string;
+  href?: string;
+}
+
+function tilesFor(e: LifeEntry | undefined): Tile[] {
+  return [
+    {
+      field: "sleep",
+      icon: Moon,
+      label: "Sleep",
+      value: e?.sleepHours && e.sleepHours > 0 ? e.sleepHours : undefined,
+      unit: "h",
+      target: LIFE_TARGETS.sleepHours,
+      detail: [
+        e?.bedtime && e?.wakeTime ? `${e.bedtime}–${e.wakeTime}` : null,
+        e?.sleepQuality != null ? `quality ${e.sleepQuality}/5` : null,
+      ]
+        .filter(Boolean)
+        .join(" · "),
+      href: "/wellbeing/sleep",
+    },
+    {
+      field: "exercise",
+      icon: Activity,
+      label: "Exercise",
+      value: e?.exerciseMinutes,
+      unit: "min",
+      target: LIFE_TARGETS.exerciseMinutes,
+      detail: e?.exerciseType,
+    },
+    { field: "walk", icon: Footprints, label: "Walking", value: e?.walkKm, unit: "km", target: LIFE_TARGETS.walkKm },
+    { field: "run", icon: Footprints, label: "Running", value: e?.runKm, unit: "km", href: "/wellbeing/running" },
+    { field: "water", icon: Droplets, label: "Water", value: e?.waterLiters, unit: "L", target: LIFE_TARGETS.waterLiters },
+    { field: "meditation", icon: Wind, label: "Meditation", value: e?.meditationMin, unit: "min", target: LIFE_TARGETS.meditationMin },
+    {
+      field: "screen",
+      icon: Smartphone,
+      label: "Screen time",
+      value: e?.screenTimeMin,
+      unit: "min",
+      target: LIFE_TARGETS.screenTimeMin,
+      lowerBetter: true,
+      href: "/wellbeing/screen",
+    },
+    { field: "weight", icon: Scale, label: "Weight", value: e?.weightKg, unit: "kg", href: "/wellbeing/weight" },
+    { field: "deepWork", icon: BrainCircuit, label: "Deep work", value: e?.deepWorkHours, unit: "h", target: LIFE_TARGETS.deepWorkHours },
+  ];
+}
+
+function TodayTile({ t }: { t: Tile }) {
+  const has = typeof t.value === "number";
+  const pct = has && t.target ? Math.min(100, ((t.value as number) / t.target) * 100) : 0;
+  const hit = has && t.target != null && (t.lowerBetter ? (t.value as number) <= t.target : (t.value as number) >= t.target);
+  const inner = (
+    <>
+      <div className="flex items-center gap-2 text-paper/50">
+        <t.icon className="h-4 w-4" />
+        <span className="min-w-0 flex-1 truncate text-[0.62rem] font-semibold uppercase tracking-wider">{t.label}</span>
+        {t.href && <ChevronRight className="h-3.5 w-3.5 shrink-0 text-paper/35" />}
+      </div>
+      {has ? (
+        <p className="tabular mt-2 text-2xl font-semibold text-paper">
+          {round(t.value as number, 1)}
+          <span className="ml-1 text-sm font-normal text-paper/50">{t.unit}</span>
+        </p>
+      ) : (
+        <p className="mt-2.5 text-sm font-medium text-paper/45">Not logged</p>
+      )}
+      {has && t.target ? (
+        <>
+          <Progress value={pct} className="mt-2" barClassName={hit ? "bg-positive" : "bg-accent"} />
+          <p className="mt-1 truncate text-[0.62rem] text-paper/45">
+            {t.detail ? `${t.detail} · ` : ""}
+            {t.lowerBetter ? "limit" : "aim"} {t.target} {t.unit}
+          </p>
+        </>
+      ) : (
+        <p className="mt-2 truncate text-[0.62rem] text-paper/45">{has ? t.detail || "today" : t.target ? `aim ${t.target} ${t.unit}` : "today"}</p>
+      )}
+    </>
+  );
+  return t.href ? (
+    <Link href={t.href} className="group rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/45">
+      <Card hover className="h-full p-4">
+        {inner}
+      </Card>
+    </Link>
+  ) : (
+    <Card className="h-full p-4">{inner}</Card>
+  );
 }
 
 /**
- * The four metrics that have a page of their own, summarised over the whole log.
- *
- * This reads every entry rather than today's, which is the point: the deep-dive
- * pages must be reachable whether or not today has been logged yet. Hanging
- * them off today's tiles alone meant that on any day you hadn't filled in, there
- * was nothing on screen to click.
+ * The deep-dive pages, summarised over the whole log. They're reachable
+ * whether or not today has been logged.
  */
-function MetricDeepDives({ lifeLog }: { lifeLog: LifeEntry[] }) {
+function MetricDeepDives({ lifeLog, tracked }: { lifeLog: LifeEntry[]; tracked: Set<LifeField> }) {
   const cards = useMemo(() => {
     const byDate = [...lifeLog].sort((a, b) => a.date.localeCompare(b.date));
-    return METRIC_IDS.map((id) => {
+    return METRIC_IDS.filter((id) => tracked.has(DEEP_DIVE_FIELD[id])).map((id) => {
       const m = METRICS[id];
       const readings = byDate
         .map((e) => ({ date: e.date, value: m.read(e) }))
         .filter((r): r is { date: string; value: number } => r.value != null);
       const values = readings.map((r) => r.value);
       const total = values.reduce((a, b) => a + b, 0);
-      const headline =
-        !values.length
-          ? null
-          : m.rollUp === "sum"
-            ? total
-            : round(total / values.length, 2);
-      return {
-        m,
-        readings,
-        latest: readings[readings.length - 1] ?? null,
-        headline,
-        spark: values.slice(-30),
-      };
+      const headline = !values.length ? null : m.rollUp === "sum" ? total : round(total / values.length, 2);
+      return { m, readings, latest: readings[readings.length - 1] ?? null, headline, spark: values.slice(-30) };
     });
-  }, [lifeLog]);
+  }, [lifeLog, tracked]);
 
+  if (!cards.length) return null;
   return (
     <section className="space-y-3">
       <div className="flex items-center gap-2">
-        <Sparkles className="h-4 w-4 text-paper/45" />
-        <h2 className="text-sm font-semibold tracking-snugg text-paper">
-          Go deeper
-        </h2>
+        <Sparkles className="h-4 w-4 text-paper/50" />
+        <h2 className="text-sm font-semibold tracking-snugg text-paper">Go deeper</h2>
       </div>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 [&>*]:min-w-0">
         {cards.map(({ m, readings, latest, headline, spark }) => (
@@ -125,37 +179,27 @@ function MetricDeepDives({ lifeLog }: { lifeLog: LifeEntry[] }) {
             <Card hover className="flex h-full flex-col p-4">
               <div className="flex items-center gap-2 text-paper/55">
                 <m.icon className="h-4 w-4 text-accent" />
-                <span className="min-w-0 flex-1 truncate text-[0.62rem] font-semibold uppercase tracking-wider">
-                  {m.label}
-                </span>
+                <span className="min-w-0 flex-1 truncate text-[0.62rem] font-semibold uppercase tracking-wider">{m.label}</span>
                 <ChevronRight className="h-3.5 w-3.5 shrink-0 text-paper/35 transition-transform group-hover:translate-x-0.5" />
               </div>
-
               {readings.length === 0 ? (
                 <>
                   <p className="tabular mt-2 text-2xl font-semibold text-paper/40">—</p>
-                  <p className="mt-1 text-[0.68rem] text-paper/45">
-                    No readings yet — open to see how it works
-                  </p>
+                  <p className="mt-1 text-[0.68rem] text-paper/50">No readings yet. Open to see how it works.</p>
                 </>
               ) : (
                 <>
                   <p className="tabular mt-2 text-2xl font-semibold text-paper">
-                    {m.id === "screen"
-                      ? formatMinutesAsClock(headline ?? 0)
-                      : formatMetric(m, headline)}
+                    {m.id === "screen" ? formatMinutesAsClock(headline ?? 0) : formatMetric(m, headline)}
                   </p>
                   <p className="mt-0.5 text-[0.68rem] text-paper/50">
-                    {m.rollUp === "sum" ? "all time" : "daily average"} ·{" "}
-                    {readings.length} {readings.length === 1 ? "day" : "days"}
+                    {m.rollUp === "sum" ? "all time" : "daily average"} · {readings.length} {readings.length === 1 ? "day" : "days"}
                   </p>
                   <div className="mt-3 flex items-end justify-between gap-2">
-                    <span className="text-[0.68rem] text-paper/45">
+                    <span className="text-[0.68rem] text-paper/50">
                       latest{" "}
-                      <span className="tabular font-semibold text-paper/70">
-                        {m.id === "screen"
-                          ? formatMinutesAsClock(latest!.value)
-                          : formatMetric(m, latest!.value)}
+                      <span className="tabular font-semibold text-paper/75">
+                        {m.id === "screen" ? formatMinutesAsClock(latest!.value) : formatMetric(m, latest!.value)}
                       </span>
                     </span>
                     <Sparkline values={spark} width={64} height={22} fill={false} />
@@ -174,482 +218,170 @@ export default function LifeDashboardPage() {
   const hydrated = useHasHydrated();
   const lifeLog = useChronicle((s) => s.lifeLog);
   const journal = useChronicle((s) => s.journal);
+  const profile = useChronicle((s) => s.profile);
+  const goals = useChronicle((s) => s.goals);
+  const subjects = useChronicle((s) => s.subjects);
   const mocks = useChronicle((s) => s.mocks);
-  const upsert = useChronicle((s) => s.upsertLifeEntry);
-  const confirm = useConfirm();
-
-  const [open, setOpen] = useState(false);
-  const [draft, setDraft] = useState<LifeEntry>(emptyLifeEntry(toISODate(new Date())));
+  const revisions = useChronicle((s) => s.revisions);
+  const books = useChronicle((s) => s.books);
+  const currentAffairs = useChronicle((s) => s.currentAffairs);
+  const reflections = useChronicle((s) => s.reflections);
+  const mistakes = useChronicle((s) => s.mistakes);
 
   const today = toISODate(new Date());
+  const [formOpen, setFormOpen] = useState(false);
+  const [formDate, setFormDate] = useState<ISODate>(today);
+  const [fieldsOpen, setFieldsOpen] = useState(false);
+
+  // `/wellbeing?date=<day>` (from the journal) opens that day; `?log=1` opens today.
+  useEffect(() => {
+    if (!hydrated) return;
+    const params = new URLSearchParams(window.location.search);
+    const date = params.get("date");
+    if (date && /^\d{4}-\d{2}-\d{2}$/.test(date) && date <= today) openForm(date);
+    else if (params.get("log") === "1") openForm(today);
+    if (date || params.get("log")) window.history.replaceState({}, "", "/wellbeing");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hydrated]);
+
+  const tracked = useMemo(() => trackedFields(profile.lifeFields, lifeLog), [profile.lifeFields, lifeLog]);
+  const trackedSet = useMemo(() => new Set(tracked), [tracked]);
   const te = useMemo(() => todayEntry(lifeLog, today), [lifeLog, today]);
-  const week = useMemo(() => weeklyReport(lifeLog, today), [lifeLog, today]);
-  const totals = useMemo(() => weekTotals(lifeLog, today), [lifeLog, today]);
-  const factors = useMemo(() => factorImpact(lifeLog, journal), [lifeLog, journal]);
-  const reports = useMemo(
-    () => correlationReports(lifeLog, journal, mocks, today),
-    [lifeLog, journal, mocks, today],
+  const todayJournal = useMemo(() => journal.find((e) => e.date === today), [journal, today]);
+
+  const goalData: GoalData = useMemo(
+    () => ({ journal, subjects, mocks, revisions, books, currentAffairs, reflections, mistakes, lifeLog }),
+    [journal, subjects, mocks, revisions, books, currentAffairs, reflections, mistakes, lifeLog],
   );
-  const matrix = useMemo(
-    () => correlationMatrix(lifeLog, journal),
-    [lifeLog, journal],
+  /** Goals that live off this page's data: health goals and deep-work goals. */
+  const lifeGoals = useMemo(
+    () =>
+      goals
+        .filter((g) => g.status === "Active" && (g.metric === "deepWorkHours" || goalCategory(g) === "Health"))
+        .map((g) => computeGoalProgress(g, goalData, today)),
+    [goals, goalData, today],
   );
 
-  const trend = useMemo(() => {
-    const map = new Map(lifeLog.map((e) => [e.date, e]));
-    const sleep: { label: string; value: number; sublabel: string }[] = [];
-    const deep: { label: string; value: number; meta: string }[] = [];
-    const screen: { label: string; value: number; meta: string }[] = [];
-    for (let i = 20; i >= 0; i--) {
-      const iso = toISODate(new Date(Date.now() - i * 86400000));
-      const e = map.get(iso);
-      const lbl = weekday(iso).slice(0, 1);
-      sleep.push({ label: lbl, value: e ? e.sleepHours : 0, sublabel: formatDate(iso) });
-      deep.push({ label: lbl, value: e ? e.deepWorkHours : 0, meta: formatDate(iso) });
-      screen.push({ label: lbl, value: e ? e.screenTimeMin : 0, meta: formatDate(iso) });
-    }
-    return { sleep, deep, screen };
-  }, [lifeLog]);
-
-  function openComposer() {
-    setDraft(te ? { ...te } : emptyLifeEntry(today));
-    setOpen(true);
-  }
-  async function save() {
-    if (
-      await confirm({
-        title: "Save these metrics?",
-        description: "Your life metrics for this day will be saved.",
-        tone: "default",
-        confirmLabel: "Save",
-      })
-    ) {
-      upsert(draft);
-      setOpen(false);
-    }
+  function openForm(date: ISODate) {
+    setFormDate(date);
+    setFormOpen(true);
   }
 
   if (!hydrated) return <Loading />;
 
-  const tiles = te
-    ? [
-        { icon: Moon, label: "Sleep", value: te.sleepHours, unit: "h", target: LIFE_TARGETS.sleepHours, lowerBetter: false, metric: "sleep" },
-        { icon: BrainCircuit, label: "Deep work", value: te.deepWorkHours, unit: "h", target: LIFE_TARGETS.deepWorkHours, lowerBetter: false },
-        { icon: Droplets, label: "Water", value: te.waterLiters, unit: "L", target: LIFE_TARGETS.waterLiters, lowerBetter: false },
-        { icon: Wind, label: "Meditation", value: te.meditationMin, unit: "m", target: LIFE_TARGETS.meditationMin, lowerBetter: false },
-        { icon: Activity, label: "Exercise", value: te.exerciseMinutes, unit: "m", target: LIFE_TARGETS.exerciseMinutes, lowerBetter: false },
-        { icon: Footprints, label: "Walk", value: te.walkKm, unit: "km", target: LIFE_TARGETS.walkKm, lowerBetter: false },
-        { icon: Footprints, label: "Running", value: te.runKm, unit: "km", target: 0, lowerBetter: false, metric: "running" },
-        { icon: Smartphone, label: "Screen", value: te.screenTimeMin, unit: "m", target: LIFE_TARGETS.screenTimeMin, lowerBetter: true, metric: "screen" },
-        { icon: Scale, label: "Weight", value: te.weightKg ?? 0, unit: "kg", target: 0, lowerBetter: false, metric: "weight" },
-      ]
-    : [];
+  const tiles = tilesFor(te).filter((t) => trackedSet.has(t.field));
+  const todayFiles = te?.fileIds?.length ?? 0;
 
   return (
-    <div className="space-y-7">
+    <div className="space-y-8">
       <PageHeader
         eyebrow="Life Dashboard"
         title="The body carries the mind."
-        description="Sleep, movement, water, screen time and focus aren't separate from prep — they're its foundation. Track the inputs, then let the correlation engine reveal which lifestyle factors actually move your performance."
+        description="Log what you track, in under a minute. An empty box means not recorded, never zero, and every report says how many days it stands on."
         actions={
-          <Button onClick={openComposer}>
-            <Plus className="h-4 w-4" /> Log today
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="ghost" onClick={() => setFieldsOpen(true)}>
+              <SlidersHorizontal className="h-4 w-4" /> What you track
+            </Button>
+            <Button onClick={() => openForm(today)}>
+              {te ? <Pencil className="h-4 w-4" /> : <Plus className="h-4 w-4" />} {te ? "Edit today" : "Log today"}
+            </Button>
+          </div>
         }
       />
 
-      {/* Daily snapshot */}
+      {/* Today */}
       <section className="space-y-3">
-        <h2 className="text-sm font-semibold tracking-snugg text-paper">
-          Today · {formatDate(today)}
-        </h2>
-        {!te ? (
-          <Card className="flex flex-col items-center justify-center p-8 text-center">
-            <p className="text-sm font-medium text-paper">No entry for today yet</p>
-            <Button className="mt-4" onClick={openComposer}>
-              Log today’s metrics
-            </Button>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-sm font-semibold tracking-snugg text-paper">Today · {formatDate(today)}</h2>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[0.75rem] text-paper/60">
+            {todayJournal ? (
+              <Link href={`/journal/${today}`} className="inline-flex items-center gap-1.5 hover:text-accent">
+                <BookOpen className="h-3.5 w-3.5" />
+                Journal: {todayJournal.totalHours > 0 ? `${formatHours(todayJournal.totalHours)} studied` : "no study hours yet"}
+              </Link>
+            ) : (
+              <Link href="/journal?new=1" className="inline-flex items-center gap-1.5 hover:text-accent">
+                <BookOpen className="h-3.5 w-3.5" /> No journal entry yet
+              </Link>
+            )}
+            {todayFiles > 0 && (
+              <button type="button" onClick={() => openForm(today)} className="inline-flex items-center gap-1.5 hover:text-accent">
+                <Paperclip className="h-3.5 w-3.5" /> {todayFiles} file{todayFiles === 1 ? "" : "s"} linked
+              </button>
+            )}
+          </div>
+        </div>
+        {te?.note && <p className="text-[0.8rem] text-paper/70">&ldquo;{te.note}&rdquo;</p>}
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+          {tiles.map((t) => (
+            <TodayTile key={t.field} t={t} />
+          ))}
+        </div>
+        {!te && (
+          <p className="text-[0.75rem] text-paper/55">
+            Nothing logged for today.{" "}
+            <button type="button" onClick={() => openForm(today)} className="font-semibold text-accent hover:underline">
+              Log it now
+            </button>
+          </p>
+        )}
+      </section>
+
+      {/* Goals that feed on this page */}
+      <section className="space-y-3">
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="flex items-center gap-2 text-sm font-semibold tracking-snugg text-paper">
+            <Target className="h-4 w-4 text-paper/50" /> Health and deep-work goals
+          </h2>
+          <Link href="/goals" className="text-[0.75rem] font-semibold text-accent hover:underline">
+            All goals
+          </Link>
+        </div>
+        {lifeGoals.length === 0 ? (
+          <Card className="flex flex-wrap items-center gap-3 p-4">
+            <p className="min-w-0 flex-1 text-[0.8rem] text-paper/60">
+              Goals in the Health category, or measured by deep-work hours, show up here.
+            </p>
+            <Link href="/goals?new=1" className="inline-flex items-center gap-1 text-[0.78rem] font-semibold text-accent hover:underline">
+              Set one <ChevronRight className="h-3.5 w-3.5" />
+            </Link>
           </Card>
         ) : (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {tiles.map((t) => {
-              const pct =
-                t.target > 0 ? Math.min(100, (t.value / t.target) * 100) : 0;
-              const hit = t.lowerBetter ? t.value <= t.target : t.value >= t.target;
-              const inner = (
-                <>
-                  <div className="flex items-center gap-2 text-paper/40">
-                    <t.icon className="h-4 w-4" />
-                    <span className="min-w-0 flex-1 truncate text-[0.62rem] font-medium uppercase tracking-wider">
-                      {t.label}
-                    </span>
-                    {t.metric && (
-                      <ChevronRight className="h-3.5 w-3.5 shrink-0 text-paper/30" />
-                    )}
+          <div className="grid gap-3 sm:grid-cols-2 [&>*]:min-w-0">
+            {lifeGoals.map((p) => (
+              <Link key={p.goal.id} href={`/goals?goal=${encodeURIComponent(p.goal.id)}`} className="rounded-2xl">
+                <Card hover className="p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="min-w-0 truncate text-sm font-medium text-paper">{p.goal.title}</p>
+                    <span className="tabular shrink-0 text-xs text-paper/55">{p.pct == null ? "—" : `${p.pct}%`}</span>
                   </div>
-                  <p className="tabular mt-2 text-2xl font-semibold text-paper">
-                    {round(t.value, 1)}
-                    <span className="ml-1 text-sm font-normal text-paper/40">
-                      {t.unit}
-                    </span>
+                  <Progress value={p.pct ?? 0} className="mt-2" />
+                  <p className="mt-1.5 truncate text-[0.68rem] text-paper/50">
+                    {p.tracked ? `From ${p.metric.source}` : "Tracked by hand"} · {p.window.label}
                   </p>
-                  {t.target > 0 ? (
-                    <>
-                      <Progress
-                        value={pct}
-                        className="mt-2"
-                        barClassName={hit ? "bg-positive" : "bg-accent"}
-                      />
-                      <p className="mt-1 text-[0.62rem] text-paper/35">
-                        {t.lowerBetter ? "limit" : "goal"} {t.target}
-                        {t.unit}
-                      </p>
-                    </>
-                  ) : (
-                    <p className="mt-2 text-[0.62rem] text-paper/35">tracked daily</p>
-                  )}
-                </>
-              );
-
-              // Sleep, running, weight and screen time each open a page of
-              // their own; the rest are read-only tiles.
-              return t.metric ? (
-                <Link
-                  key={t.label}
-                  href={`/wellbeing/${t.metric}`}
-                  className="group rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/45"
-                >
-                  <Card hover className="h-full p-4">
-                    {inner}
-                  </Card>
-                </Link>
-              ) : (
-                <Card key={t.label} className="h-full p-4">
-                  {inner}
                 </Card>
-              );
-            })}
+              </Link>
+            ))}
           </div>
         )}
       </section>
 
-      {/* Sleep, running, weight and screen time each get a full page. Rendered
-          outside the "is today logged" branch above on purpose — see the
-          component's own note. */}
-      <MetricDeepDives lifeLog={lifeLog} />
-
-      {/* Weekly analytics */}
-      <section className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold tracking-snugg text-paper">
-            This week vs last
-          </h2>
-          <span className="text-xs text-paper/40">
-            {totals.exerciseDays} active days · {totals.runKm}km run
-          </span>
-        </div>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-          {week.map((m) => {
-            const up = m.delta != null && m.delta > 0;
-            const down = m.delta != null && m.delta < 0;
-            const good = m.delta == null || m.delta === 0 ? null : (up === m.goodWhenUp);
-            const Icon = up ? ArrowUp : down ? ArrowDown : Minus;
-            return (
-              <Card key={m.key} className="p-4">
-                <p className="text-[0.62rem] font-medium uppercase tracking-wider text-paper/40">
-                  {m.label}
-                </p>
-                <p className="tabular mt-1.5 text-xl font-semibold text-paper">
-                  {m.thisWeek ?? "—"}
-                  <span className="ml-0.5 text-xs font-normal text-paper/40">
-                    {m.unit}
-                  </span>
-                </p>
-                <div className="mt-1 flex items-center justify-between">
-                  <span
-                    className={cn(
-                      "inline-flex items-center gap-0.5 text-[0.7rem]",
-                      good === null
-                        ? "text-paper/40"
-                        : good
-                          ? "text-paper"
-                          : "text-paper/45",
-                    )}
-                  >
-                    <Icon className="h-3 w-3" />
-                    {m.delta != null ? `${m.delta > 0 ? "+" : ""}${m.delta}` : "—"}
-                  </span>
-                  <Sparkline values={m.spark} width={56} height={20} fill={false} />
-                </div>
-              </Card>
-            );
-          })}
-        </div>
-
-        <div className="grid gap-4 lg:grid-cols-3">
-          <Card className="p-5">
-            <p className="eyebrow mb-4">Sleep · 21 days</p>
-            <BarChart data={trend.sleep} target={LIFE_TARGETS.sleepHours} formatValue={(v) => `${v}h`} height={150} />
-          </Card>
-          <Card className="p-5">
-            <p className="eyebrow mb-4">Deep work · 21 days</p>
-            <LineChart data={trend.deep} target={LIFE_TARGETS.deepWorkHours} formatValue={(v) => `${v}h`} height={150} showDots={false} />
-          </Card>
-          <Card className="p-5">
-            <p className="eyebrow mb-4">Screen time · 21 days</p>
-            <LineChart data={trend.screen} formatValue={(v) => `${v}m`} height={150} />
-          </Card>
-        </div>
-      </section>
-
-      {/* Correlation: lifestyle factors */}
-      <section className="space-y-3">
-        <div className="flex items-center gap-2">
-          <GitCompareArrows className="h-4 w-4 text-paper/45" />
-          <h2 className="text-sm font-semibold tracking-snugg text-paper">
-            Lifestyle factors affecting your study
-          </h2>
-        </div>
-        <Card className="p-5">
-          <p className="mb-4 text-xs text-paper/45">
-            Correlation of each lifestyle metric with daily study hours (your
-            performance proxy). Longer bar = stronger influence.
-          </p>
-          {factors.length === 0 ? (
-            <p className="py-6 text-center text-sm text-paper/40">
-              Log a couple of weeks to compute reliable correlations.
-            </p>
-          ) : (
-            <ul className="space-y-2.5">
-              {factors.map((f) => (
-                <li key={f.key} className="flex items-center gap-3">
-                  <span className="w-28 shrink-0 truncate text-sm text-paper/70">
-                    {f.label}
-                  </span>
-                  <div className="relative h-2 flex-1 rounded-full bg-paper/[0.07]">
-                    <div
-                      className={cn(
-                        "absolute top-0 h-full rounded-full",
-                        f.direction === "helps" ? "left-1/2 bg-positive" : "right-1/2 bg-danger/70",
-                      )}
-                      style={{ width: `${Math.min(50, Math.abs(f.r) * 50)}%` }}
-                    />
-                    <span className="absolute left-1/2 top-1/2 h-3 w-px -translate-x-1/2 -translate-y-1/2 bg-paper/20" />
-                  </div>
-                  <span className="tabular w-12 shrink-0 text-right text-xs text-paper/55">
-                    {f.r > 0 ? "+" : ""}
-                    {f.r}
-                  </span>
-                  <Badge tone={f.direction === "helps" ? "default" : "outline"}>
-                    {f.direction}
-                  </Badge>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Card>
-      </section>
-
-      {/* Correlation reports */}
-      <section className="space-y-3">
-        <h2 className="text-sm font-semibold tracking-snugg text-paper">
-          Correlation reports
-        </h2>
-        <div className="grid gap-4 lg:grid-cols-3">
-          {reports.map((rep) => (
-            <Card key={rep.id} className="flex flex-col p-5">
-              <div className="mb-1 flex items-start justify-between gap-2">
-                <h3 className="text-sm font-semibold text-paper">{rep.title}</h3>
-                {rep.r != null && (
-                  <Badge tone="default">
-                    r {rep.r > 0 ? "+" : ""}
-                    {rep.r}
-                  </Badge>
-                )}
-              </div>
-              {rep.r != null && (
-                <p className="mb-2 text-[0.7rem] uppercase tracking-wider text-paper/40">
-                  {strengthLabel(rep.r)} {rep.r >= 0 ? "positive" : "negative"} · n={rep.n}
-                </p>
-              )}
-              <ScatterChart
-                points={rep.points}
-                height={170}
-                formatX={(v) => `${Math.round(v * 10) / 10}`}
-                formatY={(v) => `${Math.round(v * 10) / 10}`}
-              />
-              <div className="mt-1 flex justify-between text-[0.6rem] text-paper/35">
-                <span>{rep.xLabel}</span>
-                <span>{rep.yLabel}</span>
-              </div>
-              <p className="mt-3 text-sm leading-relaxed text-paper/60">
-                {rep.insight}
-              </p>
-            </Card>
-          ))}
-        </div>
-      </section>
-
-      {/* Correlation matrix */}
-      <Card className="p-5">
-        <div className="mb-1 flex items-center gap-2">
-          <Sparkles className="h-4 w-4 text-paper/45" />
-          <h3 className="text-base font-semibold text-paper">Correlation matrix</h3>
-        </div>
-        <p className="mb-4 text-xs text-paper/45">
-          Strength of the relationship between each pair (0–100). Darker = stronger.
-        </p>
-        <MatrixHeatmap
-          rowLabels={matrix.labels}
-          colLabels={matrix.labels}
-          values={matrix.values}
-          max={matrix.max}
-        />
-      </Card>
-
-      {/* Composer */}
-      <Modal
-        open={open}
-        onClose={() => setOpen(false)}
-        title="Log today's life metrics"
-        className="sm:max-w-xl"
-        footer={
-          <>
-            <Button variant="ghost" onClick={() => setOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={save}>Save</Button>
-          </>
+      <LifeReportPanel
+        journal={journal}
+        lifeLog={lifeLog}
+        tracked={tracked}
+        today={today}
+        onEdit={openForm}
+        completedGoals={(span: DateSpan) =>
+          goals.filter((g) => g.status === "Completed" && g.completedOn && g.completedOn >= span.from && g.completedOn <= span.to).length
         }
-      >
-        <div className="space-y-4">
-          <Field label="Date">
-            <Input
-              type="date"
-              value={draft.date}
-              onChange={(e) => setDraft({ ...draft, date: e.target.value, id: `life-${e.target.value}` })}
-            />
-          </Field>
+      />
 
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="Sleep (hours)">
-              <Input
-                type="number"
-                step="0.25"
-                value={draft.sleepHours}
-                onChange={(e) => setDraft({ ...draft, sleepHours: parseFloat(e.target.value) || 0 })}
-              />
-            </Field>
-            <Field label="Sleep quality">
-              <RatingPicker
-                value={draft.sleepQuality}
-                onChange={(v) => setDraft({ ...draft, sleepQuality: v })}
-              />
-            </Field>
-            <Field label="Bedtime">
-              <Input
-                type="time"
-                value={draft.bedtime ?? ""}
-                onChange={(e) => setDraft({ ...draft, bedtime: e.target.value })}
-              />
-            </Field>
-            <Field label="Wake time">
-              <Input
-                type="time"
-                value={draft.wakeTime ?? ""}
-                onChange={(e) => setDraft({ ...draft, wakeTime: e.target.value })}
-              />
-            </Field>
-          </div>
+      <MetricDeepDives lifeLog={lifeLog} tracked={trackedSet} />
 
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="Deep work (hours)">
-              <Input
-                type="number"
-                step="0.25"
-                value={draft.deepWorkHours}
-                onChange={(e) => setDraft({ ...draft, deepWorkHours: parseFloat(e.target.value) || 0 })}
-              />
-            </Field>
-            <Field label="Screen time (min)">
-              <Input
-                type="number"
-                value={draft.screenTimeMin}
-                onChange={(e) => setDraft({ ...draft, screenTimeMin: parseInt(e.target.value) || 0 })}
-              />
-            </Field>
-            <Field label="Exercise (min)">
-              <Input
-                type="number"
-                value={draft.exerciseMinutes}
-                onChange={(e) => setDraft({ ...draft, exerciseMinutes: parseInt(e.target.value) || 0 })}
-              />
-            </Field>
-            <Field label="Activity">
-              <Select
-                value={draft.exerciseType ?? ""}
-                onChange={(e) =>
-                  setDraft({
-                    ...draft,
-                    exerciseType: (e.target.value || undefined) as ExerciseType | undefined,
-                  })
-                }
-              >
-                <option value="">—</option>
-                {EX_TYPES.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
-              </Select>
-            </Field>
-            <Field label="Walk (km)">
-              <Input
-                type="number"
-                step="0.1"
-                value={draft.walkKm}
-                onChange={(e) => setDraft({ ...draft, walkKm: parseFloat(e.target.value) || 0 })}
-              />
-            </Field>
-            <Field label="Run (km)">
-              <Input
-                type="number"
-                step="0.1"
-                value={draft.runKm}
-                onChange={(e) => setDraft({ ...draft, runKm: parseFloat(e.target.value) || 0 })}
-              />
-            </Field>
-            <Field label="Water (litres)">
-              <Input
-                type="number"
-                step="0.25"
-                value={draft.waterLiters}
-                onChange={(e) => setDraft({ ...draft, waterLiters: parseFloat(e.target.value) || 0 })}
-              />
-            </Field>
-            <Field label="Meditation (min)">
-              <Input
-                type="number"
-                value={draft.meditationMin}
-                onChange={(e) => setDraft({ ...draft, meditationMin: parseInt(e.target.value) || 0 })}
-              />
-            </Field>
-            <Field label="Weight (kg)">
-              <Input
-                type="number"
-                step="0.1"
-                value={draft.weightKg ?? ""}
-                onChange={(e) =>
-                  setDraft({
-                    ...draft,
-                    weightKg: e.target.value ? parseFloat(e.target.value) : undefined,
-                  })
-                }
-              />
-            </Field>
-          </div>
-        </div>
-      </Modal>
+      <LifeForm open={formOpen} date={formDate} onClose={() => setFormOpen(false)} onChooseFields={() => setFieldsOpen(true)} />
+      <TrackedFieldsDialog open={fieldsOpen} onClose={() => setFieldsOpen(false)} />
     </div>
   );
 }

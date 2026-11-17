@@ -224,7 +224,7 @@ export default function DailyStudyTrackerPage() {
             <Limits
               items={[
                 "There is no built-in study timer. You enter hours yourself.",
-                "Photos and file attachments cannot be added to entries.",
+                "Attached files are capped at 5 MB each and 10 a day, and a data download lists them without including them.",
                 "It does not track or block other apps. If you want, you can log screen time yourself in the life dashboard.",
               ]}
             />

@@ -39,8 +39,20 @@ const KEY_BY_PATH: Record<string, string> = {
   lifeLog: "date",
 };
 
-/** Lists of plain values that behave as sets (order carries no meaning). */
-const SET_PATHS = new Set(["accomplished", "notifyState.readIds", "notifyState.dismissedIds"]);
+/**
+ * Lists of plain values that behave as sets (order carries no meaning), so a
+ * file linked to a goal on one device and another file linked on a second
+ * device both survive the merge instead of clashing.
+ */
+const SET_PATHS = new Set([
+  "accomplished",
+  "notifyState.readIds",
+  "notifyState.dismissedIds",
+  "journal.fileIds",
+  "goals.fileIds",
+  "goals.journalDates",
+  "lifeLog.fileIds",
+]);
 
 function isObj(v: unknown): v is Obj {
   return typeof v === "object" && v !== null && !Array.isArray(v);

@@ -55,7 +55,7 @@ export const METRICS: Record<MetricId, MetricDef> = {
     icon: Moon,
     unit: "h",
     unitLong: "hours",
-    read: (e) => (e.sleepHours > 0 ? e.sleepHours : undefined),
+    read: (e) => (e.sleepHours != null && e.sleepHours > 0 ? e.sleepHours : undefined),
     rollUp: "mean",
     chart: "bars",
     target: LIFE_TARGETS.sleepHours,
