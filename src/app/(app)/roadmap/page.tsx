@@ -171,8 +171,37 @@ export default function RoadmapPage() {
   const weekNo = useMemo(() => weekNumberFor(today), [today]);
 
   const [selectedId, setSelectedId] = useState<string>(active.id);
+  const updateProfile = useChronicle((s) => s.updateProfile);
 
   if (!mounted) return <Loading />;
+
+  // One specific CSE 2027 plan, so it's opt-in rather than everyone's default.
+  if (!profile.useRoadmap) {
+    return (
+      <div className="space-y-8">
+        <PageHeader
+          eyebrow="The Roadmap · CSE 2027"
+          title="A week-by-week plan, if you want one."
+          description="A ready-made CSE 2027 plan running from June 2026: GS2, GS3, GS1, then GS4, with Sociology as the optional alongside. It's off for your account."
+        />
+        <Card className="flex flex-col items-start gap-4 p-6 sm:flex-row sm:items-center">
+          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-accent/[0.12] text-accent">
+            <Route className="h-5 w-5" />
+          </span>
+          <p className="min-w-0 flex-1 text-sm leading-relaxed text-paper/60">
+            Turning it on adds this page to your sidebar and its current week to your
+            dashboard. Nothing else changes, and you can switch it off again in Settings.
+          </p>
+          <button
+            onClick={() => updateProfile({ useRoadmap: true })}
+            className="inline-flex h-10 shrink-0 items-center rounded-full bg-accent px-4 text-sm font-semibold text-accent-fg shadow-accent"
+          >
+            Use this roadmap
+          </button>
+        </Card>
+      </div>
+    );
+  }
 
   const selectedPhase: PlanPhase =
     phases.find((p) => p.id === selectedId) ?? active;
@@ -237,7 +266,7 @@ export default function RoadmapPage() {
             </span>
           </div>
           <p className="mt-2 text-sm font-semibold leading-snug text-paper">
-            {profile.mission ?? "IPS — CSE 2027"}
+            {profile.mission || profile.targetExam}
           </p>
         </Card>
       </div>

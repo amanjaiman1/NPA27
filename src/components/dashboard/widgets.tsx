@@ -18,7 +18,6 @@ import {
   Milestone as MilestoneIcon,
 } from "lucide-react";
 import { useChronicle } from "@/lib/store";
-import { HeroVideo } from "./hero-video";
 import {
   buildHeatmap,
   currentStreak,
@@ -95,24 +94,15 @@ export function CommandPanel() {
   const quote = QUOTES[journeyDay % QUOTES.length];
 
   return (
-    /* The greeting, the countdown and the four headline numbers share one tall
-       panel. That is mostly for the film behind them: the clip is portrait, so
-       a short wide band showed almost nothing of the frame — this gives it a
-       canvas roughly twice as tall to fill.
+    /* The greeting, the countdown and the four headline numbers share one
+       panel. It's painted entirely in CSS from the palette — no video, no
+       photo to download — so it costs nothing and re-tints with the accent.
 
-       `on-media` flips the whole subtree to a fixed light-on-dark palette, so
-       everything here stays legible over the video on any surface. */
-    <Card className="on-media relative isolate overflow-hidden rounded-3xl border-white/10">
-      <HeroVideo />
-
-      {/* Scrims, darkest where the copy sits. Several cheap gradient layers
-          beat one flat overlay: the text gets real contrast while the clip
-          keeps its shape. No backdrop-filter anywhere over the video — that
-          re-rasterises every frame and is what made phones stutter. */}
-      <div className="pointer-events-none absolute inset-0 bg-[rgb(6,6,8)]/40" />
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[rgb(6,6,8)]/90 via-[rgb(6,6,8)]/55 to-transparent" />
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[rgb(6,6,8)]/70 via-transparent to-[rgb(6,6,8)]/35" />
-      {/* a breath of brand colour so it still belongs to the palette */}
+       `on-media` pins the subtree to a fixed light-on-dark palette, so the
+       copy stays legible on the dark panel whatever surface is chosen. */
+    <Card className="on-media relative isolate overflow-hidden rounded-3xl border-white/10 bg-[rgb(10,10,13)]">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(70%_90%_at_100%_0%,rgb(var(--aura-1)/0.38),transparent_70%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(60%_80%_at_0%_100%,rgb(var(--aura-2)/0.26),transparent_70%)]" />
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-accent/20 via-transparent to-transparent" />
 
       <div className="relative z-10 p-5 sm:p-7 lg:p-8">
@@ -151,7 +141,12 @@ export function CommandPanel() {
           <div className="flex shrink-0 items-center justify-center">
             <div className="rounded-full bg-[rgb(6,6,8)]/60 p-2.5 ring-1 ring-white/10">
               <RadialProgress
-                value={Math.max(0, Math.min(100, ((560 - daysLeft) / 560) * 100))}
+                /* How much of this account's own journey, start date to exam, has passed. */
+                value={
+                  journeyDay + daysLeft > 0
+                    ? Math.max(0, Math.min(100, (journeyDay / (journeyDay + Math.max(0, daysLeft))) * 100))
+                    : 0
+                }
                 size={124}
                 stroke={7}
                 label={<span className="text-2xl">{daysLeft}</span>}

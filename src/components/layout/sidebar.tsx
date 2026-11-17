@@ -3,12 +3,13 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { PanelLeftClose, Search, Palette, Command } from "lucide-react";
-import { navGroups } from "@/lib/nav";
+import { visibleNavGroups } from "@/lib/nav";
 import { cn } from "@/lib/utils";
 import { Logo } from "./logo";
 import { useChronicle } from "@/lib/store";
 import { useMounted } from "@/lib/hooks";
 import { daysBetween, toISODate } from "@/lib/utils";
+import { initialsOf } from "@/components/account/sync-label";
 
 export function Sidebar({
   collapsed,
@@ -30,11 +31,8 @@ export function Sidebar({
   const daysLeft = mounted
     ? daysBetween(toISODate(new Date()), profile.examDate)
     : null;
-  const initials = profile.name
-    .split(" ")
-    .map((p) => p[0])
-    .slice(0, 2)
-    .join("");
+  const initials = initialsOf(profile.name);
+  const groups = visibleNavGroups(profile.useRoadmap);
 
   return (
     <aside
@@ -95,7 +93,7 @@ export function Sidebar({
 
       {/* Nav */}
       <nav className="mask-fade-b no-scrollbar mt-5 flex-1 space-y-6 overflow-y-auto px-3 pb-4">
-        {navGroups.map((group) => (
+        {groups.map((group) => (
           <div key={group.label}>
             {!collapsed && (
               <p className="px-4 pb-2 text-[0.62rem] font-semibold uppercase tracking-[0.14em] text-paper/30">
@@ -153,21 +151,31 @@ export function Sidebar({
             collapsed && "justify-center px-0",
           )}
         >
-          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-accent text-accent-fg shadow-accent">
-            <span className="text-xs font-bold">{initials}</span>
-          </div>
-          {!collapsed && (
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-semibold text-paper">
-                {profile.name}
-              </p>
-              <p className="truncate text-[0.72rem] text-paper/45">
-                {daysLeft !== null
-                  ? `${daysLeft} days to exam`
-                  : profile.targetExam}
-              </p>
-            </div>
-          )}
+          <Link
+            href="/settings#profile"
+            onClick={onNavigate}
+            title="Your profile"
+            className={cn(
+              "flex min-w-0 flex-1 items-center gap-3 rounded-2xl transition-opacity hover:opacity-85",
+              collapsed && "justify-center",
+            )}
+          >
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-accent text-accent-fg shadow-accent">
+              <span className="text-xs font-bold">{initials}</span>
+            </span>
+            {!collapsed && (
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-semibold text-paper">
+                  {profile.name || "Your profile"}
+                </span>
+                <span className="block truncate text-[0.72rem] text-paper/45">
+                  {daysLeft !== null
+                    ? `${daysLeft} days to exam`
+                    : profile.targetExam}
+                </span>
+              </span>
+            )}
+          </Link>
           {!collapsed && (
             <button
               onClick={onOpenAppearance}

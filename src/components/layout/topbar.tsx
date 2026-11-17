@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { Menu, Search, Plus, Palette, CalendarClock } from "lucide-react";
 import { findNavItem } from "@/lib/nav";
 import { Logo } from "./logo";
-import { SyncStatus } from "./sync-status";
+import { AccountMenu } from "@/components/account/account-menu";
 import { NotificationCentre } from "@/components/notifications/centre";
 import { Notifier } from "@/components/notifications/notifier";
 import { useChronicle } from "@/lib/store";
@@ -114,7 +114,7 @@ export function Topbar({
          */}
         <Notifier />
 
-        <SyncStatus />
+        <AccountMenu />
 
         {/* The one loud thing in the bar */}
         <Link

@@ -1,6 +1,6 @@
 "use client";
 
-import { useHasHydrated } from "@/lib/store";
+import { useChronicle, useHasHydrated } from "@/lib/store";
 import { Loading } from "@/components/ui/loading";
 import {
   CommandPanel,
@@ -19,6 +19,7 @@ import {
 
 export default function CommandCenter() {
   const hydrated = useHasHydrated();
+  const roadmapOn = useChronicle((s) => s.profile.useRoadmap);
   if (!hydrated) return <Loading />;
 
   return (
@@ -39,7 +40,7 @@ export default function CommandCenter() {
 
         <div className="min-w-0 space-y-4">
           <TodayCard />
-          <ThisWeekCard />
+          {roadmapOn && <ThisWeekCard />}
           <MockMomentumCard />
           <RevisionDueCard />
           <GoalsCard />

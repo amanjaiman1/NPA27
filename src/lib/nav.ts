@@ -22,6 +22,7 @@ import {
   Footprints,
   Scale,
   Smartphone,
+  Settings,
   type LucideIcon,
 } from "lucide-react";
 
@@ -42,7 +43,7 @@ export const navGroups: NavGroup[] = [
     label: "Command",
     items: [
       { label: "Command Center", href: "/", icon: LayoutDashboard, short: "Dashboard overview" },
-      { label: "Roadmap", href: "/roadmap", icon: Route, short: "The week-by-week plan to CSE 2027" },
+      { label: "Roadmap", href: "/roadmap", icon: Route, short: "The CSE 2027 week-by-week plan" },
       { label: "Milestone Timeline", href: "/timeline", icon: Milestone, short: "The journey so far" },
     ],
   },
@@ -87,7 +88,19 @@ export const navGroups: NavGroup[] = [
       { label: "Selection Archive", href: "/archive", icon: Trophy, short: "The result journey" },
     ],
   },
+  {
+    label: "Account",
+    items: [
+      { label: "Settings", href: "/settings", icon: Settings, short: "Profile, exam, appearance, data & account" },
+    ],
+  },
 ];
+
+/** The roadmap is opt-in (it is one specific CSE 2027 plan), so it can be hidden. */
+export function visibleNavGroups(useRoadmap: boolean | undefined): NavGroup[] {
+  if (useRoadmap) return navGroups;
+  return navGroups.map((g) => ({ ...g, items: g.items.filter((i) => i.href !== "/roadmap") }));
+}
 
 /**
  * The four life metrics that have a page of their own. These are deliberately
