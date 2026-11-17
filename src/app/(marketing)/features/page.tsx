@@ -174,7 +174,7 @@ const GROUPS: { title: string; intro: string; features: Feature[] }[] = [
         id: "wellbeing",
         icon: HeartPulse,
         title: "Life dashboard",
-        body: "Sleep, exercise, walking and running, water, meditation, screen time, deep work and weight: track only what you choose. Reports compare any period with the one before and count only what you actually logged.",
+        body: "Sleep in two taps, from bedtime and wake-up, plus exercise, walking and running, water, meditation, screen time, deep work and weight: track only what you choose. Reports compare any period with the one before and count only what you actually logged.",
       },
       {
         id: "reflections",
@@ -210,7 +210,7 @@ const GROUPS: { title: string; intro: string; features: Feature[] }[] = [
         id: "appearance",
         icon: Palette,
         title: "Make it yours",
-        body: "Light, Dark or Auto to follow your device, colour palettes and quiet wallpapers, saved with your account.",
+        body: "Light, Dark or Auto to follow your device, an optional Liquid Glass look on either, colour palettes and quiet wallpapers, saved with your account.",
       },
     ],
   },

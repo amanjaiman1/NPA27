@@ -62,7 +62,68 @@ Velvet and Abyss. Ivory becomes Light and the other four become Dark
 and in `normalizeSnapshot`, so a device still on an older version can't bring
 them back.
 
-### Palettes (`data-palette`)
+### Liquid Glass (`data-material`)
+
+An appearance mode, separate from the theme. The theme says Light or Dark;
+the material says how surfaces are drawn on it. All four combinations exist
+(Light or Dark, each Standard or Liquid Glass), and changing one never
+changes the other.
+
+| Setting | Store / synced key | On `<html>` | Pre-paint key |
+| --- | --- | --- | --- |
+| Liquid Glass | `material`: `standard` \| `glass` | `data-material` | `upsc-chronicle-material:<id>` |
+| Reduce transparency | `reduceTransparency`: boolean | `data-transparency="reduced"` | `upsc-chronicle-transparency:<id>` |
+
+Both travel with the account like the theme: synced in the snapshot, painted
+by the inline script before first paint, reset to Standard on sign-out, and
+never read from another account's keys. `applyMaterial` in `lib/theme.ts`
+puts them on screen; while switching it sets `data-material-switching` for
+under half a second so surfaces ease across.
+
+**Materials.** All the rules live in one section of `globals.css` and every
+selector is scoped to `[data-material="glass"]`, so Standard is unchanged.
+They map from what the markup already says, rather than a new class on every
+component:
+
+| Material | Matched by | Treatment |
+| --- | --- | --- |
+| panel | `bg-card` (and `/60` `/80` `/85` `/95`) | translucent tint, top sheen, corner glint, lit edge; no blur |
+| overlay | `bg-card` + `shadow-lift`, or `.glass-overlay` | firmer tint, `blur(30px) saturate(1.8)` |
+| chrome | `.chrome-glass`, `.sidebar-panel`, `.glass-sticky` | translucent tint, `blur(22px) saturate(1.7)` |
+| field | `.field` (every `Input`, `Select`, `Textarea`, time button) | lighter recess, visible edge, brighter on focus |
+| accent | `bg-accent` | a soft gloss and a lit top edge |
+
+The attribute part of each selector sits in `:where()`, so a rule has the
+weight of a single utility class: it beats the utility it replaces (it comes
+later in the file) and still loses to `hover:` and `focus:` states. The edge
+colour only replaces the plain `border-line`, so accent, warning and selected
+borders keep their colour.
+
+Light glass is white panes at about 55% over a brighter canvas glow; Dark
+glass is smoked charcoal panes at about 52% with a fine lit edge. Both keep
+the theme's text colours, so contrast stays where the theme put it. Over a
+wallpaper the panes firm up (74% and 68%) so text stays legible.
+
+**Where blur goes.** Only where content moves or opens underneath: dialogs,
+menus, the palette, tooltips, the bars and sticky headers. Cards sit on the
+canvas, which is soft light with nothing sharp in it, so blurring it would
+cost frames on every scroll and change nothing visible; their glass comes from
+translucency, the sheen, the glint and the edge, all painted as backgrounds
+and shadows on the element itself. There are no pseudo-elements and no extra
+layers. Phones use smaller blur radii.
+
+Measured with a scripted three-second scroll at 4x CPU throttling in headless
+Chromium: phone-sized views held 60 fps in all four combinations with no long
+frames, and desktop views ran the same in both materials (about 35–46 fps,
+the same range as Standard, in that software-rendered setup).
+
+**Fallbacks.** *Reduce transparency* (in Appearance, or the device's own
+`prefers-reduced-transparency`) makes every glass surface 94–98% solid and
+turns blur off, in the same theme; in Standard it makes the frosted bars
+solid. A browser without `backdrop-filter` gets nearly solid bars and
+dialogs instead of see-through ones.
+
+
 
 Crimson (default), Amber, Teal, Violet, Emerald, Coral.
 

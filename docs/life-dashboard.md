@@ -35,9 +35,9 @@ Study hours and mood are read from the Daily Journal, not stored twice.
 
 `profile.lifeFields` lists the measurements a person tracks, chosen in
 **What you track** on the page or from the form. Until they choose,
-`trackedFields` (in `src/lib/life.ts`) uses the fields they have actually
-recorded, and a short core list (sleep, exercise, water, screen time) for a log
-that is still empty. The form asks only for tracked fields and the reports
+`trackedFields` (in `src/lib/life.ts`) uses a short core list (sleep, exercise,
+water, screen time) plus any other field they have recorded, so logging one
+reading never hides the others. The form asks only for tracked fields and the reports
 cover only those. Readings already saved for an untracked field are kept.
 
 ## Logging a day
@@ -49,8 +49,9 @@ cover only those. Readings already saved for an untracked field are kept.
   pre-filled with a typical value.
 - Changing the date loads what is saved for that day. If there are unsaved
   changes, the form asks before discarding them. Future dates are refused.
-- Bedtime and wake time fill in the hours slept (across midnight, to the
-  minute) unless the hours were typed by hand.
+- Sleep uses the same time buttons and rules as the sleep card (below):
+  hours come from bedtime to wake-up, and the box beside them is only for time
+  asleep when it differs.
 - Each number is checked against a sensible range (sleep 0–24 h, screen time
   0–1440 min, weight 20–300 kg, …) and errors show next to the field.
 - Sleep quality can be cleared back to "not rated".
@@ -59,8 +60,8 @@ cover only those. Readings already saved for an untracked field are kept.
 - Saving a day with nothing in it removes the day instead of storing an empty
   record.
 
-The morning check-in (`logDailySleep`) records only what it asks: bedtime, wake
-time and hours slept. It no longer creates a journal entry or fills in other
+The morning check-in records only what it asks: bedtime and wake-up, and the
+hours between them. It never creates a journal entry or fills in other
 readings.
 
 ### What older versions wrote
@@ -74,6 +75,68 @@ journal entries the check-in used to create (no study, all ratings 3, nothing
 written) are removed, and their bed and wake times move to the Life Dashboard
 day. Both clean-ups run in the v12 store migration and on every snapshot pulled
 from the cloud, and both are idempotent.
+
+## Sleep
+
+Sleep has its own card at the top of the Life Dashboard
+(`components/sleep/sleep-card.tsx`), and the rules live in `src/lib/sleep.ts`
+(tested in `tests/sleep.test.ts`).
+
+**What a night is.** A night is stored on the day you woke up, exactly as
+before: `bedtime`, `wakeTime` (wall-clock "HH:MM"), `sleepHours` and
+`sleepQuality` on that day's `LifeEntry`. Nothing about older records
+changed. What's new is that everything else is worked out reliably from them:
+
+- The day the bedtime falls on is never asked for. For any night shorter than
+  a day it has one answer: a bedtime later on the clock than the wake-up was
+  the evening before (23:30 → 07:00 is 7h 30m); an earlier one was the same
+  day (00:30 → 07:00, or a 14:00 nap). The old morning prompt asked "last
+  night or today?", and picking the wrong one could store a 30-hour night.
+- Durations use real local dates, so a night across a clock change counts the
+  hours that actually passed.
+- Times are wall-clock, not UTC moments: 23:00 is 23:00 on any device, in any
+  time zone. The app already uses the device's local clock for every date.
+- Hours come from the two times unless **time asleep** is entered under More
+  details (lay awake, woke in the night). A night with only one time has no
+  hours; nothing is invented.
+
+**Recording.** Two large time buttons, bedtime and wake-up, with the duration
+shown as soon as both are set. Tapping one opens a picker: an hour, then a
+minute, and it closes (AM or PM starts where that time usually is; ±5 nudges
+the minute; typing "2330" or "11:30 pm" works too). Chips set a time in one
+tap: **Now**, and **Usual** once three nights are recorded. Times follow the
+12- or 24-hour preference (Appearance → Clock, or the card's settings),
+defaulting to the device's convention. The picker is custom because native
+time inputs can't follow that preference; it is keyboard-operable (one tab
+stop per grid, arrow keys within it) and every button has a spoken label.
+
+**One tap at the moment.** From 6 PM, *Going to bed now* records tonight's
+bedtime on tomorrow's date. In the morning (3 AM to 3 PM) with a bedtime
+waiting, *Woke up now* finishes the night. Both save immediately.
+
+**Checks.** The same time twice is refused. A night over 18 hours is refused
+with a hint that AM and PM may be swapped. Under 2 hours or over 13 hours
+saves, with a note to check the times.
+
+**Goal, kept apart.** A sleep goal (`profile.sleepTarget`: bedtime and
+wake-up) is set from the card's settings. It's compared with nights ("45m
+short of your 7h 30m aim", "bed 20 min later than 11:00 PM") and replaces the
+built-in 7.5-hour line on the sleep page, but it's never stored as, or mistaken
+for, a night you slept.
+
+**History.** `/wellbeing/sleep` lists every night with its times, duration and
+quality, flags a night still waiting for its wake-up, time asleep entered by
+hand, and any stored night over 18 hours (shown, never averaged, never
+rewritten). Each can be edited or deleted. Deleting removes only that night's
+four sleep fields; the day's other readings stay. Averages for the last 7 and
+30 nights, usual bedtime and wake-up (a circular mean, so 23:30 and 00:30
+average to midnight) all say how many nights they stand on.
+
+**The morning check-in** (`components/sleep/sleep-gate.tsx`) uses the same
+editor, can be skipped for the day, and starts two hours before your usual
+wake-up (between 03:00 and 07:00) instead of always at 07:00. With a bedtime
+waiting from the night before, it's one tap. Saving anywhere, or skipping,
+counts for every device.
 
 ## Reports
 
