@@ -14,6 +14,7 @@ import { computeGoalProgress, type GoalData } from "./goals";
 import { staleTopics } from "./subjects";
 import { reviewPeriods, findReviewFor } from "./review-builder";
 import { currentStreak, hoursByDate } from "./selectors";
+import { countedSleepHours } from "./sleep";
 
 /* ── shape ───────────────────────────────────────────────────── */
 
@@ -679,7 +680,8 @@ export function evaluate(
     if (s.hours > 0) sleepByDate.set(s.date, s.hours);
   }
   for (const l of data.lifeLog ?? []) {
-    if (l.sleepHours != null && l.sleepHours > 0) sleepByDate.set(l.date, l.sleepHours);
+    const h = countedSleepHours(l);
+    if (h != null) sleepByDate.set(l.date, h);
   }
   const windowStart = shift(today, -6);
   const recentSleep = [...sleepByDate.entries()]

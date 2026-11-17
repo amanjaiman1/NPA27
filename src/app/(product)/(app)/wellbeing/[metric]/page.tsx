@@ -37,6 +37,9 @@ import {
   type RangeId,
 } from "@/lib/metric-series";
 import { formatDate, fromISODate, relativeDay, round, toISODate, cn } from "@/lib/utils";
+import { formatClock, meanClock, targetMinutes, timeFormatOf } from "@/lib/sleep";
+import type { TimeFormat } from "@/lib/types";
+import { SleepHistory } from "@/components/sleep/sleep-history";
 
 /* ── small pieces ─────────────────────────────────────────────── */
 
@@ -76,33 +79,24 @@ function StatCard({
   );
 }
 
-/** Average of clock times, handling the wrap past midnight. */
-function averageClock(times: string[]): string | null {
-  const mins = times
-    .map((t) => {
-      const [h, m] = t.split(":").map(Number);
-      if (Number.isNaN(h) || Number.isNaN(m)) return null;
-      // Measure from noon so an 00:30 bedtime sits next to 23:30, not 23 hours away.
-      const raw = h * 60 + m;
-      return raw < 12 * 60 ? raw + 24 * 60 : raw;
-    })
-    .filter((v): v is number => v != null);
-  if (!mins.length) return null;
-  const avg = Math.round(mins.reduce((a, b) => a + b, 0) / mins.length) % (24 * 60);
-  return `${String(Math.floor(avg / 60)).padStart(2, "0")}:${String(avg % 60).padStart(2, "0")}`;
-}
-
-/* ── the page ─────────────────────────────────────────────────── */
-
 export default function MetricPage() {
   const params = useParams<{ metric: string }>();
   const hydrated = useHasHydrated();
   const lifeLog = useChronicle((s) => s.lifeLog);
+  const profile = useChronicle((s) => s.profile);
   const [range, setRange] = useState<RangeId>("month");
 
   const id = params?.metric;
   if (!isMetricId(id)) notFound();
-  const metric = METRICS[id];
+  // Sleep is measured against your own goal once you've set one.
+  const aim = id === "sleep" ? targetMinutes(profile.sleepTarget) : null;
+  const metric = useMemo(() => {
+    const base = METRICS[id];
+    if (aim == null) return base;
+    const hours = round(aim / 60, 2);
+    return { ...base, target: hours, isActiveDay: (v: number) => v >= hours - 0.5 };
+  }, [id, aim]);
+  const format = timeFormatOf(profile);
 
   const series = useMemo(
     () => buildMetricSeries(lifeLog, metric, range),
@@ -344,7 +338,7 @@ export default function MetricPage() {
                 What the numbers say
               </h2>
               <ul className="space-y-3 text-sm">
-                {insightsFor(id, series, lifeLog).map((line, i) => (
+                {insightsFor(id, metric, series, lifeLog, format).map((line, i) => (
                   <li key={i} className="flex items-start gap-2.5">
                     <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
                     <span className="text-paper/70">{line}</span>
@@ -380,62 +374,64 @@ export default function MetricPage() {
           </Card>
 
           {/* ── the readings themselves ──────────────────────────── */}
-          <Card className="overflow-hidden">
-            <div className="flex items-end justify-between p-5 pb-3 sm:px-6">
-              <div>
-                <p className="eyebrow mb-1">Day by day</p>
-                <h2 className="text-base font-semibold text-paper">Recent readings</h2>
+          {id === "sleep" ? null : (
+            <Card className="overflow-hidden">
+              <div className="flex items-end justify-between p-5 pb-3 sm:px-6">
+                <div>
+                  <p className="eyebrow mb-1">Day by day</p>
+                  <h2 className="text-base font-semibold text-paper">Recent readings</h2>
+                </div>
+                <span className="text-xs text-paper/45">
+                  {Math.min(14, series.readings.length)} of {series.readings.length}
+                </span>
               </div>
-              <span className="text-xs text-paper/45">
-                {Math.min(14, series.readings.length)} of {series.readings.length}
-              </span>
-            </div>
-            <ul className="divide-y divide-line">
-              {[...series.readings]
-                .reverse()
-                .slice(0, 14)
-                .map((r, i, arr) => {
-                  const prev = arr[i + 1];
-                  const delta = prev ? round(r.value - prev.value, 2) : null;
-                  const good =
-                    delta == null || delta === 0
-                      ? null
-                      : metric.lowerBetter
-                        ? delta < 0
-                        : delta > 0;
-                  return (
-                    <li
-                      key={r.date}
-                      className="flex items-center gap-3 px-5 py-3 sm:px-6"
-                    >
-                      <CalendarDays className="h-3.5 w-3.5 shrink-0 text-paper/30" />
-                      <span className="min-w-0 flex-1 truncate text-sm text-paper/75">
-                        {formatDate(r.date)}
-                        <span className="ml-2 text-[0.7rem] text-paper/40">
-                          {relativeDay(r.date, toISODate(new Date()))}
+              <ul className="divide-y divide-line">
+                {[...series.readings]
+                  .reverse()
+                  .slice(0, 14)
+                  .map((r, i, arr) => {
+                    const prev = arr[i + 1];
+                    const delta = prev ? round(r.value - prev.value, 2) : null;
+                    const good =
+                      delta == null || delta === 0
+                        ? null
+                        : metric.lowerBetter
+                          ? delta < 0
+                          : delta > 0;
+                    return (
+                      <li
+                        key={r.date}
+                        className="flex items-center gap-3 px-5 py-3 sm:px-6"
+                      >
+                        <CalendarDays className="h-3.5 w-3.5 shrink-0 text-paper/30" />
+                        <span className="min-w-0 flex-1 truncate text-sm text-paper/75">
+                          {formatDate(r.date)}
+                          <span className="ml-2 text-[0.7rem] text-paper/40">
+                            {relativeDay(r.date, toISODate(new Date()))}
+                          </span>
                         </span>
-                      </span>
-                      {delta != null && delta !== 0 && (
-                        <span
-                          className={cn(
-                            "tabular text-[0.7rem]",
-                            good ? "text-positive" : "text-danger",
-                          )}
-                        >
-                          {delta > 0 ? "+" : ""}
-                          {delta.toFixed(metric.decimals)}
+                        {delta != null && delta !== 0 && (
+                          <span
+                            className={cn(
+                              "tabular text-[0.7rem]",
+                              good ? "text-positive" : "text-danger",
+                            )}
+                          >
+                            {delta > 0 ? "+" : ""}
+                            {delta.toFixed(metric.decimals)}
+                          </span>
+                        )}
+                        <span className="tabular w-16 shrink-0 text-right text-sm font-semibold text-paper">
+                          {metric.id === "screen"
+                            ? formatMinutesAsClock(r.value)
+                            : formatMetric(metric, r.value)}
                         </span>
-                      )}
-                      <span className="tabular w-16 shrink-0 text-right text-sm font-semibold text-paper">
-                        {metric.id === "screen"
-                          ? formatMinutesAsClock(r.value)
-                          : formatMetric(metric, r.value)}
-                      </span>
-                    </li>
-                  );
-                })}
-            </ul>
-          </Card>
+                      </li>
+                    );
+                  })}
+              </ul>
+            </Card>
+          )}
 
           {/* the smoothed line is only interesting for a noisy metric */}
           {metric.id === "weight" && smoothed.length > 3 && (
@@ -458,6 +454,8 @@ export default function MetricPage() {
           )}
         </>
       )}
+
+      {id === "sleep" && <SleepHistory />}
 
       {/* ── the other three ─────────────────────────────────────── */}
       <div className="flex flex-wrap gap-2 border-t border-line pt-6">
@@ -492,27 +490,34 @@ function rangeWord(range: RangeId): string {
   }
 }
 
+/** "target" for the built-in figure, "goal you set" once there's your own. */
+function aimWord(metric: { target?: number }): string {
+  return metric.target === METRICS.sleep.target ? "target" : "goal you set";
+}
+
 /** The metric-specific reading of the window, in plain sentences. */
 function insightsFor(
   id: keyof typeof METRICS,
+  metric: (typeof METRICS)[keyof typeof METRICS],
   series: ReturnType<typeof buildMetricSeries>,
   lifeLog: { date: string; bedtime?: string; wakeTime?: string; sleepQuality?: number }[],
+  format: TimeFormat,
 ): string[] {
-  const metric = METRICS[id];
   const out: string[] = [];
   const from = series.buckets[0]?.start ?? "";
   const window = lifeLog.filter((e) => e.date >= from);
 
   if (id === "sleep") {
-    const bed = averageClock(window.map((e) => e.bedtime ?? "").filter(Boolean));
-    const wake = averageClock(window.map((e) => e.wakeTime ?? "").filter(Boolean));
-    if (bed && wake) out.push(`You typically go to sleep around ${bed} and wake at ${wake}.`);
+    const bed = meanClock(window.map((e) => e.bedtime));
+    const wake = meanClock(window.map((e) => e.wakeTime));
+    if (bed && wake)
+      out.push(`You typically go to sleep around ${formatClock(bed, format)} and wake at ${formatClock(wake, format)}.`);
     if (series.targetHitRate != null)
       out.push(
         `${Math.round(series.targetHitRate * 100)}% of recorded nights hit the ${formatMetric(
           metric,
           metric.target,
-        )} target${series.streak > 1 ? `, and you're on a ${series.streak}-night run` : ""}.`,
+        )} ${aimWord(metric)}${series.streak > 1 ? `, and you're on a ${series.streak}-night run` : ""}.`,
       );
     if (series.worst)
       out.push(

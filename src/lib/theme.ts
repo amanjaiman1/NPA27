@@ -1,4 +1,4 @@
-import type { ThemeMode } from "./types";
+import type { Material, ThemeMode } from "./types";
 
 /* ════════════════════════════════════════════════════════════════
    Appearance — day and night, plus an accent.
@@ -9,6 +9,9 @@ import type { ThemeMode } from "./types";
          "white"  the Ivory day surface
          "black"  the charcoal night surface
      • Palette — the accent and the six chart colours, on either surface.
+     • Material — Standard or Liquid Glass (`data-material`), independent
+       of the mode: glass changes how surfaces are drawn, never which theme
+       is showing.
 
    The colour values live as CSS variables in globals.css; this module
    carries the ids, the picker's metadata, and the one function that puts
@@ -16,7 +19,7 @@ import type { ThemeMode } from "./types";
    before first paint, so a reload never flashes the wrong theme.
    ════════════════════════════════════════════════════════════════ */
 
-export type { ThemeMode } from "./types";
+export type { Material, ThemeMode } from "./types";
 
 /** The two surfaces the CSS knows. */
 export type Surface = "white" | "black";
@@ -66,6 +69,41 @@ export function surfaceFor(mode: ThemeMode, prefersDark = systemPrefersDark()): 
   if (mode === "dark") return "black";
   if (mode === "light") return "white";
   return prefersDark ? "black" : "white";
+}
+
+/* ── Liquid Glass ────────────────────────────────────────────────
+   A second, independent dimension: the material surfaces are drawn in.
+   Light or Dark stays exactly as chosen; glass only changes how cards,
+   bars, menus and dialogs are drawn on top of it. Both choices sync with
+   the account and are painted before load, like the theme. */
+
+export const DEFAULT_MATERIAL: Material = "standard";
+
+export function isMaterial(v: unknown): v is Material {
+  return v === "standard" || v === "glass";
+}
+
+/**
+ * Puts a material on screen. `reduced` makes translucent surfaces nearly
+ * solid (and turns blur off), for anyone who finds see-through panels hard
+ * to read; it also applies to Standard's frosted bars.
+ */
+export function applyMaterial(material: Material, reduced: boolean, opts: { animate?: boolean } = {}): void {
+  if (typeof document === "undefined") return;
+  const root = document.documentElement;
+  const changed =
+    root.getAttribute("data-material") !== material ||
+    (root.getAttribute("data-transparency") === "reduced") !== reduced;
+  if (!changed) return;
+  // A short window in which surfaces ease between materials. The global
+  // reduced-motion rule shortens it to nothing.
+  if (opts.animate) {
+    root.setAttribute("data-material-switching", "");
+    window.setTimeout(() => root.removeAttribute("data-material-switching"), 450);
+  }
+  root.setAttribute("data-material", material);
+  if (reduced) root.setAttribute("data-transparency", "reduced");
+  else root.removeAttribute("data-transparency");
 }
 
 /** Puts a mode on screen. Safe to call on the server, where it does nothing. */

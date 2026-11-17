@@ -57,6 +57,7 @@ import {
   formatHours,
   cn,
 } from "@/lib/utils";
+import { formatClock, timeFormatOf } from "@/lib/sleep";
 
 function addDaysISO(iso: string, n: number): string {
   const d = fromISODate(iso);
@@ -130,6 +131,7 @@ export default function JournalDayPage() {
   const journal = useChronicle((s) => s.journal);
   const subjects = useChronicle((s) => s.subjects);
   const profile = useChronicle((s) => s.profile);
+  const clockOrDash = (t?: string) => (t ? formatClock(t, timeFormatOf(profile)) : "—");
   const deleteJournal = useChronicle((s) => s.deleteJournal);
   const confirm = useConfirm();
 
@@ -288,7 +290,7 @@ export default function JournalDayPage() {
                     <Sunrise className="h-4 w-4 text-paper/40" /> Wake
                   </span>
                   <span className="tabular text-sm text-paper">
-                    {entry.wakeTime || lifeLog.find((l) => l.date === date)?.wakeTime || "—"}
+                    {clockOrDash(entry.wakeTime || lifeLog.find((l) => l.date === date)?.wakeTime)}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
@@ -296,7 +298,7 @@ export default function JournalDayPage() {
                     <Moon className="h-4 w-4 text-paper/40" /> Sleep
                   </span>
                   <span className="tabular text-sm text-paper">
-                    {entry.sleepTime || lifeLog.find((l) => l.date === date)?.bedtime || "—"}
+                    {clockOrDash(entry.sleepTime || lifeLog.find((l) => l.date === date)?.bedtime)}
                   </span>
                 </div>
                 <div className="flex items-center justify-between border-t border-paper/[0.06] pt-3">

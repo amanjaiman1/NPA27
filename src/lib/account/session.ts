@@ -17,7 +17,7 @@
 import { useChronicle, blankChronicleState } from "../store";
 import type { MergeConflict } from "../sync/merge";
 import { clearBaseStore } from "../sync/base-store";
-import { DEFAULT_PALETTE, DEFAULT_THEME_MODE, applyThemeMode } from "../theme";
+import { DEFAULT_MATERIAL, DEFAULT_PALETTE, DEFAULT_THEME_MODE, applyMaterial, applyThemeMode } from "../theme";
 import { DEFAULT_WALLPAPER, deleteWallpaperPhotos } from "../wallpaper";
 import {
   STORE_KEY,
@@ -69,6 +69,7 @@ export function deactivateAccount(): void {
   if (typeof document !== "undefined") {
     const root = document.documentElement;
     applyThemeMode(DEFAULT_THEME_MODE);
+    applyMaterial(DEFAULT_MATERIAL, false);
     root.setAttribute("data-palette", DEFAULT_PALETTE);
     root.setAttribute("data-wallpaper", DEFAULT_WALLPAPER);
     root.style.setProperty("--wp-dim", "0");

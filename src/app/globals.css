@@ -942,6 +942,255 @@ samp {
   color: rgb(var(--paper) / 0.55);
 }
 
+/* ── Liquid Glass ─────────────────────────────────────────────────────
+   An appearance mode, not a theme: `data-material="glass"` on <html>, on top
+   of either `data-surface`. Every rule below is scoped to it, so Standard is
+   exactly as it was, and Light or Dark is never changed by it.
+
+   Four materials, from back to front:
+     panel    cards, tiles, chips, pills         translucent, no blur
+     chrome   sidebar, top bar, bottom bar,      translucent, blurred
+              sticky headers
+     overlay  dialogs, menus, palette, tooltips  nearly solid, blurred
+     field    inputs, selects, time buttons      a lighter recess with an edge
+
+   They are mapped from what the markup already says rather than from a new
+   class on every component: `bg-card` is a panel, `bg-card` with
+   `shadow-lift` is an overlay, `.chrome-glass` / `.sidebar-panel` /
+   `.glass-sticky` are chrome, `.field` is a field. Selectors use `:where()`
+   for the attribute, so each rule has the weight of one utility class: it
+   beats the utility it replaces (it comes later in the file) and still
+   loses to `hover:` and `focus:` states.
+
+   Blur goes only where content moves or opens underneath. Cards sit on the
+   canvas, which is soft light with nothing sharp in it; blurring that would
+   cost frames on every scroll and change nothing you can see. Their glass
+   comes from translucency, a top sheen, a corner glint and a lit edge, all
+   painted as backgrounds and shadows on the element itself: no
+   pseudo-elements and no extra layers.
+   ─────────────────────────────────────────────────────────────────── */
+
+[data-material="glass"] {
+  /* Light glass: luminous white panes over a brighter canvas. */
+  --glass-tint: 255 255 255;
+  --glass-panel-a: 0.55;
+  --glass-chrome-a: 0.6;
+  --glass-overlay-a: 0.84;
+  --glass-field: 255 255 255;
+  --glass-field-a: 0.5;
+  --glass-field-focus-a: 0.85;
+  --glass-field-border: var(--paper);
+  --glass-field-border-a: 0.14;
+  --glass-edge-a: 0.75;
+  --glass-rim-a: 0.85;
+  --glass-outline: var(--shadow);
+  --glass-outline-a: 0.06;
+  --glass-sheen: linear-gradient(180deg, rgb(255 255 255 / 0.5) 0%, rgb(255 255 255 / 0.14) 42%, rgb(255 255 255 / 0) 72%);
+  --glass-glint: radial-gradient(120% 70% at 0% 0%, rgb(255 255 255 / 0.42), rgb(255 255 255 / 0) 56%);
+  --glass-gloss: linear-gradient(180deg, rgb(255 255 255 / 0.26), rgb(255 255 255 / 0) 56%);
+  --glass-drop: 0 1px 2px rgb(var(--shadow) / 0.05), 0 14px 34px -18px rgb(var(--shadow) / 0.22);
+  --glass-drop-lift: 0 2px 6px rgb(var(--shadow) / 0.06), 0 26px 56px -24px rgb(var(--shadow) / 0.34);
+  --glass-chrome-filter: blur(22px) saturate(1.7);
+  --glass-overlay-filter: blur(30px) saturate(1.8);
+  /* More of the canvas glow, so the glass has light to catch. */
+  --wash: 1;
+}
+
+[data-material="glass"][data-surface="black"] {
+  /* Dark glass: smoked panes with a fine lit edge, over a deeper glow.
+     Readable first: the tint stays dark enough that soft-white text keeps
+     its contrast whatever colour glows behind it. */
+  --glass-tint: 30 30 36;
+  --glass-panel-a: 0.52;
+  --glass-chrome-a: 0.58;
+  --glass-overlay-a: 0.84;
+  --glass-field-a: 0.05;
+  --glass-field-focus-a: 0.09;
+  --glass-field-border-a: 0.16;
+  --glass-edge-a: 0.1;
+  --glass-rim-a: 0.12;
+  --glass-outline: 0 0 0;
+  --glass-outline-a: 0.4;
+  --glass-sheen: linear-gradient(180deg, rgb(255 255 255 / 0.07) 0%, rgb(255 255 255 / 0.02) 45%, rgb(255 255 255 / 0) 72%);
+  --glass-glint: radial-gradient(120% 70% at 0% 0%, rgb(255 255 255 / 0.06), rgb(255 255 255 / 0) 56%);
+  --glass-gloss: linear-gradient(180deg, rgb(255 255 255 / 0.2), rgb(255 255 255 / 0) 56%);
+  --glass-drop: 0 1px 2px rgb(0 0 0 / 0.3), 0 16px 36px -18px rgb(0 0 0 / 0.65);
+  --glass-drop-lift: 0 2px 6px rgb(0 0 0 / 0.35), 0 28px 60px -24px rgb(0 0 0 / 0.75);
+  --wash: 0.8;
+}
+
+/* A busy wallpaper behind needs firmer panes to keep text legible. */
+[data-material="glass"][data-wallpaper]:not([data-wallpaper="none"]) {
+  --glass-panel-a: 0.74;
+  --glass-chrome-a: 0.78;
+}
+[data-material="glass"][data-surface="black"][data-wallpaper]:not([data-wallpaper="none"]) {
+  --glass-panel-a: 0.68;
+  --glass-chrome-a: 0.72;
+}
+
+/* Phones: less blur, which is most of the cost, for the same look. */
+@media (max-width: 640px) {
+  [data-material="glass"] {
+    --glass-chrome-filter: blur(16px) saturate(1.5);
+    --glass-overlay-filter: blur(22px) saturate(1.6);
+  }
+}
+
+/* No backdrop-filter support: translucent panes would show sharp content
+   through them, so the blurred materials become nearly solid instead. */
+@supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  [data-material="glass"] {
+    --glass-chrome-a: 0.93;
+    --glass-overlay-a: 0.97;
+  }
+}
+
+/* The canvas: the same aura colours, spread wider and a little brighter. */
+[data-material="glass"] .bg-aura {
+  background-image:
+    radial-gradient(52% 46% at 0% 0%, rgb(var(--aura-1) / 0.36), transparent 64%),
+    radial-gradient(48% 44% at 100% 0%, rgb(var(--aura-2) / 0.3), transparent 64%),
+    radial-gradient(40% 38% at 20% 60%, rgb(var(--accent) / 0.12), transparent 70%),
+    radial-gradient(56% 50% at 100% 100%, rgb(var(--aura-1) / 0.22), transparent 70%),
+    radial-gradient(46% 42% at 0% 100%, rgb(var(--aura-2) / 0.2), transparent 70%);
+}
+
+/* Panel: every card-coloured surface. */
+:where([data-material="glass"]) :is(.bg-card, .bg-card\/60, .bg-card\/80, .bg-card\/85, .bg-card\/95) {
+  background-color: rgb(var(--glass-tint) / var(--glass-panel-a));
+  background-image: var(--glass-glint), var(--glass-sheen);
+  box-shadow:
+    inset 0 1px 0 0 rgb(255 255 255 / var(--glass-rim-a)),
+    0 0 0 1px rgb(var(--glass-outline) / var(--glass-outline-a)),
+    var(--tw-ring-offset-shadow, 0 0 #0000),
+    var(--tw-ring-shadow, 0 0 #0000),
+    var(--tw-shadow, 0 0 #0000);
+}
+/* The pane's own edge, only where the border is the plain hairline, so an
+   accent, warning or selected border keeps its colour. */
+:where([data-material="glass"]) :is(.bg-card, .bg-card\/60, .bg-card\/80, .bg-card\/85, .bg-card\/95):where(.border-line) {
+  border-color: rgb(255 255 255 / var(--glass-edge-a));
+}
+/* Interactive cards brighten a little under the pointer. */
+:where([data-material="glass"]) .bg-card:where(.hover\:shadow-lift):hover {
+  background-color: rgb(var(--glass-tint) / calc(var(--glass-panel-a) + 0.1));
+}
+
+/* Depth comes from softer, wider drops in glass. */
+:where([data-material="glass"]) .shadow-soft {
+  --tw-shadow: var(--glass-drop);
+}
+:where([data-material="glass"]) :is(.shadow-lift, .hover\:shadow-lift:hover) {
+  --tw-shadow: var(--glass-drop-lift);
+}
+
+/* Overlay: dialogs, menus, the palette, tooltips. */
+:where([data-material="glass"]) :is(.bg-card, .bg-card\/95):where(.shadow-lift),
+:where([data-material="glass"]) .glass-overlay {
+  background-color: rgb(var(--glass-tint) / var(--glass-overlay-a));
+  -webkit-backdrop-filter: var(--glass-overlay-filter);
+  backdrop-filter: var(--glass-overlay-filter);
+}
+
+/* Chrome: bars and sticky headers, with content scrolling underneath. */
+:where([data-material="glass"]) :is(.chrome-glass, .sidebar-panel, .glass-sticky) {
+  background-color: rgb(var(--glass-tint) / var(--glass-chrome-a));
+  background-image: var(--glass-sheen);
+  -webkit-backdrop-filter: var(--glass-chrome-filter);
+  backdrop-filter: var(--glass-chrome-filter);
+}
+[data-material="glass"][data-wallpaper]:not([data-wallpaper="none"]) .chrome-glass {
+  background-color: rgb(var(--glass-tint) / var(--glass-chrome-a));
+}
+@media (min-width: 1024px) {
+  [data-material="glass"][data-wallpaper]:not([data-wallpaper="none"]) .sidebar-panel {
+    background-color: rgb(var(--glass-tint) / var(--glass-chrome-a));
+  }
+}
+/* On a phone the sidebar is a drawer pulled over the page and its scrim:
+   it takes the overlay's firmer glass so the nav stays easy to read. */
+@media (max-width: 1023px) {
+  :where([data-material="glass"]) .sidebar-panel {
+    background-color: rgb(var(--glass-tint) / var(--glass-overlay-a));
+    -webkit-backdrop-filter: var(--glass-overlay-filter);
+    backdrop-filter: var(--glass-overlay-filter);
+  }
+}
+/* A full-width sticky header becomes a rounded strip, so it reads as glass. */
+:where([data-material="glass"]) .glass-strip {
+  border-radius: 1rem;
+  padding-inline: 0.75rem;
+}
+
+/* Field: inputs, selects and the time buttons. */
+:where([data-material="glass"]) .field {
+  background-color: rgb(var(--glass-field) / var(--glass-field-a));
+  box-shadow:
+    inset 0 1px 2px rgb(var(--glass-outline) / 0.08),
+    0 1px 0 rgb(255 255 255 / calc(var(--glass-rim-a) * 0.5));
+}
+:where([data-material="glass"]) .field:where(.border-line) {
+  border-color: rgb(var(--glass-field-border) / var(--glass-field-border-a));
+}
+:where([data-material="glass"]) .field:is(:focus, :focus-visible) {
+  background-color: rgb(var(--glass-field) / var(--glass-field-focus-a));
+}
+
+/* Accent fills catch the light: a soft gloss and a lit top edge. */
+:where([data-material="glass"]) .bg-accent {
+  background-image: var(--glass-gloss);
+  box-shadow:
+    inset 0 1px 0 0 rgb(255 255 255 / 0.36),
+    var(--tw-ring-offset-shadow, 0 0 #0000),
+    var(--tw-ring-shadow, 0 0 #0000),
+    var(--tw-shadow, 0 0 #0000);
+}
+
+/* Switching material eases surfaces across instead of snapping. The window
+   is set by `applyMaterial` and lasts under half a second; the reduced-motion
+   rule below shortens it to nothing. */
+[data-material-switching] *,
+[data-material-switching] *::before,
+[data-material-switching] *::after {
+  transition-property: background-color, border-color, box-shadow, color, -webkit-backdrop-filter, backdrop-filter;
+  transition-duration: 0.4s;
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Reduce transparency, chosen in Appearance or asked for by the device:
+   nearly solid surfaces and no blur, in the same theme. In Standard it
+   turns the frosted bars solid too. */
+[data-material="glass"][data-transparency="reduced"] {
+  --glass-panel-a: 0.94;
+  --glass-chrome-a: 0.96;
+  --glass-overlay-a: 0.98;
+  --glass-chrome-filter: none;
+  --glass-overlay-filter: none;
+}
+[data-material="glass"][data-surface="white"][data-transparency="reduced"] {
+  --glass-field-a: 0.9;
+}
+[data-transparency="reduced"] :is(.chrome-glass, .sidebar-panel) {
+  background-color: rgb(var(--card));
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+@media (prefers-reduced-transparency: reduce) {
+  [data-material="glass"] {
+    --glass-panel-a: 0.94;
+    --glass-chrome-a: 0.96;
+    --glass-overlay-a: 0.98;
+    --glass-chrome-filter: none;
+    --glass-overlay-filter: none;
+  }
+  :is(.chrome-glass, .sidebar-panel) {
+    background-color: rgb(var(--card));
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
 /* Reduced motion respect */
 @media (prefers-reduced-motion: reduce) {
   *,

@@ -317,7 +317,7 @@ export default function JournalPage() {
             <div className="space-y-8">
               {groups.map((group) => (
                 <div key={group.key}>
-                  <div className="sticky top-14 z-10 mb-3 flex items-center gap-3 bg-ink py-1.5 sm:bg-ink/85 sm:backdrop-blur-xl">
+                  <div className="glass-sticky glass-strip sticky top-14 z-10 mb-3 flex items-center gap-3 bg-ink py-1.5 sm:bg-ink/85 sm:backdrop-blur-xl">
                     <h2 className="text-sm font-semibold tracking-snugg text-paper">{group.label}</h2>
                     <div className="h-px flex-1 bg-paper/[0.08]" />
                     <span className="tabular text-xs text-paper/55">

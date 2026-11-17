@@ -14,6 +14,24 @@ export type Theme = "dark" | "light";
  */
 export type ThemeMode = "light" | "dark" | "system";
 
+/**
+ * How surfaces are drawn, on top of either theme. `glass` turns cards, bars,
+ * menus and dialogs translucent; it never changes Light or Dark itself.
+ */
+export type Material = "standard" | "glass";
+
+/** How clock times are shown: "11:30 PM" or "23:30". */
+export type TimeFormat = "12h" | "24h";
+
+/**
+ * The bedtime and wake-up a person is aiming for. A target, never a record:
+ * it is compared against recorded nights and is not stored with them.
+ */
+export interface SleepTarget {
+  bedtime?: string; // "HH:MM"
+  wakeTime?: string; // "HH:MM"
+}
+
 /* ── Attached files ─────────────────────────────────────────── */
 
 export type FileKind = "image" | "pdf" | "text" | "document";
@@ -666,6 +684,10 @@ export interface Profile {
    * them; the form and the dashboard only show what is listed.
    */
   lifeFields?: LifeField[];
+  /** The sleep schedule being aimed for. Absent until one is set. */
+  sleepTarget?: SleepTarget;
+  /** 12- or 24-hour clock. Absent means the device's own convention. */
+  timeFormat?: TimeFormat;
   /** Set when first-run setup is finished. Absent means setup is still due. */
   onboardedAt?: ISODate;
 }

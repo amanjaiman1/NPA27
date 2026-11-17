@@ -1,26 +1,19 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Moon, Sunrise, ArrowRight } from "lucide-react";
+import { Sunrise } from "lucide-react";
 import { BootRing } from "@/components/ui/loading";
 import { useChronicle, useHasHydrated } from "@/lib/store";
 import { useMounted } from "@/lib/hooks";
 import { Logo } from "@/components/layout/logo";
 import { Button } from "@/components/ui/button";
-import { Field, Input } from "@/components/ui/form";
-import {
-  toISODate,
-  sleepDayKey,
-  sleepDuration,
-  formatDate,
-  formatDayShort,
-  formatHours,
-  cn,
-} from "@/lib/utils";
+import { formatClock, nightLabel, promptStartMinutes, sleepPromptKey, timeFormatOf } from "@/lib/sleep";
+import { toISODate } from "@/lib/utils";
+import { SleepEditor, useSleepQuickActions } from "./sleep-editor";
 
 function FullScreen({ children }: { children: React.ReactNode }) {
   return (
-    <div className="relative grid min-h-[100dvh] place-items-center overflow-hidden px-5">
+    <div className="relative grid min-h-[100dvh] place-items-center overflow-y-auto px-4 py-8">
       <div className="pointer-events-none fixed inset-0 -z-10">
         <div className="absolute inset-0 bg-aura" />
       </div>
@@ -31,192 +24,99 @@ function FullScreen({ children }: { children: React.ReactNode }) {
 
 /** Friendly greeting based on the current hour. */
 function greeting(hour: number): string {
-  if (hour < 5) return "Still up?";
+  if (hour < 5) return "Up early";
   if (hour < 12) return "Good morning";
   if (hour < 17) return "Good afternoon";
   return "Good evening";
 }
 
 /**
- * The blocking sleep/wake prompt. Shown until the user records last night's
- * sleep and this morning's wake-up. Submitting fans the values out to both
- * today's journal entry and today's life-dashboard entry.
+ * The morning check-in: last night's bedtime and wake-up, before the day
+ * starts. If you tapped "going to bed now" last night, only the wake-up is
+ * left, and one tap answers it. It can be skipped; the Life Dashboard has
+ * the same card any time.
  */
 function SleepPrompt({ promptKey }: { promptKey: string }) {
-  const logDailySleep = useChronicle((s) => s.logDailySleep);
-  const journal = useChronicle((s) => s.journal);
-  const lifeLog = useChronicle((s) => s.lifeLog);
-
-  const today = toISODate(new Date());
-  const yesterday = toISODate(new Date(Date.now() - 86_400_000));
-
-  // Pre-fill from anything already recorded for today, so re-opening is easy.
-  const existing = useMemo(() => {
-    const j = journal.find((e) => e.date === today);
-    const l = lifeLog.find((e) => e.date === today);
-    return {
-      sleepTime: j?.sleepTime || l?.bedtime || "",
-      wakeTime: j?.wakeTime || l?.wakeTime || "",
-    };
-  }, [journal, lifeLog, today]);
-
-  const [sleepTime, setSleepTime] = useState(existing.sleepTime);
-  const [wakeTime, setWakeTime] = useState(existing.wakeTime);
-  // Which day you fell asleep on. Defaults to last night (the common case),
-  // but you can switch to "today" for an after-midnight bedtime (00:30, 02:00).
-  const [sleepDate, setSleepDate] = useState(yesterday);
-
-  const canSubmit = Boolean(sleepTime && wakeTime);
-  const duration = canSubmit
-    ? sleepDuration(sleepDate, sleepTime, today, wakeTime)
-    : 0;
+  const lastNight = useChronicle((s) => s.lifeLog.find((l) => l.date === toISODate(new Date())));
+  const profile = useChronicle((s) => s.profile);
+  const dismissSleepPrompt = useChronicle((s) => s.dismissSleepPrompt);
+  const quick = useSleepQuickActions();
+  const format = timeFormatOf(profile);
+  const today = quick.today;
   const hour = new Date().getHours();
-
-  function submit() {
-    if (!canSubmit) return;
-    logDailySleep({
-      date: today,
-      promptKey,
-      sleepTime,
-      wakeTime,
-      sleepHours: duration,
-    });
-  }
 
   return (
     <FullScreen>
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          submit();
-        }}
-        className="w-full max-w-md rounded-3xl border border-line bg-card p-7 shadow-lift"
+      <div
+        className="w-full max-w-lg rounded-3xl border border-line bg-card p-5 shadow-lift sm:p-7"
+        data-testid="sleep-prompt"
+        role="region"
+        aria-labelledby="sleep-prompt-title"
       >
         <div className="flex flex-col items-center text-center">
           <Logo className="h-9 w-9" />
-          <h1 className="mt-5 font-display text-2xl font-bold tracking-tightest text-paper">
-            {greeting(hour)}.
+          <h1 id="sleep-prompt-title" className="mt-4 font-display text-2xl font-bold tracking-tightest text-paper">
+            {greeting(hour)}. How did you sleep?
           </h1>
-          <p className="mt-1 text-sm text-paper/55">
-            Before you begin, log your rest. We&apos;ll carry it into your
-            journal and life dashboard for{" "}
-            <span className="text-paper/80">{formatDate(today)}</span>.
-          </p>
+          <p className="mt-1 text-sm text-paper/60">The night of {nightLabel(today)}</p>
         </div>
 
-        <div className="mt-7 space-y-4">
-          <Field label="When did you go to sleep?">
-            {/* Pick which day the bedtime falls on: last night (e.g. 23:00)
-                or today after midnight (e.g. 00:30, 02:00). */}
-            <div className="mb-2 grid grid-cols-2 gap-1.5 rounded-xl border border-line bg-paper/[0.03] p-1">
-              <button
-                type="button"
-                onClick={() => setSleepDate(yesterday)}
-                className={cn(
-                  "rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
-                  sleepDate === yesterday
-                    ? "bg-accent text-accent-fg"
-                    : "text-paper/55 hover:text-paper",
-                )}
-              >
-                Last night · {formatDayShort(yesterday)}
-              </button>
-              <button
-                type="button"
-                onClick={() => setSleepDate(today)}
-                className={cn(
-                  "rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
-                  sleepDate === today
-                    ? "bg-accent text-accent-fg"
-                    : "text-paper/55 hover:text-paper",
-                )}
-              >
-                Today · {formatDayShort(today)}
-              </button>
-            </div>
-            <div className="relative">
-              <Moon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-paper/35" />
-              <Input
-                type="time"
-                value={sleepTime}
-                onChange={(e) => setSleepTime(e.target.value)}
-                className="pl-9"
-                autoFocus
-                required
-              />
-            </div>
-          </Field>
-
-          <Field label={`When did you wake up? · ${formatDayShort(today)}`}>
-            <div className="relative">
-              <Sunrise className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-paper/35" />
-              <Input
-                type="time"
-                value={wakeTime}
-                onChange={(e) => setWakeTime(e.target.value)}
-                className="pl-9"
-                required
-              />
-            </div>
-          </Field>
-
-          <div className="flex h-5 items-center justify-center text-xs text-paper/50">
-            {canSubmit ? (
-              <span>
-                That&apos;s{" "}
-                <span className="tabular text-paper/80">
-                  {formatHours(duration)}
-                </span>{" "}
-                of sleep.
-              </span>
-            ) : (
-              <span>Enter both times to continue.</span>
-            )}
+        {quick.canWakeNow && lastNight?.bedtime && (
+          <div className="mt-6 rounded-2xl border border-accent/25 bg-accent/[0.06] p-4 text-center">
+            <p className="text-sm text-paper/75">
+              You went to bed at <span className="font-semibold text-paper">{formatClock(lastNight.bedtime, format)}</span>.
+            </p>
+            <Button size="lg" className="mt-3 w-full" onClick={() => quick.wakeNow(promptKey)}>
+              <Sunrise className="h-4 w-4" /> I woke up now · {formatClock(quick.nowClock, format)}
+            </Button>
+            <p className="mt-2 text-[0.72rem] text-paper/55">Or set the times below.</p>
           </div>
+        )}
+
+        <div className="mt-6">
+          <SleepEditor date={today} variant="gate" promptKey={promptKey} />
         </div>
 
-        <Button type="submit" disabled={!canSubmit} size="lg" className="mt-2 w-full">
-          Start my day
-          <ArrowRight className="h-4 w-4" />
-        </Button>
-
-        <p className="mt-4 text-center text-[0.7rem] text-paper/35">
-          You won&apos;t be asked again until tomorrow after 7 AM.
-        </p>
-      </form>
+        <div className="mt-4 flex flex-col items-center gap-1 text-center">
+          <button
+            type="button"
+            onClick={() => dismissSleepPrompt(promptKey)}
+            className="rounded-full px-3 py-1.5 text-[0.8rem] font-semibold text-paper/60 hover:text-paper"
+          >
+            Skip for today
+          </button>
+          <p className="text-[0.7rem] text-paper/45">You can record or change it any time on the Life Dashboard.</p>
+        </div>
+      </div>
     </FullScreen>
   );
 }
 
 /**
- * Gates the whole app behind the once-a-day sleep prompt.
+ * Asks about the night once a day, before the app opens.
  *
- * - The prompt is keyed by `sleepDayKey`, which only rolls over at 07:00 local,
- *   so once answered it won't reappear until the next day after 7 AM.
- * - A 60s tick re-evaluates the key so a tab left open across the 7 AM
- *   boundary still prompts without a manual refresh.
+ * - The day moves on at `promptStartMinutes`: two hours before your usual
+ *   wake-up, between 03:00 and 07:00. So an early riser is asked when they
+ *   get up, and someone still awake at 1 AM isn't asked about a night they
+ *   haven't had.
+ * - Answering on any device counts for all of them (`lastSleepPrompt`
+ *   syncs), and so does a night already recorded for today.
+ * - A 60s tick re-checks, so a tab left open across the start still asks.
  */
 export function SleepGate({ children }: { children: React.ReactNode }) {
   const mounted = useMounted();
   const hydrated = useHasHydrated();
   const lastSleepPrompt = useChronicle((s) => s.lastSleepPrompt);
+  const lifeLog = useChronicle((s) => s.lifeLog);
 
-  // Secondary safety net: if today's sleep is already recorded in the synced
-  // data (journal or life log), treat the day as answered even if the local
-  // flag hasn't caught up yet (e.g. just-synced from another device/login).
   const todayISO = toISODate(new Date());
   const loggedToday = useChronicle(
     (s) =>
-      s.journal.some(
-        (j) => j.date === todayISO && Boolean(j.sleepTime) && Boolean(j.wakeTime),
-      ) ||
-      s.lifeLog.some(
-        (l) => l.date === todayISO && Boolean(l.bedtime) && Boolean(l.wakeTime),
-      ),
+      s.journal.some((j) => j.date === todayISO && Boolean(j.sleepTime) && Boolean(j.wakeTime)) ||
+      s.lifeLog.some((l) => l.date === todayISO && Boolean(l.bedtime) && Boolean(l.wakeTime)),
   );
+  const startMinutes = useMemo(() => promptStartMinutes(lifeLog), [lifeLog]);
 
-  // Re-evaluate the effective day periodically (and when the tab regains focus)
-  // so the gate is correct even if the page stays open across 7 AM.
   const [, setTick] = useState(0);
   useEffect(() => {
     const id = setInterval(() => setTick((t) => t + 1), 60_000);
@@ -235,8 +135,6 @@ export function SleepGate({ children }: { children: React.ReactNode }) {
   //
   // This gate wraps the whole app from `app/layout.tsx`, which makes it *the*
   // screen you see on a browser refresh — so it carries the cold-start ring.
-  // Everything downstream only renders once `hydrated` is true, which is why a
-  // page's own `!hydrated` branch is never reached on a cold start.
   if (!mounted || !hydrated) {
     return (
       <FullScreen>
@@ -247,8 +145,10 @@ export function SleepGate({ children }: { children: React.ReactNode }) {
     );
   }
 
-  const promptKey = sleepDayKey(new Date());
-  const answered = lastSleepPrompt === promptKey || loggedToday;
+  const promptKey = sleepPromptKey(new Date(), startMinutes);
+  // Before the day's start it's still the previous day's check-in, which can't
+  // be about tonight; only a day that has started is asked about.
+  const answered = lastSleepPrompt === promptKey || loggedToday || promptKey !== todayISO;
   if (!answered) {
     return <SleepPrompt promptKey={promptKey} />;
   }

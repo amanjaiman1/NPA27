@@ -25,6 +25,7 @@ import { removeStoredPaths } from "@/lib/file-storage";
 import { toDraft, mergeByKey, MOOD_LABELS, ENERGY_LABELS, MOTIVATION_LABELS, FOCUS_LABELS } from "./constants";
 import { round, formatHours, cn, toISODate, formatDate, daysBetween } from "@/lib/utils";
 import { accomplishedStreak } from "@/lib/selectors";
+import { formatClock, timeFormatOf } from "@/lib/sleep";
 
 /** A titled block of the form. Light on chrome: a label, and the controls. */
 function Section({
@@ -116,6 +117,7 @@ export function JournalComposer({
   const lifeLog = useChronicle((s) => s.lifeLog);
   const goals = useChronicle((s) => s.goals);
   const profile = useChronicle((s) => s.profile);
+  const clock = timeFormatOf(profile);
   const saveJournalEntry = useChronicle((s) => s.saveJournalEntry);
   const markAccomplished = useChronicle((s) => s.markAccomplished);
   const confirm = useConfirm();
@@ -361,11 +363,11 @@ export function JournalComposer({
             >
               <span className="inline-flex items-center gap-1">
                 <Sunrise className="h-3.5 w-3.5 text-paper/45" />
-                {recordedSleep.wakeTime ?? "—"}
+                {recordedSleep.wakeTime ? formatClock(recordedSleep.wakeTime, clock) : "—"}
               </span>
               <span className="inline-flex items-center gap-1">
                 <Moon className="h-3.5 w-3.5 text-paper/45" />
-                {recordedSleep.sleepTime ?? "—"}
+                {recordedSleep.sleepTime ? formatClock(recordedSleep.sleepTime, clock) : "—"}
               </span>
               <span className="hidden text-paper/45 sm:inline">from the morning check-in</span>
             </p>

@@ -1,7 +1,7 @@
-import type { JournalEntry, LifeEntry, Profile, Subject, ThemeMode } from "../types";
+import type { JournalEntry, LifeEntry, Material, Profile, Subject, ThemeMode } from "../types";
 import { toISODate } from "../utils";
 import { DEFAULT_WALLPAPER, isWallpaper, wallpaperMeta } from "../wallpaper";
-import { isThemeMode, themeModeFromSurface } from "../theme";
+import { DEFAULT_MATERIAL, isMaterial, isThemeMode, themeModeFromSurface } from "../theme";
 import { upgradeEntryTopics } from "../topics";
 
 /**
@@ -177,6 +177,8 @@ type SnapshotLike = {
   wallpaperDim?: unknown;
   themeMode?: ThemeMode;
   surface?: unknown;
+  material?: Material;
+  reduceTransparency?: boolean;
   journal?: JournalEntry[];
   lifeLog?: LifeEntry[];
   subjects?: Subject[];
@@ -200,6 +202,13 @@ export function normalizeSnapshot<T extends SnapshotLike>(snapshot: T): T {
   if ("surface" in next) {
     next = { ...next };
     delete next.surface;
+  }
+  // A material this version doesn't know (a newer device's) reads as Standard.
+  if (next.material !== undefined && !isMaterial(next.material)) {
+    next = { ...next, material: DEFAULT_MATERIAL };
+  }
+  if (next.reduceTransparency !== undefined && typeof next.reduceTransparency !== "boolean") {
+    next = { ...next, reduceTransparency: false };
   }
   if (Array.isArray(next.journal) && Array.isArray(next.lifeLog)) {
     const up = upgradeRecords(next.journal, next.lifeLog, next.subjects ?? []);

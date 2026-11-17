@@ -30,10 +30,13 @@ export function Modal({
   children,
   footer,
   className,
+  ariaLabel,
 }: {
   open: boolean;
   onClose: () => void;
   title?: string;
+  /** The dialog's accessible name when it draws its own heading instead of `title`. */
+  ariaLabel?: string;
   description?: string;
   children: React.ReactNode;
   footer?: React.ReactNode;
@@ -80,7 +83,7 @@ export function Modal({
           <motion.div
             role="dialog"
             aria-modal="true"
-            aria-label={title}
+            aria-label={ariaLabel ?? title}
             initial={{ opacity: 0, scale: 0.98, y: 16 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.98, y: 8 }}

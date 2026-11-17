@@ -26,6 +26,8 @@ export const ACCOUNT_KEY_PREFIXES = [
   "upsc-chronicle-legacy-claim",
   "upsc-chronicle-file-sweep",
   "upsc-chronicle-theme",
+  "upsc-chronicle-material",
+  "upsc-chronicle-transparency",
   // Written by versions before Light/Dark/Auto; still removed on sign-out.
   "upsc-chronicle-surface",
   "upsc-chronicle-palette",
@@ -157,7 +159,7 @@ export function eraseAccountKeys(id: string): void {
    loads. It reads these per-account keys, picking the account from the
    stored session, so a signed-out screen never shows the last person's look. */
 
-export type AppearanceKey = "theme" | "palette" | "wallpaper" | "wallpaper-dim";
+export type AppearanceKey = "theme" | "material" | "transparency" | "palette" | "wallpaper" | "wallpaper-dim";
 
 export function writeAppearance(key: AppearanceKey, value: string): void {
   const k = scopedKey(`upsc-chronicle-${key}`);

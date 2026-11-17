@@ -39,6 +39,8 @@ import { BarChart } from "@/components/charts/bar-chart";
 import { LineChart } from "@/components/charts/line-chart";
 import { Donut } from "@/components/charts/donut";
 import { formatDate, formatHours, round, cn } from "@/lib/utils";
+import { formatClock, timeFormatOf } from "@/lib/sleep";
+import { useChronicle } from "@/lib/store";
 
 /* ── formatting helpers ──────────────────────────────────────── */
 
@@ -182,6 +184,7 @@ export function JournalAnalysisView({
   subjects: Subject[];
 }) {
   const [granularity, setGranularity] = useState<Granularity>("day");
+  const clock = timeFormatOf(useChronicle((s) => s.profile));
 
   const a: JournalAnalysis = useMemo(
     () => analyseJournal(journal, subjects, granularity),
@@ -415,7 +418,7 @@ export function JournalAnalysisView({
                 <span className="inline-flex items-center gap-1.5 text-paper/55">
                   <Moon className="h-3.5 w-3.5 text-accent" /> Asleep around{" "}
                   <span className="tabular font-semibold text-paper">
-                    {a.rhythm.avgSleep}
+                    {formatClock(a.rhythm.avgSleep, clock)}
                   </span>
                 </span>
               )}
@@ -423,7 +426,7 @@ export function JournalAnalysisView({
                 <span className="inline-flex items-center gap-1.5 text-paper/55">
                   <Sunrise className="h-3.5 w-3.5 text-accent" /> Awake around{" "}
                   <span className="tabular font-semibold text-paper">
-                    {a.rhythm.avgWake}
+                    {formatClock(a.rhythm.avgWake, clock)}
                   </span>
                 </span>
               )}

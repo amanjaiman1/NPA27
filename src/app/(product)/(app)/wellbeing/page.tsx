@@ -30,6 +30,7 @@ import { Progress } from "@/components/ui/progress";
 import { Sparkline } from "@/components/charts/sparkline";
 import { LifeForm, TrackedFieldsDialog } from "@/components/life/life-form";
 import { LifeReportPanel } from "@/components/life/life-report";
+import { SleepCard } from "@/components/sleep/sleep-card";
 import { LIFE_TARGETS, todayEntry, trackedFields, type DateSpan } from "@/lib/life";
 import { computeGoalProgress, goalCategory, type GoalData } from "@/lib/goals";
 import { METRIC_IDS, METRICS, formatMetric, formatMinutesAsClock, type MetricId } from "@/lib/metrics";
@@ -57,21 +58,6 @@ interface Tile {
 
 function tilesFor(e: LifeEntry | undefined): Tile[] {
   return [
-    {
-      field: "sleep",
-      icon: Moon,
-      label: "Sleep",
-      value: e?.sleepHours && e.sleepHours > 0 ? e.sleepHours : undefined,
-      unit: "h",
-      target: LIFE_TARGETS.sleepHours,
-      detail: [
-        e?.bedtime && e?.wakeTime ? `${e.bedtime}–${e.wakeTime}` : null,
-        e?.sleepQuality != null ? `quality ${e.sleepQuality}/5` : null,
-      ]
-        .filter(Boolean)
-        .join(" · "),
-      href: "/wellbeing/sleep",
-    },
     {
       field: "exercise",
       icon: Activity,
@@ -269,6 +255,7 @@ export default function LifeDashboardPage() {
 
   if (!hydrated) return <Loading />;
 
+  // Sleep has its own card above; the rest are today's tiles.
   const tiles = tilesFor(te).filter((t) => trackedSet.has(t.field));
   const todayFiles = te?.fileIds?.length ?? 0;
 
@@ -289,6 +276,8 @@ export default function LifeDashboardPage() {
           </div>
         }
       />
+
+      {trackedSet.has("sleep") && <SleepCard />}
 
       {/* Today */}
       <section className="space-y-3">

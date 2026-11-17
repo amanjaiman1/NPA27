@@ -8,13 +8,17 @@ import { normalizeProfile, normalizeSnapshot, normalizeWallpaper } from "./accou
 import { toISODate, fromISODate, uid } from "./utils";
 import { applyRevision, newRevisionItem, resolveTopicId } from "./revision";
 import {
+  type Material,
   type Palette,
   type ThemeMode,
+  DEFAULT_MATERIAL,
   DEFAULT_PALETTE,
   DEFAULT_THEME_MODE,
+  applyMaterial,
   applyThemeMode,
   themeModeFromSurface,
 } from "./theme";
+import { hoursFromTimes, isClock, MAX_SLEEP_HOURS } from "./sleep";
 import { pruneFiles } from "./files";
 import { completedTopicsOf, normName } from "./topics";
 import {
@@ -74,6 +78,10 @@ export type FileLinkTarget = { kind: "goal"; id: string } | { kind: "life"; date
 interface ChronicleState extends ChronicleData {
   /** Light, Dark or Auto. Synced, so the choice follows the account. */
   themeMode: ThemeMode;
+  /** Standard or Liquid Glass, on top of whichever theme is showing. Synced. */
+  material: Material;
+  /** Nearly solid surfaces and no blur, in either material. Synced. */
+  reduceTransparency: boolean;
   palette: Palette;
   /** The layer behind the app. */
   wallpaper: WallpaperId;
@@ -97,6 +105,8 @@ interface ChronicleState extends ChronicleData {
   /* meta */
   setHasHydrated: (v: boolean) => void;
   setThemeMode: (m: ThemeMode) => void;
+  setMaterial: (m: Material) => void;
+  setReduceTransparency: (v: boolean) => void;
   setPalette: (p: Palette) => void;
   /** Switching wallpaper resets the dim to that wallpaper's sensible default. */
   setWallpaper: (w: WallpaperId) => void;
@@ -299,6 +309,28 @@ interface ChronicleState extends ChronicleData {
     wakeTime: string;
     sleepHours: number;
   }) => void;
+
+  /**
+   * Records or edits one night, on the Life Dashboard day you woke up on.
+   * Only the fields given change; every other reading on that day is kept.
+   * For each field, `undefined` leaves it alone and `null` clears it. Hours
+   * come from the two times unless `hours` is given (time asleep entered by
+   * hand). The journal entry for the same day, if there is one, shows the
+   * same bedtime and wake-up.
+   */
+  recordSleep: (input: {
+    date: ISODate;
+    bedtime?: string | null;
+    wakeTime?: string | null;
+    hours?: number | null;
+    quality?: number | null;
+    /** Also mark the morning check-in as answered for this key. */
+    promptKey?: string;
+  }) => void;
+  /** Removes one night's sleep; the day's other readings stay. */
+  clearSleep: (date: ISODate) => void;
+  /** "Skip for today" on the morning check-in. Synced, so other devices don't ask either. */
+  dismissSleepPrompt: (key: string) => void;
 }
 
 /**
@@ -329,6 +361,8 @@ export const SNAPSHOT_KEYS = [
   // Descriptions of attached files; the bytes are in Storage, never here.
   "files",
   "themeMode",
+  "material",
+  "reduceTransparency",
   "palette",
   // The wallpaper choice follows the user across devices.
   "wallpaper",
@@ -418,6 +452,8 @@ export const useChronicle = create<ChronicleState>()(
     (set, get) => ({
       ...createBlankAccount(),
       themeMode: DEFAULT_THEME_MODE,
+      material: DEFAULT_MATERIAL,
+      reduceTransparency: false,
       palette: DEFAULT_PALETTE,
       wallpaper: DEFAULT_WALLPAPER,
       wallpaperDim: wallpaperMeta(DEFAULT_WALLPAPER).dim,
@@ -436,6 +472,16 @@ export const useChronicle = create<ChronicleState>()(
         applyThemeMode(m);
         writeAppearance("theme", m);
         set({ themeMode: m });
+      },
+      setMaterial: (m) => {
+        applyMaterial(m, get().reduceTransparency, { animate: true });
+        writeAppearance("material", m);
+        set({ material: m });
+      },
+      setReduceTransparency: (v) => {
+        applyMaterial(get().material, v, { animate: true });
+        writeAppearance("transparency", v ? "reduced" : "auto");
+        set({ reduceTransparency: v });
       },
       setPalette: (p) => {
         if (typeof document !== "undefined")
@@ -469,8 +515,14 @@ export const useChronicle = create<ChronicleState>()(
             if (normalized[k] !== undefined) next[k] = normalized[k];
           }
           // The normalised values, so a retired wallpaper never reaches the page.
-          const { themeMode, palette, wallpaper, wallpaperDim } = normalized;
+          const { themeMode, palette, wallpaper, wallpaperDim, material, reduceTransparency } = normalized;
           if (themeMode) writeAppearance("theme", themeMode);
+          if (material) writeAppearance("material", material);
+          if (reduceTransparency !== undefined)
+            writeAppearance("transparency", reduceTransparency ? "reduced" : "auto");
+          if (material || reduceTransparency !== undefined) {
+            applyMaterial(material ?? get().material, reduceTransparency ?? get().reduceTransparency);
+          }
           if (palette) writeAppearance("palette", palette);
           if (wallpaper) writeAppearance("wallpaper", wallpaper);
           if (wallpaperDim !== undefined)
@@ -1356,25 +1408,69 @@ export const useChronicle = create<ChronicleState>()(
         set((s) => ({ lifeLog: s.lifeLog.filter((l) => l.date !== date) })),
 
       logDailySleep: ({ date, promptKey, sleepTime, wakeTime, sleepHours }) =>
+        get().recordSleep({ date, promptKey, bedtime: sleepTime, wakeTime, hours: sleepHours }),
+
+      recordSleep: ({ date, bedtime, wakeTime, hours, quality, promptKey }) =>
         set((s) => {
-          // ── Daily journal: only an entry that already exists is updated ──
-          const journal = s.journal.some((j) => j.date === date)
-            ? s.journal.map((j) => (j.date === date ? { ...j, wakeTime, sleepTime } : j))
-            : s.journal;
+          const existing = s.lifeLog.find((l) => l.date === date);
+          const next: LifeEntry = { ...(existing ?? { id: `life-${date}`, date }), id: `life-${date}`, date };
+          const timesChanged = bedtime !== undefined || wakeTime !== undefined;
 
-          // ── Life dashboard: the night's own record ──
-          const lIdx = s.lifeLog.findIndex((l) => l.date === date);
-          const lifeLog = [...s.lifeLog];
-          if (lIdx >= 0) {
-            lifeLog[lIdx] = { ...lifeLog[lIdx], bedtime: sleepTime, wakeTime, sleepHours };
-          } else {
-            // Only what was actually answered; everything else stays unrecorded.
-            lifeLog.push({ id: `life-${date}`, date, sleepHours, bedtime: sleepTime, wakeTime });
+          // A value that isn't a clock time is ignored rather than stored.
+          if (bedtime === null) delete next.bedtime;
+          else if (isClock(bedtime)) next.bedtime = bedtime;
+          if (wakeTime === null) delete next.wakeTime;
+          else if (isClock(wakeTime)) next.wakeTime = wakeTime;
+
+          if (hours === null) delete next.sleepHours;
+          else if (typeof hours === "number" && Number.isFinite(hours) && hours > 0 && hours <= MAX_SLEEP_HOURS) {
+            next.sleepHours = Math.round(hours * 100) / 100;
+          } else if (timesChanged) {
+            // From the times when both are known. Hours worked out from times
+            // that are now incomplete go with them; hours that were entered
+            // without times (older records) stay.
+            const derived = hoursFromTimes(date, next.bedtime, next.wakeTime);
+            const hadBoth = isClock(existing?.bedtime) && isClock(existing?.wakeTime);
+            if (derived !== undefined) next.sleepHours = derived;
+            else if (hadBoth) delete next.sleepHours;
           }
-          lifeLog.sort((a, b) => a.date.localeCompare(b.date));
 
-          return { journal, lifeLog, lastSleepPrompt: promptKey };
+          if (quality === null) delete next.sleepQuality;
+          else if (typeof quality === "number" && Number.isInteger(quality) && quality >= 1 && quality <= 5) {
+            next.sleepQuality = quality;
+          }
+
+          const empty = Object.keys(next).every((k) => k === "id" || k === "date");
+          const lifeLog = (empty
+            ? s.lifeLog.filter((l) => l.date !== date)
+            : [...s.lifeLog.filter((l) => l.date !== date), next]
+          ).sort((a, b) => a.date.localeCompare(b.date));
+
+          // The journal day shows the same night; keep the times that changed in
+          // step, and never create a journal entry just for them.
+          const journal =
+            timesChanged && s.journal.some((j) => j.date === date)
+              ? s.journal.map((j) => {
+                  if (j.date !== date) return j;
+                  const out: JournalEntry = { ...j };
+                  if (bedtime !== undefined) {
+                    if (next.bedtime) out.sleepTime = next.bedtime;
+                    else delete out.sleepTime;
+                  }
+                  if (wakeTime !== undefined) {
+                    if (next.wakeTime) out.wakeTime = next.wakeTime;
+                    else delete out.wakeTime;
+                  }
+                  return out;
+                })
+              : s.journal;
+
+          return { lifeLog, journal, ...(promptKey ? { lastSleepPrompt: promptKey } : {}) };
         }),
+
+      clearSleep: (date) => get().recordSleep({ date, bedtime: null, wakeTime: null, hours: null, quality: null }),
+
+      dismissSleepPrompt: (key) => set({ lastSleepPrompt: key }),
 
       /* ── notifications ─────────────────────────────────────── */
 
@@ -1467,7 +1563,7 @@ export const useChronicle = create<ChronicleState>()(
     }),
     {
       name: STORE_KEY,
-      version: 12,
+      version: 13,
       /**
        * Scoped to the signed-in account: `upsc-chronicle-store:<user id>`.
        * Nothing is read or written until an account is activated, which is why
@@ -1525,6 +1621,12 @@ export const useChronicle = create<ChronicleState>()(
           delete state.surface;
         }
 
+        // v12 -> v13: Liquid Glass and reduced transparency arrived, both off.
+        if (version < 13) {
+          if (state.material === undefined) state.material = DEFAULT_MATERIAL;
+          if (state.reduceTransparency === undefined) state.reduceTransparency = false;
+        }
+
         return state as ChronicleState;
       },
       partialize: (s) => {
@@ -1563,7 +1665,12 @@ export const useChronicle = create<ChronicleState>()(
           const wallpaper = state.wallpaper ?? DEFAULT_WALLPAPER;
           const dim = String(state.wallpaperDim ?? 0);
           const mode = state.themeMode ?? DEFAULT_THEME_MODE;
+          const material = state.material ?? DEFAULT_MATERIAL;
+          const reduced = state.reduceTransparency === true;
           applyThemeMode(mode);
+          applyMaterial(material, reduced);
+          writeAppearance("material", material);
+          writeAppearance("transparency", reduced ? "reduced" : "auto");
           document.documentElement.setAttribute("data-palette", state.palette);
           document.documentElement.setAttribute("data-wallpaper", wallpaper);
           document.documentElement.style.setProperty("--wp-dim", dim);
@@ -1599,6 +1706,8 @@ export function blankChronicleState(): Partial<ChronicleState> {
   return {
     ...createBlankAccount(),
     themeMode: DEFAULT_THEME_MODE,
+    material: DEFAULT_MATERIAL,
+    reduceTransparency: false,
     fileTrash: [],
     palette: DEFAULT_PALETTE,
     wallpaper: DEFAULT_WALLPAPER,

@@ -6,6 +6,7 @@ import {
   AlarmClock,
   BookMarked,
   ChevronDown,
+  ChevronRight,
   CircleDashed,
   History,
   ListChecks,
@@ -265,7 +266,7 @@ export function TopicsExplorer({ onNewEntry }: { onNewEntry: () => void }) {
       </div>
 
       {selected.size > 0 && (
-        <Card className="sticky top-20 z-10 flex flex-wrap items-center gap-2 border-accent/30 p-3">
+        <Card className="glass-sticky sticky top-20 z-10 flex flex-wrap items-center gap-2 border-accent/30 p-3">
           <span className="text-sm font-semibold text-paper">{selected.size} selected</span>
           <div className="ml-auto flex flex-wrap items-center gap-1.5">
             <Button size="sm" variant="outline" disabled={!canQueue.length} onClick={queueSelected}>
@@ -451,13 +452,13 @@ function TopicRow({
             </div>
             <div className="flex flex-wrap gap-3 text-xs font-semibold">
               {r.subjectId && (
-                <Link href={`/subjects?subject=${encodeURIComponent(r.subjectId)}`} className="text-accent hover:underline">
-                  Open {subject ?? "subject"} →
+                <Link href={`/subjects?subject=${encodeURIComponent(r.subjectId)}`} className="inline-flex items-center gap-0.5 text-accent hover:underline">
+                  Open {subject ?? "subject"} <ChevronRight className="h-3.5 w-3.5" />
                 </Link>
               )}
               {r.revisionState !== "none" && (
-                <Link href="/revision" className="text-accent hover:underline">
-                  Revision queue →
+                <Link href="/revision" className="inline-flex items-center gap-0.5 text-accent hover:underline">
+                  Revision queue <ChevronRight className="h-3.5 w-3.5" />
                 </Link>
               )}
             </div>
