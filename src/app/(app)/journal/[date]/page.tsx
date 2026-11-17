@@ -33,7 +33,6 @@ import { Progress } from "@/components/ui/progress";
 import { EmptyState } from "@/components/ui/misc";
 import { JournalComposer } from "@/components/journal/composer";
 import { useConfirm } from "@/components/ui/confirm-dialog";
-import { AttachmentGallery } from "@/components/journal/attachments";
 import {
   emptyEntry,
   toDraft,
@@ -486,13 +485,6 @@ export default function JournalDayPage() {
               ) : null}
             </Card>
           )}
-
-          {/* Attachments */}
-          {entry.attachments?.length ? (
-            <SectionCard icon={BookOpen} title="Photos & attachments" count={entry.attachments.length}>
-              <AttachmentGallery attachments={entry.attachments} />
-            </SectionCard>
-          ) : null}
         </motion.div>
       )}
 

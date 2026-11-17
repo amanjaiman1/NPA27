@@ -10,7 +10,6 @@ import {
   NotebookPen,
   Search,
   SlidersHorizontal,
-  ImageIcon,
   Target,
   Trophy,
   ChevronRight,
@@ -57,7 +56,7 @@ export default function JournalPage() {
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [sort, setSort] = useState<Sort>("newest");
-  const [toggles, setToggles] = useState({ mock: false, photos: false, wins: false });
+  const [toggles, setToggles] = useState({ mock: false, wins: false });
   const [showFilters, setShowFilters] = useState(false);
 
   // Open the composer when navigated with ?new=1 — but only once the store has
@@ -83,7 +82,6 @@ export default function JournalPage() {
       if (from && e.date < from) return false;
       if (to && e.date > to) return false;
       if (toggles.mock && !e.mocksAttempted?.length) return false;
-      if (toggles.photos && !e.attachments?.length) return false;
       if (toggles.wins && !e.wins?.length) return false;
       if (!q) return true;
       const haystack = [
@@ -157,7 +155,7 @@ export default function JournalPage() {
     setSubject("all");
     setFrom("");
     setTo("");
-    setToggles({ mock: false, photos: false, wins: false });
+    setToggles({ mock: false, wins: false });
   }
 
   if (!hydrated) return <Loading />;
@@ -263,9 +261,6 @@ export default function JournalPage() {
             <div className="flex flex-wrap items-center gap-2">
               <Chip active={toggles.mock} onClick={() => setToggles((t) => ({ ...t, mock: !t.mock }))}>
                 Has mock
-              </Chip>
-              <Chip active={toggles.photos} onClick={() => setToggles((t) => ({ ...t, photos: !t.photos }))}>
-                Has photos
               </Chip>
               <Chip active={toggles.wins} onClick={() => setToggles((t) => ({ ...t, wins: !t.wins }))}>
                 Wins logged
@@ -377,11 +372,6 @@ export default function JournalPage() {
                             {e.mocksAttempted?.length ? (
                               <span className="inline-flex items-center gap-1">
                                 <Target className="h-3 w-3" /> mock
-                              </span>
-                            ) : null}
-                            {e.attachments?.length ? (
-                              <span className="inline-flex items-center gap-1">
-                                <ImageIcon className="h-3 w-3" /> {e.attachments.length}
                               </span>
                             ) : null}
                           </div>

@@ -12,8 +12,8 @@
  * Bump CACHE_VERSION to retire every previous cache on the next activation.
  */
 
-// v5 — the two loading animations joined the precached shell.
-const CACHE_VERSION = "v5";
+// v6 — accounts: the auth screens arrived and the dashboard film was retired.
+const CACHE_VERSION = "v6";
 const SHELL_CACHE = `chronicle-shell-${CACHE_VERSION}`;
 const PAGE_CACHE = `chronicle-pages-${CACHE_VERSION}`;
 const ASSET_CACHE = `chronicle-assets-${CACHE_VERSION}`;
@@ -26,12 +26,6 @@ const OFFLINE_URL = "/offline.html";
 const SHELL_ASSETS = [
   OFFLINE_URL,
   "/manifest.webmanifest",
-  // The command centre's poster frames (30 KB phone, 61 KB desktop), so the
-  // panel still looks like itself offline. The clips are never precached —
-  // they're megabytes, and they stream over range requests, which this worker
-  // deliberately leaves alone.
-  "/media/hero-poster.jpg",
-  "/media/hero-poster-sm.jpg",
   // The loading animations, 15 KB together. These specifically must not be
   // fetched over the network on a cold start: the boot ring exists to cover a
   // slow connection, so waiting for the network to deliver it would defeat it.
