@@ -8,7 +8,7 @@
                  (writes still off, so the blank never reaches disk) → turn
                  writes on → read the account's saved state.
      deactivate: turn writes off and detach storage first → only then blank
-                 the store, reset the look, forget the custom photo.
+                 the store and reset the look.
 
    So at no point can one account's state be written under another's key,
    and nothing of the previous account is left in memory.
@@ -17,9 +17,8 @@
 import { useChronicle, blankChronicleState } from "../store";
 import type { MergeConflict } from "../sync/merge";
 import { clearBaseStore } from "../sync/base-store";
-import { adoptLegacyWallpaper, clearCustomWallpaper } from "../wallpaper-store";
 import { DEFAULT_PALETTE, DEFAULT_SURFACE } from "../theme";
-import { DEFAULT_WALLPAPER } from "../wallpaper";
+import { DEFAULT_WALLPAPER, deleteWallpaperPhotos } from "../wallpaper";
 import {
   STORE_KEY,
   enableWrites,
@@ -53,7 +52,7 @@ export async function activateAccount(accountId: string, mode: AccountMode): Pro
   deactivateAccount();
 
   const legacy = claimLegacyData(accountId, mode);
-  if (legacy || mode === "local") void adoptLegacyWallpaper(accountId);
+  deleteWallpaperPhotos();
   const pristine =
     mode === "cloud" ? readKey(readyKey(accountId)) !== "1" && !legacy : false;
 
@@ -101,7 +100,7 @@ export function storeKeyFor(accountId: string): string {
 export async function eraseAccountFromDevice(accountId: string): Promise<void> {
   eraseAccountKeys(accountId);
   eraseLegacyMarker(accountId);
-  await Promise.all([clearBaseStore(accountId), clearCustomWallpaper(accountId)]);
+  await clearBaseStore(accountId);
 }
 
 /* ── the record of edits that clashed between devices ──────────── */

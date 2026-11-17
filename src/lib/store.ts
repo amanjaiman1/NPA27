@@ -4,7 +4,7 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { createBlankAccount, createAccountTemplate, type AccountSetup } from "./seed";
 import { accountStorage, STORE_KEY, writeAppearance } from "./account/scope";
-import { normalizeProfile, normalizeSnapshot } from "./account/normalize";
+import { normalizeProfile, normalizeSnapshot, normalizeWallpaper } from "./account/normalize";
 import { toISODate, fromISODate, uid } from "./utils";
 import { applyRevision, resolveTopicId } from "./revision";
 import { emptyEntry } from "@/components/journal/constants";
@@ -54,7 +54,7 @@ import type {
 interface ChronicleState extends ChronicleData {
   surface: Surface;
   palette: Palette;
-  /** The layer behind the app. A custom image's bytes stay in IndexedDB. */
+  /** The layer behind the app. */
   wallpaper: WallpaperId;
   /** How much canvas colour covers the wallpaper, 0–0.9. */
   wallpaperDim: number;
@@ -254,8 +254,7 @@ export const SNAPSHOT_KEYS = [
   "accomplished",
   "surface",
   "palette",
-  // The wallpaper *choice* follows the user across devices; a custom photo's
-  // bytes never do — they stay in IndexedDB on the device that picked it.
+  // The wallpaper choice follows the user across devices.
   "wallpaper",
   "wallpaperDim",
   // Remembering that today's sleep prompt was answered must follow the user
@@ -378,24 +377,20 @@ export const useChronicle = create<ChronicleState>()(
           for (const k of SNAPSHOT_KEYS) {
             if (normalized[k] !== undefined) next[k] = normalized[k];
           }
-          if (snap.surface) writeAppearance("surface", snap.surface);
-          if (snap.palette) writeAppearance("palette", snap.palette);
-          if (snap.wallpaper) writeAppearance("wallpaper", snap.wallpaper);
-          if (snap.wallpaperDim !== undefined)
-            writeAppearance("wallpaper-dim", String(snap.wallpaperDim));
+          // The normalised values, so a retired wallpaper never reaches the page.
+          const { surface, palette, wallpaper, wallpaperDim } = normalized;
+          if (surface) writeAppearance("surface", surface);
+          if (palette) writeAppearance("palette", palette);
+          if (wallpaper) writeAppearance("wallpaper", wallpaper);
+          if (wallpaperDim !== undefined)
+            writeAppearance("wallpaper-dim", String(wallpaperDim));
           // Re-apply appearance attributes so a pulled theme takes effect.
           if (typeof document !== "undefined") {
-            if (snap.surface)
-              document.documentElement.setAttribute("data-surface", snap.surface);
-            if (snap.palette)
-              document.documentElement.setAttribute("data-palette", snap.palette);
-            if (snap.wallpaper)
-              document.documentElement.setAttribute("data-wallpaper", snap.wallpaper);
-            if (snap.wallpaperDim !== undefined)
-              document.documentElement.style.setProperty(
-                "--wp-dim",
-                String(snap.wallpaperDim),
-              );
+            if (surface) document.documentElement.setAttribute("data-surface", surface);
+            if (palette) document.documentElement.setAttribute("data-palette", palette);
+            if (wallpaper) document.documentElement.setAttribute("data-wallpaper", wallpaper);
+            if (wallpaperDim !== undefined)
+              document.documentElement.style.setProperty("--wp-dim", String(wallpaperDim));
           }
           return next as Partial<ChronicleState>;
         }),
@@ -1066,7 +1061,7 @@ export const useChronicle = create<ChronicleState>()(
     }),
     {
       name: STORE_KEY,
-      version: 10,
+      version: 11,
       /**
        * Scoped to the signed-in account: `upsc-chronicle-store:<user id>`.
        * Nothing is read or written until an account is activated, which is why
@@ -1105,6 +1100,10 @@ export const useChronicle = create<ChronicleState>()(
         // v9 -> v10: accounts. A profile that already has a name was set up
         // before first-run setup existed, so it is marked as set up.
         if (version < 10 && state.profile) state.profile = normalizeProfile(state.profile);
+
+        // v10 -> v11: the "Your photo" wallpaper was removed to save storage.
+        // Anyone who had it chosen goes back to plain.
+        if (version < 11) Object.assign(state, normalizeWallpaper(state));
 
         return state as ChronicleState;
       },

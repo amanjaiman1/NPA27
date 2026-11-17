@@ -6,17 +6,12 @@
        the palette changes
      • colour  — fixed hues, for when a specific mood is wanted
                  regardless of the accent
-     • photo   — the still from the command-centre film, or the user's
-                 own image
+     • photo   — a still of the Academy, shipped with the app
 
-   Everything except the photos is pure CSS: no bytes to download, no
+   Everything except the photo is pure CSS: no bytes to download, no
    animation, one composited layer. The gradients live in globals.css
    under `[data-wallpaper="…"]`; this module carries the catalogue, the
    preview swatches and the sensible starting dim for each.
-
-   A custom image never enters the synced snapshot — the blob lives in
-   IndexedDB on the device (see `lib/wallpaper-store.ts`) and only the
-   id travels.
    ════════════════════════════════════════════════════════════════ */
 
 export type WallpaperId =
@@ -38,8 +33,7 @@ export type WallpaperId =
   | "sunfire"
   | "slate"
   // images
-  | "academy"
-  | "custom";
+  | "academy";
 
 export const DEFAULT_WALLPAPER: WallpaperId = "none";
 
@@ -229,16 +223,6 @@ export const WALLPAPERS: WallpaperMeta[] = [
     dim: 0.85,
     kind: "image",
   },
-  {
-    id: "custom",
-    label: "Your photo",
-    hint: "Stays on this device",
-    group: "photo",
-    swatch:
-      "linear-gradient(150deg, rgb(var(--aura-1)/0.5), rgb(var(--aura-2)/0.4)), rgb(var(--card))",
-    dim: 0.8,
-    kind: "image",
-  },
 ];
 
 export function isWallpaper(v: unknown): v is WallpaperId {
@@ -247,4 +231,21 @@ export function isWallpaper(v: unknown): v is WallpaperId {
 
 export function wallpaperMeta(id: WallpaperId): WallpaperMeta {
   return WALLPAPERS.find((w) => w.id === id) ?? WALLPAPERS[0];
+}
+
+/* ── the retired "Your photo" wallpaper ──────────────────────── */
+
+/**
+ * Older versions also let you use your own photo (`custom`), kept in this
+ * browser's IndexedDB. It was removed to save storage. A saved choice of it
+ * reads as plain (`normalizeWallpaper` in `account/normalize.ts`), and this
+ * deletes the stored photos, every account's at once. It runs whenever an
+ * account loads; with nothing stored it does nothing.
+ */
+export function deleteWallpaperPhotos(): void {
+  try {
+    if (typeof indexedDB !== "undefined") indexedDB.deleteDatabase("upsc-chronicle-media");
+  } catch {
+    // Storage is blocked in this browser, so no photo could have been saved.
+  }
 }

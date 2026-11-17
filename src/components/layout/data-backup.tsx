@@ -12,7 +12,7 @@ import { useConfirm } from "@/components/ui/confirm-dialog";
 import { useAccount } from "@/components/account/account-session";
 
 /** Bumped alongside the store's persisted `version`. Stamped into backups. */
-const BACKUP_SCHEMA_VERSION = 10;
+const BACKUP_SCHEMA_VERSION = 11;
 const BACKUP_APP_ID = "the-upsc-chronicle";
 
 type Note = { kind: "ok" | "err"; text: string } | null;
