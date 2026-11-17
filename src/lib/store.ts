@@ -2,7 +2,9 @@
 
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
-import { createSeedData, createFreshData } from "./seed";
+import { createBlankAccount, createAccountTemplate, type AccountSetup } from "./seed";
+import { accountStorage, STORE_KEY, writeAppearance } from "./account/scope";
+import { normalizeProfile, normalizeSnapshot } from "./account/normalize";
 import { toISODate, fromISODate, uid } from "./utils";
 import { applyRevision, resolveTopicId } from "./revision";
 import { emptyEntry } from "@/components/journal/constants";
@@ -34,7 +36,6 @@ import type {
   MockTest,
   Mistake,
   MistakeStatus,
-  MistakeCategory,
   Goal,
   Milestone,
   Reflection,
@@ -61,7 +62,7 @@ interface ChronicleState extends ChronicleData {
 
   /**
    * The `sleepDayKey` for which the daily sleep/wake prompt has already been
-   * answered. Local-only (not cloud-synced): it's a per-device daily nudge.
+   * answered. Synced with the account, so answering on one device counts for all.
    */
   lastSleepPrompt?: string;
 
@@ -72,10 +73,22 @@ interface ChronicleState extends ChronicleData {
   /** Switching wallpaper resets the dim to that wallpaper's sensible default. */
   setWallpaper: (w: WallpaperId) => void;
   setWallpaperDim: (d: number) => void;
+  /** Back to an empty account that hasn't been set up. */
   resetData: () => void;
   /** Replace all synced data with a snapshot pulled from the cloud. */
   applyCloudSnapshot: (snap: Partial<CloudSnapshot>) => void;
   updateProfile: (patch: Partial<ChronicleData["profile"]>) => void;
+  /**
+   * Finishes first-run setup: the syllabus, books, habits and selection stages
+   * are built for the answers given, and the profile is marked as set up.
+   * Anything already logged is left alone.
+   */
+  completeOnboarding: (setup: AccountSetup) => void;
+  /**
+   * Strips photos and files from journal entries saved before attachments were
+   * removed. Returns how many were removed.
+   */
+  removeLegacyAttachments: () => number;
 
   /* journal */
   upsertJournal: (entry: JournalEntry) => void;
@@ -313,7 +326,7 @@ function creditTopics(subjects: Subject[], topicIds: string[]): Subject[] {
 export const useChronicle = create<ChronicleState>()(
   persist(
     (set, get) => ({
-      ...createFreshData(),
+      ...createBlankAccount(),
       surface: DEFAULT_SURFACE,
       palette: DEFAULT_PALETTE,
       wallpaper: DEFAULT_WALLPAPER,
@@ -325,18 +338,19 @@ export const useChronicle = create<ChronicleState>()(
       notifyLog: EMPTY_DELIVERY_LOG,
 
       setHasHydrated: (v) => set({ _hasHydrated: v }),
+      // Appearance is per account. Each setter also records the choice under the
+      // account's own pre-paint key (see `writeAppearance`), so the next cold
+      // start paints this person's look and nobody else's.
       setSurface: (s) => {
         if (typeof document !== "undefined")
           document.documentElement.setAttribute("data-surface", s);
-        if (typeof localStorage !== "undefined")
-          localStorage.setItem("upsc-chronicle-surface", s);
+        writeAppearance("surface", s);
         set({ surface: s });
       },
       setPalette: (p) => {
         if (typeof document !== "undefined")
           document.documentElement.setAttribute("data-palette", p);
-        if (typeof localStorage !== "undefined")
-          localStorage.setItem("upsc-chronicle-palette", p);
+        writeAppearance("palette", p);
         set({ palette: p });
       },
       setWallpaper: (w) => {
@@ -345,27 +359,30 @@ export const useChronicle = create<ChronicleState>()(
           document.documentElement.setAttribute("data-wallpaper", w);
           document.documentElement.style.setProperty("--wp-dim", String(dim));
         }
-        if (typeof localStorage !== "undefined") {
-          localStorage.setItem("upsc-chronicle-wallpaper", w);
-          localStorage.setItem("upsc-chronicle-wallpaper-dim", String(dim));
-        }
+        writeAppearance("wallpaper", w);
+        writeAppearance("wallpaper-dim", String(dim));
         set({ wallpaper: w, wallpaperDim: dim });
       },
       setWallpaperDim: (d) => {
         const dim = Math.max(0, Math.min(0.9, d));
         if (typeof document !== "undefined")
           document.documentElement.style.setProperty("--wp-dim", String(dim));
-        if (typeof localStorage !== "undefined")
-          localStorage.setItem("upsc-chronicle-wallpaper-dim", String(dim));
+        writeAppearance("wallpaper-dim", String(dim));
         set({ wallpaperDim: dim });
       },
-      resetData: () => set({ ...createFreshData() }),
+      resetData: () => set({ ...createBlankAccount() }),
       applyCloudSnapshot: (snap) =>
         set(() => {
+          const normalized = normalizeSnapshot(snap);
           const next: Record<string, unknown> = {};
           for (const k of SNAPSHOT_KEYS) {
-            if (snap[k] !== undefined) next[k] = snap[k];
+            if (normalized[k] !== undefined) next[k] = normalized[k];
           }
+          if (snap.surface) writeAppearance("surface", snap.surface);
+          if (snap.palette) writeAppearance("palette", snap.palette);
+          if (snap.wallpaper) writeAppearance("wallpaper", snap.wallpaper);
+          if (snap.wallpaperDim !== undefined)
+            writeAppearance("wallpaper-dim", String(snap.wallpaperDim));
           // Re-apply appearance attributes so a pulled theme takes effect.
           if (typeof document !== "undefined") {
             if (snap.surface)
@@ -384,6 +401,47 @@ export const useChronicle = create<ChronicleState>()(
         }),
       updateProfile: (patch) =>
         set((s) => ({ profile: { ...s.profile, ...patch } })),
+
+      completeOnboarding: (setup) =>
+        set((s) => {
+          const template = createAccountTemplate(setup);
+          /**
+           * Keep anything the account already has — a syllabus edited on another
+           * device before setup finished, say — and only fill in what is still
+           * the untouched template. Personal records are never replaced.
+           */
+          const untouched = (list: unknown[]) => list.length === 0;
+          const subjectsUntouched = s.subjects.every((sub) =>
+            sub.topics.every((t) => t.status === "untouched" && t.revisionCount === 0),
+          );
+          return {
+            profile: { ...s.profile, ...template.profile },
+            subjects: subjectsUntouched ? template.subjects : s.subjects,
+            topicLinks: subjectsUntouched ? template.topicLinks : s.topicLinks,
+            books: s.books.every((b) => b.currentPage === 0) ? template.books : s.books,
+            habits: s.habits.every((h) => Object.keys(h.log).length === 0)
+              ? template.habits
+              : s.habits,
+            selection: s.selection.every((st) => st.status === "Locked")
+              ? template.selection
+              : s.selection,
+            goals: untouched(s.goals) ? template.goals : s.goals,
+          };
+        }),
+
+      removeLegacyAttachments: () => {
+        let removed = 0;
+        set((s) => ({
+          journal: s.journal.map((e) => {
+            if (!e.attachments?.length) return e;
+            removed += e.attachments.length;
+            const rest = { ...e };
+            delete rest.attachments;
+            return rest;
+          }),
+        }));
+        return removed;
+      },
 
       markAccomplished: (date) => {
         let became = false;
@@ -1007,132 +1065,47 @@ export const useChronicle = create<ChronicleState>()(
         })),
     }),
     {
-      name: "upsc-chronicle-store",
-      version: 9,
-      storage: createJSONStorage(() => localStorage),
+      name: STORE_KEY,
+      version: 10,
+      /**
+       * Scoped to the signed-in account: `upsc-chronicle-store:<user id>`.
+       * Nothing is read or written until an account is activated, which is why
+       * hydration is manual — see `lib/account/session.ts`.
+       */
+      storage: createJSONStorage(() => accountStorage),
+      skipHydration: true,
       migrate: (persisted, version) => {
-        const state = persisted as Partial<ChronicleState> | undefined;
-
-        /**
-         * v7 -> v8: the appearance system was redesigned — the surfaces were
-         * rebuilt and renamed (Ivory · Charcoal · Indigo) and every palette
-         * retuned, so a pre-redesign choice no longer means the same thing.
-         * Reset the look once to the new default; it's one click to change it
-         * back. The standalone keys the pre-paint script reads move too, or the
-         * first paint would disagree with the store.
-         */
-        const resetAppearance = (next: Record<string, unknown>) => {
-          if (version >= 8) return next;
-          next.surface = DEFAULT_SURFACE;
-          next.palette = DEFAULT_PALETTE;
-          if (typeof localStorage !== "undefined") {
-            localStorage.setItem("upsc-chronicle-surface", DEFAULT_SURFACE);
-            localStorage.setItem("upsc-chronicle-palette", DEFAULT_PALETTE);
-          }
-          return next;
+        const state = (persisted ?? {}) as Partial<ChronicleState> & {
+          theme?: string;
+          graph?: unknown;
         };
 
-        // v8 -> v9: new keys — the accomplished-days list and the wallpaper
-        // choice. Backfill rather than reset, so nothing logged is disturbed.
-        if (state && version < 9) {
+        // v<6: the demo era. Those records were discarded then, and still are.
+        if (version < 6) return { ...createBlankAccount() } as unknown as ChronicleState;
+
+        // v6 -> v7: the light/dark toggle became surface + palette.
+        delete state.theme;
+        delete state.graph;
+
+        // v7 -> v8: the appearance system was rebuilt; old choices meant
+        // something else, so the look is reset once (data is untouched).
+        if (version < 8) {
+          state.surface = DEFAULT_SURFACE;
+          state.palette = DEFAULT_PALETTE;
+        }
+
+        // v8 -> v9: the accomplished-days list and the wallpaper choice.
+        if (version < 9) {
           if (!Array.isArray(state.accomplished)) state.accomplished = [];
           if (state.wallpaper === undefined) state.wallpaper = DEFAULT_WALLPAPER;
           if (state.wallpaperDim === undefined)
             state.wallpaperDim = wallpaperMeta(DEFAULT_WALLPAPER).dim;
         }
-        // v<6: a clean slate. Aman starts logging from today, so we discard the
-        // previously-seeded demo records entirely and rebuild from fresh data.
-        if (version < 6) {
-          return resetAppearance({
-            ...createFreshData(),
-          } as unknown as Record<string, unknown>) as unknown as ChronicleState;
-        }
-        // v6 -> v7: retire the light/dark toggle in favour of independent
-        // surface + palette settings. Keep all logged data.
-        if (version < 7) {
-          const old = (state ?? {}) as Partial<ChronicleState> & {
-            theme?: string;
-          };
-          const next: Record<string, unknown> = { ...old };
-          delete next.theme;
-          return resetAppearance(next) as unknown as ChronicleState;
-        }
-        if (state) resetAppearance(state as unknown as Record<string, unknown>);
-        // v1 -> v2: backfill the expanded Daily Journal fields so older
-        // entries render cleanly alongside the richer schema.
-        if (state && version < 2 && Array.isArray(state.journal)) {
-          state.journal = state.journal.map((e) => ({
-            ...e,
-            motivation: e.motivation ?? e.focus ?? 3,
-            topicsCompleted: e.topicsCompleted ?? [],
-            booksStudied: e.booksStudied ?? [],
-            revisionSessions: e.revisionSessions ?? [],
-            mocksAttempted: e.mocksAttempted ?? [],
-            currentAffairs: e.currentAffairs ?? [],
-            wins: e.wins ?? [],
-            failures: e.failures ?? [],
-            lessons: e.lessons ?? [],
-            attachments: e.attachments ?? [],
-          }));
-        }
-        // v2 -> v3: introduce the topic-link knowledge graph and retire the
-        // old subject-level graph snapshot.
-        if (state && version < 3) {
-          if (!Array.isArray(state.topicLinks)) {
-            state.topicLinks = createSeedData().topicLinks;
-          }
-          delete (state as Record<string, unknown>).graph;
-        }
-        // v3 -> v4: upgrade mistakes into review-workflow learning assets
-        // (new error categories, Q/answer/explanation, spaced repetition).
-        if (state && version < 4 && Array.isArray(state.mistakes)) {
-          const catMap: Record<string, MistakeCategory> = {
-            Conceptual: "Conceptual",
-            Factual: "Factual",
-            Guessing: "Guessing",
-            Silly: "Careless",
-            Careless: "Careless",
-            Misreading: "Careless",
-            "Time Management": "Time Pressure",
-            "Time Pressure": "Time Pressure",
-            "Revision Failure": "Revision Failure",
-          };
-          const today = toISODate(new Date());
-          type LegacyMistake = Partial<Mistake> & {
-            type?: string;
-            description?: string;
-            correction?: string;
-          };
-          state.mistakes = (state.mistakes as LegacyMistake[]).map((m) => {
-            const cat = String(m.category ?? m.type ?? "Conceptual");
-            const status: MistakeStatus =
-              m.status === ("Resolved" as MistakeStatus)
-                ? "Mastered"
-                : (m.status ?? "Open");
-            const reviewCount = m.reviewCount ?? (status === "Mastered" ? 3 : 0);
-            return {
-              id: m.id ?? `mis-${Math.random().toString(36).slice(2, 8)}`,
-              date: m.date ?? today,
-              subjectId: m.subjectId ?? "",
-              topic: m.topic ?? "",
-              category: catMap[cat] ?? "Conceptual",
-              question: m.question,
-              userAnswer: m.userAnswer,
-              correctAnswer: m.correctAnswer,
-              explanation: m.explanation ?? m.correction ?? m.description,
-              source: m.source,
-              status,
-              reviewCount,
-              lastReviewed: m.lastReviewed,
-              nextReview: m.nextReview ?? m.date ?? today,
-              intervalDays: m.intervalDays ?? 1,
-            } as Mistake;
-          });
-        }
-        // v4 -> v5: introduce the unified Life Dashboard daily log.
-        if (state && version < 5 && !Array.isArray(state.lifeLog)) {
-          state.lifeLog = createSeedData().lifeLog;
-        }
+
+        // v9 -> v10: accounts. A profile that already has a name was set up
+        // before first-run setup existed, so it is marked as set up.
+        if (version < 10 && state.profile) state.profile = normalizeProfile(state.profile);
+
         return state as ChronicleState;
       },
       partialize: (s) => {
@@ -1165,18 +1138,19 @@ export const useChronicle = create<ChronicleState>()(
             useChronicle.setState({ notifyLog: EMPTY_DELIVERY_LOG });
           }
         }
-        // re-apply appearance attributes after hydration
+        // Re-apply this account's appearance, and remember it for the next cold
+        // start's pre-paint.
         if (state && typeof document !== "undefined") {
+          const wallpaper = state.wallpaper ?? DEFAULT_WALLPAPER;
+          const dim = String(state.wallpaperDim ?? 0);
           document.documentElement.setAttribute("data-surface", state.surface);
           document.documentElement.setAttribute("data-palette", state.palette);
-          document.documentElement.setAttribute(
-            "data-wallpaper",
-            state.wallpaper ?? DEFAULT_WALLPAPER,
-          );
-          document.documentElement.style.setProperty(
-            "--wp-dim",
-            String(state.wallpaperDim ?? 0),
-          );
+          document.documentElement.setAttribute("data-wallpaper", wallpaper);
+          document.documentElement.style.setProperty("--wp-dim", dim);
+          writeAppearance("surface", state.surface);
+          writeAppearance("palette", state.palette);
+          writeAppearance("wallpaper", wallpaper);
+          writeAppearance("wallpaper-dim", dim);
         }
       },
     },
@@ -1194,4 +1168,24 @@ export function readCloudSnapshot(): CloudSnapshot {
   const snap: Record<string, unknown> = {};
   for (const k of SNAPSHOT_KEYS) snap[k] = s[k];
   return snap as CloudSnapshot;
+}
+
+/**
+ * The in-memory state when no account is loaded: empty data and the default
+ * look. Swapped in on every sign-out and account switch, so nothing of the
+ * previous account survives in memory.
+ */
+export function blankChronicleState(): Partial<ChronicleState> {
+  return {
+    ...createBlankAccount(),
+    surface: DEFAULT_SURFACE,
+    palette: DEFAULT_PALETTE,
+    wallpaper: DEFAULT_WALLPAPER,
+    wallpaperDim: wallpaperMeta(DEFAULT_WALLPAPER).dim,
+    lastSleepPrompt: undefined,
+    notify: DEFAULT_NOTIFY_SETTINGS,
+    notifyState: EMPTY_NOTIFY_STATE,
+    notifyLog: EMPTY_DELIVERY_LOG,
+    _hasHydrated: false,
+  };
 }

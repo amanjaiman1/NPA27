@@ -97,6 +97,14 @@ export interface CARef {
 
 export type AttachmentKind = "image" | "file";
 
+/**
+ * A photo or file once attached to a journal day.
+ *
+ * @deprecated Attachments are no longer created: base64 images in the synced
+ * snapshot were the single biggest cost on Supabase's free plan. The type stays
+ * so entries saved before the change still load, export, and can be cleaned up
+ * from Settings → Data.
+ */
 export interface Attachment {
   id: string;
   kind: AttachmentKind;
@@ -138,7 +146,7 @@ export interface JournalEntry {
   reflection?: string;
   tags?: string[];
 
-  /* memory */
+  /** @deprecated Kept only for entries saved before photos were removed. */
   attachments?: Attachment[];
 
   /* legacy / planning */
@@ -508,9 +516,19 @@ export interface Profile {
   targetExam: string;
   examDate: ISODate;
   attemptNumber: number;
+  /** Empty when the optional hasn't been chosen yet. */
   optionalSubject: string;
   startDate: ISODate;
   dailyHourTarget: number;
+  /**
+   * IANA zone for background notifications ("Asia/Kolkata"). The app itself
+   * always uses the device's clock; this decides when a push may arrive.
+   */
+  timezone?: string;
+  /** Whether the built-in CSE 2027 week-by-week roadmap is shown. */
+  useRoadmap?: boolean;
+  /** Set when first-run setup is finished. Absent means setup is still due. */
+  onboardedAt?: ISODate;
 }
 
 /* ── Root state ──────────────────────────────────────────────── */
