@@ -5,10 +5,14 @@
 /* ═══════════════════════════════════════════════════════════════════
    The Chronicle — design tokens.
 
-   Two independent dimensions the user can choose:
-     • data-surface  → the canvas   (white = Light · black = Dark), resolved
-                       from the Light / Dark / Auto choice (lib/theme.ts)
-     • data-palette  → the accent   (crimson · amber · teal · …)
+   Three independent dimensions the user can choose:
+     • data-surface  → the theme    (white = Light · black = Dark ·
+                       blue = Blue Glass), resolved from the Light / Dark /
+                       Blue Glass / Auto choice (lib/theme.ts)
+     • data-palette  → the accent   (crimson · amber · teal · …), on Light
+                       and Dark; Blue Glass brings its own
+     • data-material → how surfaces are drawn (standard · glass); see the
+                       glass section near the end of this file
 
    Token model:
      --ink      the canvas behind everything
@@ -43,6 +47,11 @@
   --bloom-4: 13 148 136;
   --bloom-5: 217 119 6;
   --bloom-6: 219 39 119;
+  /* The dashboard's light-on-dark hero panel (components/dashboard/widgets.tsx):
+     its base, its tiles and the ring's backing. Near-black on Light and Dark. */
+  --hero-ink: rgb(10 10 13);
+  --hero-tile: rgb(6 6 8 / 0.7);
+  --hero-ring: rgb(6 6 8 / 0.6);
   color-scheme: light;
 }
 
@@ -270,6 +279,149 @@
   --bloom-4: 161 98 7;
   --bloom-5: 192 38 211;
   --bloom-6: 37 99 235;
+}
+
+/* ── Blue Glass ───────────────────────────────────────────────────────
+   The third theme: frosted panes on a pale sky-blue canvas. A surface in its
+   own right (`data-surface="blue"`), not Light with a blue tint, so it sets
+   every token itself: canvas, panes, text, hairlines, shadows, the accent,
+   the chart colours and the status colours.
+
+   It comes after the palettes on purpose. Blue Glass brings its own blue
+   accent and chart set, so the chosen palette rests while it's on and comes
+   back with Light or Dark. Its frosted materials are the same rules Liquid
+   Glass uses, read with Blue Glass's own values (the glass section below),
+   so it is complete with Liquid Glass off and never doubles up with it on.
+
+   Measured for small text, where WCAG AA asks 4.5:1:
+     text #0C1D38          about 15:1 on a pane, 14:1 on the canvas
+     accent text #1646BA   about 7:1 on a pane or the canvas
+     accent fill #1A50CC   white text on it about 6.9:1
+     status colours        at or above 4.5:1 on their own tints
+     quiet text            raised to a floor that clears 4.5:1 (below)
+   ─────────────────────────────────────────────────────────────────── */
+
+[data-surface="blue"] {
+  /* Canvas: pale sky. Panes: near-white. Text: deep navy. */
+  --ink: 226 237 249;
+  --card: 248 251 255;
+  --paper: 12 29 56;
+  --line: 199 215 236;
+  /* Shadows are a soft blue-grey, never black: depth without weight. */
+  --shadow: 30 62 118;
+  --scrim: 12 30 62;
+  --wash: 1;
+  /* The canvas glow: pale cyan and light azure. */
+  --aura-1: 56 189 248;
+  --aura-2: 96 140 245;
+  --accent: 26 80 204;
+  --accent-fg: 255 255 255;
+  /* Accent-coloured text and icons take a deeper blue than accent fills, so
+     they stay readable on the accent's own tints (selected chips, the active
+     nav item). */
+  --accent-ink: 22 70 186;
+  --selection: 26 80 204;
+  /* Status colours, deep enough for small text on their own tints. */
+  --positive: 3 98 70;
+  --warning: 150 66 4;
+  --danger: 172 22 48;
+  --info: 3 95 148;
+  /* Charts: led by the theme's blue, then hues far enough apart to tell
+     series apart at a glance on a pale pane. */
+  --bloom-1: 26 80 204;
+  --bloom-2: 8 145 178;
+  --bloom-3: 124 92 224;
+  --bloom-4: 5 150 105;
+  --bloom-5: 202 120 10;
+  --bloom-6: 219 61 120;
+  /* The dashboard hero becomes deep sapphire, with frosted tiles. */
+  --hero-ink: rgb(17 48 112);
+  --hero-tile: rgb(255 255 255 / 0.1);
+  --hero-ring: rgb(8 26 64 / 0.42);
+  /* The floor for quiet text on a pane, and on the open canvas (the rules
+     below): the lowest strengths that still clear 4.5:1 there. */
+  --quiet: 0.66;
+  --quiet-canvas: 0.74;
+  color-scheme: light;
+}
+
+/* With Liquid Glass more of the sky shows through, so the floor goes up a
+   notch. */
+[data-surface="blue"][data-material="glass"] {
+  --quiet: 0.7;
+  --quiet-canvas: 0.76;
+}
+
+/* On the deep-blue hero the theme's own blue would sink into the panel, so
+   the accent there turns light sky blue, with navy text on it. */
+[data-surface="blue"] .on-media {
+  --accent: 125 211 252;
+  --accent-ink: 125 211 252;
+  --accent-fg: 8 30 66;
+}
+
+/* Quiet text is written as low-opacity ink (`text-paper/40`), tuned for an
+   opaque card, where the softest steps are a deliberate whisper. On glass
+   over a blue canvas a whisper is hard to read, so on Blue Glass every step
+   below the floor is raised to it: secondary text still reads as secondary,
+   and none of it falls under AA. `:where()` keeps the weight of a plain
+   utility, so hover and focus colours still win. */
+:where([data-surface="blue"])
+  :is(
+    .text-paper\/25,
+    .text-paper\/30,
+    .text-paper\/35,
+    .text-paper\/40,
+    .text-paper\/45,
+    .text-paper\/50,
+    .text-paper\/55,
+    .text-paper\/60,
+    .text-paper\/65
+  ) {
+  color: rgb(var(--paper) / var(--quiet));
+}
+:where([data-surface="blue"]) .text-accent {
+  color: rgb(var(--accent-ink));
+}
+/* Straight on the canvas, on no pane of its own and in none, the same text
+   needs a little more. Still the weight of one utility, so hover wins. */
+:where([data-surface="blue"] main)
+  :is(
+    .text-paper\/25,
+    .text-paper\/30,
+    .text-paper\/35,
+    .text-paper\/40,
+    .text-paper\/45,
+    .text-paper\/50,
+    .text-paper\/55,
+    .text-paper\/60,
+    .text-paper\/65
+  ):where(
+    :not(
+      :is(.bg-card, .bg-card\/60, .bg-card\/80, .bg-card\/85, .bg-card\/95, .on-media),
+      :is(.bg-card, .bg-card\/60, .bg-card\/80, .bg-card\/85, .bg-card\/95, .on-media) *
+    )
+  ) {
+  color: rgb(var(--paper) / var(--quiet-canvas));
+}
+/* Placeholders read as hints, never as entered text, and stay legible.
+   `:is(input, textarea)` outweighs the `placeholder:` utility, which
+   Tailwind appends after this file. */
+:where([data-surface="blue"])
+  :is(input, textarea):is(
+    .placeholder\:text-paper\/25,
+    .placeholder\:text-paper\/30,
+    .placeholder\:text-paper\/35,
+    .placeholder\:text-paper\/40
+  )::placeholder {
+  color: rgb(var(--paper) / var(--quiet));
+}
+/* Chart labels and gridlines: legible labels, gridlines that stay quiet. */
+:where([data-surface="blue"]) :is(.fill-paper\/30, .fill-paper\/35) {
+  fill: rgb(var(--paper) / var(--quiet));
+}
+:where([data-surface="blue"]) .stroke-paper\/\[0\.06\] {
+  stroke: rgb(var(--paper) / 0.1);
 }
 
 
@@ -509,8 +661,11 @@
 }
 
 /* Chrome sits directly on the wallpaper, so it firms up when one is showing —
-   translucent glass over a busy photo is where readability goes to die. */
-[data-wallpaper]:not([data-wallpaper="none"]) .chrome-glass {
+   translucent glass over a busy photo is where readability goes to die.
+
+   Every rule keyed on a wallpaper excludes Blue Glass: that theme paints its
+   own sky and the wallpaper rests while it's on (components/layout/wallpaper.tsx). */
+[data-wallpaper]:not([data-wallpaper="none"]):not([data-surface="blue"]) .chrome-glass {
   background-color: rgb(var(--card) / 0.94);
 }
 
@@ -523,7 +678,7 @@
    list asks for; this selector deliberately mirrors the specificity of the
    `.chrome-glass` rule above so the media query is the only thing deciding. */
 @media (min-width: 1024px) {
-  [data-wallpaper]:not([data-wallpaper="none"]) .sidebar-panel {
+  [data-wallpaper]:not([data-wallpaper="none"]):not([data-surface="blue"]) .sidebar-panel {
     background-color: rgb(var(--card) / 0.94);
   }
 }
@@ -551,14 +706,14 @@
 
    `:not(.bg-card *)` is what keeps it surgical — `bg-card` is opaque, so
    anything inside one is not on the wallpaper. */
-[data-wallpaper]:not([data-wallpaper="none"])
+[data-wallpaper]:not([data-wallpaper="none"]):not([data-surface="blue"])
   main
   :is(.text-paper\/40, .text-paper\/45, .text-paper\/50, .text-paper\/55):not(.bg-card *) {
   color: rgb(var(--paper) / 0.74);
 }
 /* Secondary text starts closer to legible, so it needs a smaller nudge — but it
    still has to clear 4.5:1 at 12–14px. */
-[data-wallpaper]:not([data-wallpaper="none"])
+[data-wallpaper]:not([data-wallpaper="none"]):not([data-surface="blue"])
   main
   :is(.text-paper\/60, .text-paper\/65, .text-paper\/70):not(.bg-card *) {
   color: rgb(var(--paper) / 0.82);
@@ -759,7 +914,8 @@ samp {
      The dots are very close to neutral, so an invert shifts no hue; recolouring
      the Lottie's fills at runtime would be the alternative, and this is one line
      instead of a JSON walk. */
-  [data-surface="white"] .lottie-neutral {
+  [data-surface="white"] .lottie-neutral,
+  [data-surface="blue"] .lottie-neutral {
     filter: invert(1);
   }
 
@@ -942,10 +1098,16 @@ samp {
   color: rgb(var(--paper) / 0.55);
 }
 
-/* ── Liquid Glass ─────────────────────────────────────────────────────
-   An appearance mode, not a theme: `data-material="glass"` on <html>, on top
-   of either `data-surface`. Every rule below is scoped to it, so Standard is
-   exactly as it was, and Light or Dark is never changed by it.
+/* ── Glass materials: Liquid Glass and Blue Glass ─────────────────────
+   Two ways in:
+     • Liquid Glass, an appearance mode rather than a theme:
+       `data-material="glass"` on <html>, on top of any `data-surface`.
+       Standard is exactly as it was, and the theme is never changed by it.
+     • Blue Glass, a theme (`data-surface="blue"`) that is frosted by design,
+       so it uses these materials whether Liquid Glass is on or off. With
+       Liquid Glass on, its panes become clearer and brighter.
+   The two never stack. There is one set of rules below; a combination only
+   changes the values they read, so no surface is tinted or blurred twice.
 
    Four materials, from back to front:
      panel    cards, tiles, chips, pills         translucent, no blur
@@ -953,6 +1115,7 @@ samp {
               sticky headers
      overlay  dialogs, menus, palette, tooltips  nearly solid, blurred
      field    inputs, selects, time buttons      a lighter recess with an edge
+   plus a gloss on accent fills.
 
    They are mapped from what the markup already says rather than from a new
    class on every component: `bg-card` is a panel, `bg-card` with
@@ -967,11 +1130,18 @@ samp {
    cost frames on every scroll and change nothing you can see. Their glass
    comes from translucency, a top sheen, a corner glint and a lit edge, all
    painted as backgrounds and shadows on the element itself: no
-   pseudo-elements and no extra layers.
+   pseudo-elements and no extra layers. A dialog over a blurred scrim skips
+   its own blur, since everything behind it is already soft.
+
+   Tokens. Every `--glass-*` block is wrapped in `:where()`, so they all
+   weigh nothing and their order in this file is their precedence: each
+   theme's values, then the Blue Glass combination, then firmer panes over a
+   wallpaper, then phones, then the fallbacks and Reduce transparency, which
+   therefore win over everything before them.
    ─────────────────────────────────────────────────────────────────── */
 
-[data-material="glass"] {
-  /* Light glass: luminous white panes over a brighter canvas. */
+/* Liquid Glass on Light: luminous white panes over a brighter canvas. */
+:where([data-material="glass"]) {
   --glass-tint: 255 255 255;
   --glass-panel-a: 0.55;
   --glass-chrome-a: 0.6;
@@ -992,14 +1162,15 @@ samp {
   --glass-drop-lift: 0 2px 6px rgb(var(--shadow) / 0.06), 0 26px 56px -24px rgb(var(--shadow) / 0.34);
   --glass-chrome-filter: blur(22px) saturate(1.7);
   --glass-overlay-filter: blur(30px) saturate(1.8);
-  /* More of the canvas glow, so the glass has light to catch. */
-  --wash: 1;
+  /* A pane inside a pane looks like any other pane here. */
+  --glass-inner-a: var(--glass-panel-a);
+  --glass-inner-image: var(--glass-glint), var(--glass-sheen);
 }
 
-[data-material="glass"][data-surface="black"] {
-  /* Dark glass: smoked panes with a fine lit edge, over a deeper glow.
-     Readable first: the tint stays dark enough that soft-white text keeps
-     its contrast whatever colour glows behind it. */
+/* Liquid Glass on Dark: smoked panes with a fine lit edge, over a deeper
+   glow. Readable first: the tint stays dark enough that soft-white text
+   keeps its contrast whatever colour glows behind it. */
+:where([data-material="glass"][data-surface="black"]) {
   --glass-tint: 30 30 36;
   --glass-panel-a: 0.52;
   --glass-chrome-a: 0.58;
@@ -1016,22 +1187,69 @@ samp {
   --glass-gloss: linear-gradient(180deg, rgb(255 255 255 / 0.2), rgb(255 255 255 / 0) 56%);
   --glass-drop: 0 1px 2px rgb(0 0 0 / 0.3), 0 16px 36px -18px rgb(0 0 0 / 0.65);
   --glass-drop-lift: 0 2px 6px rgb(0 0 0 / 0.35), 0 28px 60px -24px rgb(0 0 0 / 0.75);
-  --wash: 0.8;
+}
+
+/* Blue Glass, built in: frosted white panes that cool to ice at the foot,
+   with a bright rim, over the sky-blue canvas. Firmer than Liquid Glass on
+   Light, so the theme reads clearly on its own and text never fights the
+   sky behind it. Navigation is the most see-through layer; dialogs the
+   most solid, with the deepest shadow. */
+:where([data-surface="blue"]) {
+  --glass-tint: 255 255 255;
+  --glass-panel-a: 0.62;
+  --glass-chrome-a: 0.56;
+  --glass-overlay-a: 0.9;
+  --glass-field: 255 255 255;
+  --glass-field-a: 0.6;
+  --glass-field-focus-a: 0.94;
+  --glass-field-border: var(--paper);
+  --glass-field-border-a: 0.17;
+  --glass-edge-a: 0.82;
+  --glass-rim-a: 0.95;
+  --glass-outline: var(--shadow);
+  --glass-outline-a: 0.07;
+  --glass-sheen: linear-gradient(180deg, rgb(255 255 255 / 0.46) 0%, rgb(255 255 255 / 0.1) 36%, rgb(255 255 255 / 0) 62%, rgb(214 230 250 / 0.24) 100%);
+  --glass-glint: radial-gradient(90% 60% at 0% 0%, rgb(255 255 255 / 0.24), rgb(255 255 255 / 0) 60%);
+  --glass-gloss: linear-gradient(180deg, rgb(255 255 255 / 0.22), rgb(255 255 255 / 0) 58%);
+  --glass-drop: 0 1px 2px rgb(var(--shadow) / 0.06), 0 18px 40px -22px rgb(var(--shadow) / 0.3);
+  --glass-drop-lift: 0 2px 8px rgb(var(--shadow) / 0.08), 0 30px 64px -28px rgb(var(--shadow) / 0.42);
+  --glass-chrome-filter: blur(24px) saturate(1.6);
+  --glass-overlay-filter: blur(28px) saturate(1.6);
+  /* Chips, tiles and small cards inside a pane: lighter and flat. */
+  --glass-inner-a: 0.5;
+  --glass-inner-image: none;
+}
+
+/* Blue Glass with Liquid Glass: clearer panes, a brighter edge and glint.
+   Same rules, same single blur per surface, just lighter values. */
+:where([data-surface="blue"][data-material="glass"]) {
+  --glass-panel-a: 0.42;
+  --glass-chrome-a: 0.38;
+  --glass-overlay-a: 0.8;
+  --glass-field-a: 0.42;
+  --glass-inner-a: 0.4;
+  --glass-edge-a: 0.92;
+  --glass-rim-a: 1;
+  --glass-sheen: linear-gradient(180deg, rgb(255 255 255 / 0.58) 0%, rgb(255 255 255 / 0.16) 40%, rgb(255 255 255 / 0) 66%, rgb(206 226 252 / 0.28) 100%);
+  --glass-glint: radial-gradient(120% 70% at 0% 0%, rgb(255 255 255 / 0.6), rgb(255 255 255 / 0) 56%);
+  --glass-gloss: linear-gradient(180deg, rgb(255 255 255 / 0.22), rgb(255 255 255 / 0) 56%);
+  --glass-chrome-filter: blur(26px) saturate(1.8);
+  --glass-overlay-filter: blur(32px) saturate(1.8);
 }
 
 /* A busy wallpaper behind needs firmer panes to keep text legible. */
-[data-material="glass"][data-wallpaper]:not([data-wallpaper="none"]) {
+:where([data-material="glass"][data-wallpaper]:not([data-wallpaper="none"]):not([data-surface="blue"])) {
   --glass-panel-a: 0.74;
   --glass-chrome-a: 0.78;
 }
-[data-material="glass"][data-surface="black"][data-wallpaper]:not([data-wallpaper="none"]) {
+:where([data-material="glass"][data-surface="black"][data-wallpaper]:not([data-wallpaper="none"])) {
   --glass-panel-a: 0.68;
   --glass-chrome-a: 0.72;
 }
 
 /* Phones: less blur, which is most of the cost, for the same look. */
 @media (max-width: 640px) {
-  [data-material="glass"] {
+  :where([data-material="glass"], [data-surface="blue"]) {
     --glass-chrome-filter: blur(16px) saturate(1.5);
     --glass-overlay-filter: blur(22px) saturate(1.6);
   }
@@ -1040,10 +1258,49 @@ samp {
 /* No backdrop-filter support: translucent panes would show sharp content
    through them, so the blurred materials become nearly solid instead. */
 @supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
-  [data-material="glass"] {
+  :where([data-material="glass"], [data-surface="blue"]) {
     --glass-chrome-a: 0.93;
     --glass-overlay-a: 0.97;
   }
+}
+
+/* Reduce transparency, chosen in Appearance or asked for by the device:
+   nearly solid surfaces and no blur, in the same theme. Last in the token
+   order, so it wins over every theme, combination and wallpaper. (In
+   Standard on Light or Dark it turns the frosted bars solid; see below.) */
+:where([data-transparency="reduced"]) {
+  --glass-panel-a: 0.94;
+  --glass-inner-a: 0.94;
+  --glass-chrome-a: 0.96;
+  --glass-overlay-a: 0.98;
+  --glass-chrome-filter: none;
+  --glass-overlay-filter: none;
+}
+:where([data-transparency="reduced"]:not([data-surface="black"])) {
+  --glass-field-a: 0.9;
+}
+@media (prefers-reduced-transparency: reduce) {
+  :where([data-material="glass"], [data-surface="blue"]) {
+    --glass-panel-a: 0.94;
+    --glass-inner-a: 0.94;
+    --glass-chrome-a: 0.96;
+    --glass-overlay-a: 0.98;
+    --glass-chrome-filter: none;
+    --glass-overlay-filter: none;
+  }
+  :where([data-material="glass"]:not([data-surface="black"]), [data-surface="blue"]) {
+    --glass-field-a: 0.9;
+  }
+}
+
+/* More of the canvas glow, so the glass has light to catch. These keep
+   their weight, unlike the tokens above, because each surface sets its
+   own --wash. (Blue Glass sets 1 itself.) */
+[data-material="glass"] {
+  --wash: 1;
+}
+[data-material="glass"][data-surface="black"] {
+  --wash: 0.8;
 }
 
 /* The canvas: the same aura colours, spread wider and a little brighter. */
@@ -1056,8 +1313,36 @@ samp {
     radial-gradient(46% 42% at 0% 100%, rgb(var(--aura-2) / 0.2), transparent 70%);
 }
 
+/* Blue Glass's sky, over its pale-blue canvas: daylight from the top, pale
+   cyan and light azure pooled in the upper corners, softer pools through the
+   middle where the panes sit, and cooler blues low down. Static and painted
+   once; the pools are what the panes catch. Every pool fades to nothing, so
+   the sky has no edges wherever it's used. */
+[data-surface="blue"] .bg-aura {
+  background-image:
+    radial-gradient(70% 50% at 50% -10%, rgb(255 255 255 / 0.7), transparent 70%),
+    radial-gradient(50% 46% at 0% 0%, rgb(186 230 253 / 0.85), transparent 68%),
+    radial-gradient(48% 44% at 100% 4%, rgb(191 219 254 / 0.9), transparent 68%),
+    radial-gradient(46% 40% at 74% 58%, rgb(191 219 254 / 0.55), transparent 72%),
+    radial-gradient(44% 40% at 24% 72%, rgb(186 230 253 / 0.45), transparent 72%),
+    radial-gradient(58% 52% at 100% 100%, rgb(147 197 253 / 0.34), transparent 72%),
+    radial-gradient(52% 48% at 0% 100%, rgb(165 243 252 / 0.3), transparent 72%);
+}
+/* With Liquid Glass the panes are clearer, so the sky carries more colour
+   for them to catch: deeper sky and azure pools, a hint of periwinkle. */
+[data-surface="blue"][data-material="glass"] .bg-aura {
+  background-image:
+    radial-gradient(70% 50% at 50% -10%, rgb(255 255 255 / 0.55), transparent 70%),
+    radial-gradient(52% 48% at 0% 0%, rgb(125 211 252 / 0.62), transparent 68%),
+    radial-gradient(50% 46% at 100% 4%, rgb(147 197 253 / 0.72), transparent 68%),
+    radial-gradient(48% 42% at 72% 56%, rgb(147 197 253 / 0.46), transparent 72%),
+    radial-gradient(46% 42% at 24% 70%, rgb(125 211 252 / 0.38), transparent 72%),
+    radial-gradient(58% 52% at 100% 100%, rgb(129 140 248 / 0.28), transparent 72%),
+    radial-gradient(52% 48% at 0% 100%, rgb(103 232 249 / 0.28), transparent 72%);
+}
+
 /* Panel: every card-coloured surface. */
-:where([data-material="glass"]) :is(.bg-card, .bg-card\/60, .bg-card\/80, .bg-card\/85, .bg-card\/95) {
+:where([data-material="glass"], [data-surface="blue"]) :is(.bg-card, .bg-card\/60, .bg-card\/80, .bg-card\/85, .bg-card\/95) {
   background-color: rgb(var(--glass-tint) / var(--glass-panel-a));
   background-image: var(--glass-glint), var(--glass-sheen);
   box-shadow:
@@ -1069,32 +1354,51 @@ samp {
 }
 /* The pane's own edge, only where the border is the plain hairline, so an
    accent, warning or selected border keeps its colour. */
-:where([data-material="glass"]) :is(.bg-card, .bg-card\/60, .bg-card\/80, .bg-card\/85, .bg-card\/95):where(.border-line) {
+:where([data-material="glass"], [data-surface="blue"]) :is(.bg-card, .bg-card\/60, .bg-card\/80, .bg-card\/85, .bg-card\/95):where(.border-line) {
   border-color: rgb(255 255 255 / var(--glass-edge-a));
 }
 /* Interactive cards brighten a little under the pointer. */
-:where([data-material="glass"]) .bg-card:where(.hover\:shadow-lift):hover {
+:where([data-material="glass"], [data-surface="blue"]) .bg-card:where(.hover\:shadow-lift):hover {
   background-color: rgb(var(--glass-tint) / calc(var(--glass-panel-a) + 0.1));
 }
 
-/* Depth comes from softer, wider drops in glass. */
-:where([data-material="glass"]) .shadow-soft {
+/* A pane inside a pane (chips, tiles, small cards in a card or dialog): on
+   Blue Glass a lighter, flatter treatment, so layers read as layers and
+   small things stay quiet. Liquid Glass reads the panel's own values here,
+   so it looks as it always has. This comes before the overlay rule, so a
+   menu that opens inside a card is still an overlay. */
+:where([data-material="glass"], [data-surface="blue"]) :is(.bg-card, .bg-card\/60, .bg-card\/80, .bg-card\/85, .bg-card\/95):where(:is(.bg-card, .bg-card\/60, .bg-card\/80, .bg-card\/85, .bg-card\/95, .glass-overlay) *) {
+  background-color: rgb(var(--glass-tint) / var(--glass-inner-a));
+  background-image: var(--glass-inner-image);
+}
+
+/* Depth comes from softer, wider drops on glass. */
+:where([data-material="glass"], [data-surface="blue"]) .shadow-soft {
   --tw-shadow: var(--glass-drop);
 }
-:where([data-material="glass"]) :is(.shadow-lift, .hover\:shadow-lift:hover) {
+:where([data-material="glass"], [data-surface="blue"]) :is(.shadow-lift, .hover\:shadow-lift:hover) {
   --tw-shadow: var(--glass-drop-lift);
 }
 
 /* Overlay: dialogs, menus, the palette, tooltips. */
-:where([data-material="glass"]) :is(.bg-card, .bg-card\/95):where(.shadow-lift),
-:where([data-material="glass"]) .glass-overlay {
+:where([data-material="glass"], [data-surface="blue"]) :is(.bg-card, .bg-card\/95):where(.shadow-lift),
+:where([data-material="glass"], [data-surface="blue"]) .glass-overlay {
   background-color: rgb(var(--glass-tint) / var(--glass-overlay-a));
   -webkit-backdrop-filter: var(--glass-overlay-filter);
   backdrop-filter: var(--glass-overlay-filter);
 }
+/* A dialog over a blurred scrim has nothing sharp behind it, so it skips
+   its own blur: one backdrop filter per layer, never two. */
+:where([data-material="glass"], [data-surface="blue"]) .glass-on-scrim {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
 
-/* Chrome: bars and sticky headers, with content scrolling underneath. */
-:where([data-material="glass"]) :is(.chrome-glass, .sidebar-panel, .glass-sticky) {
+/* Chrome: bars and sticky headers, with content scrolling underneath.
+   The doubled classes make this one step heavier than a responsive utility
+   such as `sm:bg-card/80` or `lg:backdrop-blur-xl`: Tailwind appends those
+   after this file, and on glass the material, not the utility, decides. */
+:where([data-material="glass"], [data-surface="blue"]) :is(.chrome-glass.chrome-glass, .sidebar-panel.sidebar-panel, .glass-sticky.glass-sticky) {
   background-color: rgb(var(--glass-tint) / var(--glass-chrome-a));
   background-image: var(--glass-sheen);
   -webkit-backdrop-filter: var(--glass-chrome-filter);
@@ -1111,34 +1415,58 @@ samp {
 /* On a phone the sidebar is a drawer pulled over the page and its scrim:
    it takes the overlay's firmer glass so the nav stays easy to read. */
 @media (max-width: 1023px) {
-  :where([data-material="glass"]) .sidebar-panel {
+  :where([data-material="glass"], [data-surface="blue"]) .sidebar-panel.sidebar-panel {
     background-color: rgb(var(--glass-tint) / var(--glass-overlay-a));
     -webkit-backdrop-filter: var(--glass-overlay-filter);
     backdrop-filter: var(--glass-overlay-filter);
   }
 }
+/* Blue Glass floats the desktop sidebar as a pane of its own, like the top
+   bar beside it: inset from the window edge, rounded, lit along its rim and
+   lifted by the soft blue drop. The same sidebar, width and collapse; only
+   how it sits changes. The phone drawer is untouched. */
+@media (min-width: 1024px) {
+  :where([data-surface="blue"]) .sidebar-panel {
+    height: calc(100% - 2rem);
+    margin: 1rem 0 1rem 1rem;
+    border: 1px solid rgb(255 255 255 / var(--glass-edge-a));
+    border-radius: 1.75rem;
+    overflow: hidden;
+    box-shadow:
+      inset 0 1px 0 0 rgb(255 255 255 / var(--glass-rim-a)),
+      0 0 0 1px rgb(var(--glass-outline) / var(--glass-outline-a)),
+      var(--glass-drop);
+  }
+}
 /* A full-width sticky header becomes a rounded strip, so it reads as glass. */
-:where([data-material="glass"]) .glass-strip {
+:where([data-material="glass"], [data-surface="blue"]) .glass-strip {
   border-radius: 1rem;
   padding-inline: 0.75rem;
 }
 
 /* Field: inputs, selects and the time buttons. */
-:where([data-material="glass"]) .field {
+:where([data-material="glass"], [data-surface="blue"]) .field {
   background-color: rgb(var(--glass-field) / var(--glass-field-a));
   box-shadow:
     inset 0 1px 2px rgb(var(--glass-outline) / 0.08),
     0 1px 0 rgb(255 255 255 / calc(var(--glass-rim-a) * 0.5));
 }
-:where([data-material="glass"]) .field:where(.border-line) {
+:where([data-material="glass"], [data-surface="blue"]) .field:where(.border-line) {
   border-color: rgb(var(--glass-field-border) / var(--glass-field-border-a));
 }
-:where([data-material="glass"]) .field:is(:focus, :focus-visible) {
+:where([data-material="glass"], [data-surface="blue"]) .field:is(:focus, :focus-visible) {
   background-color: rgb(var(--glass-field) / var(--glass-field-focus-a));
 }
 
+/* Outline controls (an outline button, a filter toggle at rest) have no fill
+   of their own. On Blue Glass they take a faint frosted one, like a pane
+   within a pane, so they read as controls on the sky. Hover still wins. */
+:where([data-surface="blue"]) .glass-ghost {
+  background-color: rgb(var(--glass-tint) / var(--glass-inner-a));
+}
+
 /* Accent fills catch the light: a soft gloss and a lit top edge. */
-:where([data-material="glass"]) .bg-accent {
+:where([data-material="glass"], [data-surface="blue"]) .bg-accent {
   background-image: var(--glass-gloss);
   box-shadow:
     inset 0 1px 0 0 rgb(255 255 255 / 0.36),
@@ -1147,44 +1475,26 @@ samp {
     var(--tw-shadow, 0 0 #0000);
 }
 
-/* Switching material eases surfaces across instead of snapping. The window
-   is set by `applyMaterial` and lasts under half a second; the reduced-motion
-   rule below shortens it to nothing. */
-[data-material-switching] *,
-[data-material-switching] *::before,
-[data-material-switching] *::after {
-  transition-property: background-color, border-color, box-shadow, color, -webkit-backdrop-filter, backdrop-filter;
+/* Switching theme or material eases surfaces across instead of snapping.
+   The window is set by `lib/theme.ts` and lasts under half a second; the
+   reduced-motion rule below shortens it to nothing. */
+[data-appearance-switching] *,
+[data-appearance-switching] *::before,
+[data-appearance-switching] *::after {
+  transition-property: background-color, border-color, box-shadow, color, fill, stroke, -webkit-backdrop-filter, backdrop-filter;
   transition-duration: 0.4s;
   transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-/* Reduce transparency, chosen in Appearance or asked for by the device:
-   nearly solid surfaces and no blur, in the same theme. In Standard it
-   turns the frosted bars solid too. */
-[data-material="glass"][data-transparency="reduced"] {
-  --glass-panel-a: 0.94;
-  --glass-chrome-a: 0.96;
-  --glass-overlay-a: 0.98;
-  --glass-chrome-filter: none;
-  --glass-overlay-filter: none;
-}
-[data-material="glass"][data-surface="white"][data-transparency="reduced"] {
-  --glass-field-a: 0.9;
-}
+/* Reduce transparency on the bars, for Standard as well as glass: solid
+   card colour and no blur. */
 [data-transparency="reduced"] :is(.chrome-glass, .sidebar-panel) {
   background-color: rgb(var(--card));
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
 }
 @media (prefers-reduced-transparency: reduce) {
-  [data-material="glass"] {
-    --glass-panel-a: 0.94;
-    --glass-chrome-a: 0.96;
-    --glass-overlay-a: 0.98;
-    --glass-chrome-filter: none;
-    --glass-overlay-filter: none;
-  }
-  :is(.chrome-glass, .sidebar-panel) {
+  :root :is(.chrome-glass, .sidebar-panel) {
     background-color: rgb(var(--card));
     -webkit-backdrop-filter: none;
     backdrop-filter: none;

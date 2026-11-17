@@ -469,7 +469,7 @@ export const useChronicle = create<ChronicleState>()(
       // account's own pre-paint key (see `writeAppearance`), so the next cold
       // start paints this person's look and nobody else's.
       setThemeMode: (m) => {
-        applyThemeMode(m);
+        applyThemeMode(m, { animate: true });
         writeAppearance("theme", m);
         set({ themeMode: m });
       },

@@ -99,8 +99,10 @@ export function CommandPanel() {
        photo to download — so it costs nothing and re-tints with the accent.
 
        `on-media` pins the subtree to a fixed light-on-dark palette, so the
-       copy stays legible on the dark panel whatever surface is chosen. */
-    <Card className="on-media relative isolate overflow-hidden rounded-3xl border-white/10 bg-[rgb(10,10,13)]">
+       copy stays legible on the dark panel whatever surface is chosen. The
+       panel and its tiles take their colours from the --hero-* tokens:
+       near-black on Light and Dark, deep sapphire on Blue Glass. */
+    <Card className="on-media relative isolate overflow-hidden rounded-3xl border-white/10 bg-[color:var(--hero-ink)]">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(70%_90%_at_100%_0%,rgb(var(--aura-1)/0.38),transparent_70%)]" />
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(60%_80%_at_0%_100%,rgb(var(--aura-2)/0.26),transparent_70%)]" />
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-accent/20 via-transparent to-transparent" />
@@ -118,7 +120,7 @@ export function CommandPanel() {
               “{quote}”
             </p>
             {profile.mission && (
-              <p className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-[rgb(6,6,8)]/70 px-3 py-1 text-xs text-white/90">
+              <p className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-[color:var(--hero-tile)] px-3 py-1 text-xs text-white/90">
                 <Target className="h-3.5 w-3.5" />
                 <span className="text-white/60">Mission</span> {profile.mission}
               </p>
@@ -131,7 +133,7 @@ export function CommandPanel() {
                 Log today
                 <ArrowUpRight className="h-4 w-4" />
               </Link>
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-[rgb(6,6,8)]/70 px-4 py-2.5 text-sm font-medium text-white/90">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-[color:var(--hero-tile)] px-4 py-2.5 text-sm font-medium text-white/90">
                 <Flame className="h-4 w-4 text-accent" />
                 {streak}-day streak
               </span>
@@ -139,7 +141,7 @@ export function CommandPanel() {
           </div>
 
           <div className="flex shrink-0 items-center justify-center">
-            <div className="rounded-full bg-[rgb(6,6,8)]/60 p-2.5 ring-1 ring-white/10">
+            <div className="rounded-full bg-[color:var(--hero-ring)] p-2.5 ring-1 ring-white/10">
               <RadialProgress
                 /* How much of this account's own journey, start date to exam, has passed. */
                 value={
@@ -246,7 +248,7 @@ function MediaStat({
   hint?: string;
 }) {
   return (
-    <div className="rounded-2xl border border-white/15 bg-[rgb(6,6,8)]/70 p-3.5 sm:p-4">
+    <div className="rounded-2xl border border-white/15 bg-[color:var(--hero-tile)] p-3.5 sm:p-4">
       <div className="flex items-center gap-2 text-white/85">
         <Icon className="h-3.5 w-3.5 text-accent" />
         {/* Two tiles per row on a phone: let the label wrap rather than
