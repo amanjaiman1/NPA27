@@ -6,7 +6,8 @@
    The Chronicle — design tokens.
 
    Two independent dimensions the user can choose:
-     • data-surface  → the canvas   (ivory · charcoal · indigo)
+     • data-surface  → the canvas   (white = Light · black = Dark), resolved
+                       from the Light / Dark / Auto choice (lib/theme.ts)
      • data-palette  → the accent   (crimson · amber · teal · …)
 
    Token model:
@@ -66,18 +67,20 @@
   color-scheme: light;
 }
 
-/* Pure Black — true #000 canvas for OLED. Cards sit just above the floor so
-   they still read as surfaces, and the ambient wash is dialled back: glow on
-   true black is what makes it look grey. */
+/* Dark — the night surface. Not an inversion and not true black: a
+   near-black canvas with cards a clear step above it and hairlines that
+   actually show, because on #000 every card, input and dialog melted into
+   the floor. Text is a soft white, which glares less than #fff over a long
+   evening of reading. */
 [data-surface="black"] {
-  --ink: 0 0 0;
-  --card: 13 13 15;
-  --paper: 245 245 246;
-  --line: 34 34 38;
+  --ink: 11 11 13;
+  --card: 22 22 25;
+  --paper: 238 238 242;
+  --line: 46 46 52;
   --shadow: 0 0 0;
   --scrim: 0 0 0;
-  /* Glow on true black just reads as grey, so this one keeps the least. */
-  --wash: 0.4;
+  /* A trace of the accent glow; much more reads as haze on a dark canvas. */
+  --wash: 0.32;
   --aura-1: 244 63 94;
   --aura-2: 99 102 241;
   --positive: 52 211 153;
@@ -87,60 +90,42 @@
   color-scheme: dark;
 }
 
-/* Indigo — deep blue night. */
-[data-surface="navy"] {
-  --ink: 15 18 33;
-  --card: 23 28 48;
-  --paper: 226 231 245;
-  --line: 41 48 74;
-  --shadow: 4 6 20;
-  --scrim: 2 4 14;
-  --wash: 0.8;
-  --aura-1: 96 165 250;
-  --aura-2: 167 139 250;
-  --positive: 52 211 153;
-  --warning: 251 191 36;
-  --danger: 251 113 133;
-  --info: 122 168 255;
-  color-scheme: dark;
+/* Secondary text is written as low-opacity ink (`text-paper/40`), tuned for
+   the light surface. The same opacity over a dark canvas falls under AA, so
+   on Dark the quietest steps are lifted. `:where()` keeps the specificity of
+   a plain utility, so hover and focus colours still win. */
+:where([data-surface="black"]) :is(.text-paper\/25, .text-paper\/30, .text-paper\/35) {
+  color: rgb(var(--paper) / 0.5);
 }
-
-/* Velvet — aubergine black lit from within. Warm violet cards, a magenta
-   ambient wash and the fullest glow of any surface. */
-[data-surface="velvet"] {
-  --ink: 16 7 25;
-  --card: 35 18 52;
-  --paper: 244 236 253;
-  --line: 66 38 94;
-  --shadow: 14 2 26;
-  --scrim: 9 2 18;
-  --wash: 1;
-  --aura-1: 173 71 255;
-  --aura-2: 255 61 158;
-  --positive: 74 222 176;
-  --warning: 252 200 68;
-  --danger: 253 126 145;
-  --info: 167 152 255;
-  color-scheme: dark;
+:where([data-surface="black"]) :is(.text-paper\/40, .text-paper\/45) {
+  color: rgb(var(--paper) / 0.58);
 }
-
-/* Abyss — deep-ocean black with a cyan cast. Cool, high-contrast, and the
-   accents read almost neon against it. */
-[data-surface="abyss"] {
-  --ink: 3 14 20;
-  --card: 8 31 41;
-  --paper: 226 244 248;
-  --line: 20 58 70;
-  --shadow: 0 8 14;
-  --scrim: 0 6 12;
-  --wash: 1;
-  --aura-1: 34 224 214;
-  --aura-2: 56 130 255;
-  --positive: 45 226 178;
-  --warning: 252 205 74;
-  --danger: 253 122 132;
-  --info: 90 200 255;
-  color-scheme: dark;
+:where([data-surface="black"]) :is(.text-paper\/50, .text-paper\/55) {
+  color: rgb(var(--paper) / 0.64);
+}
+:where([data-surface="black"]) .text-paper\/60 {
+  color: rgb(var(--paper) / 0.7);
+}
+/* The faint washes used for wells, inputs and hover fills nearly vanish on a
+   dark card; give them one more step. */
+:where([data-surface="black"]) :is(.bg-paper\/\[0\.02\], .bg-paper\/\[0\.03\]) {
+  background-color: rgb(var(--paper) / 0.045);
+}
+:where([data-surface="black"]) .bg-paper\/\[0\.04\] {
+  background-color: rgb(var(--paper) / 0.06);
+}
+:where([data-surface="black"]) :is(.hover\:bg-paper\/\[0\.05\], .hover\:bg-paper\/\[0\.06\]):hover {
+  background-color: rgb(var(--paper) / 0.09);
+}
+:where([data-surface="black"]) :is(.border-paper\/\[0\.06\], .border-paper\/\[0\.08\]) {
+  border-color: rgb(var(--paper) / 0.12);
+}
+/* Chart gridlines. */
+:where([data-surface="black"]) .stroke-paper\/\[0\.06\] {
+  stroke: rgb(var(--paper) / 0.11);
+}
+:where([data-surface="black"]) .fill-paper\/30 {
+  fill: rgb(var(--paper) / 0.5);
 }
 
 /* ── Palettes ─────────────────────────────────────────────────────────
@@ -687,7 +672,7 @@ samp {
    * current surface's text colour survives, the region flips to a fixed
    * dark-on-media palette. Every token-based utility inside it (`text-paper/60`,
    * `border-line`, `bg-card`, `.eyebrow`, the progress ring) then resolves to
-   * light-on-dark automatically, on all five surfaces.
+   * light-on-dark automatically, on either surface.
    */
   .on-media {
     --ink: 6 6 8;
@@ -768,8 +753,8 @@ samp {
   }
 
   /* The page-transition dots (`public/loading (2).lottie`) are three light
-     greys — 174–216 — which sit beautifully on the four dark surfaces and all
-     but vanish on the one light one, where they measure under 1.5:1 against the
+     greys — 174–216 — which sit beautifully on the dark surface and all
+     but vanish on the light one, where they measure under 1.5:1 against the
      canvas. Inverting luminance there maps them to the equivalent dark greys.
      The dots are very close to neutral, so an invert shifts no hue; recolouring
      the Lottie's fills at runtime would be the alternative, and this is one line

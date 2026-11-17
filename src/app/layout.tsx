@@ -95,7 +95,13 @@ const themeScript = `
       id = s && s.user && s.user.id ? s.user.id : null;
     }
     var get = function (k, f) { return (id && localStorage.getItem('upsc-chronicle-' + k + ':' + id)) || f; };
-    d.setAttribute('data-surface', get('surface', 'white'));
+    // Light / Dark / Auto. A browser that last ran the five-surface version
+    // still has only the old key; Ivory meant light and the rest were dark.
+    var mode = get('theme', '');
+    if (!mode) { var old = get('surface', 'white'); mode = old === 'white' ? 'light' : 'dark'; }
+    var dark = mode === 'dark' || (mode === 'system' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    d.setAttribute('data-surface', dark ? 'black' : 'white');
+    d.setAttribute('data-theme-mode', mode);
     d.setAttribute('data-palette', get('palette', 'rose'));
     d.setAttribute('data-wallpaper', get('wallpaper', 'none'));
     d.style.setProperty('--wp-dim', get('wallpaper-dim', '0'));

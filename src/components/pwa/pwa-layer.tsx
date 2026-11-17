@@ -5,6 +5,7 @@ import { RefreshCw, WifiOff } from "lucide-react";
 import { useServiceWorker } from "@/lib/pwa";
 import { InstallPrompt } from "./install-prompt";
 import { ThemeColorSync } from "./theme-color-sync";
+import { ThemeModeSync } from "./theme-mode-sync";
 
 /**
  * Everything the installed app needs on top of the normal page tree:
@@ -20,6 +21,7 @@ export function PwaLayer() {
 
   return (
     <>
+      <ThemeModeSync />
       <ThemeColorSync />
       <InstallPrompt />
 
@@ -47,7 +49,7 @@ export function PwaLayer() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 12, scale: 0.98 }}
             transition={{ duration: 0.26, ease: [0.22, 1, 0.36, 1] }}
-            className="fixed bottom-3 left-1/2 z-[65] -translate-x-1/2"
+            className="fixed bottom-[calc(var(--bottom-nav-h,0px)+0.75rem)] left-1/2 z-[65] -translate-x-1/2"
             role="status"
           >
             <div className="flex items-center gap-3 rounded-full border border-line bg-card/95 py-1.5 pl-4 pr-1.5 shadow-lift backdrop-blur-xl">

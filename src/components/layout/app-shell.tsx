@@ -10,6 +10,8 @@ import { PageTransition } from "./page-transition";
 import { Topbar } from "./topbar";
 import { CommandPalette } from "./command-palette";
 import { AppearanceModal } from "./appearance";
+import { BottomNav } from "./bottom-nav";
+import { FileJanitor } from "@/components/attachments/file-janitor";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
@@ -64,8 +66,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <Wallpaper />
 
       {/* Ambient canvas — two wide, very soft accent washes, scaled per surface
-          by --wash. Pure black keeps the least (glow on true black just reads
-          as grey); Velvet and Abyss take the most. */}
+          by --wash. Dark keeps less of it: glow on a dark canvas reads as haze. */}
       <div
         className="pointer-events-none fixed inset-0 -z-10 overflow-hidden"
         style={{ opacity: "var(--wash, 1)" }}
@@ -136,11 +137,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           onOpenAppearance={() => setAppearanceOpen(true)}
         />
         <main className="no-scrollbar relative flex-1 overflow-y-auto">
-          <div className="mx-auto w-full max-w-[1240px] px-4 py-8 sm:px-6 lg:px-10 lg:py-12">
+          {/* Bottom padding clears the phone's bottom bar. */}
+          <div className="mx-auto w-full max-w-[1240px] px-4 pb-[calc(var(--bottom-nav-h,0px)+2rem)] pt-8 sm:px-6 lg:px-10 lg:py-12">
             <PageTransition>{children}</PageTransition>
           </div>
         </main>
       </div>
+
+      <BottomNav onOpenMenu={() => setDrawerOpen(true)} />
+      <FileJanitor />
 
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
       <AppearanceModal

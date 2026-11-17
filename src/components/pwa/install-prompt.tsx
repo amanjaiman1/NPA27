@@ -32,7 +32,7 @@ export function InstallPrompt() {
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 16, scale: 0.98 }}
           transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-          className="fixed inset-x-3 bottom-3 z-[60] sm:inset-x-auto sm:bottom-5 sm:right-5 sm:w-[22rem]"
+          className="fixed inset-x-3 bottom-[calc(var(--bottom-nav-h,0px)+0.75rem)] z-[60] sm:inset-x-auto sm:bottom-5 sm:right-5 sm:w-[22rem]"
           role="dialog"
           aria-label="Install DoOrDie"
         >
