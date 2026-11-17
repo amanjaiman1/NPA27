@@ -102,19 +102,34 @@ async function onboard(page, expectedName) {
   await page.getByRole("button", { name: "Start my chronicle" }).click();
 }
 
+/** The morning check-in can be skipped; scenario 9 records sleep properly. */
 async function passSleepPromptIfShown(page) {
-  const prompt = page.getByText("When did you go to sleep?");
+  const prompt = page.getByTestId("sleep-prompt");
   try {
     await prompt.waitFor({ timeout: 4000 });
   } catch {
     return;
   }
-  const times = page.locator('input[type="time"]');
-  await times.nth(0).fill("23:00");
-  await times.nth(1).fill("06:30");
-  await page.getByRole("button", { name: "Start my day" }).click();
+  await prompt.getByRole("button", { name: "Skip for today" }).click();
   await prompt.waitFor({ state: "detached" });
 }
+
+/** Picks a time in the sleep card's picker, by typing or by tapping hour and minute. */
+async function pickTime(page, field, { type, hour, minute }) {
+  await field.click();
+  const sheet = page.getByTestId("time-sheet");
+  await sheet.waitFor();
+  if (type) {
+    await sheet.getByLabel("Or type it").fill(type);
+    await sheet.getByRole("button", { name: "Set", exact: true }).click();
+  } else {
+    await sheet.getByRole("button", { name: hour, exact: true }).click();
+    await sheet.getByRole("button", { name: minute, exact: true }).click();
+  }
+  await sheet.waitFor({ state: "detached" });
+}
+const lifeDayOf = async (email, date) => (await cloudOf(email))?.data?.lifeLog?.find((l) => l.date === date);
+const htmlAttr = (pg, name) => pg.evaluate((n) => document.documentElement.getAttribute(n), name);
 
 async function signIn(page, email, password = PASSWORD) {
   await page.goto(`${APP}/login`);
@@ -448,8 +463,107 @@ async function main() {
       });
     });
 
-    await scenario("9. After sign-out nothing private is reachable", async () => {
+    await scenario("9. Sleep is recorded in a few taps, edited, and deleted without touching the rest of the day", async () => {
+      const p = phonePage;
+      // Another reading on the same day, from the Life Dashboard form.
+      await p.goto(`${APP}/wellbeing?log=1`);
+      const form = p.getByRole("dialog", { name: /the day$/ });
+      await form.waitFor();
+      await form.getByLabel("Water (L)").fill("2.5");
+      await form.getByRole("button", { name: "Save", exact: true }).click();
+      await form.waitFor({ state: "detached" });
+      await waitFor("the water reading in the cloud", async () => (await lifeDayOf(A.email, today()))?.waterLiters === 2.5);
+
+      await p.goto(`${APP}/wellbeing`);
+      const card = p.getByTestId("sleep-card");
+      await card.waitFor();
+      // Bedtime typed, the keyboard way; wake-up tapped, hour then minute.
+      await pickTime(p, card.getByRole("button", { name: /^Went to bed: not set/ }), { type: "2330" });
+      await pickTime(p, card.getByRole("button", { name: /^Woke up: not set/ }), { hour: "7 AM", minute: "0 minutes" });
+      await card.getByTestId("sleep-duration").getByText("7h 30m").waitFor();
+      await card.getByTestId("sleep-save").click();
+      const saved = await waitFor("the night in the cloud", async () => {
+        const day = await lifeDayOf(A.email, today());
+        return day?.sleepHours === 7.5 ? day : null;
+      });
+      check(saved.bedtime === "23:30" && saved.wakeTime === "07:00", `stored ${saved.bedtime}–${saved.wakeTime}`);
+      check(saved.waterLiters === 2.5, "recording sleep lost the day's water reading");
+
+      // Edit the wake-up: only the minute changes.
+      await pickTime(p, card.getByRole("button", { name: /^Woke up: 7:00 AM/ }), { hour: "7 AM", minute: "15 minutes" });
+      await card.getByTestId("sleep-duration").getByText("7h 45m").waitFor();
+      await card.getByTestId("sleep-save").click();
+      await waitFor("the edit in the cloud", async () => (await lifeDayOf(A.email, today()))?.sleepHours === 7.75);
+
+      // Impossible times aren't saved.
+      await pickTime(p, card.getByRole("button", { name: /^Went to bed: 11:30 PM/ }), { type: "7:15am" });
+      await card.getByText("Bedtime and wake-up can't be the same time.").waitFor();
+      await pickTime(p, card.getByRole("button", { name: /^Went to bed: 7:15 AM/ }), { type: "11:30 pm" });
+
+      // The history lists it, and deleting it keeps the day's other reading.
+      await p.goto(`${APP}/wellbeing/sleep`);
+      const history = p.getByTestId("sleep-history");
+      await history.getByTestId("sleep-night").first().getByText("7h 45m").waitFor();
+      await history.getByRole("button", { name: /^Delete the night of/ }).first().click();
+      await p.getByRole("dialog", { name: "Delete this night's sleep?" }).getByRole("button", { name: "Delete night" }).click();
+      await waitFor("the night deleted, the water kept", async () => {
+        const day = await lifeDayOf(A.email, today());
+        return Boolean(day && day.waterLiters === 2.5 && !day.bedtime && !day.wakeTime && day.sleepHours === undefined);
+      });
+      check(!JSON.stringify((await cloudOf(B.email))?.data?.lifeLog ?? []).includes("23:30"), "A's sleep reached B");
+    });
+
+    await scenario("10. Liquid Glass follows the account, on either theme, without a flash", async () => {
+      await page.goto(`${APP}/settings#appearance`);
+      await passSleepPromptIfShown(page);
+      const surface = await htmlAttr(page, "data-surface");
+      check(surface === "black", "A's dark theme from scenario 2 isn't showing");
+      await page.getByRole("switch", { name: "Liquid Glass" }).click();
+      check((await htmlAttr(page, "data-material")) === "glass", "glass wasn't applied");
+      check((await htmlAttr(page, "data-surface")) === surface, "turning glass on changed the theme");
+      const cardAlpha = () =>
+        page.evaluate(() => {
+          const c = getComputedStyle(document.querySelector("main .bg-card")).backgroundColor;
+          const m = /rgba?\(([^)]+)\)/.exec(c);
+          const parts = m ? m[1].split(/[ ,/]+/).filter(Boolean) : [];
+          return parts.length === 4 ? Number(parts[3]) : 1;
+        });
+      // Surfaces ease across for under half a second; then cards are see-through.
+      await waitFor("translucent cards", async () => (await cardAlpha()) < 0.8, 5000);
+      await waitFor("glass in A's cloud copy", async () => (await cloudOf(A.email))?.data?.material === "glass");
+      check((await cloudOf(A.email)).data.themeMode === "dark", "the synced theme changed with glass");
+
+      // The theme can still be changed underneath it.
+      await page.getByRole("radio", { name: /^Light/ }).click();
+      check((await htmlAttr(page, "data-material")) === "glass" && (await htmlAttr(page, "data-surface")) === "white", "Light + glass");
+      await page.getByRole("radio", { name: /^Dark/ }).click();
+
+      // Reduce transparency keeps glass but makes it nearly solid.
+      await page.getByRole("switch", { name: "Reduce transparency" }).click();
+      check((await htmlAttr(page, "data-transparency")) === "reduced", "reduce transparency not applied");
+      await waitFor("nearly solid cards", async () => (await cardAlpha()) > 0.9, 5000);
+      await page.getByRole("switch", { name: "Reduce transparency" }).click();
+
+      // Painted before the app loads, so a reload never flashes Standard.
+      await page.addInitScript(() => {
+        new MutationObserver((_, obs) => {
+          if (!document.body) return;
+          window.__firstPaintMaterial = document.documentElement.getAttribute("data-material");
+          obs.disconnect();
+        }).observe(document, { childList: true, subtree: true });
+      });
+      await page.reload();
+      check((await page.evaluate(() => window.__firstPaintMaterial)) === "glass", "glass isn't painted before the app loads");
+
+      // And it reaches A's other device.
+      await phonePage.reload();
+      await waitFor("glass on the phone", async () => (await htmlAttr(phonePage, "data-material")) === "glass");
+      check((await htmlAttr(phonePage, "data-surface")) === "black", "the phone lost the dark theme");
+    });
+
+    await scenario("11. After sign-out nothing private is reachable", async () => {
       await signOut(page);
+      check((await htmlAttr(page, "data-material")) === "standard", "the signed-out screen kept A's glass");
       await page.goto(`${APP}/journal/${today()}`);
       await page.waitForURL(/\/login/);
       check(!(await page.content()).includes("A-only highlight"), "A's journal is still rendered");
@@ -457,13 +571,13 @@ async function main() {
       check(!keys.some((k) => k.startsWith("upsc-chronicle-store")), `stores left behind: ${keys}`);
     });
 
-    await scenario("10. Notification preferences are per account", async () => {
+    await scenario("12. Notification preferences are per account", async () => {
       const a = await cloudOf(A.email);
       const b = await cloudOf(B.email);
       check(a.data.notify.digest === false && b.data.notify?.digest !== false, "digest settings crossed accounts");
     });
 
-    await scenario("11. Pre-account data on the owner's browser moves into the owner's account only", async () => {
+    await scenario("13. Pre-account data on the owner's browser moves into the owner's account only", async () => {
       const owner = await (await fetch(`${MOCK}/auth/v1/signup`, {
         method: "POST",
         headers: { apikey: mockEnv.NEXT_PUBLIC_SUPABASE_ANON_KEY, "Content-Type": "application/json" },
@@ -505,7 +619,7 @@ async function main() {
     });
 
     const cPage = await (await browser.newContext()).newPage();
-    await scenario("12. A fresh account starts clean, with only reference content", async () => {
+    await scenario("14. A fresh account starts clean, with only reference content", async () => {
       await signIn(cPage, C.email);
       await onboard(cPage, C.name);
       await passSleepPromptIfShown(cPage);
@@ -524,7 +638,7 @@ async function main() {
       await waitFor("C's file in Storage", async () => (await storedFor(ids.C)).length === 1);
     });
 
-    await scenario("13. Deleting an account removes only that account", async () => {
+    await scenario("15. Deleting an account removes only that account", async () => {
       await cPage.goto(`${APP}/settings#danger`);
       await cPage.getByRole("button", { name: "Delete my account" }).click();
       const dialog = cPage.getByRole("dialog", { name: "Delete your account?" });
@@ -565,6 +679,7 @@ async function main() {
       await signIn(p, B.email, "brandNew2028");
       await passSleepPromptIfShown(p);
       await dashboardGreets(p, "Student");
+      check((await htmlAttr(p, "data-material")) === "standard", "B got A's Liquid Glass");
     });
 
     await scenario("An expired reset link explains itself", async () => {

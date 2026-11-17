@@ -519,18 +519,15 @@ async function toWebp(browser: Browser, png: Buffer, quality = 0.84): Promise<Bu
   return Buffer.from(dataUrl.split(",")[1], "base64");
 }
 
-/** The morning check-in blocks the app until answered. */
+/** The morning check-in comes before the app; the sample account skips it. */
 async function passSleepPromptIfShown(page: Page) {
-  const prompt = page.getByText("When did you go to sleep?");
+  const prompt = page.getByTestId("sleep-prompt");
   try {
     await prompt.waitFor({ timeout: 5000 });
   } catch {
     return;
   }
-  const times = page.locator('input[type="time"]');
-  await times.nth(0).fill("23:10");
-  await times.nth(1).fill("06:20");
-  await page.getByRole("button", { name: "Start my day" }).click();
+  await prompt.getByRole("button", { name: "Skip for today" }).click();
   await prompt.waitFor({ state: "detached" });
 }
 
@@ -554,7 +551,7 @@ async function shoot(browser: Browser, page: Page, name: string, path: string, b
 async function main() {
   mkdirSync(OUT, { recursive: true });
   const backupFile = join(root, ".next", "sample-account.json");
-  writeFileSync(backupFile, JSON.stringify({ app: "the-upsc-chronicle", schemaVersion: 12, data: sampleData() }));
+  writeFileSync(backupFile, JSON.stringify({ app: "the-upsc-chronicle", schemaVersion: 13, data: sampleData() }));
 
   await start("node", ["scripts/mock-supabase.mjs"], "Mock Supabase on");
   await start("npx", ["next", "start", "-p", "3100"], "Ready");

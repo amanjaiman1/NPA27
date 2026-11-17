@@ -141,9 +141,14 @@ test("spans never run past today or backwards", () => {
   assert.deepEqual(presetSpan("7d", TODAY), { from: "2026-11-09", to: TODAY });
 });
 
-test("the form asks for what you chose, else what you've used, else a short core list", () => {
+test("the form asks for what you chose, else a short core list plus what you've used", () => {
   assert.deepEqual(trackedFields(undefined, []), CORE_LIFE_FIELDS);
-  assert.deepEqual(trackedFields(undefined, [{ id: "a", date: TODAY, weightKg: 70 }, { id: "b", date: TODAY, bedtime: "23:00" }]), ["sleep", "weight"]);
+  assert.deepEqual(
+    trackedFields(undefined, [{ id: "a", date: TODAY, weightKg: 70 }]),
+    ["sleep", "exercise", "water", "screen", "weight"],
+    "the core list plus what you've recorded",
+  );
+  assert.deepEqual(trackedFields(undefined, [{ id: "a", date: TODAY, waterLiters: 2 }]), CORE_LIFE_FIELDS, "one reading never hides the rest");
   assert.deepEqual(trackedFields(["water", "deepWork"], [{ id: "a", date: TODAY, weightKg: 70 }]), ["water", "deepWork"]);
 });
 
@@ -163,10 +168,11 @@ test("the life form keeps blanks as not recorded and a typed 0 as 0", () => {
 });
 
 test("the life form works out sleep from the times, checks ranges and refuses future days", () => {
-  assert.equal(sleepFromTimes("23:30", "06:45"), 7.25);
-  assert.equal(sleepFromTimes("23:20", "06:40"), 7.33);
-  assert.equal(sleepFromTimes("01:00", "07:00"), 6, "after midnight");
-  assert.equal(sleepFromTimes("23:30", ""), null);
+  const at = (bedtime: string, wakeTime: string) => sleepFromTimes({ date: TODAY, bedtime, wakeTime });
+  assert.equal(at("23:30", "06:45"), 7.25);
+  assert.equal(at("23:20", "06:40"), 7.33);
+  assert.equal(at("01:00", "07:00"), 6, "after midnight");
+  assert.equal(at("23:30", ""), null);
 
   const d = draftFromEntry(TODAY);
   d.bedtime = "23:00";
@@ -176,8 +182,19 @@ test("the life form works out sleep from the times, checks ranges and refuses fu
   d.numbers.sleepHours = "30";
   d.numbers.weightKg = "abc";
   const bad = entryFromDraft(d, TODAY);
-  assert.ok(bad.errors.sleepHours);
+  assert.ok(bad.errors.sleepHours, "time asleep over 18 hours");
   assert.ok(bad.errors.weightKg);
+
+  const same = draftFromEntry(TODAY);
+  same.bedtime = "07:00";
+  same.wakeTime = "07:00";
+  assert.ok(entryFromDraft(same, TODAY).errors.sleepTimes, "bedtime and wake-up can't match");
+
+  // Hours that just repeat bedtime to wake-up aren't shown as a separate answer.
+  const derived = draftFromEntry(TODAY, { id: "x", date: TODAY, bedtime: "23:00", wakeTime: "06:30", sleepHours: 7.5 });
+  assert.equal(derived.numbers.sleepHours, "");
+  const asleep = draftFromEntry(TODAY, { id: "x", date: TODAY, bedtime: "23:00", wakeTime: "06:30", sleepHours: 6.75 });
+  assert.equal(asleep.numbers.sleepHours, "6.75", "time asleep entered by hand is kept");
 
   const future = draftFromEntry("2026-11-16");
   future.numbers.waterLiters = "2";
