@@ -15,7 +15,8 @@ const BLOOM = [
 
 export interface BarDatum {
   label: string;
-  value: number;
+  /** `null` means nothing was recorded: drawn as a gap, never as a zero bar. */
+  value: number | null;
   sublabel?: string;
 }
 
@@ -27,6 +28,7 @@ export function BarChart({
   formatValue = (v) => String(v),
   target,
   multicolor = false,
+  missingLabel = "Not recorded",
 }: {
   data: BarDatum[];
   height?: number;
@@ -36,9 +38,11 @@ export function BarChart({
   /** Colour each bar from the categorical palette instead of the accent.
    *  Off by default: a single series reads better in one colour. */
   multicolor?: boolean;
+  /** Tooltip for a slot with no reading. */
+  missingLabel?: string;
 }) {
   const [hover, setHover] = useState<number | null>(null);
-  const max = Math.max(...data.map((d) => d.value), target ?? 0, 1);
+  const max = Math.max(...data.map((d) => d.value ?? 0), target ?? 0, 1);
 
   return (
     <div className={cn("w-full min-w-0", className)}>
@@ -57,7 +61,8 @@ export function BarChart({
           </div>
         )}
         {data.map((d, i) => {
-          const pct = (d.value / max) * 100;
+          const missing = d.value == null;
+          const pct = ((d.value ?? 0) / max) * 100;
           const isLast = i === data.length - 1;
           const color = multicolor ? BLOOM[i % BLOOM.length] : "var(--accent)";
           return (
@@ -67,18 +72,22 @@ export function BarChart({
               onMouseEnter={() => setHover(i)}
               onMouseLeave={() => setHover(null)}
             >
-              <div
-                className="w-full rounded-t-[4px] transition-all duration-300"
-                style={{
-                  height: `${Math.max(pct, 1.5)}%`,
-                  backgroundColor: `rgb(${color})`,
-                  opacity: hover === i || isLast ? 1 : multicolor ? 0.78 : 0.62,
-                }}
-              />
+              {missing ? (
+                <div className="w-full border-t border-dashed border-paper/25" style={{ height: 3 }} aria-hidden />
+              ) : (
+                <div
+                  className="w-full rounded-t-[4px] transition-all duration-300"
+                  style={{
+                    height: `${Math.max(pct, 1.5)}%`,
+                    backgroundColor: `rgb(${color})`,
+                    opacity: hover === i || isLast ? 1 : multicolor ? 0.78 : 0.62,
+                  }}
+                />
+              )}
               {hover === i && (
                 <div className="pointer-events-none absolute -top-1 left-1/2 z-10 -translate-x-1/2 -translate-y-full whitespace-nowrap rounded-lg border border-line bg-card px-2 py-1 text-center shadow-lift">
-                  <p className="tabular text-xs font-semibold text-paper">
-                    {formatValue(d.value)}
+                  <p className={cn("tabular text-xs font-semibold", missing ? "text-paper/55" : "text-paper")}>
+                    {missing ? missingLabel : formatValue(d.value as number)}
                   </p>
                   {d.sublabel && (
                     <p className="text-[0.6rem] text-paper/50">{d.sublabel}</p>
