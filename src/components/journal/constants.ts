@@ -1,5 +1,6 @@
 import type { JournalEntry } from "@/lib/types";
 import { toISODate, uid } from "@/lib/utils";
+import { completedTopicsOf } from "@/lib/topics";
 
 export const MOOD_LABELS = ["", "Drained", "Low", "Steady", "Good", "In flow"];
 export const ENERGY_LABELS = ["", "Empty", "Low", "Okay", "High", "Charged"];
@@ -15,7 +16,7 @@ export function emptyEntry(date = toISODate(new Date())): JournalEntry {
     sleepTime: "",
     blocks: [{ subjectId: "", hours: 2 }],
     totalHours: 0,
-    topicsCompleted: [],
+    completedTopics: [],
     booksStudied: [],
     revisionSessions: [],
     mocksAttempted: [],
@@ -35,11 +36,11 @@ export function emptyEntry(date = toISODate(new Date())): JournalEntry {
 
 /** Normalise a stored entry into a fully-populated draft for editing. */
 export function toDraft(entry: JournalEntry): JournalEntry {
-  return {
+  const draft: JournalEntry = {
     ...emptyEntry(entry.date),
     ...entry,
     blocks: entry.blocks.map((b) => ({ ...b })),
-    topicsCompleted: [...(entry.topicsCompleted ?? [])],
+    completedTopics: completedTopicsOf(entry).map((c) => ({ ...c })),
     booksStudied: (entry.booksStudied ?? []).map((b) => ({ ...b })),
     revisionSessions: (entry.revisionSessions ?? []).map((r) => ({ ...r })),
     mocksAttempted: (entry.mocksAttempted ?? []).map((m) => ({ ...m })),
@@ -48,10 +49,12 @@ export function toDraft(entry: JournalEntry): JournalEntry {
     failures: [...(entry.failures ?? [])],
     lessons: [...(entry.lessons ?? [])],
     tags: [...(entry.tags ?? [])],
+    fileIds: [...(entry.fileIds ?? [])],
     motivation: entry.motivation ?? entry.focus ?? 3,
   };
+  delete draft.topicsCompleted;
+  return draft;
 }
-
 
 /**
  * Merge an edited list of label strings back into structured objects,

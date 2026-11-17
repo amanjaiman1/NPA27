@@ -5,13 +5,13 @@ import { cn } from "@/lib/utils";
  * The elevated surface everything sits on: a solid card, lifted off the canvas
  * by a soft wide shadow rather than a hard border.
  */
-export function Card({
-  className,
-  hover = false,
-  ...props
-}: React.HTMLAttributes<HTMLDivElement> & { hover?: boolean }) {
+export const Card = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement> & { hover?: boolean }
+>(function Card({ className, hover = false, ...props }, ref) {
   return (
     <div
+      ref={ref}
       className={cn(
         // min-w-0: a card must be able to shrink to the column it's in. Without
         // it, `min-width: auto` lets the widest word inside stretch the layout
@@ -24,7 +24,7 @@ export function Card({
       {...props}
     />
   );
-}
+});
 
 export function CardHeader({
   className,
