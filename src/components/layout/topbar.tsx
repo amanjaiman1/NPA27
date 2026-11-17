@@ -65,8 +65,8 @@ export function Topbar({
           <Menu className="h-5 w-5" />
         </IconButton>
         <Link
-          href="/"
-          aria-label="DoOrDie — home"
+          href="/dashboard"
+          aria-label="DoOrDie — dashboard"
           className="flex items-center gap-2 pl-1 lg:hidden"
         >
           <Logo className="h-6 w-6" />

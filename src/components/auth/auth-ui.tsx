@@ -15,7 +15,7 @@ export function AuthFrame({ children }: { children: React.ReactNode }) {
   return (
     <FullScreen>
       <div className="w-full max-w-[25rem]">
-        <Link href="/welcome" className="mb-7 flex flex-col items-center text-center">
+        <Link href="/" className="mb-7 flex flex-col items-center text-center">
           <Logo className="h-11 w-11" />
           <span className="mt-4 font-display text-[1.6rem] font-bold tracking-tightest text-paper">
             DoOrDie
@@ -177,9 +177,11 @@ export function AuthPending({ label }: { label: string }) {
   );
 }
 
-/** A `next` path that stays on this site, or `/`. Blocks open redirects. */
+/** A `next` path that stays on this site, or the dashboard. Blocks open redirects. */
 export function safeNext(raw: string | null | undefined): string {
-  if (!raw || !raw.startsWith("/") || raw.startsWith("//") || raw.startsWith("/\\")) return "/";
+  if (!raw || !raw.startsWith("/") || raw.startsWith("//") || raw.startsWith("/\\")) return "/dashboard";
+  // The home page is the public site; after signing in, "home" means the app.
+  if (raw === "/") return "/dashboard";
   return raw;
 }
 

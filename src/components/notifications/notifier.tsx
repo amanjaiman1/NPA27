@@ -115,7 +115,7 @@ export function Notifier() {
      * The digest links home, not to any one page — picking the top notice's
      * destination would silently drop the other things it is telling you about.
      */
-    const href = digest ? "/" : plan.notices[0].href;
+    const href = digest ? "/dashboard" : plan.notices[0].href;
     const tag = digest ? "chronicle-digest" : plan.notices[0].dedupeKey;
 
     let cancelled = false;

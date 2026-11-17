@@ -327,9 +327,19 @@ export function nextExamYear(today = new Date()): number {
   return today.getMonth() >= 5 ? today.getFullYear() + 1 : today.getFullYear();
 }
 
-/** An estimate until the official calendar is out; editable at any time. */
+/**
+ * Prelims dates from UPSC's published examination calendars. Add each year
+ * when UPSC publishes its calendar (usually in the May before). The public
+ * countdown (app/(marketing)/resources/upsc-prelims-2027-countdown) uses the
+ * same date, so the two never disagree.
+ */
+export const OFFICIAL_PRELIMS_DATES: Record<number, string> = {
+  2027: "2027-05-23", // UPSC Examination Calendar 2027
+};
+
+/** The official date when known, otherwise an estimate (late May). Editable at any time. */
 export function estimatedPrelimsDate(year: number): string {
-  return `${year}-05-24`;
+  return OFFICIAL_PRELIMS_DATES[year] ?? `${year}-05-24`;
 }
 
 /** What first-run setup collects. */

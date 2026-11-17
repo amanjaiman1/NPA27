@@ -42,7 +42,7 @@ export const navGroups: NavGroup[] = [
   {
     label: "Command",
     items: [
-      { label: "Command Center", href: "/", icon: LayoutDashboard, short: "Dashboard overview" },
+      { label: "Command Center", href: "/dashboard", icon: LayoutDashboard, short: "Dashboard overview" },
       { label: "Roadmap", href: "/roadmap", icon: Route, short: "The CSE 2027 week-by-week plan" },
       { label: "Milestone Timeline", href: "/timeline", icon: Milestone, short: "The journey so far" },
     ],
@@ -84,7 +84,7 @@ export const navGroups: NavGroup[] = [
   {
     label: "Endgame",
     items: [
-      { label: "AI Study Coach", href: "/coach", icon: Sparkles, short: "Insights & guidance" },
+      { label: "Study Coach", href: "/coach", icon: Sparkles, short: "Insights & guidance" },
       { label: "Selection Archive", href: "/archive", icon: Trophy, short: "The result journey" },
     ],
   },
@@ -121,8 +121,5 @@ export const allNavItems: NavItem[] = navGroups.flatMap((g) => g.items);
 export const searchableNavItems: NavItem[] = [...allNavItems, ...metricNavItems];
 
 export function findNavItem(pathname: string): NavItem | undefined {
-  if (pathname === "/") return allNavItems[0];
-  return allNavItems
-    .filter((i) => i.href !== "/")
-    .find((i) => pathname.startsWith(i.href));
+  return allNavItems.find((i) => pathname === i.href || pathname.startsWith(`${i.href}/`));
 }

@@ -24,7 +24,7 @@ export function RequireAccount({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!signedOut) return;
-    const next = pathname && pathname !== "/" ? `next=${encodeURIComponent(pathname)}` : "";
+    const next = pathname && pathname !== "/dashboard" ? `next=${encodeURIComponent(pathname)}` : "";
     if (auth.endedReason === "signedOut") router.replace("/welcome");
     else if (auth.endedReason === "ended") router.replace(`/login?ended=1${next ? `&${next}` : ""}`);
     else router.replace(next ? `/login?${next}` : "/welcome");

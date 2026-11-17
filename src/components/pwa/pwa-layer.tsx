@@ -12,8 +12,8 @@ import { ThemeColorSync } from "./theme-color-sync";
  *   • a nudge when a newer build is waiting, and
  *   • an offline indicator (the app keeps working — data lives locally).
  *
- * Rendered once, from the root layout, outside the auth gate so it is present
- * on the sign-in screen too.
+ * Rendered once, from `(product)/layout.tsx`, outside the auth gate so it is
+ * present on the sign-in screen too. The public marketing pages don't load it.
  */
 export function PwaLayer() {
   const { updateReady, applyUpdate, offline } = useServiceWorker();

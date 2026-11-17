@@ -1,7 +1,17 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  images: {
+    // Screenshots on the public site are served as AVIF where the browser
+    // supports it, WebP otherwise.
+    formats: ["image/avif", "image/webp"],
+  },
   async headers() {
     return [
+      {
+        // JSON from the API is never a search result.
+        source: "/api/:path*",
+        headers: [{ key: "X-Robots-Tag", value: "noindex" }],
+      },
       {
         // The worker must never be served stale, or updates can't roll out.
         source: "/sw.js",

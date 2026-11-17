@@ -666,9 +666,6 @@ export function CoachNudge() {
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             <h3 className="text-base font-semibold text-paper">Coach’s read</h3>
-            <span className="rounded-full border border-line px-1.5 py-0.5 text-[0.55rem] uppercase tracking-wider text-paper/40">
-              AI
-            </span>
           </div>
           <p className="mt-1.5 text-sm leading-relaxed text-paper/55">{insight}</p>
           <Link

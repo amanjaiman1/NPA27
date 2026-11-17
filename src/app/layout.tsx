@@ -1,9 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Comfortaa, Poppins } from "next/font/google";
 import "./globals.css";
-import { AuthProvider } from "@/components/auth/auth-provider";
-import { ConfirmProvider } from "@/components/ui/confirm-dialog";
-import { PwaLayer } from "@/components/pwa/pwa-layer";
+import { INDEXABLE, SITE, SITE_URL } from "@/lib/seo/config";
+import { PAGES } from "@/lib/seo/pages";
 
 /* Two faces, and only two — both geometric, so the whole app speaks with one
    voice: Comfortaa for display (rounded, characterful) and Poppins for
@@ -25,18 +24,26 @@ const poppins = Poppins({
   display: "swap",
 });
 
+/**
+ * Defaults for every page. Public pages override title, description and
+ * canonical through `pageMetadata`; the app and its sign-in screens are
+ * marked noindex in `(product)/layout.tsx`.
+ */
 export const metadata: Metadata = {
-  title: "DoOrDie — Your Preparation, Documented",
-  description:
-    "A personal operating system for the UPSC journey. Document and visualize every day of preparation from Day 1 until final selection.",
-  applicationName: "DoOrDie",
-  keywords: [
-    "UPSC",
-    "Civil Services",
-    "study journal",
-    "preparation tracker",
-    "analytics",
-  ],
+  metadataBase: new URL(SITE_URL),
+  title: { default: PAGES.home.title, template: `%s | ${SITE.name}` },
+  description: PAGES.home.description,
+  applicationName: SITE.name,
+  category: "education",
+  // Previews and local builds must never be indexed (see lib/seo/config.ts).
+  robots: INDEXABLE ? { index: true, follow: true } : { index: false, follow: false },
+  openGraph: {
+    type: "website",
+    siteName: SITE.name,
+    locale: SITE.locale,
+    images: [{ ...SITE.ogImage }],
+  },
+  twitter: { card: "summary_large_image" },
   // Installable app metadata
   manifest: "/manifest.webmanifest",
   appleWebApp: {
@@ -52,9 +59,12 @@ export const metadata: Metadata = {
     apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180" }],
   },
   formatDetection: { telephone: false },
-  // Google Search Console ownership check. Google re-checks it from time to
+  // Search engine ownership checks. Google re-checks its token from time to
   // time, so removing it un-verifies the site.
-  verification: { google: "VLuFtKkzlfkVgvIH-R34-EQzd3ntjZ5FjUffHpd-Sng" },
+  verification: {
+    google: SITE.googleVerification,
+    ...(SITE.bingVerification ? { other: { "msvalidate.01": SITE.bingVerification } } : {}),
+  },
 };
 
 export const viewport: Viewport = {
@@ -120,12 +130,9 @@ export default function RootLayout({
       <body
         className={`${poppins.variable} ${comfortaa.variable} antialiased`}
       >
-        <AuthProvider>
-          <ConfirmProvider>
-            {children}
-            <PwaLayer />
-          </ConfirmProvider>
-        </AuthProvider>
+        {/* Accounts, dialogs and the PWA layer load in (product)/layout.tsx,
+            so the public pages ship none of that JavaScript. */}
+        {children}
       </body>
     </html>
   );
