@@ -9,6 +9,11 @@ their devices through Supabase and kept within Supabase's free plan.
   Supabase (Auth + Postgres), deployed on Vercel.
 - **How accounts, sync and isolation work:** [`docs/accounts.md`](docs/accounts.md).
 - **Notifications and background push:** [`docs/notifications.md`](docs/notifications.md).
+- **The public site and SEO:** [below](#public-site-and-seo), and the setup steps
+  in [`docs/SEO_SETUP_GUIDE.md`](docs/SEO_SETUP_GUIDE.md).
+
+The home page `/` is the public site. The app itself starts at **`/dashboard`**;
+someone already signed in who opens `/` is taken there.
 
 ---
 
@@ -51,6 +56,40 @@ To check isolation on the **real** project, paste `supabase/tests/rls_isolation.
 into the Supabase SQL Editor. It runs inside a transaction with two throwaway
 users, rolls everything back, and ends with `All isolation checks passed`.
 
+## Public site and SEO
+
+The site has two halves, kept apart by route groups:
+
+| Part | Where | Indexed |
+| --- | --- | --- |
+| Public pages: home, features, five feature pages, free tools, guides, about, contact, legal | `src/app/(marketing)/` | Yes (production only) |
+| The app and its sign-in screens | `src/app/(product)/` | No: every page answers `noindex` |
+
+The public pages are rendered on the server and load none of the app's account
+or storage code. Shared pieces:
+
+- `src/lib/seo/`: the site address (`NEXT_PUBLIC_SITE_URL`), the list of public
+  pages with their titles, descriptions and keywords (`pages.ts`), page metadata
+  and structured data.
+- `src/components/seo/` and `src/components/marketing/`: breadcrumbs, JSON-LD,
+  the header and footer, the free tools, and opt-in analytics.
+- `src/content/blog/`: the guides. The comment at the top of `index.ts` explains
+  how to add one.
+- `src/app/robots.ts` and `src/app/sitemap.ts`: built from the same page list.
+  Preview deployments disallow all crawling.
+
+| Command | What it does |
+| --- | --- |
+| `npm run seo:audit` | Builds as production against the mock Supabase and checks every sitemap page: status, one H1, title and description, canonical, Open Graph, structured data, alt text, broken links, orphan pages, JavaScript size; then that private pages are `noindex` and unknown URLs return 404. Add `-- --out file.md` for a report. Run `npm run build` afterwards. |
+| `npm run seo:suggest` | Collects Google search suggestions for the keyword research in `docs/seo-research/`. |
+| `npm run seo:screenshots` | Re-takes the product screenshots in `public/product/` from the real app with a made-up sample account. Run `npm run test:e2e` once first. |
+| `npm run seo:og` | Re-renders the social sharing image `public/og/doordie.png` from the screenshots. |
+
+Docs: [setup steps](docs/SEO_SETUP_GUIDE.md) ·
+[audit](docs/SEO_AUDIT.md) · [keyword map](docs/SEO_KEYWORD_MAP.md) ·
+[content roadmap](docs/SEO_CONTENT_ROADMAP.md) ·
+[competitors](docs/SEO_COMPETITOR_ANALYSIS.md).
+
 ## Set up Supabase
 
 ### 1. Database
@@ -91,6 +130,8 @@ Vercel → Project → Settings → Environment Variables.
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | browser + server | Accounts and sync (public; data is protected by RLS) |
 | `SUPABASE_SERVICE_ROLE_KEY` | **server only** | Account deletion, and background push. Never prefix it with `NEXT_PUBLIC_`. |
 | `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`, `CRON_SECRET` | see `docs/notifications.md` | Background push (optional) |
+| `NEXT_PUBLIC_SITE_URL` | browser + server | The public site's main address for canonical links, the sitemap and social previews (strongly recommended) |
+| `NEXT_PUBLIC_CONTACT_EMAIL`, `NEXT_PUBLIC_GA_MEASUREMENT_ID`, `NEXT_PUBLIC_BING_SITE_VERIFICATION` | see `docs/SEO_SETUP_GUIDE.md` | Contact address, opt-in analytics, Bing verification (optional) |
 
 ## Deploy to Vercel
 
@@ -161,3 +202,5 @@ Usage page stays comfortably inside the plan.
 - [ ] Choose whether "Allow new users to sign up" stays on.
 - [ ] Make sure `SUPABASE_SERVICE_ROLE_KEY` is set in Vercel (account deletion needs it).
 - [ ] Deploy, then open the app once on each of your devices.
+- [ ] Public site: set `NEXT_PUBLIC_SITE_URL`, submit the sitemap in Google Search
+      Console, and follow the rest of [`docs/SEO_SETUP_GUIDE.md`](docs/SEO_SETUP_GUIDE.md).

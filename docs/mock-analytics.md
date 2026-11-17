@@ -77,9 +77,10 @@ Each driver is tagged positive/negative and ranked by magnitude, producing a
 plain-English explanation like *"Scores have dipped — down 6 pts. Driver:
 Economy accuracy down 15 pts; negatives +4 marks."*
 
-### AI recommendations
+### Recommendations
 
-`recommendations` emits up to six prioritised cards from the data: shore up the
+Rule-based, not a language model. `recommendations` emits up to six
+prioritised cards from the data: shore up the
 weakest subject, tame negative marking (elimination rule), lift/!trim attempt
 rate, cap time on inefficient sections (high time + low accuracy), reverse a
 recent decline, and keep banking the strongest subject.
@@ -115,7 +116,7 @@ Hand-built SVG, grayscale (direction shown via fill/hollow + arrows, not colour)
 │  ⤴ WHY YOUR MARKS ARE MOVING            58% → 64%                  │
 │  ▲ Accuracy +6 pts   ▼ Economy −15 pts   ▲ Environment +13 pts    │
 ├───────────────────────────────┬──────────────────────────────────┤
-│  Subject-wise accuracy bars   │  ✦ AI recommendations (HIGH/MED)  │
+│  Subject-wise accuracy bars   │  ✦ Recommendations (HIGH/MED)     │
 ├───────────────────────────────┴──────────────────────────────────┤
 │  Time vs accuracy by section   │   Mock log table                 │
 └──────────────────────────────────────────────────────────────────┘
