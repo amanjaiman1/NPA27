@@ -340,7 +340,7 @@ function SummaryCell({
 }) {
   return (
     <Card className="p-3.5">
-      <p className="text-[0.62rem] font-semibold uppercase tracking-wider text-paper/55">{label}</p>
+      <p className="text-[0.72rem] font-semibold text-paper/55">{label}</p>
       <p className={cn("tabular mt-1 font-display text-xl font-bold", tone === "warning" ? "text-warning" : "text-paper")}>
         {value}
       </p>
@@ -352,7 +352,7 @@ function SummaryCell({
 function FilterField({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <p className="mb-1.5 text-[0.65rem] font-semibold uppercase tracking-wider text-paper/55">{label}</p>
+      <p className="mb-1.5 text-[0.72rem] font-semibold text-paper/55">{label}</p>
       {children}
     </div>
   );
@@ -437,7 +437,7 @@ function TopicRow({
               />
             </div>
             <div>
-              <p className="mb-1.5 text-[0.65rem] font-semibold uppercase tracking-wider text-paper/55">Recorded on</p>
+              <p className="mb-1.5 text-[0.72rem] font-semibold text-paper/55">Recorded on</p>
               <div className="flex flex-wrap gap-1.5">
                 {[...r.dates].reverse().map((d) => (
                   <Link
@@ -482,7 +482,7 @@ function scheduleText(nextDue: string, today: string): string {
 function Detail({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
     <div>
-      <p className="text-[0.65rem] font-semibold uppercase tracking-wider text-paper/55">{label}</p>
+      <p className="text-[0.72rem] font-semibold text-paper/55">{label}</p>
       <p className="tabular mt-0.5 text-sm text-paper">{value}</p>
       {hint && <p className="text-[0.68rem] text-paper/50">{hint}</p>}
     </div>

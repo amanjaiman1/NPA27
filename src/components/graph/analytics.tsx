@@ -45,7 +45,7 @@ function MiniStat({
     <Card className="p-4">
       <div className="flex items-center gap-2 text-paper/40">
         <Icon className="h-3.5 w-3.5" />
-        <span className="text-[0.65rem] font-medium uppercase tracking-wider">
+        <span className="text-[0.72rem] font-medium">
           {label}
         </span>
       </div>
@@ -129,7 +129,7 @@ export function KnowledgeDensity({
               <p className="text-xs text-paper/40">revised at least once</p>
             </div>
           </div>
-          <p className="mt-4 mb-1.5 flex items-center gap-1.5 text-[0.7rem] uppercase tracking-wider text-paper/40">
+          <p className="mt-4 mb-1.5 flex items-center gap-1.5 text-xs text-paper/40">
             <RotateCw className="h-3 w-3" /> Needs revision
           </p>
           <div className="flex flex-wrap gap-1.5">
@@ -156,12 +156,13 @@ export function KnowledgeDensity({
                 <button
                   onClick={() => onSelect(n.id)}
                   className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-paper/[0.05]"
+                  title={`${n.label} · ${n.subjectName} · ${n.degree} links`}
                 >
-                  <span className="min-w-0 flex-1 truncate text-sm text-paper/75">
-                    {n.label}
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm text-paper/80">{n.label}</span>
+                    <span className="block truncate text-[0.7rem] text-paper/55">{n.subjectName}</span>
                   </span>
-                  <span className="text-[0.65rem] text-paper/40">{n.subjectName}</span>
-                  <span className="tabular w-6 text-right text-xs font-semibold text-paper">
+                  <span className="tabular w-6 shrink-0 text-right text-xs font-semibold text-paper">
                     {n.degree}
                   </span>
                 </button>
@@ -198,7 +199,7 @@ export function KnowledgeDensity({
         </div>
         {orphanList.length > 0 && (
           <div className="mt-4 border-t border-paper/[0.06] pt-3">
-            <p className="mb-1.5 flex items-center gap-1.5 text-[0.7rem] uppercase tracking-wider text-paper/40">
+            <p className="mb-1.5 flex items-center gap-1.5 text-xs text-paper/40">
               <Unlink className="h-3 w-3" /> Orphan topics · {orphanList.length}
             </p>
             <div className="flex flex-wrap gap-1.5">

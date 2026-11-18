@@ -415,7 +415,7 @@ export default function MocksPage() {
                     >
                       <span
                         className={cn(
-                          "mt-0.5 rounded-full px-2 py-0.5 text-[0.55rem] font-semibold uppercase tracking-wider",
+                          "mt-0.5 shrink-0 rounded-full px-2 py-0.5 text-[0.7rem] font-semibold capitalize",
                           r.priority === "high"
                             ? "bg-paper text-ink"
                             : r.priority === "medium"
@@ -486,10 +486,12 @@ export default function MocksPage() {
 
           {/* Log table */}
           <Card className="overflow-hidden">
+            {/* On a phone the table scrolls sideways rather than squeezing
+                every column into a word per line. */}
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full min-w-[40rem] text-sm">
                 <thead>
-                  <tr className="border-b border-line text-left text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-paper/45">
+                  <tr className="border-b border-line text-left text-[0.72rem] font-semibold text-paper/45">
                     <th className="px-5 py-3 font-medium">Test</th>
                     <th className="px-5 py-3 font-medium">Date</th>
                     <th className="px-5 py-3 text-right font-medium">Score</th>
@@ -518,7 +520,7 @@ export default function MocksPage() {
                             {m.type}
                           </p>
                         </td>
-                        <td className="px-5 py-3 text-paper/50">{formatDate(m.date)}</td>
+                        <td className="whitespace-nowrap px-5 py-3 text-paper/50">{formatDate(m.date)}</td>
                         <td className="tabular px-5 py-3 text-right text-paper/80">
                           {m.score}/{m.max}
                         </td>
@@ -545,7 +547,7 @@ export default function MocksPage() {
                             }}
                             aria-label={`Delete mock: ${m.name}`}
                             title="Delete mock"
-                            className="text-paper/25 opacity-0 transition-opacity hover:text-paper group-hover:opacity-100"
+                            className="text-paper/25 opacity-0 transition-opacity hover:text-paper focus-visible:opacity-100 group-hover:opacity-100 [@media(hover:none)]:opacity-100"
                           >
                             <Trash2 className="h-4 w-4" />
                           </button>

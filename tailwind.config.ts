@@ -8,12 +8,25 @@ const config: Config = {
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
+    // Tailwind's breakpoints, plus `wide` (1440px): from `xl` the sidebar
+    // docks and takes 256px, so a layout that needs the room waits for `wide`.
+    // Listed in full so `wide` sorts between `xl` and `2xl`.
+    screens: {
+      sm: "640px",
+      md: "768px",
+      lg: "1024px",
+      xl: "1280px",
+      wide: "1440px",
+      "2xl": "1536px",
+    },
     extend: {
       colors: {
         // Canvas / elevated surface / foreground. Everything else is composed
         // from these with opacity, so the palette stays theme-agnostic.
         ink: "rgb(var(--ink) / <alpha-value>)",
         card: "rgb(var(--card) / <alpha-value>)",
+        // A surface nested inside a card: a step quieter than the card.
+        "card-2": "rgb(var(--card-2) / <alpha-value>)",
         paper: "rgb(var(--paper) / <alpha-value>)",
         line: "rgb(var(--line) / <alpha-value>)",
         // Modal / drawer backdrop — always darkens, on light and dark surfaces.
@@ -37,12 +50,15 @@ const config: Config = {
         foreground: "rgb(var(--paper) / <alpha-value>)",
       },
       fontFamily: {
-        // The app uses exactly two faces: Poppins for text, Comfortaa for
-        // display. `mono` deliberately resolves to Poppins as well — pair it
-        // with the `.tabular` class for figures that need to line up — so a
-        // stray `font-mono` can never pull in a third typeface.
+        // Exactly two faces: Poppins for text (and, inside the app, for
+        // headings and figures), Comfortaa for the brand. `display` is
+        // Comfortaa on the public site and Poppins in the app (see
+        // globals.css). `mono` deliberately resolves to Poppins as well —
+        // pair it with `.tabular` for figures that line up — so a stray
+        // `font-mono` can never pull in a third typeface.
         sans: ["var(--font-sans)", "system-ui", "sans-serif"],
         display: ["var(--font-display)", "var(--font-sans)", "sans-serif"],
+        brand: ["var(--font-brand)", "var(--font-sans)", "sans-serif"],
         mono: ["var(--font-sans)", "system-ui", "sans-serif"],
       },
       letterSpacing: {
@@ -62,7 +78,9 @@ const config: Config = {
         soft: "0 1px 2px rgb(var(--shadow) / 0.04), 0 12px 32px -18px rgb(var(--shadow) / 0.16)",
         lift: "0 1px 2px rgb(var(--shadow) / 0.05), 0 24px 48px -24px rgb(var(--shadow) / 0.26)",
         glow: "0 24px 60px -28px rgb(var(--shadow) / 0.35), 0 0 0 1px rgb(var(--line))",
-        accent: "0 10px 26px -12px rgb(var(--accent) / 0.55)",
+        // Each theme sets how strongly accent buttons glow: a blue halo on
+        // Light, barely any under Dark's white buttons.
+        accent: "0 10px 26px -12px rgb(var(--accent) / var(--accent-glow, 0.55))",
         ring: "0 0 0 1px rgb(var(--line))",
       },
       backgroundImage: {

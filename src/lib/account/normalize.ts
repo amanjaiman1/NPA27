@@ -1,7 +1,6 @@
-import type { JournalEntry, LifeEntry, Material, Profile, Subject, ThemeMode } from "../types";
+import type { JournalEntry, LifeEntry, Profile, Subject, ThemeMode } from "../types";
 import { toISODate } from "../utils";
-import { DEFAULT_WALLPAPER, isWallpaper, wallpaperMeta } from "../wallpaper";
-import { DEFAULT_MATERIAL, isMaterial, isThemeMode, themeModeFromSurface } from "../theme";
+import { isThemeMode, legacyThemeMode, themeModeFromSurface } from "../theme";
 import { upgradeEntryTopics } from "../topics";
 import { normalizePlans } from "../roadmap";
 
@@ -22,22 +21,6 @@ export function normalizeProfile(profile: Profile): Profile {
   }
   if (next.onboardedAt || !next.name?.trim()) return next;
   return { ...next, onboardedAt: next.startDate || toISODate(new Date()) };
-}
-
-/**
- * A wallpaper this version no longer offers becomes plain, with plain's dim.
- * The one retired so far is `custom`, the user's own photo, removed to save
- * storage; a device on an older version can still send it.
- */
-export function normalizeWallpaper<T extends { wallpaper?: unknown; wallpaperDim?: unknown }>(
-  snapshot: T,
-): T {
-  if (snapshot.wallpaper === undefined || isWallpaper(snapshot.wallpaper)) return snapshot;
-  return {
-    ...snapshot,
-    wallpaper: DEFAULT_WALLPAPER,
-    wallpaperDim: wallpaperMeta(DEFAULT_WALLPAPER).dim,
-  };
 }
 
 /* ── data written by older versions ──────────────────────────────── */
@@ -178,9 +161,10 @@ type SnapshotLike = {
   profile?: Profile;
   wallpaper?: unknown;
   wallpaperDim?: unknown;
+  palette?: unknown;
+  material?: unknown;
   themeMode?: ThemeMode;
   surface?: unknown;
-  material?: Material;
   reduceTransparency?: boolean;
   journal?: JournalEntry[];
   lifeLog?: LifeEntry[];
@@ -194,22 +178,31 @@ type SnapshotLike = {
  * version wrote.
  */
 export function normalizeSnapshot<T extends SnapshotLike>(snapshot: T): T {
-  let next: T = normalizeWallpaper(snapshot);
+  let next: T = snapshot;
+  // Retired appearance choices: wallpapers, colour palettes and the Liquid
+  // Glass material. A device on an older version can still send them; they
+  // are dropped and nothing else changes.
+  if ("wallpaper" in next || "wallpaperDim" in next || "palette" in next || "material" in next) {
+    next = { ...next };
+    delete next.wallpaper;
+    delete next.wallpaperDim;
+    delete next.palette;
+    delete next.material;
+  }
   if (next.profile) {
     const profile = normalizeProfile(next.profile);
     if (profile !== next.profile) next = { ...next, profile };
   }
-  // Light / Dark / Auto replaced the five surfaces.
-  if (!isThemeMode(next.themeMode) && next.surface !== undefined) {
+  // Two themes, Light and Dark. Older devices may send Blue Glass or Auto
+  // (see `legacyThemeMode`), or, from before that, one of five surfaces.
+  if (next.themeMode !== undefined && !isThemeMode(next.themeMode)) {
+    next = { ...next, themeMode: legacyThemeMode(next.themeMode) };
+  } else if (next.themeMode === undefined && next.surface !== undefined) {
     next = { ...next, themeMode: themeModeFromSurface(next.surface) };
   }
   if ("surface" in next) {
     next = { ...next };
     delete next.surface;
-  }
-  // A material this version doesn't know (a newer device's) reads as Standard.
-  if (next.material !== undefined && !isMaterial(next.material)) {
-    next = { ...next, material: DEFAULT_MATERIAL };
   }
   if (next.reduceTransparency !== undefined && typeof next.reduceTransparency !== "boolean") {
     next = { ...next, reduceTransparency: false };

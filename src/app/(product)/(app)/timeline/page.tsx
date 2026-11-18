@@ -385,7 +385,7 @@ function LegacyHero({
       <div className="grid grid-cols-2 gap-px border-t border-paper/[0.06] bg-paper/[0.04] sm:grid-cols-3 lg:grid-cols-6">
         {cells.map((c) => (
           <div key={c.label} className="bg-ink p-4">
-            <p className="text-[0.65rem] font-medium uppercase tracking-wider text-paper/40">
+            <p className="text-[0.72rem] font-medium text-paper/40">
               {c.label}
             </p>
             <p className="tabular mt-1.5 truncate text-xl font-semibold text-paper">
@@ -504,8 +504,8 @@ function EventRow({
         )}
       >
         <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
-          <span className="tabular rounded-md bg-paper/[0.06] px-1.5 py-0.5 text-[0.62rem] font-medium text-paper/45">
-            {event.future ? "—" : `DAY ${event.dayNumber}`}
+          <span className="tabular rounded-md bg-paper/[0.06] px-1.5 py-0.5 text-[0.7rem] font-medium text-paper/55">
+            {event.future ? "—" : `Day ${event.dayNumber}`}
           </span>
           <h3
             className={cn(
@@ -534,7 +534,7 @@ function EventRow({
           <span className="h-0.5 w-0.5 rounded-full bg-paper/30" />
           <span
             className={cn(
-              "uppercase tracking-wider",
+              "",
               event.source === "manual" ? "text-accent/90" : "text-paper/35",
             )}
           >
@@ -582,7 +582,7 @@ function DetailRow({
   return (
     <div className="flex items-center gap-3 py-2.5">
       <Icon className="h-3.5 w-3.5 shrink-0 text-paper/30" />
-      <span className="w-24 shrink-0 text-[0.7rem] font-medium uppercase tracking-wider text-paper/40">
+      <span className="w-24 shrink-0 text-xs font-medium text-paper/40">
         {label}
       </span>
       <span className="min-w-0 flex-1 text-sm text-paper/80">{value}</span>

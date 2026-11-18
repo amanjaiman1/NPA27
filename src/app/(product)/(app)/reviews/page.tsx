@@ -85,7 +85,7 @@ function Metric({
     <div className="rounded-xl border border-line bg-paper/[0.02] p-3.5">
       <div className="flex items-center gap-1.5 text-paper/40">
         <Icon className="h-3.5 w-3.5" />
-        <span className="min-w-0 flex-1 truncate text-[0.6rem] font-medium uppercase tracking-wider">
+        <span className="min-w-0 flex-1 truncate text-[0.7rem] font-medium">
           {label}
         </span>
       </div>
@@ -405,7 +405,7 @@ export default function ReviewsPage() {
                       <div key={key}>
                         <div className="mb-2 flex items-center gap-2 text-paper/45">
                           <Icon className="h-3.5 w-3.5" />
-                          <span className="text-[0.7rem] font-medium uppercase tracking-wider">
+                          <span className="text-xs font-medium">
                             {label}
                           </span>
                         </div>
@@ -477,7 +477,7 @@ export default function ReviewsPage() {
 
             {metrics && (
               <div>
-                <p className="mb-2 flex items-center gap-1.5 text-[0.7rem] font-medium uppercase tracking-wider text-paper/40">
+                <p className="mb-2 flex items-center gap-1.5 text-xs font-medium text-paper/40">
                   <Sparkles className="h-3.5 w-3.5 text-accent" />
                   Measured for you
                 </p>

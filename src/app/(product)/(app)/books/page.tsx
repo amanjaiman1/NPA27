@@ -91,7 +91,7 @@ export default function BooksPage() {
 
       <div className="grid grid-cols-3 gap-3">
         <Card className="p-5">
-          <p className="text-[0.7rem] uppercase tracking-wider text-paper/40">
+          <p className="text-xs text-paper/40">
             Completed
           </p>
           <p className="tabular mt-2 text-2xl font-semibold text-paper">
@@ -99,7 +99,7 @@ export default function BooksPage() {
           </p>
         </Card>
         <Card className="p-5">
-          <p className="text-[0.7rem] uppercase tracking-wider text-paper/40">
+          <p className="text-xs text-paper/40">
             Reading
           </p>
           <p className="tabular mt-2 text-2xl font-semibold text-paper">
@@ -107,7 +107,7 @@ export default function BooksPage() {
           </p>
         </Card>
         <Card className="p-5">
-          <p className="text-[0.7rem] uppercase tracking-wider text-paper/40">
+          <p className="text-xs text-paper/40">
             Pages read
           </p>
           <p className="tabular mt-2 text-2xl font-semibold text-paper">
@@ -142,8 +142,11 @@ export default function BooksPage() {
                 {/* spine */}
                 <div className="relative hidden h-28 w-20 shrink-0 overflow-hidden rounded-lg border border-line bg-gradient-to-br from-paper/[0.12] to-paper/[0.02] sm:block">
                   <div className="absolute inset-y-0 left-1.5 w-px bg-paper/15" />
-                  <div className="flex h-full items-center justify-center p-2 text-center">
-                    <span className="line-clamp-4 text-[0.6rem] font-medium leading-tight text-paper/70">
+                  {/* The cover only echoes the title beside it, so it's hidden
+                      from screen readers. Small enough that a long word
+                      ("Contemporary") fits on one line. */}
+                  <div className="flex h-full items-center justify-center px-1.5 py-2 text-center" aria-hidden>
+                    <span className="line-clamp-4 text-[0.56rem] font-medium leading-[1.2] text-paper/70">
                       {b.title}
                     </span>
                   </div>
@@ -157,7 +160,11 @@ export default function BooksPage() {
                       </h3>
                       <p className="truncate text-xs text-paper/45">{b.author}</p>
                     </div>
-                    {b.isStandard && <Badge tone="ghost">standard</Badge>}
+                    {b.isStandard && (
+                      <Badge tone="ghost" className="shrink-0">
+                        Standard
+                      </Badge>
+                    )}
                   </div>
 
                   <div className="mt-2 flex items-center gap-2">

@@ -2,8 +2,9 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 
 /**
- * The elevated surface everything sits on: a solid card, lifted off the canvas
- * by a soft wide shadow rather than a hard border.
+ * The elevated surface everything sits on: a pane of frosted glass (drawn by
+ * the materials in globals.css), lifted off the canvas by a soft wide shadow
+ * rather than a hard border.
  */
 export const Card = React.forwardRef<
   HTMLDivElement,

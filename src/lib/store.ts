@@ -4,18 +4,16 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { createBlankAccount, createAccountTemplate, type AccountSetup } from "./seed";
 import { accountStorage, STORE_KEY, writeAppearance } from "./account/scope";
-import { normalizeProfile, normalizeSnapshot, normalizeWallpaper } from "./account/normalize";
+import { normalizeProfile, normalizeSnapshot } from "./account/normalize";
 import { toISODate, fromISODate, uid } from "./utils";
 import { applyRevision, newRevisionItem, resolveTopicId } from "./revision";
 import {
-  type Material,
-  type Palette,
   type ThemeMode,
-  DEFAULT_MATERIAL,
-  DEFAULT_PALETTE,
   DEFAULT_THEME_MODE,
-  applyMaterial,
   applyThemeMode,
+  applyTransparency,
+  isThemeMode,
+  legacyThemeMode,
   themeModeFromSurface,
 } from "./theme";
 import { hoursFromTimes, isClock, MAX_SLEEP_HOURS } from "./sleep";
@@ -41,11 +39,6 @@ import {
   withStatus,
 } from "./roadmap";
 import { completedTopicsOf, normName } from "./topics";
-import {
-  type WallpaperId,
-  DEFAULT_WALLPAPER,
-  wallpaperMeta,
-} from "./wallpaper";
 import {
   type NotifySettings,
   type NotifyState,
@@ -100,17 +93,10 @@ export interface JournalSaveResult {
 export type FileLinkTarget = { kind: "goal"; id: string } | { kind: "life"; date: ISODate };
 
 interface ChronicleState extends ChronicleData {
-  /** Light, Dark or Auto. Synced, so the choice follows the account. */
+  /** Light or Dark. Synced, so the choice follows the account. */
   themeMode: ThemeMode;
-  /** Standard or Liquid Glass, on top of whichever theme is showing. Synced. */
-  material: Material;
-  /** Nearly solid surfaces and no blur, in either material. Synced. */
+  /** Nearly solid surfaces and no blur, in either theme. Synced. */
   reduceTransparency: boolean;
-  palette: Palette;
-  /** The layer behind the app. */
-  wallpaper: WallpaperId;
-  /** How much canvas colour covers the wallpaper, 0–0.9. */
-  wallpaperDim: number;
   _hasHydrated: boolean;
 
   /**
@@ -129,12 +115,7 @@ interface ChronicleState extends ChronicleData {
   /* meta */
   setHasHydrated: (v: boolean) => void;
   setThemeMode: (m: ThemeMode) => void;
-  setMaterial: (m: Material) => void;
   setReduceTransparency: (v: boolean) => void;
-  setPalette: (p: Palette) => void;
-  /** Switching wallpaper resets the dim to that wallpaper's sensible default. */
-  setWallpaper: (w: WallpaperId) => void;
-  setWallpaperDim: (d: number) => void;
   /** Back to an empty account that hasn't been set up. */
   resetData: () => void;
   /** Replace all synced data with a snapshot pulled from the cloud. */
@@ -422,12 +403,7 @@ export const SNAPSHOT_KEYS = [
   // The Roadmap: this person's own yearly, monthly and weekly plans.
   "plans",
   "themeMode",
-  "material",
   "reduceTransparency",
-  "palette",
-  // The wallpaper choice follows the user across devices.
-  "wallpaper",
-  "wallpaperDim",
   // Remembering that today's sleep prompt was answered must follow the user
   // across devices/logins, so it's part of the synced snapshot too.
   "lastSleepPrompt",
@@ -513,11 +489,7 @@ export const useChronicle = create<ChronicleState>()(
     (set, get) => ({
       ...createBlankAccount(),
       themeMode: DEFAULT_THEME_MODE,
-      material: DEFAULT_MATERIAL,
       reduceTransparency: false,
-      palette: DEFAULT_PALETTE,
-      wallpaper: DEFAULT_WALLPAPER,
-      wallpaperDim: wallpaperMeta(DEFAULT_WALLPAPER).dim,
       _hasHydrated: false,
       lastSleepPrompt: undefined,
       notify: DEFAULT_NOTIFY_SETTINGS,
@@ -534,38 +506,10 @@ export const useChronicle = create<ChronicleState>()(
         writeAppearance("theme", m);
         set({ themeMode: m });
       },
-      setMaterial: (m) => {
-        applyMaterial(m, get().reduceTransparency, { animate: true });
-        writeAppearance("material", m);
-        set({ material: m });
-      },
       setReduceTransparency: (v) => {
-        applyMaterial(get().material, v, { animate: true });
+        applyTransparency(v, { animate: true });
         writeAppearance("transparency", v ? "reduced" : "auto");
         set({ reduceTransparency: v });
-      },
-      setPalette: (p) => {
-        if (typeof document !== "undefined")
-          document.documentElement.setAttribute("data-palette", p);
-        writeAppearance("palette", p);
-        set({ palette: p });
-      },
-      setWallpaper: (w) => {
-        const dim = wallpaperMeta(w).dim;
-        if (typeof document !== "undefined") {
-          document.documentElement.setAttribute("data-wallpaper", w);
-          document.documentElement.style.setProperty("--wp-dim", String(dim));
-        }
-        writeAppearance("wallpaper", w);
-        writeAppearance("wallpaper-dim", String(dim));
-        set({ wallpaper: w, wallpaperDim: dim });
-      },
-      setWallpaperDim: (d) => {
-        const dim = Math.max(0, Math.min(0.9, d));
-        if (typeof document !== "undefined")
-          document.documentElement.style.setProperty("--wp-dim", String(dim));
-        writeAppearance("wallpaper-dim", String(dim));
-        set({ wallpaperDim: dim });
       },
       resetData: () => set({ ...createBlankAccount() }),
       applyCloudSnapshot: (snap) =>
@@ -575,26 +519,16 @@ export const useChronicle = create<ChronicleState>()(
           for (const k of SNAPSHOT_KEYS) {
             if (normalized[k] !== undefined) next[k] = normalized[k];
           }
-          // The normalised values, so a retired wallpaper never reaches the page.
-          const { themeMode, palette, wallpaper, wallpaperDim, material, reduceTransparency } = normalized;
-          if (themeMode) writeAppearance("theme", themeMode);
-          if (material) writeAppearance("material", material);
-          if (reduceTransparency !== undefined)
-            writeAppearance("transparency", reduceTransparency ? "reduced" : "auto");
-          if (material || reduceTransparency !== undefined) {
-            applyMaterial(material ?? get().material, reduceTransparency ?? get().reduceTransparency);
+          // The normalised values, so a retired choice never reaches the page.
+          // Re-applied here so a theme pulled from another device takes effect.
+          const { themeMode, reduceTransparency } = normalized;
+          if (themeMode) {
+            writeAppearance("theme", themeMode);
+            applyThemeMode(themeMode);
           }
-          if (palette) writeAppearance("palette", palette);
-          if (wallpaper) writeAppearance("wallpaper", wallpaper);
-          if (wallpaperDim !== undefined)
-            writeAppearance("wallpaper-dim", String(wallpaperDim));
-          // Re-apply appearance attributes so a pulled theme takes effect.
-          if (themeMode) applyThemeMode(themeMode);
-          if (typeof document !== "undefined") {
-            if (palette) document.documentElement.setAttribute("data-palette", palette);
-            if (wallpaper) document.documentElement.setAttribute("data-wallpaper", wallpaper);
-            if (wallpaperDim !== undefined)
-              document.documentElement.style.setProperty("--wp-dim", String(wallpaperDim));
+          if (reduceTransparency !== undefined) {
+            writeAppearance("transparency", reduceTransparency ? "reduced" : "auto");
+            applyTransparency(reduceTransparency);
           }
           return next as Partial<ChronicleState>;
         }),
@@ -1789,7 +1723,7 @@ export const useChronicle = create<ChronicleState>()(
     }),
     {
       name: STORE_KEY,
-      version: 14,
+      version: 16,
       /**
        * Scoped to the signed-in account: `upsc-chronicle-store:<user id>`.
        * Nothing is read or written until an account is activated, which is why
@@ -1802,6 +1736,8 @@ export const useChronicle = create<ChronicleState>()(
           theme?: string;
           graph?: unknown;
           surface?: string;
+          palette?: unknown;
+          material?: unknown;
         };
 
         // v<6: the demo era. Those records were discarded then, and still are.
@@ -1813,26 +1749,15 @@ export const useChronicle = create<ChronicleState>()(
 
         // v7 -> v8: the appearance system was rebuilt; old choices meant
         // something else, so the look is reset once (data is untouched).
-        if (version < 8) {
-          state.surface = "white";
-          state.palette = DEFAULT_PALETTE;
-        }
+        if (version < 8) state.surface = "white";
 
-        // v8 -> v9: the accomplished-days list and the wallpaper choice.
-        if (version < 9) {
-          if (!Array.isArray(state.accomplished)) state.accomplished = [];
-          if (state.wallpaper === undefined) state.wallpaper = DEFAULT_WALLPAPER;
-          if (state.wallpaperDim === undefined)
-            state.wallpaperDim = wallpaperMeta(DEFAULT_WALLPAPER).dim;
-        }
+        // v8 -> v9: the accomplished-days list (and a wallpaper choice, since
+        // retired: see v15).
+        if (version < 9 && !Array.isArray(state.accomplished)) state.accomplished = [];
 
         // v9 -> v10: accounts. A profile that already has a name was set up
         // before first-run setup existed, so it is marked as set up.
         if (version < 10 && state.profile) state.profile = normalizeProfile(state.profile);
-
-        // v10 -> v11: the "Your photo" wallpaper was removed to save storage.
-        // Anyone who had it chosen goes back to plain.
-        if (version < 11) Object.assign(state, normalizeWallpaper(state));
 
         // v11 -> v12: five surfaces became Light / Dark / Auto; journal files
         // arrived; and what older versions invented is cleaned up — morning
@@ -1847,10 +1772,10 @@ export const useChronicle = create<ChronicleState>()(
           delete state.surface;
         }
 
-        // v12 -> v13: Liquid Glass and reduced transparency arrived, both off.
-        if (version < 13) {
-          if (state.material === undefined) state.material = DEFAULT_MATERIAL;
-          if (state.reduceTransparency === undefined) state.reduceTransparency = false;
+        // v12 -> v13: reduced transparency arrived, off (with a Liquid Glass
+        // material, since retired: see v16).
+        if (version < 13 && state.reduceTransparency === undefined) {
+          state.reduceTransparency = false;
         }
 
         // v13 -> v14: the Roadmap became your own plans. The fixed CSE 2027
@@ -1860,6 +1785,23 @@ export const useChronicle = create<ChronicleState>()(
         if (version < 14) {
           if (state.profile) state.profile = normalizeProfile(state.profile);
           state.plans = normalizePlans(state.plans);
+        }
+
+        // v14 -> v15: wallpapers were retired; each theme paints its own
+        // backdrop. The saved choice and its dim go, and nothing else changes.
+        if (version < 15) {
+          const legacy = state as Record<string, unknown>;
+          delete legacy.wallpaper;
+          delete legacy.wallpaperDim;
+        }
+
+        // v15 -> v16: two themes. Blue Glass became Light, Auto settles on
+        // the theme this device shows, and the colour palettes and the Liquid
+        // Glass material were retired. Data is untouched.
+        if (version < 16) {
+          state.themeMode = legacyThemeMode(state.themeMode);
+          delete state.palette;
+          delete state.material;
         }
 
         return state as ChronicleState;
@@ -1897,22 +1839,12 @@ export const useChronicle = create<ChronicleState>()(
         // Re-apply this account's appearance, and remember it for the next cold
         // start's pre-paint.
         if (state && typeof document !== "undefined") {
-          const wallpaper = state.wallpaper ?? DEFAULT_WALLPAPER;
-          const dim = String(state.wallpaperDim ?? 0);
-          const mode = state.themeMode ?? DEFAULT_THEME_MODE;
-          const material = state.material ?? DEFAULT_MATERIAL;
+          const mode = isThemeMode(state.themeMode) ? state.themeMode : DEFAULT_THEME_MODE;
           const reduced = state.reduceTransparency === true;
           applyThemeMode(mode);
-          applyMaterial(material, reduced);
-          writeAppearance("material", material);
-          writeAppearance("transparency", reduced ? "reduced" : "auto");
-          document.documentElement.setAttribute("data-palette", state.palette);
-          document.documentElement.setAttribute("data-wallpaper", wallpaper);
-          document.documentElement.style.setProperty("--wp-dim", dim);
+          applyTransparency(reduced);
           writeAppearance("theme", mode);
-          writeAppearance("palette", state.palette);
-          writeAppearance("wallpaper", wallpaper);
-          writeAppearance("wallpaper-dim", dim);
+          writeAppearance("transparency", reduced ? "reduced" : "auto");
         }
       },
     },
@@ -1941,12 +1873,8 @@ export function blankChronicleState(): Partial<ChronicleState> {
   return {
     ...createBlankAccount(),
     themeMode: DEFAULT_THEME_MODE,
-    material: DEFAULT_MATERIAL,
     reduceTransparency: false,
     fileTrash: [],
-    palette: DEFAULT_PALETTE,
-    wallpaper: DEFAULT_WALLPAPER,
-    wallpaperDim: wallpaperMeta(DEFAULT_WALLPAPER).dim,
     lastSleepPrompt: undefined,
     notify: DEFAULT_NOTIFY_SETTINGS,
     notifyState: EMPTY_NOTIFY_STATE,

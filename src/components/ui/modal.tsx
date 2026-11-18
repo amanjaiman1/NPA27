@@ -94,15 +94,15 @@ export function Modal({
             )}
           >
             {(title || description) && (
-              <div className="flex items-start justify-between gap-4 border-b border-line px-5 py-4">
-                <div>
+              <div className="flex items-start justify-between gap-4 border-b border-line px-5 py-4 sm:px-6">
+                <div className="min-w-0">
                   {title && (
-                    <h2 className="font-display text-lg font-semibold tracking-snugg text-paper">
+                    <h2 className="text-[1.08rem] font-semibold tracking-[-0.02em] text-paper">
                       {title}
                     </h2>
                   )}
                   {description && (
-                    <p className="mt-0.5 text-sm text-paper/50">{description}</p>
+                    <p className="mt-0.5 text-[0.84rem] text-paper/60">{description}</p>
                   )}
                 </div>
                 <button

@@ -340,7 +340,7 @@ export default function JournalPage() {
                                 <span className="tabular text-lg font-semibold leading-none text-paper">
                                   {fromISODate(e.date).getDate()}
                                 </span>
-                                <span className="mt-1 text-[0.6rem] uppercase tracking-wider text-paper/50">{weekday(e.date)}</span>
+                                <span className="mt-1 text-[0.7rem] text-paper/50">{weekday(e.date)}</span>
                               </div>
 
                               <div className="min-w-0 flex-1">
@@ -441,7 +441,7 @@ export default function JournalPage() {
 function FilterField({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <label className="mb-1.5 block text-[0.65rem] font-semibold uppercase tracking-wider text-paper/55">{label}</label>
+      <label className="mb-1.5 block text-[0.72rem] font-semibold text-paper/55">{label}</label>
       {children}
     </div>
   );

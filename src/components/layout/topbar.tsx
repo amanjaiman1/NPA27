@@ -1,125 +1,101 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { Menu, Search, Plus, Palette, CalendarClock } from "lucide-react";
-import { findNavItem } from "@/lib/nav";
+import { CalendarClock, Command, Menu, Plus, Search } from "lucide-react";
 import { Logo } from "./logo";
 import { AccountMenu } from "@/components/account/account-menu";
 import { NotificationCentre } from "@/components/notifications/centre";
 import { Notifier } from "@/components/notifications/notifier";
+import { IconButton } from "@/components/ui/button";
 import { useChronicle } from "@/lib/store";
 import { useMounted } from "@/lib/hooks";
 import { daysBetween, toISODate } from "@/lib/utils";
 
-/** Round icon button used across the floating bar. */
-function IconButton({
-  label,
-  onClick,
-  children,
-  className = "",
-}: {
-  label: string;
-  onClick: () => void;
-  children: React.ReactNode;
-  className?: string;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      aria-label={label}
-      title={label}
-      className={`grid h-10 w-10 place-items-center rounded-full text-paper/55 transition-all hover:bg-paper/[0.07] hover:text-paper ${className}`}
-    >
-      {children}
-    </button>
-  );
-}
-
 /**
- * A floating pill bar rather than a full-width chrome edge — it lets the canvas
- * breathe underneath and keeps the app feeling light.
+ * The floating bar above the page. On a desktop it is mostly search: a wide
+ * field that opens the command palette (⌘K / Ctrl+K), then the exam countdown
+ * and the one loud action, logging today. The account and notifications live
+ * on the rail there. On a phone the bar carries the menu, the brand, and
+ * those two as well.
  */
 export function Topbar({
   onOpenDrawer,
   onOpenPalette,
-  onOpenAppearance,
+  desktop,
 }: {
   onOpenDrawer: () => void;
   onOpenPalette: () => void;
-  onOpenAppearance: () => void;
+  /** The rail is showing, with the account and notifications on it. */
+  desktop: boolean;
 }) {
-  const pathname = usePathname();
-  const current = findNavItem(pathname);
   const profile = useChronicle((s) => s.profile);
   const mounted = useMounted();
-  const daysLeft = mounted
-    ? daysBetween(toISODate(new Date()), profile.examDate)
-    : null;
+  const daysLeft = mounted ? daysBetween(toISODate(new Date()), profile.examDate) : null;
 
   return (
-    <header className="sticky top-0 z-30 px-3 pb-1 pt-3 sm:px-5 sm:pt-4">
-      <div className="chrome-glass flex h-14 items-center gap-2 rounded-full border border-line bg-card/95 px-2.5 shadow-soft backdrop-blur-none sm:bg-card/80 sm:px-3 sm:backdrop-blur-xl">
-        {/* Mobile: menu + brand */}
-        <IconButton label="Open menu" onClick={onOpenDrawer} className="lg:hidden">
-          <Menu className="h-5 w-5" />
-        </IconButton>
-        <Link
-          href="/dashboard"
-          aria-label="DoOrDie — dashboard"
-          className="flex items-center gap-2 pl-1 lg:hidden"
-        >
-          <Logo className="h-6 w-6" />
-        </Link>
+    <header className="z-30 shrink-0 px-3 pt-3 lg:px-0 lg:pt-0">
+      <div className="chrome-glass flex h-14 items-center gap-1.5 rounded-[1.25rem] px-2 sm:gap-2 lg:h-[3.75rem] lg:rounded-[1.4rem] lg:px-2.5">
+        {!desktop && (
+          <>
+            <IconButton label="Open menu" onClick={onOpenDrawer}>
+              <Menu className="h-5 w-5" />
+            </IconButton>
+            <Link href="/dashboard" aria-label="DoOrDie — dashboard" className="flex items-center gap-2 px-1">
+              <Logo className="h-6 w-6" />
+              <span className="hidden font-brand text-[0.95rem] font-bold tracking-[-0.03em] text-paper min-[400px]:inline">DoOrDie</span>
+            </Link>
+          </>
+        )}
 
-        {/* Desktop: current section */}
-        <div className="hidden items-center gap-2.5 pl-2.5 lg:flex">
-          {current?.icon && <current.icon className="h-4 w-4 text-accent" />}
-          <span className="font-display text-sm font-semibold tracking-snugg text-paper">
-            {current?.label ?? "DoOrDie"}
-          </span>
-        </div>
+        {/* Search: a wide field on a desktop, an icon on a phone. Both open
+            the command palette, which jumps to any page. */}
+        {desktop ? (
+          <button
+            type="button"
+            onClick={onOpenPalette}
+            aria-keyshortcuts="Control+K Meta+K"
+            className="group flex h-11 min-w-0 max-w-[44rem] flex-1 items-center gap-3 rounded-[1rem] px-3.5 text-left text-paper/60 transition-colors hover:bg-[var(--nav-hover)] hover:text-paper"
+          >
+            <Search className="h-[1.1rem] w-[1.1rem] shrink-0" />
+            <span className="min-w-0 flex-1 truncate text-[0.9rem]">Search pages…</span>
+            {/* Drawn, not typed: Poppins has no ⌘ glyph. */}
+            <kbd className="hidden shrink-0 items-center gap-0.5 rounded-lg border border-line bg-card px-2 py-1 text-[0.62rem] font-semibold text-paper/60 shadow-soft sm:inline-flex">
+              <Command className="h-2.5 w-2.5" />K
+            </kbd>
+          </button>
+        ) : (
+          <div className="flex-1" />
+        )}
 
-        <div className="flex-1" />
+        {desktop && <div className="flex-1" />}
 
-        {/* Exam countdown */}
         {daysLeft !== null && (
-          <div className="hidden items-center gap-2 rounded-full bg-paper/[0.05] px-3.5 py-2 sm:flex">
+          <div className="hidden shrink-0 items-center gap-2 rounded-full border border-line bg-card px-3.5 py-2 shadow-soft md:flex">
             <CalendarClock className="h-3.5 w-3.5 text-accent" />
-            <span className="tabular text-xs text-paper/65">
-              <span className="font-semibold text-paper">{daysLeft}</span> days to{" "}
+            <span className="tabular whitespace-nowrap text-xs text-paper/65">
+              <span className="font-semibold text-paper">{Math.max(0, daysLeft)}</span> days to{" "}
               {profile.targetExam.replace("UPSC ", "")}
             </span>
           </div>
         )}
 
-        <IconButton label="Search" onClick={onOpenPalette} className="sm:hidden">
-          <Search className="h-5 w-5" />
-        </IconButton>
+        {!desktop && (
+          <>
+            <IconButton label="Search" onClick={onOpenPalette}>
+              <Search className="h-5 w-5" />
+            </IconButton>
+            <NotificationCentre />
+            <AccountMenu />
+          </>
+        )}
 
-        <IconButton
-          label="Settings"
-          onClick={onOpenAppearance}
-          className="lg:hidden"
-        >
-          <Palette className="h-5 w-5" />
-        </IconButton>
-
-        <NotificationCentre />
-
-        {/**
-         * Mounted here because the topbar renders exactly once, inside the
-         * authenticated shell — which is precisely where notification delivery
-         * belongs. It renders nothing.
-         */}
+        {/* Mounted once, inside the authenticated shell, where notification
+            delivery belongs. It renders nothing. */}
         <Notifier />
 
-        <AccountMenu />
-
-        {/* The one loud thing in the bar */}
         <Link
           href="/journal?new=1"
-          className="hidden items-center gap-2 rounded-full bg-accent px-4 py-2.5 text-sm font-semibold tracking-snugg text-accent-fg shadow-accent transition-all hover:-translate-y-px hover:brightness-[1.08] sm:flex"
+          className="hidden shrink-0 items-center gap-2 rounded-full bg-accent px-4 py-2.5 text-sm font-semibold tracking-snugg text-accent-fg shadow-accent transition-all duration-200 hover:-translate-y-px hover:brightness-[1.06] active:translate-y-0 sm:inline-flex"
         >
           <Plus className="h-4 w-4" />
           Log today

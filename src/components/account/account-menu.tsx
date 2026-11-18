@@ -8,8 +8,10 @@ import { LogOut, Settings, UserRound } from "lucide-react";
 import { useChronicle } from "@/lib/store";
 import { useMounted } from "@/lib/hooks";
 import { cn } from "@/lib/utils";
+import { Avatar } from "@/components/ui/avatar";
+import type { PopoverPlacement } from "@/components/notifications/centre";
 import { useAccount } from "./account-session";
-import { describeSync, initialsOf } from "./sync-label";
+import { describeSync } from "./sync-label";
 
 const TONE_DOT = {
   ok: "bg-positive",
@@ -18,8 +20,12 @@ const TONE_DOT = {
   warn: "bg-danger",
 } as const;
 
-/** The avatar in the top bar: who is signed in, whether it's synced, and the way out. */
-export function AccountMenu() {
+/**
+ * Who is signed in, whether it's synced, and the way out. The avatar sits at
+ * the top of the rail on a desktop and in the top bar on a phone; the panel
+ * opens beside it either way.
+ */
+export function AccountMenu({ placement = "bar" }: { placement?: PopoverPlacement } = {}) {
   const [open, setOpen] = useState(false);
   const mounted = useMounted();
   const { user, mode, sync } = useAccount();
@@ -34,28 +40,32 @@ export function AccountMenu() {
         aria-label={`Account: ${name}. ${status.label}.`}
         aria-expanded={open}
         title={`${name} · ${status.label}`}
-        className="relative grid h-10 w-10 place-items-center rounded-full transition-all hover:bg-paper/[0.07]"
+        className={cn(
+          "relative grid place-items-center rounded-full transition-all duration-200 hover:bg-[var(--nav-hover)]",
+          placement === "rail" ? "h-12 w-12" : "h-10 w-10",
+        )}
       >
-        <span className="grid h-8 w-8 place-items-center rounded-full bg-accent text-[0.68rem] font-bold text-accent-fg shadow-accent">
-          {initialsOf(name)}
-        </span>
+        <Avatar name={name} size={placement === "rail" ? "md" : "sm"} />
         <span
           className={cn(
-            "absolute bottom-1.5 right-1.5 h-2.5 w-2.5 rounded-full ring-2 ring-card",
+            "absolute h-2.5 w-2.5 rounded-full ring-2 ring-[rgb(var(--card))]",
+            placement === "rail" ? "bottom-1.5 right-1.5" : "bottom-1 right-1",
             TONE_DOT[status.tone],
           )}
         />
       </button>
       {mounted &&
         createPortal(
-          <AnimatePresence>{open && <Panel onClose={() => setOpen(false)} name={name} />}</AnimatePresence>,
+          <AnimatePresence>
+            {open && <Panel onClose={() => setOpen(false)} name={name} placement={placement} />}
+          </AnimatePresence>,
           document.body,
         )}
     </>
   );
 }
 
-function Panel({ onClose, name }: { onClose: () => void; name: string }) {
+function Panel({ onClose, name, placement }: { onClose: () => void; name: string; placement: PopoverPlacement }) {
   const { user, mode, sync, syncNow, signOut } = useAccount();
   const status = describeSync(sync, mode);
 
@@ -82,12 +92,13 @@ function Panel({ onClose, name }: { onClose: () => void; name: string }) {
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={{ opacity: 0, y: 6, scale: 0.98 }}
         transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-        className="fixed inset-x-2 bottom-2 z-[56] overflow-hidden rounded-3xl border border-line bg-card shadow-lift sm:inset-x-auto sm:bottom-auto sm:right-4 sm:top-[4.6rem] sm:w-[21rem]"
+        className={cn(
+          "fixed inset-x-2 bottom-2 z-[56] overflow-hidden rounded-3xl border border-line bg-card shadow-lift sm:inset-x-auto sm:bottom-auto sm:w-[21rem]",
+          placement === "rail" ? "sm:left-[6.5rem] sm:top-4" : "sm:right-4 sm:top-[4.6rem]",
+        )}
       >
         <div className="flex items-center gap-3 border-b border-line px-4 py-4">
-          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-accent text-sm font-bold text-accent-fg shadow-accent">
-            {initialsOf(name)}
-          </span>
+          <Avatar name={name} size="lg" />
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold text-paper">{name}</p>
             <p className="truncate text-xs text-paper/50">

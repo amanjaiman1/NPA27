@@ -5,13 +5,16 @@ import { INDEXABLE, SITE, SITE_URL } from "@/lib/seo/config";
 import { PAGES } from "@/lib/seo/pages";
 
 /* Two faces, and only two — both geometric, so the whole app speaks with one
-   voice: Comfortaa for display (rounded, characterful) and Poppins for
-   everything else (neutral geometric, legible at UI sizes). */
+   voice. Poppins (neutral, legible at UI sizes) is the text face everywhere;
+   inside the app it sets the headings and figures too. Comfortaa (rounded,
+   characterful) is the brand: the wordmark, and the public site's headings.
+   `--font-display` points at Comfortaa by default (globals.css) and at
+   Poppins inside the app shell. */
 
-/** Display face — headings, big numbers, the brand. */
+/** Brand face — the wordmark, and display type on the public site. */
 const comfortaa = Comfortaa({
   subsets: ["latin"],
-  variable: "--font-display",
+  variable: "--font-brand",
   weight: ["400", "500", "600", "700"],
   display: "swap",
 });
@@ -68,7 +71,8 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#f6f4f0",
+  // The Light canvas; ThemeColorSync follows the theme once the app loads.
+  themeColor: "#d6eefb",
   width: "device-width",
   initialScale: 1,
   // Pinch-zoom stays available — an installed app shouldn't cost accessibility.
@@ -95,25 +99,19 @@ const themeScript = `
       id = s && s.user && s.user.id ? s.user.id : null;
     }
     var get = function (k, f) { return (id && localStorage.getItem('upsc-chronicle-' + k + ':' + id)) || f; };
-    // Light / Dark / Blue Glass / Auto. A browser that last ran the
-    // five-surface version still has only the old key; Ivory meant light and
-    // the rest were dark.
+    // Light or Dark. Values older versions saved still paint the theme they
+    // now mean (lib/theme.ts, legacyThemeMode): Blue Glass is Light, Auto is
+    // whichever theme the device shows, and a browser that last ran the
+    // five-surface version has only the old key, where Ivory meant light.
     var mode = get('theme', '');
-    if (!mode) { var old = get('surface', 'white'); mode = old === 'white' ? 'light' : 'dark'; }
-    var dark = mode === 'dark' || (mode === 'system' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
-    d.setAttribute('data-surface', mode === 'blue' ? 'blue' : dark ? 'black' : 'white');
+    if (!mode) { var old = get('surface', ''); mode = old && old !== 'white' ? 'dark' : 'light'; }
+    if (mode === 'system') mode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    if (mode !== 'dark') mode = 'light';
+    d.setAttribute('data-surface', mode === 'dark' ? 'black' : 'white');
     d.setAttribute('data-theme-mode', mode);
-    // Liquid Glass is its own choice, on top of any theme.
-    d.setAttribute('data-material', get('material', 'standard') === 'glass' ? 'glass' : 'standard');
     if (get('transparency', '') === 'reduced') d.setAttribute('data-transparency', 'reduced');
-    d.setAttribute('data-palette', get('palette', 'rose'));
-    d.setAttribute('data-wallpaper', get('wallpaper', 'none'));
-    d.style.setProperty('--wp-dim', get('wallpaper-dim', '0'));
   } catch (e) {
     d.setAttribute('data-surface','white');
-    d.setAttribute('data-material','standard');
-    d.setAttribute('data-palette','rose');
-    d.setAttribute('data-wallpaper','none');
   }
 })();
 `;
@@ -133,7 +131,7 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" data-surface="white" data-material="standard" data-palette="rose" suppressHydrationWarning>
+    <html lang="en" data-surface="white" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
         <script dangerouslySetInnerHTML={{ __html: installCaptureScript }} />

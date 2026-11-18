@@ -55,7 +55,9 @@ export function Donut({
   }, [segments, c, total]);
 
   return (
-    <div className={cn("flex min-w-0 items-center gap-4 sm:gap-5", className)}>
+    // The legend sits beside the ring when there's room and wraps under it
+    // when there isn't, so a narrow panel never squeezes the labels.
+    <div className={cn("flex min-w-0 flex-wrap items-center justify-center gap-x-6 gap-y-4", className)}>
       <div className="relative shrink-0" style={{ width: size, height: size }}>
         <svg width={size} height={size} className="-rotate-90">
           <circle
@@ -85,12 +87,12 @@ export function Donut({
           <div className="absolute inset-0 grid place-items-center text-center leading-tight">
             <div>
               {centerLabel && (
-                <p className="tabular text-xl font-semibold text-paper">
+                <p className="tabular text-xl font-semibold tracking-[-0.03em] text-paper">
                   {centerLabel}
                 </p>
               )}
               {centerSub && (
-                <p className="text-[0.6rem] uppercase tracking-wider text-paper/40">
+                <p className="text-[0.7rem] text-paper/60">
                   {centerSub}
                 </p>
               )}
@@ -99,17 +101,17 @@ export function Donut({
         )}
       </div>
 
-      <ul className="min-w-0 flex-1 space-y-1.5">
+      <ul className="min-w-[10.5rem] flex-1 space-y-2">
         {arcs.slice(0, 6).map((a, i) => (
           <li key={i} className="flex items-center gap-2 text-xs">
             <span
-              className="h-2.5 w-2.5 shrink-0 rounded-sm"
+              className="h-2.5 w-2.5 shrink-0 rounded-full"
               style={{ backgroundColor: `rgb(${a.color})` }}
             />
-            <span className="min-w-0 flex-1 truncate text-paper/70">
+            <span className="min-w-0 flex-1 truncate text-paper/75">
               {a.label}
             </span>
-            <span className="tabular shrink-0 text-paper/40">{a.pct}%</span>
+            <span className="tabular shrink-0 font-medium text-paper/60">{a.pct}%</span>
           </li>
         ))}
       </ul>

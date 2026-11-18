@@ -14,13 +14,13 @@ import { cn } from "@/lib/utils";
 export function AuthFrame({ children }: { children: React.ReactNode }) {
   return (
     <FullScreen>
-      <div className="w-full max-w-[25rem]">
+      <div className="w-full max-w-[26rem]">
         <Link href="/" className="mb-7 flex flex-col items-center text-center">
-          <Logo className="h-11 w-11" />
-          <span className="mt-4 font-display text-[1.6rem] font-bold tracking-tightest text-paper">
-            DoOrDie
+          <span className="grid h-14 w-14 place-items-center rounded-[1.25rem] border border-line bg-card shadow-soft">
+            <Logo className="h-8 w-8" />
           </span>
-          <span className="mt-0.5 text-xs text-paper/50">Your UPSC preparation, documented</span>
+          <span className="mt-4 font-brand text-[1.6rem] font-bold tracking-[-0.04em] text-paper">DoOrDie</span>
+          <span className="mt-0.5 text-xs text-paper/60">Your UPSC preparation, documented</span>
         </Link>
         {children}
       </div>
@@ -41,9 +41,9 @@ export function AuthCard({
 }) {
   return (
     <>
-      <div className="rounded-3xl border border-line bg-card p-6 shadow-lift sm:p-7">
-        <h1 className="font-display text-xl font-bold tracking-tightest text-paper">{title}</h1>
-        {subtitle && <p className="mt-1 text-sm leading-relaxed text-paper/55">{subtitle}</p>}
+      <div className="rounded-[1.75rem] border border-line bg-card p-6 shadow-lift sm:p-8">
+        <h1 className="text-[1.35rem] font-semibold tracking-[-0.03em] text-paper">{title}</h1>
+        {subtitle && <p className="mt-1 text-sm leading-relaxed text-paper/60">{subtitle}</p>}
         <div className="mt-6">{children}</div>
       </div>
       {footer && <div className="mt-5 text-center text-sm text-paper/55">{footer}</div>}

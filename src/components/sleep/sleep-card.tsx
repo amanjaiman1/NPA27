@@ -45,7 +45,7 @@ export function SleepSummary({ compact }: { compact?: boolean }) {
   }
   const cell = (label: string, value: string, hint: string) => (
     <div className="min-w-0">
-      <p className="truncate text-[0.62rem] font-semibold uppercase tracking-[0.08em] text-paper/50">{label}</p>
+      <p className="truncate text-[0.72rem] font-semibold text-paper/50">{label}</p>
       <p className="tabular mt-1 truncate font-display text-lg font-bold tracking-tightest text-paper">{value}</p>
       <p className="truncate text-[0.68rem] text-paper/50">{hint}</p>
     </div>

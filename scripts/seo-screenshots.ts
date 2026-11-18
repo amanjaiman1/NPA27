@@ -465,9 +465,6 @@ function sampleData(): ChronicleData & Record<string, unknown> {
     files: [],
     plans: [],
     themeMode: "light",
-    palette: "rose",
-    wallpaper: "none",
-    wallpaperDim: 0,
     lastSleepPrompt: sleepDayKey(new Date()),
   };
 }

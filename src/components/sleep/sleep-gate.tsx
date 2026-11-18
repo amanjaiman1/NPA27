@@ -14,9 +14,7 @@ import { SleepEditor, useSleepQuickActions } from "./sleep-editor";
 function FullScreen({ children }: { children: React.ReactNode }) {
   return (
     <div className="relative grid min-h-[100dvh] place-items-center overflow-y-auto px-4 py-8">
-      <div className="pointer-events-none fixed inset-0 -z-10">
-        <div className="absolute inset-0 bg-aura" />
-      </div>
+      <div aria-hidden className="app-backdrop pointer-events-none fixed inset-0 -z-10" />
       {children}
     </div>
   );

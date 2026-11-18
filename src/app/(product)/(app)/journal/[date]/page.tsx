@@ -115,7 +115,7 @@ function SectionCard({
     <Card className="p-5">
       <div className="mb-3 flex items-center gap-2 text-paper/55">
         <Icon className="h-4 w-4" />
-        <h3 className="text-[0.7rem] font-semibold uppercase tracking-wider">
+        <h3 className="text-xs font-semibold">
           {title}
         </h3>
         {count !== undefined && (
@@ -285,7 +285,7 @@ export default function JournalDayPage() {
             <Card className="p-5 lg:col-span-1">
               <div className="mb-3 flex items-center gap-2 text-paper/55">
                 <Clock className="h-4 w-4" />
-                <h3 className="text-[0.7rem] font-semibold uppercase tracking-wider">
+                <h3 className="text-xs font-semibold">
                   Daily rhythm
                 </h3>
               </div>
@@ -320,11 +320,11 @@ export default function JournalDayPage() {
             <Card className="p-5 lg:col-span-2">
               <div className="mb-4 flex items-center gap-2 text-paper/55">
                 <Sunrise className="h-4 w-4" />
-                <h3 className="text-[0.7rem] font-semibold uppercase tracking-wider">
+                <h3 className="text-xs font-semibold">
                   State of mind
                 </h3>
               </div>
-              <div className="grid gap-x-8 gap-y-3 sm:grid-cols-2">
+              <div className="grid gap-y-3">
                 <RatingRow label="Mood" value={entry.mood} labels={MOOD_LABELS} />
                 <RatingRow label="Energy" value={entry.energy} labels={ENERGY_LABELS} />
                 <RatingRow
@@ -362,85 +362,82 @@ export default function JournalDayPage() {
             </SectionCard>
           )}
 
-          {/* Files, goals and the life side of the same day */}
-          {(dayFiles.length > 0 || dayGoals.length > 0 || dayPlanned.length > 0 || life) && (
-            <div className="grid gap-4 lg:grid-cols-3">
-              {dayFiles.length > 0 && (
-                <SectionCard icon={Paperclip} title="Files" count={dayFiles.length}>
-                  <ul className="space-y-1.5">
-                    {dayFiles.map((f) => (
-                      <li key={f.id}>
-                        <FileTile record={f} onOpen={() => setPreview(f)} />
-                      </li>
-                    ))}
-                  </ul>
-                </SectionCard>
-              )}
-              {dayPlanned.length > 0 && (
-                <SectionCard icon={Route} title="Planned work done this day" count={dayPlanned.length}>
-                  <ul className="space-y-1.5">
-                    {dayPlanned.map(({ plan, item }) => (
-                      <li key={`${plan.id}:${item.id}`}>
-                        <Link
-                          href={roadmapHref({ plan: plan.id, item: item.id })}
-                          className="flex items-center justify-between gap-2 text-sm text-paper/80 hover:text-accent"
-                        >
-                          <span className="min-w-0">
-                            <span className="block truncate">{item.title}</span>
-                            <span className="block truncate text-[0.68rem] text-paper/55">
-                              {PLAN_STATUS[item.status]} · {planName(plan)}
-                            </span>
+          {/* Everything else the day holds: files, planned work, goals, the life
+              side, and what was covered. One grid, so the cards pack together
+              however many of them there are. */}
+          <div className="grid gap-4 empty:hidden sm:grid-cols-2 xl:grid-cols-3">
+            {dayFiles.length > 0 && (
+              <SectionCard icon={Paperclip} title="Files" count={dayFiles.length}>
+                <ul className="space-y-1.5">
+                  {dayFiles.map((f) => (
+                    <li key={f.id}>
+                      <FileTile record={f} onOpen={() => setPreview(f)} />
+                    </li>
+                  ))}
+                </ul>
+              </SectionCard>
+            )}
+            {dayPlanned.length > 0 && (
+              <SectionCard icon={Route} title="Planned work done this day" count={dayPlanned.length}>
+                <ul className="space-y-1.5">
+                  {dayPlanned.map(({ plan, item }) => (
+                    <li key={`${plan.id}:${item.id}`}>
+                      <Link
+                        href={roadmapHref({ plan: plan.id, item: item.id })}
+                        className="flex items-center justify-between gap-2 text-sm text-paper/80 hover:text-accent"
+                      >
+                        <span className="min-w-0">
+                          <span className="block truncate">{item.title}</span>
+                          <span className="block truncate text-[0.68rem] text-paper/55">
+                            {PLAN_STATUS[item.status]} · {planName(plan)}
                           </span>
-                          <ChevronRight className="h-3.5 w-3.5 shrink-0 text-paper/40" />
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                </SectionCard>
-              )}
-              {dayGoals.length > 0 && (
-                <SectionCard icon={Target} title="Goals this day served" count={dayGoals.length}>
-                  <ul className="space-y-1.5">
-                    {dayGoals.map((g) => (
-                      <li key={g.id}>
-                        <Link
-                          href={`/goals?goal=${encodeURIComponent(g.id)}`}
-                          className="flex items-center justify-between gap-2 text-sm text-paper/80 hover:text-accent"
-                        >
-                          <span className="min-w-0 truncate">{g.title}</span>
-                          <ChevronRight className="h-3.5 w-3.5 shrink-0 text-paper/40" />
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                </SectionCard>
-              )}
-              {life && (
-                <SectionCard icon={HeartPulse} title="Life Dashboard">
-                  <ul className="space-y-1.5 text-sm text-paper/75">
-                    {life.sleepHours ? <li>Slept {formatHours(life.sleepHours)}</li> : null}
-                    {life.exerciseMinutes ? (
-                      <li>
-                        {life.exerciseMinutes} min {life.exerciseType ? life.exerciseType.toLowerCase() : "exercise"}
-                      </li>
-                    ) : null}
-                    {life.runKm ? <li>Ran {life.runKm} km</li> : null}
-                    {life.walkKm ? <li>Walked {life.walkKm} km</li> : null}
-                    {life.note ? <li className="text-paper/60">“{life.note}”</li> : null}
-                  </ul>
-                  <Link
-                    href={`/wellbeing?date=${date}`}
-                    className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-accent hover:underline"
-                  >
-                    Open this day <ChevronRight className="h-3 w-3" />
-                  </Link>
-                </SectionCard>
-              )}
-            </div>
-          )}
+                        </span>
+                        <ChevronRight className="h-3.5 w-3.5 shrink-0 text-paper/40" />
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </SectionCard>
+            )}
+            {dayGoals.length > 0 && (
+              <SectionCard icon={Target} title="Goals this day served" count={dayGoals.length}>
+                <ul className="space-y-1.5">
+                  {dayGoals.map((g) => (
+                    <li key={g.id}>
+                      <Link
+                        href={`/goals?goal=${encodeURIComponent(g.id)}`}
+                        className="flex items-center justify-between gap-2 text-sm text-paper/80 hover:text-accent"
+                      >
+                        <span className="min-w-0 truncate">{g.title}</span>
+                        <ChevronRight className="h-3.5 w-3.5 shrink-0 text-paper/40" />
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </SectionCard>
+            )}
+            {life && (
+              <SectionCard icon={HeartPulse} title="Life Dashboard">
+                <ul className="space-y-1.5 text-sm text-paper/75">
+                  {life.sleepHours ? <li>Slept {formatHours(life.sleepHours)}</li> : null}
+                  {life.exerciseMinutes ? (
+                    <li>
+                      {life.exerciseMinutes} min {life.exerciseType ? life.exerciseType.toLowerCase() : "exercise"}
+                    </li>
+                  ) : null}
+                  {life.runKm ? <li>Ran {life.runKm} km</li> : null}
+                  {life.walkKm ? <li>Walked {life.walkKm} km</li> : null}
+                  {life.note ? <li className="text-paper/60">“{life.note}”</li> : null}
+                </ul>
+                <Link
+                  href={`/wellbeing?date=${date}`}
+                  className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-accent hover:underline"
+                >
+                  Open this day <ChevronRight className="h-3 w-3" />
+                </Link>
+              </SectionCard>
+            )}
 
-          {/* What you covered */}
-          <div className="grid gap-4 sm:grid-cols-2">
             {topics.length ? (
               <SectionCard icon={ListChecks} title="Topics completed" count={topics.length}>
                 <ul className="flex flex-wrap gap-1.5">
@@ -586,7 +583,7 @@ export default function JournalDayPage() {
             <Card className="relative overflow-hidden p-6">
               <Quote className="absolute right-5 top-5 h-8 w-8 text-paper/[0.06]" />
               {entry.highlights && (
-                <p className="font-display text-lg font-medium leading-snug text-paper/80">
+                <p className="pr-10 font-display text-lg font-medium leading-snug text-paper/80">
                   {entry.highlights}
                 </p>
               )}

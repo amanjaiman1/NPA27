@@ -46,7 +46,7 @@ by `npm run test:db` on every change.
 
 ```
 upsc-chronicle-store:<account id>          the persisted Zustand store
-upsc-chronicle-surface|palette|…:<id>      appearance, read by the pre-paint script
+upsc-chronicle-theme|transparency:<id>     appearance, read by the pre-paint script
 upsc-chronicle-ready:<id>                  this browser has completed a sync
 upsc-chronicle-conflicts:<id>              edits that clashed between devices
 IndexedDB upsc-chronicle-sync / <id>       the last-synced copy, for merging

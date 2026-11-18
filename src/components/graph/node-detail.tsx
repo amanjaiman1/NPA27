@@ -148,7 +148,7 @@ export function NodeDetail({
     <Card className="flex flex-col gap-5 p-5">
       {/* header */}
       <div>
-        <p className="text-[0.7rem] uppercase tracking-wider text-paper/40">
+        <p className="text-xs text-paper/40">
           {node.subjectName}
         </p>
         <h3 className="mt-0.5 text-lg font-semibold text-paper">{node.label}</h3>
@@ -192,7 +192,7 @@ export function NodeDetail({
 
       {/* status control */}
       <div>
-        <p className="mb-1.5 text-[0.7rem] uppercase tracking-wider text-paper/40">
+        <p className="mb-1.5 text-xs text-paper/40">
           Set status
         </p>
         <div className="grid grid-cols-4 gap-1">
@@ -216,7 +216,7 @@ export function NodeDetail({
       {/* outgoing links */}
       {outgoing.length > 0 && (
         <div>
-          <p className="mb-2 flex items-center gap-1.5 text-[0.7rem] uppercase tracking-wider text-paper/40">
+          <p className="mb-2 flex items-center gap-1.5 text-xs text-paper/40">
             <ArrowUpRight className="h-3.5 w-3.5" /> Links out
           </p>
           <ul className="space-y-1">
@@ -265,7 +265,7 @@ export function NodeDetail({
       {/* backlinks */}
       {incoming.length > 0 && (
         <div>
-          <p className="mb-2 flex items-center gap-1.5 text-[0.7rem] uppercase tracking-wider text-paper/40">
+          <p className="mb-2 flex items-center gap-1.5 text-xs text-paper/40">
             <ArrowDownLeft className="h-3.5 w-3.5" /> Backlinks
           </p>
           <ul className="space-y-1">
@@ -314,7 +314,7 @@ export function NodeDetail({
       {/* related suggestions */}
       {suggestions.length > 0 && (
         <div>
-          <p className="mb-2 text-[0.7rem] uppercase tracking-wider text-paper/40">
+          <p className="mb-2 text-xs text-paper/40">
             Suggested links
           </p>
           <ul className="space-y-1">
@@ -347,7 +347,7 @@ export function NodeDetail({
 
       {/* add link search */}
       <div>
-        <p className="mb-2 text-[0.7rem] uppercase tracking-wider text-paper/40">
+        <p className="mb-2 text-xs text-paper/40">
           Link to a topic
         </p>
         <div className="relative">

@@ -60,7 +60,7 @@ function StatCard({
     <Card className="p-4 sm:p-5">
       <div className="flex items-center gap-2 text-paper/55">
         <Icon className="h-3.5 w-3.5 text-accent" />
-        <span className="text-[0.62rem] font-semibold uppercase leading-tight tracking-[0.08em]">
+        <span className="text-[0.72rem] font-semibold leading-tight">
           {label}
         </span>
       </div>

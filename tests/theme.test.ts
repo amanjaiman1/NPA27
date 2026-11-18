@@ -4,7 +4,7 @@ import { MemoryStorage } from "./memory-storage";
 import { readKey, setActiveAccount, setStorageBackend } from "@/lib/account/scope";
 import { normalizeSnapshot } from "@/lib/account/normalize";
 import { useChronicle, blankChronicleState, readCloudSnapshot } from "@/lib/store";
-import { THEME_MODES, isThemeMode, surfaceFor, themeHasOwnColours } from "@/lib/theme";
+import { DEFAULT_THEME_MODE, THEME_MODES, isThemeMode, legacyThemeMode, surfaceFor } from "@/lib/theme";
 
 const store = () => useChronicle.getState();
 
@@ -14,68 +14,110 @@ beforeEach(() => {
   useChronicle.setState(blankChronicleState());
 });
 
-test("Blue Glass is a third theme beside Light and Dark, with Auto still choosing between those two", () => {
+test("there are two themes, Light and Dark, and Light is the default", () => {
   assert.deepEqual(
     THEME_MODES.map((m) => m.label),
-    ["Light", "Dark", "Blue Glass", "Auto"],
+    ["Light", "Dark"],
   );
-  assert.equal(isThemeMode("blue"), true);
-  assert.equal(isThemeMode("ocean"), false);
-  // Its own surface, whatever the device prefers.
-  assert.equal(surfaceFor("blue", true), "blue");
-  assert.equal(surfaceFor("blue", false), "blue");
-  // Auto never lands on Blue Glass.
-  assert.equal(surfaceFor("system", true), "black");
-  assert.equal(surfaceFor("system", false), "white");
-  // It brings its own colours and sky; Light and Dark use the palette and wallpaper.
-  assert.equal(themeHasOwnColours("blue"), true);
-  for (const m of ["light", "dark", "system"] as const) assert.equal(themeHasOwnColours(m), false);
+  assert.equal(DEFAULT_THEME_MODE, "light");
+  assert.equal(store().themeMode, "light");
+  for (const retired of ["blue", "system", "ocean"]) assert.equal(isThemeMode(retired), false);
+  assert.equal(surfaceFor("light"), "white");
+  assert.equal(surfaceFor("dark"), "black");
 });
 
-test("Blue Glass and Liquid Glass are separate choices that never change each other", () => {
-  store().setThemeMode("blue");
-  assert.equal(store().material, "standard", "Blue Glass doesn't switch Liquid Glass on");
-  store().setMaterial("glass");
-  assert.equal(store().themeMode, "blue", "Liquid Glass keeps the theme");
-  store().setMaterial("standard");
-  assert.equal(store().themeMode, "blue", "turning Liquid Glass off keeps Blue Glass");
-  store().setMaterial("glass");
-  store().setThemeMode("dark");
-  assert.equal(store().material, "glass", "leaving Blue Glass keeps Liquid Glass");
-  // Reduce transparency is independent of both.
-  store().setThemeMode("blue");
-  store().setReduceTransparency(true);
-  assert.equal(store().themeMode, "blue");
-  assert.equal(store().material, "glass");
+test("a theme an older version saved opens as the theme it means today", () => {
+  // Blue Glass became Light.
+  assert.equal(legacyThemeMode("blue"), "light");
+  // Auto settles on the theme the device shows.
+  assert.equal(legacyThemeMode("system", true), "dark");
+  assert.equal(legacyThemeMode("system", false), "light");
+  // Light and Dark are kept; anything unknown is Light.
+  assert.equal(legacyThemeMode("dark"), "dark");
+  assert.equal(legacyThemeMode("light"), "light");
+  assert.equal(legacyThemeMode("ocean"), "light");
+  assert.equal(legacyThemeMode(undefined), "light");
+
+  // From another device, through the cloud.
+  assert.equal(normalizeSnapshot({ themeMode: "blue" as never }).themeMode, "light");
+  store().applyCloudSnapshot({ themeMode: "blue" as never });
+  assert.equal(store().themeMode, "light");
 });
 
-test("Blue Glass follows the account: synced, painted before load, and cleared on sign-out", () => {
+test("the theme follows the account: synced, painted before load, and cleared on sign-out", () => {
   setActiveAccount("account-a");
-  store().setThemeMode("blue");
-  // Synced with the account's data, like every other appearance choice.
-  assert.equal(readCloudSnapshot().themeMode, "blue");
-  // Remembered under this account's own key for the next cold start's first paint.
-  assert.equal(readKey("upsc-chronicle-theme:account-a"), "blue");
+  store().setThemeMode("dark");
+  store().setReduceTransparency(true);
+  // Synced with the account's data.
+  assert.equal(readCloudSnapshot().themeMode, "dark");
+  assert.equal(readCloudSnapshot().reduceTransparency, true);
+  // Remembered under this account's own keys for the next cold start's first paint.
+  assert.equal(readKey("upsc-chronicle-theme:account-a"), "dark");
+  assert.equal(readKey("upsc-chronicle-transparency:account-a"), "reduced");
   assert.equal(readKey("upsc-chronicle-theme:account-b"), null, "no other account's key is touched");
 
-  // Another device's choice arrives through the cloud and is kept as it is.
-  useChronicle.setState(blankChronicleState());
-  store().applyCloudSnapshot({ themeMode: "blue", material: "glass" });
-  assert.equal(store().themeMode, "blue");
-  assert.equal(store().material, "glass");
-  assert.equal(normalizeSnapshot({ themeMode: "blue" as const }).themeMode, "blue");
+  // Another device's choice arrives through the cloud and is painted next time too.
+  store().applyCloudSnapshot({ themeMode: "light" });
+  assert.equal(store().themeMode, "light");
+  assert.equal(readKey("upsc-chronicle-theme:account-a"), "light");
 
   // Signing out (or switching account) goes back to the default look.
   useChronicle.setState(blankChronicleState());
   assert.equal(store().themeMode, "light");
-  assert.equal(store().material, "standard");
+  assert.equal(store().reduceTransparency, false);
 });
 
-test("the palette and wallpaper chosen on Light or Dark survive a spell on Blue Glass", () => {
-  store().setPalette("lagoon");
-  store().setWallpaper("ocean");
-  store().setThemeMode("blue");
-  store().setThemeMode("light");
-  assert.equal(store().palette, "lagoon");
-  assert.equal(store().wallpaper, "ocean");
+test("colour palettes, Liquid Glass and wallpapers an older version saved are dropped, and nothing else changes", () => {
+  const old = {
+    themeMode: "dark" as const,
+    palette: "lagoon",
+    material: "glass",
+    wallpaper: "ocean",
+    wallpaperDim: 0.24,
+    reduceTransparency: true,
+    journal: [],
+  };
+  const next = normalizeSnapshot(old) as Record<string, unknown>;
+  for (const k of ["palette", "material", "wallpaper", "wallpaperDim"]) assert.equal(k in next, false, `${k} dropped`);
+  assert.equal(next.themeMode, "dark");
+  assert.equal(next.reduceTransparency, true);
+  assert.deepEqual(next.journal, []);
+
+  // Pulled from another device, none of it reaches the store or the next upload.
+  store().applyCloudSnapshot(old as never);
+  const state = store() as unknown as Record<string, unknown>;
+  const snap = readCloudSnapshot() as unknown as Record<string, unknown>;
+  for (const k of ["palette", "material", "wallpaper"]) {
+    assert.equal(k in state, false, `${k} not in the store`);
+    assert.equal(k in snap, false, `${k} not synced`);
+  }
+  assert.equal(snap.themeMode, "dark");
+});
+
+test("upgrading a saved store settles the look once and keeps every record", () => {
+  const migrate = useChronicle.persist.getOptions().migrate!;
+  const journal = [{ id: "j1", date: "2026-11-01", totalHours: 5, blocks: [], mood: 4, energy: 3, motivation: 3, focus: 3 }];
+  const saved = (themeMode: string) => ({ themeMode, palette: "rose", material: "glass", reduceTransparency: true, journal });
+
+  const blue = migrate(structuredClone(saved("blue")), 15) as unknown as Record<string, unknown>;
+  assert.equal(blue.themeMode, "light", "Blue Glass opens as Light");
+  assert.equal("palette" in blue, false);
+  assert.equal("material" in blue, false);
+  assert.equal(blue.reduceTransparency, true, "Reduce transparency is kept");
+  assert.deepEqual(blue.journal, journal);
+
+  // Auto settles on the theme this device shows when it upgrades.
+  const g = globalThis as { window?: unknown };
+  g.window = { matchMedia: () => ({ matches: true }) };
+  try {
+    const auto = migrate(structuredClone(saved("system")), 15) as unknown as Record<string, unknown>;
+    assert.equal(auto.themeMode, "dark");
+  } finally {
+    delete g.window;
+  }
+  const autoLight = migrate(structuredClone(saved("system")), 15) as unknown as Record<string, unknown>;
+  assert.equal(autoLight.themeMode, "light", "a device with no dark preference opens in Light");
+
+  const dark = migrate(structuredClone(saved("dark")), 15) as unknown as Record<string, unknown>;
+  assert.equal(dark.themeMode, "dark");
 });

@@ -255,21 +255,21 @@ async function main() {
     await scenario("2. A's journal, settings and look stay with A", async () => {
       await writeJournal(page, "A-only highlight");
       await page.goto(`${APP}/settings#appearance`);
-      await page.getByRole("button", { name: /Teal/ }).click();
       await page.getByRole("radio", { name: /^Dark/ }).click();
+      await page.getByRole("switch", { name: "Reduce transparency" }).click();
       await page.getByRole("switch", { name: "Daily digest" }).click();
       await waitFor("A's edits in the cloud", async () => {
         const c = await cloudOf(A.email);
         return (
           c &&
           JSON.stringify(c.data).includes("A-only highlight") &&
-          c.data.palette === "lagoon" &&
           c.data.themeMode === "dark" &&
+          c.data.reduceTransparency === true &&
           c.data.notify?.digest === false
         );
       });
-      check((await page.evaluate(() => document.documentElement.dataset.palette)) === "lagoon", "A's palette applied");
-      check((await page.evaluate(() => document.documentElement.dataset.surface)) === "black", "A's dark theme applied");
+      check((await htmlAttr(page, "data-surface")) === "black", "A's dark theme applied");
+      check((await htmlAttr(page, "data-transparency")) === "reduced", "A's reduced transparency applied");
       // Record the theme the moment <body> appears, before the app's scripts run.
       await page.addInitScript(() => {
         new MutationObserver((_, obs) => {
@@ -287,8 +287,8 @@ async function main() {
       const keys = Object.keys(await storageOf(page));
       check(!keys.some((k) => k.includes(ids.A)), `A's data left in the browser after sign-out: ${keys.filter((k) => k.includes(ids.A))}`);
       check(!keys.includes("upsc-chronicle-auth"), "the session was removed");
-      check((await page.evaluate(() => document.documentElement.dataset.palette)) === "rose", "the signed-out screen uses the default look");
-      check((await page.evaluate(() => document.documentElement.dataset.surface)) === "white", "the signed-out screen is light");
+      check((await htmlAttr(page, "data-surface")) === "white", "the signed-out screen is light");
+      check((await htmlAttr(page, "data-transparency")) === null, "the signed-out screen kept A's reduced transparency");
     });
 
     await scenario("3. B, on the same browser, sees none of A's data", async () => {
@@ -299,8 +299,8 @@ async function main() {
       await page.goto(`${APP}/journal`);
       await page.getByText("Daily Journal").first().waitFor();
       check(!(await page.content()).includes("A-only highlight"), "B can see A's journal");
-      check((await page.evaluate(() => document.documentElement.dataset.palette)) === "rose", "B inherited A's look");
-      check((await page.evaluate(() => document.documentElement.dataset.surface)) === "white", "B inherited A's theme");
+      check((await htmlAttr(page, "data-surface")) === "white", "B inherited A's theme");
+      check((await htmlAttr(page, "data-transparency")) === null, "B inherited A's reduced transparency");
       await writeJournal(page, "B-only highlight");
       await waitFor("B's entry in the cloud", async () => JSON.stringify((await cloudOf(B.email))?.data ?? "").includes("B-only highlight"));
       const b = await cloudOf(B.email);
@@ -316,7 +316,10 @@ async function main() {
       await page.goto(`${APP}/journal/${today()}`);
       await page.getByText("A-only highlight").waitFor();
       check(!(await page.content()).includes("B-only highlight"), "A can see B's journal");
-      check((await page.evaluate(() => document.documentElement.dataset.palette)) === "lagoon", "A's look wasn't restored");
+      check(
+        (await htmlAttr(page, "data-surface")) === "black" && (await htmlAttr(page, "data-transparency")) === "reduced",
+        "A's look wasn't restored",
+      );
       const keys = Object.keys(await storageOf(page));
       check(!keys.some((k) => k.includes(ids.B)), "B's data is still in the browser");
     });
@@ -327,8 +330,8 @@ async function main() {
       await passSleepPromptIfShown(phonePage);
       await phonePage.goto(`${APP}/journal/${today()}`);
       await phonePage.getByText("A-only highlight").waitFor();
-      check((await phonePage.evaluate(() => document.documentElement.dataset.palette)) === "lagoon", "appearance didn't follow A to the phone");
-      check((await phonePage.evaluate(() => document.documentElement.dataset.surface)) === "black", "the theme didn't follow A to the phone");
+      check((await htmlAttr(phonePage, "data-surface")) === "black", "the theme didn't follow A to the phone");
+      check((await htmlAttr(phonePage, "data-transparency")) === "reduced", "reduced transparency didn't follow A to the phone");
     });
 
     await scenario("6. Edits made on both devices at once are all kept", async () => {
@@ -523,88 +526,91 @@ async function main() {
       check(!JSON.stringify((await cloudOf(B.email))?.data?.lifeLog ?? []).includes("23:30"), "A's sleep reached B");
     });
 
-    await scenario("10. Liquid Glass follows the account, on either theme, without a flash", async () => {
+    await scenario("10. Reduce transparency follows the account, on either theme, without a flash", async () => {
       await page.goto(`${APP}/settings#appearance`);
       await passSleepPromptIfShown(page);
-      const surface = await htmlAttr(page, "data-surface");
-      check(surface === "black", "A's dark theme from scenario 2 isn't showing");
-      await page.getByRole("switch", { name: "Liquid Glass" }).click();
-      check((await htmlAttr(page, "data-material")) === "glass", "glass wasn't applied");
-      check((await htmlAttr(page, "data-surface")) === surface, "turning glass on changed the theme");
-      // Surfaces ease across for under half a second; then cards are see-through.
-      await waitFor("translucent cards", async () => (await cardAlpha(page)) < 0.8, 5000);
-      await waitFor("glass in A's cloud copy", async () => (await cloudOf(A.email))?.data?.material === "glass");
-      check((await cloudOf(A.email)).data.themeMode === "dark", "the synced theme changed with glass");
-
-      // The theme can still be changed underneath it.
-      await page.getByRole("radio", { name: /^Light/ }).click();
-      check((await htmlAttr(page, "data-material")) === "glass" && (await htmlAttr(page, "data-surface")) === "white", "Light + glass");
-      await page.getByRole("radio", { name: /^Dark/ }).click();
-
-      // Reduce transparency keeps glass but makes it nearly solid.
-      await page.getByRole("switch", { name: "Reduce transparency" }).click();
-      check((await htmlAttr(page, "data-transparency")) === "reduced", "reduce transparency not applied");
+      check((await htmlAttr(page, "data-surface")) === "black", "A's dark theme from scenario 2 isn't showing");
+      check((await htmlAttr(page, "data-transparency")) === "reduced", "A's reduced transparency from scenario 2 isn't showing");
       await waitFor("nearly solid cards", async () => (await cardAlpha(page)) > 0.9, 5000);
-      await page.getByRole("switch", { name: "Reduce transparency" }).click();
 
-      // Painted before the app loads, so a reload never flashes Standard.
+      // Painted before the app loads, so a reload never flashes see-through panels.
       await page.addInitScript(() => {
         new MutationObserver((_, obs) => {
           if (!document.body) return;
-          window.__firstPaintMaterial = document.documentElement.getAttribute("data-material");
+          window.__firstPaintTransparency = document.documentElement.getAttribute("data-transparency");
           obs.disconnect();
         }).observe(document, { childList: true, subtree: true });
       });
       await page.reload();
-      check((await page.evaluate(() => window.__firstPaintMaterial)) === "glass", "glass isn't painted before the app loads");
+      check((await page.evaluate(() => window.__firstPaintTransparency)) === "reduced", "reduced transparency isn't painted before the app loads");
+
+      // It holds on either theme, and changing the theme leaves it alone.
+      await page.getByRole("radio", { name: /^Light/ }).click();
+      check(
+        (await htmlAttr(page, "data-surface")) === "white" && (await htmlAttr(page, "data-transparency")) === "reduced",
+        "Light with reduced transparency",
+      );
+      await waitFor("nearly solid cards on Light", async () => (await cardAlpha(page)) > 0.9, 5000);
+      await page.getByRole("radio", { name: /^Dark/ }).click();
+
+      // Off again: glass, in the same theme. Surfaces ease across for under half a second.
+      await page.getByRole("switch", { name: "Reduce transparency" }).click();
+      check((await htmlAttr(page, "data-transparency")) === null, "reduce transparency didn't turn off");
+      check((await htmlAttr(page, "data-surface")) === "black", "turning it off changed the theme");
+      await waitFor("translucent cards", async () => (await cardAlpha(page)) < 0.8, 5000);
+      await waitFor("the change in A's cloud copy", async () => (await cloudOf(A.email))?.data?.reduceTransparency === false);
+      check((await cloudOf(A.email)).data.themeMode === "dark", "the synced theme changed with transparency");
 
       // And it reaches A's other device.
       await phonePage.reload();
-      await waitFor("glass on the phone", async () => (await htmlAttr(phonePage, "data-material")) === "glass");
+      await waitFor("glass on the phone", async () => (await htmlAttr(phonePage, "data-transparency")) === null);
       check((await htmlAttr(phonePage, "data-surface")) === "black", "the phone lost the dark theme");
     });
 
+    await scenario("11. Both themes are frosted glass, and a theme an older version saved opens as the one it means now", async () => {
+      // Light and Dark alike: see-through cards and a frosted bar.
+      for (const [radio, surface] of [[/^Light/, "white"], [/^Dark/, "black"]]) {
+        await page.getByRole("radio", { name: radio }).click();
+        check((await htmlAttr(page, "data-surface")) === surface, `the ${surface} surface wasn't applied`);
+        await waitFor(`frosted cards on ${surface}`, async () => {
+          const a = await cardAlpha(page);
+          return a >= 0.45 && a < 0.8;
+        }, 5000);
+        const bar = await page.evaluate(() => getComputedStyle(document.querySelector(".chrome-glass")).backdropFilter);
+        check(/blur/.test(bar), `the bars aren't frosted on ${surface} (${bar})`);
+      }
+      await waitFor("Dark in A's cloud copy", async () => (await cloudOf(A.email))?.data?.themeMode === "dark");
 
-    await scenario("11. Blue Glass is a theme of its own, frosted with or without Liquid Glass, and follows the account", async () => {
-      // Picked while Liquid Glass is on: the theme changes, the material doesn't.
-      await page.getByRole("radio", { name: /^Blue Glass/ }).click();
-      check((await htmlAttr(page, "data-surface")) === "blue", "Blue Glass wasn't applied");
-      check((await htmlAttr(page, "data-material")) === "glass", "picking Blue Glass turned Liquid Glass off");
-      await waitFor("Blue Glass in A's cloud copy", async () => (await cloudOf(A.email))?.data?.themeMode === "blue");
-      check((await cloudOf(A.email)).data.material === "glass", "the synced material changed with the theme");
+      // A device still on an older version saves Blue Glass, with a colour
+      // palette and Liquid Glass. Retried if this device saved in between.
+      const { access_token } = await sessionOf(page);
+      await waitFor("the older device's save", async () => {
+        const now = await cloudOf(A.email);
+        const res = await fetch(`${MOCK}/rest/v1/rpc/save_chronicle_state`, {
+          method: "POST",
+          headers: { apikey: mockEnv.NEXT_PUBLIC_SUPABASE_ANON_KEY, Authorization: `Bearer ${access_token}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            p_data: { ...now.data, themeMode: "blue", palette: "lagoon", material: "glass" },
+            p_base_version: now.version,
+          }),
+        });
+        return (await res.json())?.[0]?.saved === true;
+      });
 
-      // With Liquid Glass off it is still glass: see-through cards and frosted bars.
-      await page.getByRole("switch", { name: "Liquid Glass" }).click();
-      check((await htmlAttr(page, "data-material")) === "standard", "Liquid Glass didn't turn off");
-      check((await htmlAttr(page, "data-surface")) === "blue", "turning Liquid Glass off left Blue Glass");
-      await waitFor("frosted cards on Blue Glass alone", async () => {
-        const a = await cardAlpha(page);
-        return a >= 0.45 && a < 0.8;
-      }, 5000);
-      const bar = await page.evaluate(() => getComputedStyle(document.querySelector(".chrome-glass")).backdropFilter);
-      check(/blur/.test(bar), `the top bar isn't frosted on Blue Glass alone (${bar})`);
-
-      // Painted before the app loads, so a reload never flashes Light.
+      // Here it opens as Light, and the retired choices never reach the page.
       await page.reload();
-      check((await page.evaluate(() => window.__firstPaintSurface)) === "blue", "Blue Glass isn't painted before the app loads");
-      check((await page.evaluate(() => window.__firstPaintMaterial)) === "standard", "the first paint brought back Liquid Glass");
+      await waitFor("Blue Glass opened as Light", async () => (await htmlAttr(page, "data-surface")) === "white");
+      check((await htmlAttr(page, "data-theme-mode")) === "light", "the saved Blue Glass wasn't read as Light");
+      check(
+        (await htmlAttr(page, "data-palette")) === null && (await htmlAttr(page, "data-material")) === null,
+        "a retired palette or material reached the page",
+      );
+      await page.getByRole("radio", { name: /^Light/, checked: true }).waitFor();
 
-      // And it reaches A's other device, without Liquid Glass.
-      await phonePage.reload();
-      await waitFor("Blue Glass on the phone", async () => (await htmlAttr(phonePage, "data-surface")) === "blue");
-      await waitFor("Liquid Glass off on the phone", async () => (await htmlAttr(phonePage, "data-material")) === "standard");
-
-      // Reduce transparency makes it nearly solid, and it is still Blue Glass.
-      await page.getByRole("switch", { name: "Reduce transparency" }).click();
-      await waitFor("nearly solid cards on Blue Glass", async () => (await cardAlpha(page)) > 0.9, 5000);
-      check((await htmlAttr(page, "data-surface")) === "blue", "reduce transparency changed the theme");
-      await page.getByRole("switch", { name: "Reduce transparency" }).click();
-
-      // Light still works, and Blue Glass comes back as it was.
-      await page.getByRole("radio", { name: /^Light/ }).click();
-      check((await htmlAttr(page, "data-surface")) === "white", "Light no longer applies");
-      await page.getByRole("radio", { name: /^Blue Glass/ }).click();
-      await waitFor("Blue Glass back in A's cloud copy", async () => (await cloudOf(A.email))?.data?.themeMode === "blue");
+      // Choosing again works as normal; A goes back to Dark for the rest of the run.
+      await page.getByRole("radio", { name: /^Dark/ }).click();
+      await waitFor("Dark back in A's cloud copy", async () => (await cloudOf(A.email))?.data?.themeMode === "dark");
+      check((await htmlAttr(page, "data-surface")) === "black", "Dark no longer applies");
     });
 
     // The Roadmap, planned for next year so the dates never run into today.
@@ -824,8 +830,8 @@ async function main() {
 
     await scenario("14. After sign-out nothing private is reachable", async () => {
       await signOut(page);
-      check((await htmlAttr(page, "data-material")) === "standard", "the signed-out screen kept A's glass");
-      check((await htmlAttr(page, "data-surface")) === "white", "the signed-out screen kept A's Blue Glass");
+      check((await htmlAttr(page, "data-surface")) === "white", "the signed-out screen kept A's dark theme");
+      check((await htmlAttr(page, "data-theme-mode")) === "light", "the signed-out screen isn't in the default theme");
       await page.goto(`${APP}/journal/${today()}`);
       await page.waitForURL(/\/login/);
       check(!(await page.content()).includes("A-only highlight"), "A's journal is still rendered");
@@ -943,8 +949,8 @@ async function main() {
       await signIn(p, B.email, "brandNew2028");
       await passSleepPromptIfShown(p);
       await dashboardGreets(p, "Student");
-      check((await htmlAttr(p, "data-material")) === "standard", "B got A's Liquid Glass");
-      check((await htmlAttr(p, "data-surface")) === "white", "B got A's Blue Glass");
+      check((await htmlAttr(p, "data-surface")) === "white", "B got A's dark theme");
+      check((await htmlAttr(p, "data-transparency")) === null, "B got a reduced transparency B never chose");
     });
 
     await scenario("An expired reset link explains itself", async () => {

@@ -94,7 +94,8 @@ export function CommandPalette({
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={onKeyDown}
-                placeholder="Jump to a module, search the Chronicle…"
+                placeholder="Search pages: journal, mocks, sleep…"
+                aria-label="Search pages"
                 className="h-14 flex-1 bg-transparent text-[0.95rem] text-paper placeholder:text-paper/35 focus:outline-none"
               />
               <kbd className="rounded-md border border-line bg-paper/[0.04] px-1.5 py-0.5 text-[0.6rem] font-semibold text-paper/45">
@@ -116,14 +117,14 @@ export function CommandPalette({
                     onClick={() => go(item.href)}
                     onMouseEnter={() => setActive(i)}
                     className={cn(
-                      "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors",
-                      i === active ? "bg-accent/10" : "hover:bg-paper/[0.05]",
+                      "flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition-colors",
+                      i === active ? "bg-[var(--nav-active)] shadow-[inset_0_0_0_1px_var(--nav-active-ring)]" : "hover:bg-[var(--nav-hover)]",
                     )}
                   >
                     <span
                       className={cn(
-                        "grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-line",
-                        i === active ? "bg-accent text-accent-fg" : "bg-paper/[0.04] text-paper/55",
+                        "grid h-9 w-9 shrink-0 place-items-center rounded-xl",
+                        i === active ? "bg-accent text-accent-fg" : "bg-accent/10 text-accent",
                       )}
                     >
                       <Icon className="h-4 w-4" />
@@ -152,7 +153,7 @@ export function CommandPalette({
               <span className="flex items-center gap-1">
                 <CornerDownLeft className="h-3 w-3" /> open
               </span>
-              <span className="ml-auto font-display font-semibold">DoOrDie</span>
+              <span className="ml-auto font-brand font-semibold">DoOrDie</span>
             </div>
           </motion.div>
         </motion.div>

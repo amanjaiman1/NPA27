@@ -272,25 +272,24 @@ test("the morning check-in is answered by saving or by skipping, and that syncs"
   assert.equal(store().lifeLog.find((l) => l.date === "2026-11-19")?.sleepHours, 8);
 });
 
-test("Liquid Glass is its own setting: it never changes the theme, and the theme never changes it", () => {
+test("Reduce transparency is its own setting: it never changes the theme, and the theme never changes it", () => {
   store().setThemeMode("dark");
-  store().setMaterial("glass");
-  assert.equal(store().themeMode, "dark");
-  assert.equal(store().material, "glass");
-  store().setThemeMode("light");
-  assert.equal(store().material, "glass", "switching theme keeps glass on");
-  store().setMaterial("standard");
-  assert.equal(store().themeMode, "light", "turning glass off keeps the theme");
   store().setReduceTransparency(true);
+  assert.equal(store().themeMode, "dark");
   assert.equal(store().reduceTransparency, true);
+  store().setThemeMode("light");
+  assert.equal(store().reduceTransparency, true, "switching theme keeps it on");
+  store().setReduceTransparency(false);
+  assert.equal(store().themeMode, "light", "turning it off keeps the theme");
   // Both travel with the account's synced data.
-  store().applyCloudSnapshot({ material: "glass", reduceTransparency: false, themeMode: "dark" });
-  assert.equal(store().material, "glass");
+  store().applyCloudSnapshot({ reduceTransparency: true, themeMode: "dark" });
+  assert.equal(store().reduceTransparency, true);
+  assert.equal(store().themeMode, "dark");
+  // A value this version can't read is off.
+  store().applyCloudSnapshot({ reduceTransparency: "yes" as never });
   assert.equal(store().reduceTransparency, false);
-  // A material this version doesn't know reads as Standard.
-  store().applyCloudSnapshot({ material: "frosted" as never });
-  assert.equal(store().material, "standard");
   // Signing out clears it with everything else.
+  store().setReduceTransparency(true);
   useChronicle.setState(blankChronicleState());
-  assert.equal(store().material, "standard");
+  assert.equal(store().reduceTransparency, false);
 });

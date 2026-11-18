@@ -38,6 +38,10 @@ import {
 } from "@/lib/reflection";
 import { formatDate, formatDayShort, toISODate, uid, cn } from "@/lib/utils";
 
+/** Mood is rated 1 to 5, so the chart's scale is exactly that. */
+const MOOD_DOMAIN: [number, number] = [1, 5];
+const MOOD_TICKS = [1, 2, 3, 4, 5];
+
 function emptyReflection(today: string, prompt: string): Reflection {
   return {
     id: uid("ref"),
@@ -236,7 +240,7 @@ export default function ReflectionsPage() {
               <Card key={s.label} className="p-4 sm:p-5">
                 <div className="flex items-center gap-2 text-paper/45">
                   <s.icon className="h-4 w-4" />
-                  <span className="min-w-0 flex-1 truncate text-[0.62rem] font-semibold uppercase tracking-[0.08em]">
+                  <span className="min-w-0 flex-1 truncate text-[0.72rem] font-semibold">
                     {s.label}
                   </span>
                   {s.drift != null && s.drift !== 0 && (
@@ -273,6 +277,9 @@ export default function ReflectionsPage() {
                   meta: `${formatDate(s.date)} · ${MOOD_WORDS[s.mood]}`,
                 }))}
                 height={180}
+                domain={MOOD_DOMAIN}
+                ticks={MOOD_TICKS}
+                formatTick={String}
                 formatValue={(v) => `${v}/5 ${MOOD_WORDS[Math.round(v)] ?? ""}`}
               />
             </Card>
@@ -536,7 +543,7 @@ export default function ReflectionsPage() {
           </Field>
           {gratitude.length > 0 && !editing && (
             <div className="flex flex-wrap items-center gap-1.5">
-              <span className="text-[0.66rem] uppercase tracking-wider text-paper/35">
+              <span className="text-[0.72rem] text-paper/35">
                 Recent
               </span>
               {gratitude.slice(0, 5).map((g) => (

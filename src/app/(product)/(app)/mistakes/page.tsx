@@ -133,7 +133,7 @@ function ReviewPanel({
               <div className="flex items-start gap-2 rounded-xl border border-line bg-paper/[0.02] p-3">
                 <X className="mt-0.5 h-3.5 w-3.5 shrink-0 text-paper/40" />
                 <div>
-                  <p className="text-[0.65rem] uppercase tracking-wider text-paper/35">
+                  <p className="text-[0.72rem] text-paper/35">
                     Your answer
                   </p>
                   <p className="text-sm text-paper/60 line-through decoration-paper/30">
@@ -146,7 +146,7 @@ function ReviewPanel({
               <div className="flex items-start gap-2 rounded-xl border border-paper/20 bg-paper/[0.05] p-3">
                 <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-paper" />
                 <div>
-                  <p className="text-[0.65rem] uppercase tracking-wider text-paper/45">
+                  <p className="text-[0.72rem] text-paper/45">
                     Correct
                   </p>
                   <p className="text-sm font-medium text-paper">{m.correctAnswer}</p>
@@ -294,7 +294,7 @@ export default function MistakesPage() {
           <Card key={s.label} className="p-4">
             <div className="flex items-center gap-2 text-paper/40">
               <s.icon className="h-3.5 w-3.5" />
-              <span className="text-[0.62rem] font-medium uppercase tracking-wider">
+              <span className="text-[0.72rem] font-medium">
                 {s.label}
               </span>
             </div>
@@ -414,8 +414,9 @@ export default function MistakesPage() {
             </Card>
           </div>
 
-          {/* Heatmaps */}
-          <div className="grid gap-4 lg:grid-cols-2">
+          {/* Heatmaps: side by side once the matrix has room for all six
+              error types, stacked below that. */}
+          <div className="grid gap-4 wide:grid-cols-2 [&>*]:min-w-0">
             <Card className="p-5">
               <p className="eyebrow mb-1">When</p>
               <h3 className="mb-4 text-base font-semibold text-paper">
@@ -560,7 +561,7 @@ export default function MistakesPage() {
                       <div className="space-y-3 border-t border-paper/[0.06] px-4 py-4">
                         {m.userAnswer && (
                           <div>
-                            <p className="text-[0.65rem] uppercase tracking-wider text-paper/35">
+                            <p className="text-[0.72rem] text-paper/35">
                               Your answer
                             </p>
                             <p className="text-sm text-paper/60 line-through decoration-paper/30">
@@ -570,7 +571,7 @@ export default function MistakesPage() {
                         )}
                         {m.correctAnswer && (
                           <div>
-                            <p className="text-[0.65rem] uppercase tracking-wider text-paper/45">
+                            <p className="text-[0.72rem] text-paper/45">
                               Correct answer
                             </p>
                             <p className="text-sm font-medium text-paper">
@@ -580,7 +581,7 @@ export default function MistakesPage() {
                         )}
                         {m.explanation && (
                           <div>
-                            <p className="text-[0.65rem] uppercase tracking-wider text-paper/35">
+                            <p className="text-[0.72rem] text-paper/35">
                               Explanation
                             </p>
                             <p className="text-sm leading-relaxed text-paper/60">

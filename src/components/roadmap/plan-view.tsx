@@ -67,7 +67,7 @@ const TIMING_LABEL: Record<RoadmapPlan["level"], { current: string; upcoming: st
 function Stat({ label, value, tone }: { label: string; value: number | string; tone?: "danger" | "positive" }) {
   return (
     <div className="rounded-xl border border-line bg-paper/[0.02] px-2.5 py-2">
-      <p className="text-[0.62rem] font-semibold uppercase tracking-[0.08em] text-paper/55">{label}</p>
+      <p className="text-[0.72rem] font-semibold text-paper/55">{label}</p>
       <p className={cn("tabular mt-0.5 font-display text-lg font-bold text-paper", tone === "danger" && "text-danger", tone === "positive" && "text-positive")}>
         {value}
       </p>
@@ -556,7 +556,7 @@ export function PlanView({
                   <div className="overflow-hidden rounded-xl border border-line">
                     <table className="w-full text-left text-[0.78rem]">
                       <caption className="sr-only">Planned activities and recorded hours by subject</caption>
-                      <thead className="bg-paper/[0.03] text-[0.66rem] uppercase tracking-wider text-paper/60">
+                      <thead className="bg-paper/[0.03] text-[0.72rem] text-paper/60">
                         <tr>
                           <th scope="col" className="px-3 py-2 font-semibold">
                             Subject

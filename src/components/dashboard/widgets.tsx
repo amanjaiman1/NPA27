@@ -3,53 +3,51 @@
 import { useMemo } from "react";
 import Link from "next/link";
 import {
-  Flame,
-  Clock,
-  CalendarCheck,
-  Smile,
   ArrowUpRight,
-  ArrowRight,
-  Repeat,
-  Target,
-  Sparkles,
-  TrendingUp,
+  CalendarCheck,
   Check,
+  ClipboardList,
+  Clock,
+  Flame,
+  LineChart as LineChartIcon,
   Milestone as MilestoneIcon,
+  NotebookPen,
+  PieChart,
+  Plus,
+  Repeat,
+  Smile,
+  Sparkles,
+  Target,
+  TrendingUp,
 } from "lucide-react";
 import { useChronicle } from "@/lib/store";
 import {
+  avgMood,
   buildHeatmap,
   currentStreak,
-  longestStreak,
-  totalHours,
-  studyDays,
-  lastNDaysHours,
   hoursBySubject,
-  avgMood,
-  mockSeries,
-  todayEntry,
   isAccomplished,
+  lastNDaysHours,
+  longestStreak,
+  mockSeries,
+  studyDays,
+  todayEntry,
+  totalHours,
 } from "@/lib/selectors";
-import {
-  toISODate,
-  daysBetween,
-  formatHours,
-  formatDate,
-  weekday,
-  relativeDay,
-} from "@/lib/utils";
+import { daysBetween, formatDate, formatHours, relativeDay, toISODate, weekday } from "@/lib/utils";
 import { useMounted } from "@/lib/hooks";
+import { activePlans, planName } from "@/lib/roadmap";
+import { byUrgency, computeGoalProgress, type GoalData } from "@/lib/goals";
 import { Card } from "@/components/ui/card";
-import { RadialProgress, Progress } from "@/components/ui/progress";
-import {
-  computeGoalProgress,
-  byUrgency,
-  type GoalData,
-} from "@/lib/goals";
+import { Panel, PanelLink, MetricCard } from "@/components/ui/panel";
+import { Avatar } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Progress, RadialProgress } from "@/components/ui/progress";
 import { Heatmap } from "@/components/charts/heatmap";
 import { BarChart } from "@/components/charts/bar-chart";
 import { Donut } from "@/components/charts/donut";
 import { Sparkline } from "@/components/charts/sparkline";
+import { cn } from "@/lib/utils";
 
 const MOOD = ["", "Drained", "Low", "Steady", "Good", "In flow"];
 const QUOTES = [
@@ -70,339 +68,371 @@ function greeting() {
   return "Good night";
 }
 
-/* ── Greeting hero ───────────────────────────────────────────── */
+const round1 = (n: number) => Math.round(n * 10) / 10;
 
-export function CommandPanel() {
+/* ── Welcome ──────────────────────────────────────────────────── */
+
+/**
+ * The greeting: who, which day of the journey, what it's all for, how long is
+ * left, and the way to log today. Calm and compact, so the numbers that follow
+ * are on the first screen.
+ */
+export function WelcomePanel({ className }: { className?: string }) {
   const profile = useChronicle((s) => s.profile);
-  const journal = useChronicle((s) => s.journal);
-  const today = toISODate(new Date());
+  const mounted = useMounted();
+  const now = new Date();
+  const today = toISODate(now);
   const daysLeft = daysBetween(today, profile.examDate);
-  const journeyDay = daysBetween(profile.startDate, today);
-  const streak = currentStreak(journal);
-  const longest = longestStreak(journal);
-  const total = totalHours(journal);
-  const days = studyDays(journal);
-  const mood = avgMood(journal, 14);
-  const firstName = profile.name.split(" ")[0];
+  const journeyDay = Math.max(1, daysBetween(profile.startDate, today));
+  const firstName = profile.name.split(" ")[0] || "there";
   const quote = QUOTES[journeyDay % QUOTES.length];
+  const elapsed =
+    journeyDay + daysLeft > 0 ? Math.max(0, Math.min(100, (journeyDay / (journeyDay + Math.max(0, daysLeft))) * 100)) : 0;
 
   return (
-    /* The greeting, the countdown and the four headline numbers share one
-       panel. It's painted entirely in CSS from the palette — no video, no
-       photo to download — so it costs nothing and re-tints with the accent.
-
-       `on-media` pins the subtree to a fixed light-on-dark palette, so the
-       copy stays legible on the dark panel whatever surface is chosen. The
-       panel and its tiles take their colours from the --hero-* tokens:
-       near-black on Light and Dark, deep sapphire on Blue Glass. */
-    <Card className="on-media relative isolate overflow-hidden rounded-3xl border-white/10 bg-[color:var(--hero-ink)]">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(70%_90%_at_100%_0%,rgb(var(--aura-1)/0.38),transparent_70%)]" />
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(60%_80%_at_0%_100%,rgb(var(--aura-2)/0.26),transparent_70%)]" />
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-accent/20 via-transparent to-transparent" />
-
-      <div className="relative z-10 p-5 sm:p-7 lg:p-8">
-        <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between sm:gap-8">
-          <div className="min-w-0">
-            <p className="eyebrow mb-3 text-white/90">
-              Day {journeyDay} of the journey · {profile.targetExam}
-            </p>
-            <h1 className="font-display text-[2.1rem] font-bold leading-[1.05] tracking-tightest text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.6)] sm:text-[2.9rem]">
-              {greeting()}, {firstName}.
-            </h1>
-            <p className="mt-3 max-w-md text-[0.95rem] leading-relaxed text-white/90 drop-shadow-[0_1px_8px_rgba(0,0,0,0.6)]">
-              “{quote}”
-            </p>
-            {profile.mission && (
-              <p className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-[color:var(--hero-tile)] px-3 py-1 text-xs text-white/90">
-                <Target className="h-3.5 w-3.5" />
-                <span className="text-white/60">Mission</span> {profile.mission}
-              </p>
-            )}
-            <div className="mt-5 flex flex-wrap items-center gap-2">
-              <Link
-                href="/journal?new=1"
-                className="inline-flex items-center gap-2 rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-accent-fg shadow-accent transition-all hover:-translate-y-px hover:brightness-[1.08]"
-              >
-                Log today
-                <ArrowUpRight className="h-4 w-4" />
-              </Link>
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-[color:var(--hero-tile)] px-4 py-2.5 text-sm font-medium text-white/90">
-                <Flame className="h-4 w-4 text-accent" />
-                {streak}-day streak
-              </span>
+    <Card className={cn("relative isolate overflow-hidden p-6 sm:p-7", className)}>
+      {/* A soft pool of the accent in the corner: light, not decoration. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(110%_75%_at_100%_0%,rgb(var(--accent)/0.13),transparent_62%),radial-gradient(80%_70%_at_0%_100%,rgb(var(--aura-2)/0.09),transparent_62%)]"
+      />
+      <div className="flex h-full flex-col">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex min-w-0 items-center gap-3">
+            <Avatar name={profile.name || "You"} size="lg" />
+            <div className="min-w-0 leading-tight">
+              <p className="truncate text-[0.82rem] font-semibold text-paper">{profile.name || "Your chronicle"}</p>
+              {mounted && (
+                <p className="truncate text-[0.72rem] text-paper/60">
+                  {now.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}
+                </p>
+              )}
             </div>
           </div>
-
-          <div className="flex shrink-0 items-center justify-center">
-            <div className="rounded-full bg-[color:var(--hero-ring)] p-2.5 ring-1 ring-white/10">
-              <RadialProgress
-                /* How much of this account's own journey, start date to exam, has passed. */
-                value={
-                  journeyDay + daysLeft > 0
-                    ? Math.max(0, Math.min(100, (journeyDay / (journeyDay + Math.max(0, daysLeft))) * 100))
-                    : 0
-                }
-                size={124}
-                stroke={7}
-                label={<span className="text-2xl">{daysLeft}</span>}
-                sublabel={<span className="text-white/85">days left</span>}
-              />
-            </div>
+          <div className="flex shrink-0 flex-col items-center gap-1" title={`${Math.round(elapsed)}% of your preparation time has passed`}>
+            <RadialProgress
+              value={elapsed}
+              size={76}
+              stroke={6}
+              label={<span className="text-[1.05rem]">{Math.max(0, daysLeft)}</span>}
+              sublabel="days left"
+            />
           </div>
         </div>
 
-        {/* The headline numbers, as glass tiles on the film — from `sm` up. A
-            phone keeps the panel hero-sized and gets them as ordinary cards
-            underneath instead (see StatStrip), because stretching the panel on a
-            narrow screen pushed everything else off the first view. */}
-        <div className="mt-6 hidden grid-cols-2 gap-2.5 sm:mt-8 sm:grid sm:gap-3 lg:grid-cols-4">
-          <MediaStat icon={Flame} label="Current streak" value={`${streak}d`} hint={`Best: ${longest} days`} />
-          <MediaStat icon={Clock} label="Total hours" value={`${total}h`} hint="Since day one" />
-          <MediaStat icon={CalendarCheck} label="Days studied" value={`${days}`} hint="Logged sessions" />
-          <MediaStat
-            icon={Smile}
-            label="Avg mood"
-            value={mood ? `${mood}/5` : "—"}
-            hint={mood ? MOOD[Math.round(mood)] : "No data"}
-          />
+        <h1 className="mt-5 text-[1.7rem] font-semibold leading-[1.15] tracking-[-0.035em] text-paper sm:text-[2rem]">
+          {greeting()}, {firstName}.
+        </h1>
+        <p className="mt-1.5 text-[0.88rem] text-paper/65">
+          Day <span className="tabular font-semibold text-paper">{journeyDay}</span> of your preparation for{" "}
+          {profile.targetExam}.
+        </p>
+        {profile.mission ? (
+          <p className="mt-3 flex items-start gap-2 text-[0.85rem] leading-relaxed text-paper/75">
+            <Target className="mt-0.5 h-4 w-4 shrink-0 text-accent" aria-hidden />
+            <span>
+              <span className="font-medium text-paper">Mission:</span> {profile.mission}
+            </span>
+          </p>
+        ) : (
+          <p className="mt-3 max-w-md text-[0.85rem] italic leading-relaxed text-paper/60">“{quote}”</p>
+        )}
+
+        <div className="mt-auto flex flex-wrap gap-2 pt-6">
+          <Link
+            href="/journal?new=1"
+            className="inline-flex items-center gap-2 rounded-full bg-accent px-4 py-2.5 text-sm font-semibold text-accent-fg shadow-accent transition-all duration-200 hover:-translate-y-px hover:brightness-[1.06]"
+          >
+            <Plus className="h-4 w-4" />
+            Log today&apos;s study
+          </Link>
+          <Link
+            href="/journal"
+            className="glass-ghost inline-flex items-center gap-1.5 rounded-full border border-line px-4 py-2.5 text-sm font-semibold text-paper transition-colors hover:border-paper/25"
+          >
+            Journal
+            <ArrowUpRight className="h-4 w-4 text-paper/60" />
+          </Link>
         </div>
       </div>
     </Card>
   );
 }
 
-/* ── Headline numbers ────────────────────────────────────────── */
+/* ── Headline numbers ─────────────────────────────────────────── */
+
+/** Fourteen small squares, one per day, filled where something was studied. */
+function DayDots({ days }: { days: { date: string; hours: number }[] }) {
+  return (
+    <div className="grid grid-cols-7 gap-1" role="img" aria-label={`Studied on ${days.filter((d) => d.hours > 0).length} of the last ${days.length} days`}>
+      {days.map((d) => (
+        <span
+          key={d.date}
+          title={`${formatDate(d.date)}: ${d.hours > 0 ? formatHours(d.hours) : "nothing logged"}`}
+          className={cn("h-2 w-2 rounded-full", d.hours > 0 ? "bg-[rgb(var(--bloom-1))]" : "bg-paper/15")}
+        />
+      ))}
+    </div>
+  );
+}
 
 /**
- * The same four numbers as the tiles inside the panel, as ordinary cards.
- * Phone-only: above `sm` they live on the film instead.
+ * Streak, hours, days studied and mood, each with a small picture of the
+ * last two weeks. A change against the week before is shown only when that
+ * week had something to compare with.
  */
-export function StatStrip() {
+export function MetricGrid({ className }: { className?: string }) {
   const journal = useChronicle((s) => s.journal);
-  const streak = currentStreak(journal);
-  const longest = longestStreak(journal);
-  const total = totalHours(journal);
-  const days = studyDays(journal);
-  const mood = avgMood(journal, 14);
+  const m = useMemo(() => {
+    const days14 = lastNDaysHours(journal, 14);
+    const last7 = round1(days14.slice(7).reduce((a, d) => a + d.hours, 0));
+    const prev7 = round1(days14.slice(0, 7).reduce((a, d) => a + d.hours, 0));
+    const active30 = lastNDaysHours(journal, 30).filter((d) => d.hours > 0).length;
+    const since = days14[0]?.date ?? "";
+    const moods = journal
+      .filter((e) => e.date >= since && e.totalHours > 0 && e.mood > 0)
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .map((e) => e.mood);
+    const change = prev7 > 0 ? Math.round(((last7 - prev7) / prev7) * 100) : null;
+    return {
+      days14,
+      last7,
+      change,
+      active30,
+      moods,
+      streak: currentStreak(journal),
+      longest: longestStreak(journal),
+      total: totalHours(journal),
+      days: studyDays(journal),
+      mood: avgMood(journal, 14),
+    };
+  }, [journal]);
 
   return (
-    <div className="grid grid-cols-2 gap-3 sm:hidden">
-      <StatCard icon={Flame} label="Current streak" value={`${streak}d`} hint={`Best: ${longest} days`} />
-      <StatCard icon={Clock} label="Total hours" value={`${total}h`} hint="Since day one" />
-      <StatCard icon={CalendarCheck} label="Days studied" value={`${days}`} hint="Logged sessions" />
-      <StatCard
+    <div className={cn("grid grid-cols-2 gap-3 sm:gap-4 xl:gap-5", className)}>
+      <MetricCard
+        label="Study streak"
+        icon={Flame}
+        value={m.streak}
+        unit={m.streak === 1 ? "day" : "days"}
+        hint={`Best ${m.longest} ${m.longest === 1 ? "day" : "days"}`}
+        chart={<DayDots days={m.days14} />}
+      />
+      <MetricCard
+        label="Total hours"
+        icon={Clock}
+        value={m.total}
+        unit="h"
+        hint={`${formatHours(m.last7)} in the last 7 days`}
+        chart={
+          m.days14.some((d) => d.hours > 0) ? (
+            <Sparkline values={m.days14.map((d) => d.hours)} width={96} height={34} label="Hours per day, last 14 days" />
+          ) : undefined
+        }
+        delta={
+          m.change !== null
+            ? { text: `${m.change > 0 ? "+" : ""}${m.change}%`, tone: m.change > 0 ? "up" : m.change < 0 ? "down" : "neutral", label: "against the 7 days before" }
+            : undefined
+        }
+        href="/heatmap"
+      />
+      <MetricCard
+        label="Days studied"
+        icon={CalendarCheck}
+        value={m.days}
+        hint={`${m.active30} of the last 30 days`}
+        chart={
+          <RadialProgress value={(m.active30 / 30) * 100} size={40} stroke={4} label={<span className="text-[0.6rem]">{m.active30}</span>} />
+        }
+      />
+      <MetricCard
+        label="Average mood"
         icon={Smile}
-        label="Avg mood"
-        value={mood ? `${mood}/5` : "—"}
-        hint={mood ? MOOD[Math.round(mood)] : "No data"}
+        value={m.mood ? m.mood : "—"}
+        unit={m.mood ? "/ 5" : undefined}
+        hint={m.mood ? `${MOOD[Math.round(m.mood)]}, last 14 days` : "Nothing logged in 14 days"}
+        chart={m.moods.length >= 2 ? <Sparkline values={m.moods} width={96} height={34} label="Mood, last 14 days" /> : undefined}
       />
     </div>
   );
 }
 
-function StatCard({
-  icon: Icon,
-  label,
-  value,
-  hint,
-}: {
-  icon: typeof Flame;
-  label: string;
-  value: string;
-  hint?: string;
-}) {
-  return (
-    <Card hover className="h-full p-4">
-      <div className="flex items-center gap-2 text-paper/45">
-        <Icon className="h-3.5 w-3.5 text-accent" />
-        <span className="text-[0.62rem] font-semibold uppercase leading-tight tracking-[0.07em]">
-          {label}
-        </span>
-      </div>
-      <p className="tabular mt-2 font-display text-2xl font-bold tracking-tightest text-paper">
-        {value}
-      </p>
-      {hint && <p className="mt-0.5 truncate text-[0.7rem] text-paper/45">{hint}</p>}
-    </Card>
-  );
-}
+/* ── Study activity ───────────────────────────────────────────── */
 
-/* ── Headline numbers, on the film ───────────────────────────── */
-
-function MediaStat({
-  icon: Icon,
-  label,
-  value,
-  hint,
-}: {
-  icon: typeof Flame;
-  label: string;
-  value: string;
-  hint?: string;
-}) {
-  return (
-    <div className="rounded-2xl border border-white/15 bg-[color:var(--hero-tile)] p-3.5 sm:p-4">
-      <div className="flex items-center gap-2 text-white/85">
-        <Icon className="h-3.5 w-3.5 text-accent" />
-        {/* Two tiles per row on a phone: let the label wrap rather than
-            clipping "Current streak" to "Current stre…". */}
-        <span className="text-[0.62rem] font-semibold uppercase leading-tight tracking-[0.07em] sm:text-[0.68rem] sm:tracking-[0.1em]">
-          {label}
-        </span>
-      </div>
-      <p className="tabular mt-2 font-display text-2xl font-bold tracking-tightest text-white sm:text-[1.75rem]">
-        {value}
-      </p>
-      {hint && <p className="mt-0.5 truncate text-[0.7rem] text-white/80">{hint}</p>}
-    </div>
-  );
-}
-
-/* ── Heatmap card ────────────────────────────────────────────── */
-
-export function HeatmapCard() {
+export function ActivityPanel({ className }: { className?: string }) {
   const journal = useChronicle((s) => s.journal);
-  const cells = buildHeatmap(journal, 364);
+  const cells = useMemo(() => buildHeatmap(journal, 364), [journal]);
   const yearHours = Math.round(cells.reduce((a, c) => a + c.hours, 0));
   const activeDays = cells.filter((c) => c.hours > 0).length;
+  const longest = longestStreak(journal);
+  const perActive = activeDays ? round1(yearHours / activeDays) : 0;
 
   return (
-    <Card className="p-5 sm:p-6">
-      <div className="mb-5 flex items-end justify-between">
-        <div>
-          <p className="eyebrow mb-1">Consistency</p>
-          <h3 className="text-base font-semibold text-paper">Study heatmap</h3>
-        </div>
-        <Link
-          href="/heatmap"
-          className="inline-flex items-center gap-1 text-xs text-paper/45 transition-colors hover:text-paper"
-        >
-          Full view
-          <ArrowRight className="h-3.5 w-3.5" />
-        </Link>
-      </div>
+    <Panel
+      className={className}
+      eyebrow="Study activity"
+      title="A year of preparation, day by day"
+      action={<PanelLink href="/heatmap">Full view</PanelLink>}
+    >
       <Heatmap cells={cells} />
-      <div className="mt-4 flex gap-6 border-t border-paper/[0.06] pt-4 text-sm">
-        <div>
-          <span className="tabular font-semibold text-paper">{yearHours}h</span>
-          <span className="ml-1.5 text-paper/40">this year</span>
-        </div>
-        <div>
-          <span className="tabular font-semibold text-paper">{activeDays}</span>
-          <span className="ml-1.5 text-paper/40">active days</span>
-        </div>
-      </div>
-    </Card>
+      <dl className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {[
+          { k: "Hours this year", v: `${yearHours}h` },
+          { k: "Active days", v: activeDays },
+          { k: "Per active day", v: perActive ? formatHours(perActive) : "—" },
+          { k: "Longest streak", v: `${longest} ${longest === 1 ? "day" : "days"}` },
+        ].map((s) => (
+          <div key={s.k} className="inset-panel px-3.5 py-3">
+            <dt className="text-[0.7rem] text-paper/60">{s.k}</dt>
+            <dd className="tabular mt-1 text-[1.05rem] font-semibold tracking-[-0.02em] text-paper">{s.v}</dd>
+          </div>
+        ))}
+      </dl>
+    </Panel>
   );
 }
 
-/* ── 14-day trend ────────────────────────────────────────────── */
+/* ── Today ────────────────────────────────────────────────────── */
 
-export function TrendCard() {
+export function TodayPanel({ className }: { className?: string }) {
+  const journal = useChronicle((s) => s.journal);
+  const subjects = useChronicle((s) => s.subjects);
+  const accomplished = useChronicle((s) => s.accomplished);
+  const target = useChronicle((s) => s.profile.dailyHourTarget);
+  const plans = useChronicle((s) => s.plans);
+  const mounted = useMounted();
+  const today = toISODate(new Date());
+  const entry = todayEntry(journal);
+  const done = mounted && isAccomplished(accomplished, today);
+  const name = (id: string) => subjects.find((s) => s.id === id)?.name ?? id;
+  const hours = entry?.totalHours ?? 0;
+  const pct = target > 0 ? Math.min(100, (hours / target) * 100) : 0;
+  // Planned for today in the Roadmap, still open: real items, linked to their plan.
+  const planned = useMemo(
+    () =>
+      activePlans(plans)
+        .flatMap((p) =>
+          (p.items ?? [])
+            .filter((i) => i.kind === "activity" && i.targetDate === today && (i.status === "notStarted" || i.status === "inProgress"))
+            .map((i) => ({ plan: p, item: i })),
+        )
+        .slice(0, 3),
+    [plans, today],
+  );
+
+  return (
+    <Panel
+      className={className}
+      eyebrow="Today"
+      title={entry ? `${formatHours(hours)} logged` : "Nothing logged yet"}
+      description={target ? `Daily target ${formatHours(target)}` : undefined}
+      action={
+        done ? (
+          <Badge tone="positive">
+            <Check className="h-3 w-3" /> Accomplished
+          </Badge>
+        ) : undefined
+      }
+    >
+      <div className="flex h-full flex-col">
+        <Progress value={pct} className="h-2" barClassName={pct >= 100 ? "bg-positive" : undefined} />
+        <p className="tabular mt-1.5 text-[0.72rem] text-paper/60">
+          {target ? `${Math.round(pct)}% of today's target` : "Set a daily target in Settings"}
+        </p>
+
+        {entry && entry.blocks.length > 0 ? (
+          <ul className="mt-4 space-y-2.5">
+            {entry.blocks.slice(0, 4).map((b, i) => (
+              <li key={i} className="flex items-center gap-3">
+                <span className="min-w-0 flex-1 truncate text-[0.82rem] text-paper/80">{name(b.subjectId)}</span>
+                <Progress value={entry.totalHours ? (b.hours / entry.totalHours) * 100 : 0} className="w-16" />
+                <span className="tabular w-12 text-right text-[0.75rem] text-paper/65">{formatHours(b.hours)}</span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-4 text-[0.82rem] leading-relaxed text-paper/65">
+            One entry keeps the streak alive. It takes a minute: subjects, hours and how the day went.
+          </p>
+        )}
+
+        {entry && (
+          <div className="mt-4 flex flex-wrap gap-1.5">
+            {entry.mood > 0 && <Badge>Mood: {MOOD[entry.mood]}</Badge>}
+            {entry.focus > 0 && <Badge>Focus {entry.focus}/5</Badge>}
+          </div>
+        )}
+
+        {planned.length > 0 && (
+          <div className="mt-5 border-t border-line pt-4">
+            <p className="eyebrow mb-2">Planned for today</p>
+            <ul className="space-y-1.5">
+              {planned.map(({ plan, item }) => (
+                <li key={item.id}>
+                  <Link
+                    href={`/roadmap?plan=${encodeURIComponent(plan.id)}&item=${encodeURIComponent(item.id)}`}
+                    className="flex items-center gap-2 rounded-lg px-1 py-1 text-[0.8rem] text-paper/80 transition-colors hover:bg-[var(--nav-hover)] hover:text-paper"
+                  >
+                    <ClipboardList className="h-3.5 w-3.5 shrink-0 text-accent" />
+                    <span className="min-w-0 flex-1 truncate">{item.title}</span>
+                    <span className="max-w-[6rem] shrink-0 truncate text-[0.68rem] text-paper/55">{planName(plan)}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        <div className="mt-auto pt-5">
+          <Link
+            href="/journal?new=1"
+            className={cn(
+              "flex w-full items-center justify-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold transition-all duration-200",
+              entry
+                ? "glass-ghost border border-line text-paper hover:border-paper/25"
+                : "bg-accent text-accent-fg shadow-accent hover:-translate-y-px hover:brightness-[1.06]",
+            )}
+          >
+            <NotebookPen className="h-4 w-4" />
+            {entry ? "Update today's entry" : "Log today's study"}
+          </Link>
+        </div>
+      </div>
+    </Panel>
+  );
+}
+
+/* ── Study performance ────────────────────────────────────────── */
+
+export function TrendPanel({ className }: { className?: string }) {
   const journal = useChronicle((s) => s.journal);
   const target = useChronicle((s) => s.profile.dailyHourTarget);
   const days = lastNDaysHours(journal, 14);
+  const total = round1(days.reduce((a, d) => a + d.hours, 0));
   const data = days.map((d) => ({
     label: weekday(d.date).slice(0, 1),
-    value: Math.round(d.hours * 10) / 10,
+    value: round1(d.hours),
     sublabel: formatDate(d.date),
   }));
 
   return (
-    <Card className="p-5 sm:p-6">
-      <div className="mb-5 flex items-end justify-between">
-        <div>
-          <p className="eyebrow mb-1">Last 14 days</p>
-          <h3 className="text-base font-semibold text-paper">Hours per day</h3>
-        </div>
-        <span className="text-xs text-paper/40">goal {target}h/day</span>
-      </div>
-      <BarChart data={data} target={target} formatValue={(v) => `${v}h`} height={170} />
-    </Card>
+    <Panel
+      className={className}
+      eyebrow="Last 14 days"
+      title="Study hours per day"
+      icon={LineChartIcon}
+      action={target ? <span className="rounded-full bg-paper/[0.05] px-2.5 py-1 text-[0.7rem] font-medium text-paper/65">Goal {target}h</span> : undefined}
+    >
+      <p className="tabular -mt-1 mb-4 text-[0.78rem] text-paper/65">
+        <span className="font-semibold text-paper">{formatHours(total)}</span> in total,{" "}
+        <span className="font-semibold text-paper">{formatHours(round1(total / 14))}</span> a day on average
+      </p>
+      <BarChart data={data} target={target || undefined} formatValue={(v) => `${v}h`} height={150} />
+    </Panel>
   );
 }
 
-/* ── Today snapshot ──────────────────────────────────────────── */
-
-export function TodayCard() {
-  const journal = useChronicle((s) => s.journal);
-  const subjects = useChronicle((s) => s.subjects);
-  const accomplished = useChronicle((s) => s.accomplished);
-  const mounted = useMounted();
-  const entry = todayEntry(journal);
-  const accomplishedToday =
-    mounted && isAccomplished(accomplished, toISODate(new Date()));
-
-  if (!entry) {
-    return (
-      <Card className="flex h-full flex-col items-center justify-center p-6 text-center sm:p-8">
-        <div className="mb-3 grid h-12 w-12 place-items-center rounded-full bg-paper/[0.06] text-paper/50">
-          <Clock className="h-5 w-5" />
-        </div>
-        <p className="text-sm font-medium text-paper">Today is a blank page</p>
-        <p className="mt-1 text-xs text-paper/45">
-          Log your first session to keep the streak alive.
-        </p>
-        <Link
-          href="/journal?new=1"
-          className="mt-4 inline-flex items-center gap-2 rounded-full bg-accent px-4 py-2 text-sm font-medium text-accent-fg shadow-soft hover:opacity-90"
-        >
-          Start today’s entry
-        </Link>
-      </Card>
-    );
-  }
-
-  const name = (id: string) => subjects.find((s) => s.id === id)?.name ?? id;
-
-  return (
-    <Card className="p-5 sm:p-6">
-      <div className="mb-4 flex items-center justify-between">
-        <div>
-          <p className="eyebrow mb-1">Today</p>
-          <h3 className="text-base font-semibold text-paper">
-            {formatHours(entry.totalHours)} logged
-          </h3>
-        </div>
-        <Link href="/journal" className="inline-flex items-center gap-1 text-xs text-paper/45 transition-colors hover:text-paper">
-          Edit
-          <ArrowRight className="h-3.5 w-3.5" />
-        </Link>
-      </div>
-      <div className="space-y-2">
-        {entry.blocks.map((b, i) => (
-          <div key={i} className="flex items-center gap-3">
-            <span className="min-w-0 flex-1 truncate text-sm text-paper/70">
-              {name(b.subjectId)}
-            </span>
-            <Progress value={(b.hours / entry.totalHours) * 100} className="w-20" />
-            <span className="tabular w-12 text-right text-xs text-paper/50">
-              {formatHours(b.hours)}
-            </span>
-          </div>
-        ))}
-      </div>
-      <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-paper/[0.06] pt-4 text-xs text-paper/50">
-        <span className="rounded-full bg-paper/[0.05] px-2.5 py-1">
-          Mood {MOOD[entry.mood]}
-        </span>
-        <span className="rounded-full bg-paper/[0.05] px-2.5 py-1">
-          Focus {entry.focus}/5
-        </span>
-        {accomplishedToday && (
-          <span className="inline-flex items-center gap-1 rounded-full border border-accent/30 bg-accent/10 px-2.5 py-1 font-semibold text-accent">
-            <Check className="h-3 w-3" />
-            Accomplished
-          </span>
-        )}
-      </div>
-    </Card>
-  );
-}
-
-/* ── Subject focus donut ─────────────────────────────────────── */
-
-export function FocusDonut() {
+export function FocusPanel({ className }: { className?: string }) {
   const journal = useChronicle((s) => s.journal);
   const subjects = useChronicle((s) => s.subjects);
   const data = hoursBySubject(journal, subjects, 30)
@@ -412,116 +442,170 @@ export function FocusDonut() {
   const total = Math.round(data.reduce((a, s) => a + s.value, 0));
 
   return (
-    <Card className="p-5 sm:p-6">
-      <div className="mb-5">
-        <p className="eyebrow mb-1">Last 30 days</p>
-        <h3 className="text-base font-semibold text-paper">Where the hours went</h3>
-      </div>
-      <Donut
-        segments={data}
-        size={140}
-        thickness={16}
-        centerLabel={`${total}h`}
-        centerSub="total"
-      />
-    </Card>
+    <Panel
+      className={className}
+      eyebrow="Last 30 days"
+      title="Where the hours went"
+      icon={PieChart}
+      action={<PanelLink href="/subjects">Subjects</PanelLink>}
+    >
+      {data.length ? (
+        <Donut segments={data} size={132} thickness={15} centerLabel={`${total}h`} centerSub="total" />
+      ) : (
+        <p className="py-6 text-center text-[0.82rem] text-paper/60">Log study hours to see the subject split.</p>
+      )}
+    </Panel>
   );
 }
 
-/* ── Revision due ────────────────────────────────────────────── */
+/* ── Revision ─────────────────────────────────────────────────── */
 
-export function RevisionDueCard() {
+export function RevisionPanel({ className }: { className?: string }) {
   const revisions = useChronicle((s) => s.revisions);
   const subjects = useChronicle((s) => s.subjects);
   const today = toISODate(new Date());
-  const due = revisions
-    .filter((r) => r.nextDue <= today)
-    .sort((a, b) => a.nextDue.localeCompare(b.nextDue))
-    .slice(0, 4);
+  const dueAll = revisions.filter((r) => r.nextDue <= today);
+  const overdue = dueAll.filter((r) => r.nextDue < today).length;
+  const due = [...dueAll].sort((a, b) => a.nextDue.localeCompare(b.nextDue)).slice(0, 4);
   const name = (id: string) => subjects.find((s) => s.id === id)?.name ?? id;
 
   return (
-    <Card className="p-5 sm:p-6">
-      <div className="mb-4 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Repeat className="h-4 w-4 text-paper/45" />
-          <h3 className="text-base font-semibold text-paper">Due for revision</h3>
-        </div>
-        <Link href="/revision" className="inline-flex items-center gap-1 text-xs text-paper/45 transition-colors hover:text-paper">
-          All
-          <ArrowRight className="h-3.5 w-3.5" />
-        </Link>
-      </div>
+    <Panel
+      className={className}
+      eyebrow="Revision"
+      title={dueAll.length ? `${dueAll.length} due` : "All caught up"}
+      description={overdue ? `${overdue} overdue` : dueAll.length ? "Due today" : "Nothing due today"}
+      icon={Repeat}
+      action={<PanelLink href="/revision">Queue</PanelLink>}
+    >
       {due.length === 0 ? (
-        <p className="py-4 text-sm text-paper/40">All caught up. Nothing due today.</p>
+        <p className="text-[0.82rem] leading-relaxed text-paper/65">
+          Every topic is on schedule. New revisions appear here on the day they come back.
+        </p>
       ) : (
-        <ul className="space-y-2.5">
+        <ul className="space-y-2">
           {due.map((r) => (
-            <li key={r.id} className="flex items-center gap-3">
-              <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-paper/[0.05] text-[0.6rem] font-semibold text-paper/60">
+            <li key={r.id} className="inset-panel flex items-center gap-3 px-3 py-2.5">
+              <span className="tabular grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-accent/10 text-[0.62rem] font-semibold text-accent">
                 R{r.repetitions}
               </span>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm text-paper/80">{r.topic}</p>
-                <p className="truncate text-[0.7rem] text-paper/40">{name(r.subjectId)}</p>
+                <p className="truncate text-[0.82rem] font-medium text-paper">{r.topic}</p>
+                <p className="truncate text-[0.7rem] text-paper/60">{name(r.subjectId)}</p>
               </div>
-              <span className="shrink-0 rounded-full bg-paper/10 px-2 py-0.5 text-[0.6rem] text-paper/60">
-                due
-              </span>
+              {r.nextDue < today && <span className="shrink-0 text-[0.66rem] font-semibold text-danger">Overdue</span>}
             </li>
           ))}
         </ul>
       )}
-    </Card>
+    </Panel>
   );
 }
 
-/* ── Mock momentum ───────────────────────────────────────────── */
+/* ── Mock performance ─────────────────────────────────────────── */
 
-export function MockMomentumCard() {
+export function MockPanel({ className }: { className?: string }) {
   const mocks = useChronicle((s) => s.mocks);
-  const series = mockSeries(mocks, "Prelims GS");
-  const values = series.map((s) => s.pct);
-  const latest = series[series.length - 1];
-  const prev = series[series.length - 2];
-  const delta = latest && prev ? latest.pct - prev.pct : 0;
+  const stats = useMemo(() => {
+    const prelims = mockSeries(mocks, "Prelims GS");
+    const series = prelims.length ? prelims : mockSeries(mocks);
+    const type = prelims.length ? "Prelims GS" : null;
+    const latest = series[series.length - 1];
+    const prev = series[series.length - 2];
+    const best = series.reduce((b, s) => Math.max(b, s.pct), 0);
+    const avg = series.length ? Math.round(series.reduce((a, s) => a + s.pct, 0) / series.length) : 0;
+    // The weakest section of the latest mock, by share of marks: a real
+    // improvement area, from what was recorded.
+    const latestMock = latest ? [...mocks].sort((a, b) => a.date.localeCompare(b.date)).filter((m) => (type ? m.type === type : true)).at(-1) : undefined;
+    const weakest = latestMock?.sections
+      ?.filter((s) => s.max > 0)
+      .map((s) => ({ name: s.name, pct: Math.round((s.score / s.max) * 100) }))
+      .sort((a, b) => a.pct - b.pct)[0];
+    return { series, type, latest, prev, best, avg, weakest, areas: latestMock?.weakAreas ?? [] };
+  }, [mocks]);
+  const delta = stats.latest && stats.prev ? stats.latest.pct - stats.prev.pct : null;
 
   return (
-    <Card className="p-5 sm:p-6">
-      <div className="mb-4 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <TrendingUp className="h-4 w-4 text-paper/45" />
-          <h3 className="text-base font-semibold text-paper">Mock momentum</h3>
-        </div>
-        <Link href="/mocks" className="inline-flex items-center gap-1 text-xs text-paper/45 transition-colors hover:text-paper">
-          Analytics
-          <ArrowRight className="h-3.5 w-3.5" />
-        </Link>
-      </div>
-      <div className="flex items-end justify-between">
-        <div>
-          <p className="tabular text-3xl font-semibold text-paper">
-            {latest ? `${latest.pct}%` : "—"}
-          </p>
-          <p className="mt-1 text-xs text-paper/40">
-            latest Prelims GS{" "}
-            {delta !== 0 && (
-              <span className={delta > 0 ? "text-paper/70" : "text-paper/40"}>
-                ({delta > 0 ? "+" : ""}
-                {delta}%)
-              </span>
+    <Panel
+      className={className}
+      eyebrow="Mock performance"
+      title={stats.type ? "Prelims GS" : stats.series.length ? "All mocks" : "No mocks yet"}
+      icon={TrendingUp}
+      action={<PanelLink href="/mocks">Analytics</PanelLink>}
+    >
+      {!stats.latest ? (
+        <p className="text-[0.82rem] leading-relaxed text-paper/65">
+          Log a mock test to see your scores over time, your best and the section that needs the most work.
+        </p>
+      ) : (
+        <div className="space-y-4">
+          <div className="flex items-end justify-between gap-3">
+            <div>
+              <p className="tabular text-[2rem] font-semibold leading-none tracking-[-0.04em] text-paper">{stats.latest.pct}%</p>
+              <p className="mt-1.5 text-[0.75rem] text-paper/65">
+                Latest · {relativeDay(stats.latest.date, toISODate(new Date()))}
+                {delta !== null && delta !== 0 && (
+                  <span className={cn("ml-1.5 font-semibold", delta > 0 ? "text-positive" : "text-danger")}>
+                    {delta > 0 ? "+" : ""}
+                    {delta} pts
+                  </span>
+                )}
+              </p>
+            </div>
+            {stats.series.length >= 2 && (
+              <Sparkline
+                values={stats.series.slice(-10).map((s) => s.pct)}
+                width={128}
+                height={46}
+                tone={delta !== null && delta < 0 ? "down" : "up"}
+                label="Mock scores, most recent ten"
+              />
             )}
-          </p>
+          </div>
+          <dl className="grid grid-cols-3 gap-2">
+            {[
+              { k: "Mocks", v: stats.series.length },
+              { k: "Best", v: `${stats.best}%` },
+              { k: "Average", v: `${stats.avg}%` },
+            ].map((s) => (
+              <div key={s.k} className="inset-panel px-3 py-2.5">
+                <dt className="text-[0.68rem] text-paper/60">{s.k}</dt>
+                <dd className="tabular mt-0.5 text-[0.95rem] font-semibold text-paper">{s.v}</dd>
+              </div>
+            ))}
+          </dl>
+          {(stats.weakest || stats.areas.length > 0) && (
+            <div>
+              <p className="eyebrow mb-1.5">To work on</p>
+              <div className="flex flex-wrap gap-1.5">
+                {stats.weakest && (
+                  <Badge tone="warning">
+                    {stats.weakest.name} · {stats.weakest.pct}%
+                  </Badge>
+                )}
+                {stats.areas.slice(0, 3).map((a) => (
+                  <Badge key={a}>{a}</Badge>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
-        <Sparkline values={values} width={140} height={48} />
-      </div>
-    </Card>
+      )}
+    </Panel>
   );
 }
 
-/* ── Goals progress ──────────────────────────────────────────── */
+/* ── Goals ────────────────────────────────────────────────────── */
 
-export function GoalsCard() {
+const HEALTH: Record<string, { label: string; tone: "positive" | "warning" | "danger" | "default" }> = {
+  achieved: { label: "Achieved", tone: "positive" },
+  onTrack: { label: "On track", tone: "positive" },
+  atRisk: { label: "At risk", tone: "warning" },
+  behind: { label: "Behind", tone: "danger" },
+  missed: { label: "Missed", tone: "danger" },
+};
+
+export function GoalsPanel({ className }: { className?: string }) {
   const goals = useChronicle((s) => s.goals);
   const journal = useChronicle((s) => s.journal);
   const subjects = useChronicle((s) => s.subjects);
@@ -535,13 +619,10 @@ export function GoalsCard() {
 
   /**
    * Progress is computed the same way the Goals page computes it, from the same
-   * module — reading `goal.current` here instead would show a stale hand-typed
-   * figure next to a live one and let the two pages disagree.
+   * module, so the two pages never disagree.
    */
   const active = useMemo(() => {
-    const data: GoalData = {
-      journal, subjects, mocks, revisions, books, currentAffairs, reflections, mistakes, lifeLog,
-    };
+    const data: GoalData = { journal, subjects, mocks, revisions, books, currentAffairs, reflections, mistakes, lifeLog };
     return goals
       .filter((g) => g.status === "Active")
       .map((g) => computeGoalProgress(g, data))
@@ -549,58 +630,62 @@ export function GoalsCard() {
       .sort(byUrgency) // whatever is slipping earns the space
       .slice(0, 4);
   }, [goals, journal, subjects, mocks, revisions, books, currentAffairs, reflections, mistakes, lifeLog]);
+  const activeCount = goals.filter((g) => g.status === "Active").length;
 
   return (
-    <Card className="p-5 sm:p-6">
-      <div className="mb-4 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Target className="h-4 w-4 text-paper/45" />
-          <h3 className="text-base font-semibold text-paper">Goals in motion</h3>
-        </div>
-        <Link href="/goals" className="inline-flex items-center gap-1 text-xs text-paper/45 transition-colors hover:text-paper">
-          All
-          <ArrowRight className="h-3.5 w-3.5" />
-        </Link>
-      </div>
+    <Panel
+      className={className}
+      eyebrow="Goals"
+      title={activeCount ? `${activeCount} in motion` : "No active goals"}
+      icon={Target}
+      action={<PanelLink href="/goals">All goals</PanelLink>}
+    >
       {active.length === 0 ? (
-        <p className="py-2 text-sm text-paper/40">
-          No active goals with a target yet.
+        <p className="text-[0.82rem] leading-relaxed text-paper/65">
+          Set a goal with a target, such as hours this week or a subject&apos;s mastery, and its progress will show
+          here.
         </p>
       ) : (
-        <ul className="space-y-3.5">
-          {active.map((p) => (
-            <li key={p.goal.id}>
-              <div className="mb-1.5 flex items-center justify-between gap-2">
-                <span className="min-w-0 truncate text-sm text-paper/75">
-                  {p.goal.title}
-                </span>
-                <span className="tabular shrink-0 text-xs text-paper/45">
-                  {p.current ?? 0}/{p.target} {p.goal.unit || p.metric.unit}
-                </span>
-              </div>
-              <Progress
-                value={p.pct ?? 0}
-                barClassName={
-                  p.health === "achieved"
-                    ? "bg-positive"
-                    : p.health === "behind" || p.health === "missed"
-                      ? "bg-danger"
-                      : p.health === "atRisk"
-                        ? "bg-warning"
-                        : undefined
-                }
-              />
-            </li>
-          ))}
+        <ul className="space-y-4">
+          {active.map((p) => {
+            const h = HEALTH[p.health];
+            return (
+              <li key={p.goal.id}>
+                <div className="mb-1.5 flex items-center justify-between gap-2">
+                  <Link href={`/goals?goal=${encodeURIComponent(p.goal.id)}`} className="min-w-0 truncate text-[0.84rem] font-medium text-paper hover:text-accent">
+                    {p.goal.title}
+                  </Link>
+                  {h && <Badge tone={h.tone}>{h.label}</Badge>}
+                </div>
+                <Progress
+                  value={p.pct ?? 0}
+                  className="h-2"
+                  barClassName={
+                    p.health === "achieved" || p.health === "onTrack"
+                      ? "bg-positive"
+                      : p.health === "behind" || p.health === "missed"
+                        ? "bg-danger"
+                        : p.health === "atRisk"
+                          ? "bg-warning"
+                          : undefined
+                  }
+                />
+                <p className="tabular mt-1 text-[0.7rem] text-paper/60">
+                  {p.current ?? 0} of {p.target} {p.goal.unit || p.metric.unit}
+                  {p.pct != null && ` · ${Math.round(p.pct)}%`}
+                </p>
+              </li>
+            );
+          })}
         </ul>
       )}
-    </Card>
+    </Panel>
   );
 }
 
-/* ── Recent milestones mini ──────────────────────────────────── */
+/* ── Milestones ───────────────────────────────────────────────── */
 
-export function MilestonesMini() {
+export function MilestonesPanel({ className }: { className?: string }) {
   const milestones = useChronicle((s) => s.milestones);
   const today = toISODate(new Date());
   const recent = milestones
@@ -609,36 +694,27 @@ export function MilestonesMini() {
     .slice(0, 3);
 
   return (
-    <Card className="p-5 sm:p-6">
-      <div className="mb-4 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <MilestoneIcon className="h-4 w-4 text-paper/45" />
-          <h3 className="text-base font-semibold text-paper">Recent milestones</h3>
-        </div>
-        <Link href="/timeline" className="inline-flex items-center gap-1 text-xs text-paper/45 transition-colors hover:text-paper">
-          Timeline
-          <ArrowRight className="h-3.5 w-3.5" />
-        </Link>
-      </div>
-      <ol className="relative space-y-4 border-l border-line pl-4">
-        {recent.map((m) => (
-          <li key={m.id} className="relative">
-            <span className="absolute -left-[1.32rem] top-1 h-2 w-2 rounded-full bg-accent" />
-            <p className="text-sm font-medium text-paper">{m.title}</p>
-            <p className="text-[0.7rem] text-paper/40">{relativeDay(m.date, today)}</p>
-            {m.description && (
-              <p className="mt-0.5 line-clamp-1 text-xs text-paper/50">{m.description}</p>
-            )}
-          </li>
-        ))}
-      </ol>
-    </Card>
+    <Panel className={className} eyebrow="Milestones" title="Along the way" icon={MilestoneIcon} action={<PanelLink href="/timeline">Timeline</PanelLink>}>
+      {recent.length === 0 ? (
+        <p className="text-[0.82rem] leading-relaxed text-paper/65">Milestones you reach are recorded on your timeline.</p>
+      ) : (
+        <ol className="relative space-y-4 border-l border-line pl-4">
+          {recent.map((m) => (
+            <li key={m.id} className="relative">
+              <span className="absolute -left-[1.3rem] top-1.5 h-2 w-2 rounded-full bg-accent ring-4 ring-accent/15" />
+              <p className="text-[0.84rem] font-medium leading-snug text-paper">{m.title}</p>
+              <p className="text-[0.7rem] text-paper/60">{relativeDay(m.date, today)}</p>
+            </li>
+          ))}
+        </ol>
+      )}
+    </Panel>
   );
 }
 
-/* ── Coach nudge ─────────────────────────────────────────────── */
+/* ── Coach ────────────────────────────────────────────────────── */
 
-export function CoachNudge() {
+export function CoachNudge({ className }: { className?: string }) {
   const journal = useChronicle((s) => s.journal);
   const subjects = useChronicle((s) => s.subjects);
   const bySub = hoursBySubject(journal, subjects, 14);
@@ -652,22 +728,22 @@ export function CoachNudge() {
       : "Log a few days to unlock personalised coaching insights.";
 
   return (
-    <Card className="relative overflow-hidden p-5 sm:p-6">
-      <div className="absolute -right-6 -top-6 h-28 w-28 rounded-full bg-accent/[0.07] blur-2xl" />
-      <div className="relative flex items-start gap-3">
-        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-accent text-accent-fg shadow-soft">
-          <Sparkles className="h-4 w-4" />
-        </span>
-        <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <h3 className="text-base font-semibold text-paper">Coach’s read</h3>
-          </div>
-          <p className="mt-1.5 text-sm leading-relaxed text-paper/55">{insight}</p>
+    <Card className={cn("relative overflow-hidden p-5 sm:p-6", className)}>
+      <div aria-hidden className="pointer-events-none absolute -right-10 -top-12 h-40 w-40 rounded-full bg-accent/[0.08] blur-2xl" />
+      <div className="relative flex h-full flex-col">
+        <div className="flex items-center gap-3">
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-accent text-accent-fg shadow-accent">
+            <Sparkles className="h-[1.1rem] w-[1.1rem]" />
+          </span>
+          <p className="eyebrow">Coach&apos;s read</p>
+        </div>
+        <p className="mt-4 text-[0.9rem] leading-relaxed text-paper/80">{insight}</p>
+        <div className="mt-auto pt-5">
           <Link
             href="/coach"
-            className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-paper/70 hover:text-paper"
+            className="glass-ghost inline-flex items-center gap-1.5 rounded-full border border-line px-4 py-2 text-[0.8rem] font-semibold text-paper transition-colors hover:border-paper/25"
           >
-            Talk to your coach <ArrowUpRight className="h-3.5 w-3.5" />
+            Talk to your coach <ArrowUpRight className="h-3.5 w-3.5 text-paper/60" />
           </Link>
         </div>
       </div>

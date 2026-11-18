@@ -87,7 +87,7 @@ function MetricCard({ m, showBasis }: { m: ReportMetric; showBasis: boolean }) {
         : `recorded on ${m.recorded} of ${m.days} days`;
   return (
     <Card className="p-4" data-testid={`report-metric-${m.id}`}>
-      <p className="truncate text-[0.62rem] font-semibold uppercase tracking-[0.08em] text-paper/50">{m.label}</p>
+      <p className="truncate text-[0.72rem] font-semibold text-paper/50">{m.label}</p>
       {m.value == null ? (
         <p className="mt-1.5 text-lg font-semibold text-paper/45">Not recorded</p>
       ) : (
@@ -196,7 +196,7 @@ function DailyTable({
       ) : (
         <div className="overflow-x-auto rounded-xl border border-line">
           <table className="w-full min-w-[640px] text-[0.78rem]">
-            <thead className="bg-paper/[0.03] text-[0.64rem] uppercase tracking-wider text-paper/50">
+            <thead className="bg-paper/[0.03] text-[0.64rem] text-paper/50">
               <tr>
                 <th className="px-2.5 py-2 text-left font-semibold">Day</th>
                 <th className="px-2.5 py-2 text-right font-semibold">Study</th>

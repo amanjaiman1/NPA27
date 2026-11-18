@@ -3,7 +3,7 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
-/** Small tracked uppercase label. */
+/** A small, quiet label above a heading or a figure, in sentence case. */
 export function Eyebrow({
   className,
   children,
@@ -32,11 +32,11 @@ export function SectionHeader({
     <div className={cn("flex items-end justify-between gap-4", className)}>
       <div className="min-w-0">
         {eyebrow && <Eyebrow className="mb-2">{eyebrow}</Eyebrow>}
-        <h2 className="font-display text-lg font-semibold tracking-snugg text-paper">
+        <h2 className="font-display text-[1.05rem] font-semibold tracking-[-0.02em] text-paper">
           {title}
         </h2>
         {description && (
-          <p className="mt-1 text-sm text-paper/50">{description}</p>
+          <p className="mt-1 text-[0.82rem] text-paper/60">{description}</p>
         )}
       </div>
       {action && <div className="shrink-0">{action}</div>}
@@ -60,16 +60,14 @@ export function Stat({
 }) {
   return (
     <div className={cn("flex flex-col gap-1", className)}>
-      <div className="flex items-center gap-2 text-paper/45">
+      <div className="flex items-center gap-2 text-paper/60">
         {icon}
-        <span className="text-[0.7rem] font-medium uppercase tracking-wider">
-          {label}
-        </span>
+        <span className="text-xs font-medium">{label}</span>
       </div>
-      <div className="tabular font-display text-[1.6rem] font-bold tracking-tightest text-paper">
+      <div className="tabular font-display text-[1.6rem] font-semibold leading-tight tracking-[-0.035em] text-paper">
         {value}
       </div>
-      {hint && <div className="text-xs text-paper/40">{hint}</div>}
+      {hint && <div className="text-xs text-paper/60">{hint}</div>}
     </div>
   );
 }
@@ -91,18 +89,18 @@ export function EmptyState({
   return (
     <div
       className={cn(
-        "flex flex-col items-center justify-center rounded-2xl border border-dashed border-paper/15 px-6 py-14 text-center",
+        "flex flex-col items-center justify-center rounded-2xl border border-dashed border-paper/15 bg-paper/[0.015] px-6 py-14 text-center",
         className,
       )}
     >
       {icon && (
-        <div className="mb-4 grid h-12 w-12 place-items-center rounded-full bg-paper/[0.06] text-paper/50">
+        <div className="mb-4 grid h-12 w-12 place-items-center rounded-2xl bg-accent/10 text-accent ring-1 ring-accent/15">
           {icon}
         </div>
       )}
-      <p className="text-sm font-medium text-paper">{title}</p>
+      <p className="text-[0.95rem] font-semibold tracking-[-0.01em] text-paper">{title}</p>
       {description && (
-        <p className="mt-1 max-w-xs text-xs text-paper/45">{description}</p>
+        <p className="mt-1.5 max-w-sm text-[0.8rem] leading-relaxed text-paper/60">{description}</p>
       )}
       {action && <div className="mt-5">{action}</div>}
     </div>
@@ -147,12 +145,13 @@ export function Segmented<T extends string>({
         <button
           key={o.value}
           onClick={() => onChange(o.value)}
+          aria-pressed={value === o.value}
           className={cn(
             "shrink-0 rounded-full py-1.5 text-xs font-semibold transition-all duration-200",
             compact ? "px-2.5 sm:px-3.5" : "px-3.5",
             value === o.value
               ? "bg-accent text-accent-fg shadow-accent"
-              : "text-paper/55 hover:bg-paper/[0.05] hover:text-paper",
+              : "text-paper/60 hover:bg-[var(--nav-hover)] hover:text-paper",
           )}
         >
           {o.label}

@@ -156,7 +156,10 @@ function NoticeRow({
   );
 }
 
-function Panel({ onClose }: { onClose: () => void }) {
+/** Where the panel opens on wider screens: under the top bar, or beside the rail. */
+export type PopoverPlacement = "bar" | "rail";
+
+function Panel({ onClose, placement }: { onClose: () => void; placement: PopoverPlacement }) {
   const { inbox, settings, today } = useNotifications();
   const markMany = useChronicle((s) => s.markNoticesRead);
   const [tab, setTab] = useState<"inbox" | "settings">("inbox");
@@ -187,8 +190,12 @@ function Panel({ onClose }: { onClose: () => void }) {
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={{ opacity: 0, y: 6, scale: 0.98 }}
         transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-        /* A sheet on a phone, a dropdown under the bell on a desktop. */
-        className="fixed inset-x-2 bottom-2 top-16 z-[56] flex flex-col overflow-hidden rounded-3xl border border-line bg-card shadow-lift sm:inset-x-auto sm:bottom-auto sm:right-4 sm:top-[4.6rem] sm:h-auto sm:max-h-[min(34rem,calc(100dvh-6rem))] sm:w-[24rem]"
+        /* A sheet on a phone; on a desktop a dropdown under the bell in the
+           top bar, or a panel opening beside the bell in the rail. */
+        className={cn(
+          "fixed inset-x-2 bottom-2 top-16 z-[56] flex flex-col overflow-hidden rounded-3xl border border-line bg-card shadow-lift sm:inset-x-auto sm:h-auto sm:max-h-[min(34rem,calc(100dvh-6rem))] sm:w-[24rem]",
+          placement === "rail" ? "sm:bottom-4 sm:left-[6.5rem] sm:top-auto" : "sm:bottom-auto sm:right-4 sm:top-[4.6rem]",
+        )}
       >
         <div className="flex items-center gap-2 border-b border-line px-4 py-3">
           <h2 className="font-display text-base font-semibold tracking-snugg text-paper">
@@ -278,7 +285,13 @@ function Panel({ onClose }: { onClose: () => void }) {
  * topbar only has to render one element, and so the whole feature can be pulled
  * out by deleting one line.
  */
-export function NotificationCentre() {
+export function NotificationCentre({
+  placement = "bar",
+  className,
+}: {
+  placement?: PopoverPlacement;
+  className?: string;
+} = {}) {
   const [open, setOpen] = useState(false);
   const { inbox } = useNotifications();
   const mounted = useMounted();
@@ -303,13 +316,17 @@ export function NotificationCentre() {
         }
         title="Notifications"
         aria-expanded={open}
-        className="relative grid h-10 w-10 place-items-center rounded-full text-paper/55 transition-all hover:bg-paper/[0.07] hover:text-paper"
+        className={cn(
+          "relative grid h-10 w-10 place-items-center rounded-full text-paper/60 transition-all duration-200 hover:bg-[var(--nav-hover)] hover:text-paper",
+          open && "bg-[var(--nav-hover)] text-paper",
+          className,
+        )}
       >
-        <Bell className="h-5 w-5" />
+        <Bell className="h-[1.15rem] w-[1.15rem]" />
         {unread > 0 && (
           <span
             className={cn(
-              "tabular absolute right-1 top-1 grid h-4 min-w-4 place-items-center rounded-full px-1 text-[0.6rem] font-bold leading-none",
+              "tabular absolute right-1 top-1 grid h-4 min-w-4 place-items-center rounded-full px-1 text-[0.6rem] font-bold leading-none ring-2 ring-[rgb(var(--card))]",
               /* `text-ink` inverts with the surface, which `text-white` would
                  not: on a dark surface `--danger` is a light rose, and white on
                  it is unreadable. */
@@ -324,7 +341,7 @@ export function NotificationCentre() {
       {mounted &&
         createPortal(
           <AnimatePresence>
-            {open && <Panel onClose={() => setOpen(false)} />}
+            {open && <Panel onClose={() => setOpen(false)} placement={placement} />}
           </AnimatePresence>,
           document.body,
         )}

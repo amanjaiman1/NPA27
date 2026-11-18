@@ -17,8 +17,7 @@
 import { useChronicle, blankChronicleState } from "../store";
 import type { MergeConflict } from "../sync/merge";
 import { clearBaseStore } from "../sync/base-store";
-import { DEFAULT_MATERIAL, DEFAULT_PALETTE, DEFAULT_THEME_MODE, applyMaterial, applyThemeMode } from "../theme";
-import { DEFAULT_WALLPAPER, deleteWallpaperPhotos } from "../wallpaper";
+import { DEFAULT_THEME_MODE, applyThemeMode, applyTransparency } from "../theme";
 import {
   STORE_KEY,
   enableWrites,
@@ -52,7 +51,7 @@ export async function activateAccount(accountId: string, mode: AccountMode): Pro
   deactivateAccount();
 
   const legacy = claimLegacyData(accountId, mode);
-  deleteWallpaperPhotos();
+  deleteRetiredWallpaperPhotos();
   const pristine =
     mode === "cloud" ? readKey(readyKey(accountId)) !== "1" && !legacy : false;
 
@@ -66,13 +65,21 @@ export async function activateAccount(accountId: string, mode: AccountMode): Pro
 export function deactivateAccount(): void {
   setActiveAccount(null);
   useChronicle.setState(blankChronicleState());
-  if (typeof document !== "undefined") {
-    const root = document.documentElement;
-    applyThemeMode(DEFAULT_THEME_MODE);
-    applyMaterial(DEFAULT_MATERIAL, false);
-    root.setAttribute("data-palette", DEFAULT_PALETTE);
-    root.setAttribute("data-wallpaper", DEFAULT_WALLPAPER);
-    root.style.setProperty("--wp-dim", "0");
+  applyThemeMode(DEFAULT_THEME_MODE);
+  applyTransparency(false);
+}
+
+/**
+ * Older versions let you use your own photo as a wallpaper, kept in this
+ * browser's IndexedDB, and later retired wallpapers altogether. This deletes
+ * any photos still stored (every account's at once). It runs whenever an
+ * account loads; with nothing stored it does nothing.
+ */
+function deleteRetiredWallpaperPhotos(): void {
+  try {
+    if (typeof indexedDB !== "undefined") indexedDB.deleteDatabase("upsc-chronicle-media");
+  } catch {
+    // Storage is blocked in this browser, so no photo could have been saved.
   }
 }
 

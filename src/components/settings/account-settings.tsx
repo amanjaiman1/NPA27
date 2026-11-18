@@ -52,7 +52,7 @@ export function AccountSecurity() {
       <div className="space-y-6">
         <div className="flex flex-col gap-3 rounded-2xl border border-line bg-paper/[0.03] p-4 sm:flex-row sm:items-center">
           <div className="min-w-0 flex-1">
-            <p className="text-[0.7rem] font-semibold uppercase tracking-wider text-paper/45">Signed in as</p>
+            <p className="text-xs font-semibold text-paper/45">Signed in as</p>
             <p className="truncate text-sm font-medium text-paper">{user?.email}</p>
           </div>
           <Button variant="ghost" onClick={() => void signOut()}>

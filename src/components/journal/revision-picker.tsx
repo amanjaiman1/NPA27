@@ -209,7 +209,7 @@ export function RevisionPicker({
       )}
 
       <div>
-        <p className="mb-1.5 text-[0.7rem] font-medium uppercase tracking-wider text-paper/40">
+        <p className="mb-1.5 text-xs font-medium text-paper/40">
           Anything else revised
         </p>
         <ListEditor

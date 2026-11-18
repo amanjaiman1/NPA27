@@ -13,7 +13,9 @@ import { siteGraph } from "@/lib/seo/schema";
  */
 export default function MarketingLayout({ children }: { children: React.ReactNode }) {
   return (
-    <>
+    // `site-root` keeps the public site's rounded display face; the app sets
+    // its headings in the text face (globals.css).
+    <div className="site-root">
       <a
         href="#main"
         className="sr-only z-50 rounded-full bg-accent px-4 py-2 text-sm font-semibold text-accent-fg focus:not-sr-only focus:fixed focus:left-4 focus:top-4"
@@ -25,6 +27,6 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
       <SiteFooter />
       <JsonLd data={siteGraph()} />
       <Analytics />
-    </>
+    </div>
   );
 }
