@@ -416,7 +416,7 @@ export default function MistakesPage() {
 
           {/* Heatmaps: side by side once the matrix has room for all six
               error types, stacked below that. */}
-          <div className="grid gap-4 min-[1400px]:grid-cols-2 [&>*]:min-w-0">
+          <div className="grid gap-4 wide:grid-cols-2 [&>*]:min-w-0">
             <Card className="p-5">
               <p className="eyebrow mb-1">When</p>
               <h3 className="mb-4 text-base font-semibold text-paper">

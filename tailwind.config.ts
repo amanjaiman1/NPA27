@@ -8,6 +8,17 @@ const config: Config = {
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
+    // Tailwind's breakpoints, plus `wide` (1440px): from `xl` the sidebar
+    // docks and takes 256px, so a layout that needs the room waits for `wide`.
+    // Listed in full so `wide` sorts between `xl` and `2xl`.
+    screens: {
+      sm: "640px",
+      md: "768px",
+      lg: "1024px",
+      xl: "1280px",
+      wide: "1440px",
+      "2xl": "1536px",
+    },
     extend: {
       colors: {
         // Canvas / elevated surface / foreground. Everything else is composed
