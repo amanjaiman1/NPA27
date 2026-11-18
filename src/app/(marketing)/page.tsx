@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { pageMetadata } from "@/lib/seo/metadata";
 import { PAGES, RESOURCE_PAGES } from "@/lib/seo/pages";
-import { softwareApplication } from "@/lib/seo/schema";
+import { FILM, filmVideo, softwareApplication } from "@/lib/seo/schema";
 import { JsonLd } from "@/components/seo/json-ld";
 import {
   Band,
@@ -52,6 +52,8 @@ export const metadata = pageMetadata(PAGES.home);
  * 2. Someone already signed in on this browser came for their dashboard, not
  *    the brochure.
  */
+const FILM_SCHEMA = filmVideo();
+
 const HOME_REDIRECTS = `try{var h=location.hash;if(/(^|[#&])(access_token|error_description|error_code)=/.test(h)){location.replace((/(^|[#&])type=recovery(&|$)/.test(h)?'/reset-password':'/auth/callback')+h)}else{var s=JSON.parse(localStorage.getItem('upsc-chronicle-auth')||'null');if(s&&s.user&&s.user.id)location.replace('/dashboard')}}catch(e){}`;
 
 const FEATURE_LIST = [
@@ -231,6 +233,37 @@ export default function HomePage() {
           <p className="mt-12 text-center text-xs text-paper/50">{SAMPLE_NOTE}</p>
         </Container>
       </section>
+
+      {/* ── The film ─────────────────────────────────────────── */}
+      {/* A plain <video>: no player script, nothing downloaded until someone presses play. */}
+      <JsonLd data={FILM_SCHEMA} />
+      <Band labelledBy="film-title" tone="raised">
+        <Container>
+          <SectionHeading
+            id="film-title"
+            eyebrow="The film"
+            title="See DoOrDie in under a minute"
+            intro="Every screen in it is the real app, filmed with a sample account: logging a day, the syllabus, revision, mock analytics, the Life Dashboard, and the Lavender, Light and Dark themes."
+            center
+          />
+          <div className="mx-auto mt-10 max-w-5xl overflow-hidden rounded-3xl border border-line bg-black shadow-lift">
+            <video
+              controls
+              playsInline
+              preload="none"
+              poster={FILM.poster}
+              width={1920}
+              height={1080}
+              aria-label="DoOrDie, a UPSC preparation tracker, in a 58-second film"
+              className="block aspect-video h-auto w-full"
+            >
+              <source src={FILM.src} type="video/mp4" />
+              <track kind="captions" src={FILM.captions} srcLang="en" label="English" default />
+            </video>
+          </div>
+          <p className="mt-4 text-center text-xs text-paper/60">58 seconds, with narration and captions. Filmed in the app with a sample account and made-up data.</p>
+        </Container>
+      </Band>
 
       {/* ── What you can track ───────────────────────────────── */}
       <Band labelledBy="track-title">

@@ -19,6 +19,9 @@ their devices through Supabase and kept within Supabase's free plan.
   [`docs/roadmap.md`](docs/roadmap.md).
 - **The public site and SEO:** [below](#public-site-and-seo), and the setup steps
   in [`docs/SEO_SETUP_GUIDE.md`](docs/SEO_SETUP_GUIDE.md).
+- **The promo film** (58 seconds in 4K, plus a 30-second and a vertical cut),
+  made from the real app and shown on the home page:
+  [`promo-film/`](promo-film/README.md).
 
 The home page `/` is the public site. The app itself starts at **`/dashboard`**;
 someone already signed in who opens `/` is taken there.

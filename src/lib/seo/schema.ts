@@ -110,3 +110,26 @@ export function blogPosting(post: {
     inLanguage: SITE.language,
   };
 }
+
+/** The 58-second film on the home page, for video results. */
+export const FILM = {
+  src: "/media/doordie-film.mp4",
+  poster: "/media/doordie-film-poster.jpg",
+  captions: "/media/doordie-film.vtt",
+} as const;
+
+export function filmVideo(): Json {
+  return {
+    "@context": "https://schema.org",
+    "@type": "VideoObject",
+    name: "DoOrDie in under a minute",
+    description:
+      "A 58-second film of DoOrDie, a free UPSC preparation tracker: logging a study day, syllabus progress, spaced revision, mock analytics, the Life Dashboard and the app's three themes, filmed with a sample account.",
+    thumbnailUrl: [absoluteUrl(FILM.poster)],
+    uploadDate: "2026-11-18",
+    duration: "PT58S",
+    contentUrl: absoluteUrl(FILM.src),
+    inLanguage: SITE.language,
+    publisher: { "@id": ORGANIZATION_ID },
+  };
+}

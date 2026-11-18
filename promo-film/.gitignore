@@ -1,0 +1,13 @@
+# Heavy, generated, and reproducible from the scripts.
+node_modules/
+.work/
+public/footage/
+public/f/
+public/renders/desk/reveal/
+public/renders/desk/*.png
+public/audio/samples/
+public/audio/mix-*.wav
+# Rendered frames are encoded into exports/ and then discarded.
+exports/.video-*
+public/renders/tex/
+__pycache__/
