@@ -31,7 +31,7 @@ do $$
 declare r record;
 begin
   select * into r from public.save_chronicle_state(
-    '{"profile":{"name":"A"},"journal":[{"date":"2026-11-01","totalHours":6,"reflection":"private A","fileIds":["f1"]}],"files":[{"id":"f1","name":"private notes.pdf"}]}'::jsonb, 0);
+    '{"profile":{"name":"A"},"journal":[{"date":"2026-11-01","totalHours":6,"reflection":"private A","fileIds":["f1"]}],"files":[{"id":"f1","name":"private notes.pdf"}],"plans":[{"id":"wk_a","level":"week","start":"2026-11-02","end":"2026-11-08","items":[{"id":"pa_a","kind":"activity","title":"private A plan","status":"notStarted"}]}]}'::jsonb, 0);
   if not r.saved or r.version <> 1 then
     raise exception 'FAIL: first save for A should create version 1, got saved=% version=%', r.saved, r.version;
   end if;
@@ -160,6 +160,9 @@ begin
   if (select data -> 'profile' ->> 'name' from public.chronicle_state) is distinct from 'A' then
     raise exception 'FAIL: A''s snapshot was changed by another account';
   end if;
+  if (select data -> 'plans' -> 0 -> 'items' -> 0 ->> 'title' from public.chronicle_state) is distinct from 'private A plan' then
+    raise exception 'FAIL: A''s roadmap was changed by another account';
+  end if;
 end $$;
 
 -- ── Attached files: each account's Storage folder is its own ──────
@@ -276,6 +279,7 @@ begin
   select data into j from public.chronicle_dispatch_snapshots(
     array['a0000000-0000-4000-8000-00000000000a']::uuid[]);
   if j ? 'files' then raise exception 'FAIL: dispatcher snapshot carries file descriptions'; end if;
+  if j ? 'plans' then raise exception 'FAIL: dispatcher snapshot carries roadmap plans'; end if;
 
   -- A write that bypasses the save function still moves the version on, so a
   -- device holding the old version can never silently overwrite it.
@@ -284,6 +288,33 @@ begin
   select version into n from public.chronicle_state
    where user_id = 'a0000000-0000-4000-8000-00000000000a';
   if n <> 2 then raise exception 'FAIL: a direct update did not bump the version (got %)', n; end if;
+end $$;
+
+-- ── A device from before the Roadmap can't erase plans by saving ──
+reset role;
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-4000-8000-00000000000a","role":"authenticated"}', true);
+
+do $$
+declare r record; v bigint;
+begin
+  select version into v from public.chronicle_state;
+  -- Its snapshot has no `plans` key at all: the rest is saved, the plans stay.
+  select * into r from public.save_chronicle_state('{"profile":{"name":"A on an older device"},"journal":[]}'::jsonb, v);
+  if not r.saved then raise exception 'FAIL: a save without plans was refused'; end if;
+  if (select data -> 'profile' ->> 'name' from public.chronicle_state) is distinct from 'A on an older device' then
+    raise exception 'FAIL: a save without plans did not save the rest of the snapshot';
+  end if;
+  if (select data -> 'plans' -> 0 -> 'items' -> 0 ->> 'title' from public.chronicle_state) is distinct from 'private A plan' then
+    raise exception 'FAIL: a save from a device that does not know plans erased them';
+  end if;
+
+  -- A current version removing every plan sends an empty list, which is kept as sent.
+  select * into r from public.save_chronicle_state('{"profile":{"name":"A"},"journal":[],"plans":[]}'::jsonb, r.version);
+  if not r.saved then raise exception 'FAIL: a save with an empty plan list was refused'; end if;
+  if (select jsonb_array_length(data -> 'plans') from public.chronicle_state) is distinct from 0 then
+    raise exception 'FAIL: removing every plan on a current version did not stick';
+  end if;
 end $$;
 
 -- ── Deleting an account removes its data and nothing else ─────────
