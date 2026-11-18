@@ -219,7 +219,7 @@ const GROUPS: { title: string; intro: string; features: Feature[] }[] = [
         id: "appearance",
         icon: Palette,
         title: "Make it yours",
-        body: "Light, with frosted glass on a soft sky blue, or Dark, in smoked navy glass for late nights. Turn on Reduce transparency for nearly solid panels. Both are saved with your account.",
+        body: "Light, with frosted glass on a soft sky blue, or Dark, in black glass for late nights. Turn on Reduce transparency for nearly solid panels. Both are saved with your account.",
       },
     ],
   },

@@ -34,20 +34,18 @@
         color-scheme: light;
       }
       [data-surface="black"] {
-        --ink: 9 19 37;
-        --paper: 230 237 247;
-        --accent: 92 172 255;
-        --accent-fg: 6 22 44;
+        --ink: 8 8 9;
+        --paper: 237 237 237;
+        --accent: 245 245 245;
+        --accent-fg: 10 10 10;
         --shadow: 0 0 0;
-        --pane: rgb(24 40 66 / 0.72);
-        --pane-edge: rgb(255 255 255 / 0.1);
-        --quiet: 0.66;
+        --pane: rgb(30 30 32 / 0.78);
+        --pane-edge: rgb(255 255 255 / 0.09);
+        --quiet: 0.62;
         --backdrop:
-          radial-gradient(64% 54% at 22% -12%, rgb(64 140 220 / 0.3), transparent 68%),
-          radial-gradient(38% 62% at -6% 58%, rgb(34 112 200 / 0.3), transparent 72%),
-          radial-gradient(44% 44% at 104% 6%, rgb(76 124 224 / 0.24), transparent 70%),
-          radial-gradient(56% 50% at 94% 106%, rgb(36 122 204 / 0.24), transparent 72%),
-          linear-gradient(165deg, rgb(13 27 49) 0%, rgb(9 20 38) 55%, rgb(7 15 30) 100%);
+          radial-gradient(60% 46% at 50% -8%, rgb(255 255 255 / 0.11), transparent 70%),
+          radial-gradient(50% 60% at 0% 100%, rgb(255 255 255 / 0.025), transparent 70%),
+          linear-gradient(180deg, rgb(13 13 14) 0%, rgb(9 9 10) 55%, rgb(5 5 6) 100%);
         color-scheme: dark;
       }
       * {
@@ -148,6 +146,9 @@
         color: rgb(var(--accent-fg));
         box-shadow: 0 10px 26px -12px rgb(var(--accent) / 0.6);
       }
+      [data-surface="black"] button {
+        box-shadow: 0 10px 26px -14px rgb(var(--accent) / 0.12);
+      }
       button:hover {
         filter: brightness(1.08);
         transform: translateY(-1px);
@@ -226,7 +227,7 @@
         }
         if (mode === "dark") {
           document.documentElement.setAttribute("data-surface", "black");
-          document.querySelector('meta[name="theme-color"]').setAttribute("content", "#091325");
+          document.querySelector('meta[name="theme-color"]').setAttribute("content", "#080809");
         }
       } catch (e) {}
       window.addEventListener("online", function () {

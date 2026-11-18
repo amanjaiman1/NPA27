@@ -5,8 +5,8 @@ import type { ThemeMode } from "./types";
 
      • Light (the default): frosted white panes on a soft sky-blue
        backdrop, navy text, one luminous blue.
-     • Dark: smoked navy glass on a deep night-blue backdrop, lit by the
-       same blues.
+     • Dark: black glass, charcoal panes on a near-black backdrop, with
+       white for what's interactive.
 
    The mode is what's saved and synced; the screen shows its surface, the
    `data-surface` attribute on <html> ("white" or "black"). Reduce
@@ -39,7 +39,7 @@ export interface ThemeModeMeta {
 
 export const THEME_MODES: ThemeModeMeta[] = [
   { id: "light", label: "Light", hint: "Frosted glass on a soft sky blue" },
-  { id: "dark", label: "Dark", hint: "Smoked navy glass, for the night" },
+  { id: "dark", label: "Dark", hint: "Black glass, for the night" },
 ];
 
 export function isThemeMode(v: unknown): v is ThemeMode {

@@ -9,8 +9,8 @@
    (lib/theme.ts):
      • white → Light, the default: frosted white panes on a soft sky-blue
        backdrop, navy text, one luminous blue
-     • black → Dark: smoked navy glass on a deep night-blue backdrop, lit by
-       the same blues
+     • black → Dark: black glass, charcoal panes on a near-black backdrop,
+       with white for what's interactive
    Reduce transparency (`data-transparency="reduced"`) makes either theme
    nearly solid; see the end of this file.
 
@@ -20,8 +20,10 @@
                    glass (the materials below paint every `.bg-card` pane)
      --paper       foreground / text
      --line        hairline borders
-     --accent      the brand blue: fills, active states, data highlights
+     --accent      fills, active states, data highlights: blue on Light,
+                   white on Dark
      --accent-ink  accent-coloured text and icons
+     --accent-glow how strongly accent buttons glow beneath
      --bloom-*     the six-colour data palette used by charts
 
    Every layer has its own tokens, back to front:
@@ -71,6 +73,7 @@
      they stay readable on the accent's own tints (selected chips, the active
      nav item). */
   --accent-ink: 10 88 166;
+  --accent-glow: 0.6;
   --selection: 22 133 229;
   /* Status colours, deep enough for small text on a pane. */
   --positive: 5 116 68;
@@ -108,6 +111,7 @@
   --stage-bg: rgb(255 255 255 / 0.28);
   --stage-border: rgb(255 255 255 / 0.62);
   --stage-shadow: inset 0 1px 0 rgb(255 255 255 / 0.75), 0 24px 60px -38px rgb(32 88 132 / 0.34);
+  --stage-image: none;
   /* The phone's navigation drawer: firmer than the shell, over a scrim. */
   --drawer-bg: rgb(244 250 255 / 0.94);
   --drawer-border: rgb(255 255 255 / 0.8);
@@ -146,94 +150,98 @@
 }
 
 /* ── Dark ─────────────────────────────────────────────────────────────
-   The same sky after dark: deep night blue with the Light theme's glows
-   turned down to soft blue light. Panes are smoked navy glass with a fine
-   lit edge, tiles inside them a step lighter, and the blues are lifted so
-   they glow: the accent is a luminous light blue with navy text on it.
-   Never pure black, and the text is a soft cool white.
+   Black glass. A near-black backdrop with a soft spotlight from above,
+   charcoal panes with a fine lit top edge, tiles inside them a step
+   lighter, and white for what's interactive: primary buttons are white
+   with black text, selected items a lighter grey. No blue anywhere in the
+   surfaces; colour is kept for data and status.
 
-   Measured for small text, at the brightest point of the backdrop:
-     text #E6EDF7          about 10.9:1 on a pane, 13.7:1 on most of it
-     accent #5CACFF        about 5.4:1 on a pane; navy text on it 7.6:1
-     accent text #84C2FF   about 5.2:1 on the accent's own tints
-     status colours        about 5.2:1 or more on a pane
+   Measured for small text, at the darkest and brightest points:
+     text #EDEDED          about 13.7–15.4:1 on a pane
+     white on a pane       about 16:1; black text on a white button 18:1
+     status colours        about 4.9:1 or more, on a pane or a tile
      quiet text            raised to a floor that clears 4.5:1 (below)
    ─────────────────────────────────────────────────────────────────── */
 
 [data-surface="black"] {
-  --ink: 9 19 37;
-  --card: 21 35 58;
-  --card-2: 28 45 72;
-  --paper: 230 237 247;
-  --line: 44 63 94;
+  --ink: 8 8 9;
+  --card: 26 26 28;
+  --card-2: 36 36 39;
+  --paper: 237 237 237;
+  --line: 46 46 50;
   --shadow: 0 0 0;
-  --scrim: 3 8 18;
+  --scrim: 0 0 0;
   --wash: 0.8;
-  --aura-1: 56 140 230;
-  --aura-2: 100 188 235;
-  --accent: 92 172 255;
-  --accent-fg: 6 22 44;
-  --accent-ink: 132 194 255;
-  --selection: 92 172 255;
-  --positive: 74 222 160;
-  --warning: 250 196 80;
-  --danger: 252 129 129;
-  --info: 125 190 250;
-  --vivid-up: 52 211 153;
+  --aura-1: 150 150 156;
+  --aura-2: 110 110 118;
+  /* White is the accent: a white fill takes black text, and accent text
+     and icons are plain white, a step brighter than body text. */
+  --accent: 245 245 245;
+  --accent-fg: 10 10 10;
+  --accent-ink: 255 255 255;
+  --accent-glow: 0.12;
+  --selection: 255 255 255;
+  --positive: 74 222 128;
+  --warning: 250 204 21;
+  --danger: 248 113 113;
+  --info: 180 166 255;
+  --vivid-up: 74 222 128;
   --vivid-down: 248 113 113;
-  --bloom-1: 92 172 255;
-  --bloom-2: 100 210 245;
-  --bloom-3: 160 148 255;
-  --bloom-4: 74 222 160;
-  --bloom-5: 250 196 80;
-  --bloom-6: 246 140 186;
-  --quiet: 0.6;
-  --quiet-canvas: 0.6;
-  --gridline: 0.11;
+  /* Charts: white first, then violet, lime, amber, green and pink, bright
+     enough to tell apart on black. Single series use the white accent. */
+  --bloom-1: 236 236 236;
+  --bloom-2: 167 139 250;
+  --bloom-3: 212 245 102;
+  --bloom-4: 251 191 36;
+  --bloom-5: 52 211 153;
+  --bloom-6: 244 114 182;
+  --quiet: 0.56;
+  --quiet-canvas: 0.56;
+  --gridline: 0.1;
   --backdrop:
-    radial-gradient(64% 54% at 22% -12%, rgb(64 140 220 / 0.3), transparent 68%),
-    radial-gradient(38% 62% at -6% 58%, rgb(34 112 200 / 0.3), transparent 72%),
-    radial-gradient(44% 44% at 104% 6%, rgb(76 124 224 / 0.24), transparent 70%),
-    radial-gradient(50% 44% at 68% 58%, rgb(40 92 172 / 0.12), transparent 72%),
-    radial-gradient(56% 50% at 94% 106%, rgb(36 122 204 / 0.24), transparent 72%),
-    radial-gradient(46% 40% at 16% 104%, rgb(30 104 184 / 0.2), transparent 72%),
-    linear-gradient(165deg, rgb(13 27 49) 0%, rgb(9 20 38) 55%, rgb(7 15 30) 100%);
-  --shell-bg: rgb(18 32 56 / 0.55);
+    radial-gradient(60% 46% at 50% -8%, rgb(255 255 255 / 0.11), transparent 70%),
+    radial-gradient(36% 30% at 50% -4%, rgb(255 255 255 / 0.05), transparent 64%),
+    radial-gradient(50% 60% at 0% 100%, rgb(255 255 255 / 0.025), transparent 70%),
+    radial-gradient(50% 60% at 100% 100%, rgb(255 255 255 / 0.02), transparent 70%),
+    linear-gradient(180deg, rgb(13 13 14) 0%, rgb(9 9 10) 55%, rgb(5 5 6) 100%);
+  --shell-bg: rgb(22 22 23 / 0.72);
   --shell-border: rgb(255 255 255 / 0.08);
-  --shell-shadow: inset 0 1px 0 rgb(255 255 255 / 0.07), 0 0 0 1px rgb(0 0 0 / 0.2), 0 22px 48px -26px rgb(0 0 0 / 0.7);
-  --shell-filter: blur(24px) saturate(1.4);
-  --stage-bg: rgb(14 26 46 / 0.42);
+  --shell-shadow: inset 0 1px 0 rgb(255 255 255 / 0.07), 0 0 0 1px rgb(0 0 0 / 0.3), 0 22px 48px -26px rgb(0 0 0 / 0.8);
+  --shell-filter: blur(24px) saturate(1.2);
+  --stage-bg: rgb(16 16 17 / 0.62);
   --stage-border: rgb(255 255 255 / 0.07);
-  --stage-shadow: inset 0 1px 0 rgb(255 255 255 / 0.05), 0 24px 60px -38px rgb(0 0 0 / 0.6);
-  --drawer-bg: rgb(14 26 46 / 0.94);
+  --stage-shadow: inset 0 1px 0 rgb(255 255 255 / 0.09), 0 24px 60px -38px rgb(0 0 0 / 0.7);
+  /* The stage's glossy top edge, as on a pane of dark glass. */
+  --stage-image: linear-gradient(180deg, rgb(255 255 255 / 0.035), rgb(255 255 255 / 0) 220px);
+  --drawer-bg: rgb(18 18 19 / 0.96);
   --drawer-border: rgb(255 255 255 / 0.08);
   --nav-hover: rgb(255 255 255 / 0.06);
-  --nav-active: rgb(255 255 255 / 0.11);
+  --nav-active: rgb(255 255 255 / 0.1);
   --nav-active-fg: rgb(var(--paper));
-  --nav-active-ring: rgb(255 255 255 / 0.14);
-  --glass-tint: 24 40 66;
-  --glass-inner-tint: 40 60 92;
-  --glass-panel-a: 0.6;
+  --nav-active-ring: rgb(255 255 255 / 0.12);
+  --glass-tint: 30 30 32;
+  --glass-inner-tint: 58 58 62;
+  --glass-panel-a: 0.7;
   --glass-inner-a: 0.5;
-  --glass-chrome-a: 0.55;
-  --glass-overlay-a: 0.92;
+  --glass-chrome-a: 0.72;
+  --glass-overlay-a: 0.94;
   --glass-field: 255 255 255;
   --glass-field-a: 0.05;
   --glass-field-focus-a: 0.08;
   --glass-field-border: var(--paper);
-  --glass-field-border-a: 0.16;
-  --glass-edge-a: 0.1;
-  --glass-rim-a: 0.09;
+  --glass-field-border-a: 0.14;
+  --glass-edge-a: 0.09;
+  --glass-rim-a: 0.1;
   --glass-outline: 0 0 0;
-  --glass-outline-a: 0.25;
-  --glass-sheen: linear-gradient(180deg, rgb(255 255 255 / 0.06) 0%, rgb(255 255 255 / 0.015) 38%, rgb(255 255 255 / 0) 62%, rgb(56 132 214 / 0.07) 100%);
-  --glass-glint: radial-gradient(90% 60% at 0% 0%, rgb(255 255 255 / 0.05), rgb(255 255 255 / 0) 60%);
+  --glass-outline-a: 0.35;
+  --glass-sheen: linear-gradient(180deg, rgb(255 255 255 / 0.055) 0%, rgb(255 255 255 / 0.015) 38%, rgb(255 255 255 / 0) 66%);
+  --glass-glint: radial-gradient(90% 60% at 0% 0%, rgb(255 255 255 / 0.04), rgb(255 255 255 / 0) 60%);
   --glass-gloss: linear-gradient(180deg, rgb(255 255 255 / 0.28), rgb(255 255 255 / 0) 58%);
   --glass-inner-image: none;
-  --glass-drop: 0 1px 2px rgb(0 0 0 / 0.3), 0 16px 36px -20px rgb(0 0 0 / 0.65);
-  --glass-drop-lift: 0 2px 8px rgb(0 0 0 / 0.35), 0 30px 64px -28px rgb(0 0 0 / 0.8);
-  --glass-chrome-filter: blur(24px) saturate(1.4);
-  --glass-overlay-filter: blur(28px) saturate(1.5);
+  --glass-drop: 0 1px 2px rgb(0 0 0 / 0.4), 0 16px 36px -20px rgb(0 0 0 / 0.75);
+  --glass-drop-lift: 0 2px 8px rgb(0 0 0 / 0.45), 0 30px 64px -28px rgb(0 0 0 / 0.85);
+  --glass-chrome-filter: blur(24px) saturate(1.2);
+  --glass-overlay-filter: blur(28px) saturate(1.2);
   color-scheme: dark;
 }
 
@@ -624,7 +632,7 @@ samp {
   .btn-primary {
     background: rgb(var(--accent));
     color: rgb(var(--accent-fg));
-    box-shadow: 0 8px 20px -10px rgb(var(--accent) / 0.6);
+    box-shadow: 0 8px 20px -10px rgb(var(--accent) / var(--accent-glow));
   }
   .btn-primary:hover {
     filter: brightness(1.06);
@@ -839,6 +847,7 @@ samp {
 @media (min-width: 1024px) {
   .app-stage {
     background-color: var(--stage-bg);
+    background-image: var(--stage-image);
     border: 1px solid var(--stage-border);
     box-shadow: var(--stage-shadow);
     border-radius: 1.75rem;
@@ -971,8 +980,8 @@ samp {
     --drawer-bg: rgb(244 250 255);
   }
   [data-surface="black"] {
-    --shell-bg: rgb(17 30 52 / 0.96);
-    --drawer-bg: rgb(14 26 46);
+    --shell-bg: rgb(22 22 23 / 0.96);
+    --drawer-bg: rgb(18 18 19);
   }
 }
 
@@ -1001,9 +1010,9 @@ samp {
   --nav-active-ring: rgb(var(--accent) / 0.22);
 }
 [data-transparency="reduced"][data-surface="black"] {
-  --shell-bg: rgb(17 30 52 / 0.98);
-  --stage-bg: rgb(12 23 41 / 0.97);
-  --drawer-bg: rgb(14 26 46);
+  --shell-bg: rgb(22 22 23 / 0.98);
+  --stage-bg: rgb(14 14 15 / 0.97);
+  --drawer-bg: rgb(18 18 19);
 }
 /* Behind a dialog or a sheet the page dims instead of blurring. */
 [data-transparency="reduced"]
@@ -1035,9 +1044,9 @@ samp {
     --nav-active-ring: rgb(var(--accent) / 0.22);
   }
   [data-surface="black"] {
-    --shell-bg: rgb(17 30 52 / 0.98);
-    --stage-bg: rgb(12 23 41 / 0.97);
-    --drawer-bg: rgb(14 26 46);
+    --shell-bg: rgb(22 22 23 / 0.98);
+    --stage-bg: rgb(14 14 15 / 0.97);
+    --drawer-bg: rgb(18 18 19);
   }
   :is(.backdrop-blur, .backdrop-blur-sm, .backdrop-blur-md, .backdrop-blur-xl, .sm\:backdrop-blur-xl, .backdrop-blur-\[2px\]) {
     -webkit-backdrop-filter: none;

@@ -1,9 +1,9 @@
 # Design system
 
 DoOrDie's look: **calm frosted glass**. Translucent panes on a soft sky-blue
-backdrop by day, smoked navy glass by night, one luminous blue for what's
-interactive, Poppins throughout the app, and depth from soft wide shadows and
-lit edges rather than hard borders.
+backdrop with one luminous blue by day, black glass with white buttons by
+night, Poppins throughout the app, and depth from soft wide shadows and lit
+edges rather than hard borders.
 
 Everything is driven by CSS custom properties in `src/app/globals.css` and
 surfaced to Tailwind in `tailwind.config.ts`, so pages never hard-code a colour.
@@ -19,8 +19,9 @@ surfaced to Tailwind in `tailwind.config.ts`, so pages never hard-code a colour.
 | `--scrim` | modal/drawer backdrop, always darkening (`bg-scrim/45`) |
 | `--aura-1` / `--aura-2` | glow colours for `bg-aura` (sign-in, boot and check-in screens) |
 | `--shadow` | shadow tint: blue-grey on Light, black on Dark |
-| `--accent` / `--accent-fg` | the brand blue for fills, and the text that sits on it |
+| `--accent` / `--accent-fg` | fills for what's interactive (blue on Light, white on Dark), and the text that sits on them |
 | `--accent-ink` | accent-coloured text and icons (`.text-accent` reads it) |
+| `--accent-glow` | how strongly accent buttons glow beneath (`shadow-accent`, the avatar) |
 | `--positive` `--warning` `--danger` `--info` | status colours, deep enough for small text |
 | `--vivid-up` / `--vivid-down` | brighter trend strokes and dots, never text |
 | `--bloom-1…6` | categorical data palette for charts |
@@ -30,7 +31,8 @@ Every layer of the layout has its own tokens too, back to front: `--backdrop`
 (the environment), `--shell-*` (rail, sidebar, top bar), `--stage-*` (the
 panel the page sits in), `--drawer-*` (the phone's navigation drawer),
 `--glass-*` (panes, tiles, overlays, fields) and `--nav-*` (hover and active
-navigation states).
+navigation states). `--stage-image` adds a sheen to the stage's top edge on
+Dark.
 
 Note the naming: **`ink` is the background and `paper` is the foreground**, and
 they swap with the theme. A tint like `bg-paper/[0.04]` is therefore a subtle
@@ -47,30 +49,32 @@ other (the cards in Appearance) shows its own colours.
 | Theme | Canvas | Panes | Text | Accent |
 | --- | --- | --- | --- | --- |
 | **Light** (default) | pale sky `rgb(214 238 251)` under a layered sky | white at 60%, a top sheen and a bright rim | navy `#163147` | `#0E6BC4` fills with white text; `#0A58A6` for accent text |
-| **Dark** | night blue `rgb(9 19 37)` under soft blue glows | smoked navy `rgb(24 40 66)` at 60%, a fine lit edge | soft white `#E6EDF7` | `#5CACFF` fills with navy text; `#84C2FF` for accent text |
+| **Dark** | near-black `rgb(8 8 9)` under a soft spotlight from above | charcoal `rgb(30 30 32)` at 70%, a fine lit top edge | soft white `#EDEDED` | white fills with black text; white for accent text |
 
 **Light** is a soft sky of layered cyan and pale-blue light, brightest at the
 top left, with frosted white panes, soft blue-grey shadows and one luminous
-blue. **Dark** is the same sky after dark: the glows turned down to soft blue
-light, panes in smoked navy glass, tiles inside them a step lighter, and the
-blues lifted so they glow. Its accent is a light blue with navy text on it,
-because a blue dark enough for white text is too dark to read as text on a
-navy pane.
+blue. **Dark** is black glass with no blue in its surfaces: a near-black
+backdrop lit softly from above, charcoal panes with a lit top edge, tiles a
+step lighter, and white for what's interactive. Primary buttons are white
+with black text, selected items a lighter grey, and single-series charts,
+progress and heatmaps are drawn in white and greys. Colour is kept for
+meaning: status colours, and the categorical chart colours (white, violet,
+lime, amber, green, pink).
 
 **Readable on glass.** Contrast was worked out by compositing each layer
 (backdrop, stage, pane, tile) at the backdrop's darkest and brightest points:
 
 | | Light | Dark |
 | --- | --- | --- |
-| text on a pane | 11–13:1 | 11–14:1 |
-| accent text on a pane | 5.8–6.8:1 | 6.8–8.7:1 |
-| text on an accent fill | 5.4:1 (white) | 7.6:1 (navy) |
-| status colours on a pane | 4.6–6.3:1 | 5.2–10:1 |
+| text on a pane | 11–13:1 | 13.7–15.4:1 |
+| accent text on a pane | 5.8–6.8:1 | 16–18:1 (white) |
+| text on an accent fill | 5.4:1 (white) | 18:1 (black on white) |
+| status colours on a pane or tile | 4.6–6.3:1 | 4.9–11.8:1 |
 
 Quiet text is written as low-opacity ink (`text-paper/40`), which suits an
 opaque card but is hard to read on glass. Every step below the theme's floor
 is raised to it: `--quiet` is 0.7 on Light panes (0.74 straight on the
-stage) and 0.6 on Dark, the lowest strengths that still clear 4.5:1 there.
+stage) and 0.56 on Dark, the lowest strengths that still clear 4.5:1 there.
 Placeholders, chart labels and gridlines are covered the same way. On Dark the
 faint wells and hover fills (`bg-paper/[0.02]` to `[0.06]`) also take one more
 step. These rules keep the weight of a single utility, so hover and focus

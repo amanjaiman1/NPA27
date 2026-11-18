@@ -67,7 +67,9 @@ const config: Config = {
         soft: "0 1px 2px rgb(var(--shadow) / 0.04), 0 12px 32px -18px rgb(var(--shadow) / 0.16)",
         lift: "0 1px 2px rgb(var(--shadow) / 0.05), 0 24px 48px -24px rgb(var(--shadow) / 0.26)",
         glow: "0 24px 60px -28px rgb(var(--shadow) / 0.35), 0 0 0 1px rgb(var(--line))",
-        accent: "0 10px 26px -12px rgb(var(--accent) / 0.55)",
+        // Each theme sets how strongly accent buttons glow: a blue halo on
+        // Light, barely any under Dark's white buttons.
+        accent: "0 10px 26px -12px rgb(var(--accent) / var(--accent-glow, 0.55))",
         ring: "0 0 0 1px rgb(var(--line))",
       },
       backgroundImage: {
