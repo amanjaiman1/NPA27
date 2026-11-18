@@ -6,6 +6,7 @@ import {
   payloadForPlatform,
   type PushPayload,
 } from "@/lib/push-dispatch";
+import { TEST_TAG } from "@/lib/notifications";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -80,7 +81,7 @@ export async function POST(request: Request) {
     title: "Background push is working",
     body: "This is a test. Real notifications follow your schedule and quiet hours.",
     href: "/dashboard",
-    tag: "chronicle-test",
+    tag: TEST_TAG,
     // Deliberately absent: no badgeCount. A test should not leave a number on
     // your dock for something that was never real.
   };

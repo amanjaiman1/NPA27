@@ -10,7 +10,9 @@ import {
   evaluate,
   buildInbox,
   planDelivery,
+  recordDelivery,
   withDefaults,
+  DIGEST_TAG,
   type DeliveryLog,
   type NotifySettings,
   type NotifyState,
@@ -56,6 +58,13 @@ export interface PushPayload {
    * the app was never opened.
    */
   badgeCount?: number;
+  /**
+   * The account it is for. The worker files the push under it in the device's
+   * record of what it has shown, so the open app doesn't repeat it — and so
+   * someone else signing in on a shared computer doesn't inherit the record.
+   * The payload is encrypted to the device, so this never travels in the clear.
+   */
+  account?: string;
 }
 
 export type UserDecision =
@@ -174,7 +183,8 @@ export function decideForUser(
 
   const notices = evaluate(data, { now, settings });
   const inbox = buildInbox(notices, snapshot.notifyState, today);
-  const plan = planDelivery(inbox, settings, log, now);
+  // `now` for the calendar, `at` for the minimum gap, which is a duration.
+  const plan = planDelivery(inbox, settings, log, now, at);
 
   if (plan.kind === "none") return { send: false, reason: plan.reason };
 
@@ -188,7 +198,7 @@ export function decideForUser(
      * notice's destination would quietly drop everything else it mentions.
      */
     href: digest ? "/dashboard" : lead.href,
-    tag: digest ? "chronicle-digest" : lead.dedupeKey,
+    tag: digest ? DIGEST_TAG : lead.dedupeKey,
     // Everything still unread, not just what is being sent — the badge is a
     // count of what is waiting, and one push may stand for several notices.
     badgeCount: inbox.unread,
@@ -214,37 +224,16 @@ export function decideForUser(
  * what day it was, the daily gates silently stopped applying and the same notice
  * could be pushed twice.
  */
-function foldLog(
+export function foldLog(
   log: Partial<DeliveryLog> | null | undefined,
   notices: { dedupeKey: string }[],
   at: Date,
   today: string,
   digest: boolean,
 ): DeliveryLog {
-  const current = {
-    lastSentAt: {},
-    lastSentOn: {},
-    sentToday: 0,
-    sentOnDate: null,
-    lastDigestOn: null,
-    ...(log ?? {}),
-  } as DeliveryLog;
-
-  const sentToday = current.sentOnDate === today ? current.sentToday : 0;
-  const lastSentAt = { ...(current.lastSentAt ?? {}) };
-  const lastSentOn = { ...(current.lastSentOn ?? {}) };
-  for (const n of notices) {
-    lastSentAt[n.dedupeKey] = at.toISOString();
-    lastSentOn[n.dedupeKey] = today;
-  }
-
-  return {
-    lastSentAt,
-    lastSentOn,
-    sentToday: sentToday + (digest ? 1 : notices.length),
-    sentOnDate: today,
-    lastDigestOn: digest ? today : current.lastDigestOn,
-  };
+  // The same fold the browser uses, given the user's day rather than the
+  // server's. `at` is a true instant, so `lastSentAt` stays one.
+  return recordDelivery(log, notices, at, digest, today);
 }
 
 /** Group flat subscription rows by their owner. */

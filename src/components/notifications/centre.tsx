@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
@@ -163,6 +163,7 @@ function Panel({ onClose, placement }: { onClose: () => void; placement: Popover
   const { inbox, settings, today } = useNotifications();
   const markMany = useChronicle((s) => s.markNoticesRead);
   const [tab, setTab] = useState<"inbox" | "settings">("inbox");
+  const dialog = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -171,6 +172,19 @@ function Panel({ onClose, placement }: { onClose: () => void; placement: Popover
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [onClose]);
+
+  /**
+   * Focus moves into the panel when it opens, so a keyboard or screen reader
+   * lands on the notifications rather than behind them, and goes back to
+   * whatever opened it — the bell — when it closes.
+   */
+  useEffect(() => {
+    const opener = document.activeElement as HTMLElement | null;
+    dialog.current?.focus({ preventScroll: true });
+    return () => {
+      if (opener && document.contains(opener)) opener.focus({ preventScroll: true });
+    };
+  }, []);
 
   return (
     <>
@@ -184,6 +198,8 @@ function Panel({ onClose, placement }: { onClose: () => void; placement: Popover
         onClick={onClose}
       />
       <motion.div
+        ref={dialog}
+        tabIndex={-1}
         role="dialog"
         aria-label="Notifications"
         initial={{ opacity: 0, y: 10, scale: 0.98 }}
@@ -193,7 +209,7 @@ function Panel({ onClose, placement }: { onClose: () => void; placement: Popover
         /* A sheet on a phone; on a desktop a dropdown under the bell in the
            top bar, or a panel opening beside the bell in the rail. */
         className={cn(
-          "fixed inset-x-2 bottom-2 top-16 z-[56] flex flex-col overflow-hidden rounded-3xl border border-line bg-card shadow-lift sm:inset-x-auto sm:h-auto sm:max-h-[min(34rem,calc(100dvh-6rem))] sm:w-[24rem]",
+          "fixed inset-x-2 bottom-2 top-16 z-[56] flex flex-col overflow-hidden rounded-3xl border border-line bg-card shadow-lift outline-none sm:inset-x-auto sm:h-auto sm:max-h-[min(34rem,calc(100dvh-6rem))] sm:w-[24rem]",
           placement === "rail" ? "sm:bottom-4 sm:left-[6.5rem] sm:top-auto" : "sm:bottom-auto sm:right-4 sm:top-[4.6rem]",
         )}
       >
