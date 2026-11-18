@@ -12,7 +12,10 @@ buttons).
 | `exports/doordie-thumbnail.png` | Thumbnail, 3840 × 2160 (`doordie-thumbnail-1280.jpg` for YouTube) |
 | `exports/doordie-subtitles.srt` | Captions for the film (`-30s.srt` and `-15s.srt` for the cuts) |
 | `VOICEOVER.md` | The narration, line by line, with its timings |
-| `../public/media/doordie-film.mp4` | The film for the public site (1080p, 17 MB), shown on the home page with a poster and captions |
+| `../public/media/doordie-film.mp4` | The film for the public site: 1080p, 17 MB. It opens the home page (see [On the website](#on-the-website)) |
+| `../public/media/doordie-film-720.mp4` | The same film at 720p, 8 MB, for phones |
+| `../public/media/doordie-film-poster.jpg` | The cover: the end card without its call to action (the `Cover` still) |
+| `../public/media/doordie-film.vtt` | Captions for the site, made from `doordie-subtitles.srt` |
 
 ## The film
 
@@ -26,6 +29,32 @@ buttons).
 | 0:37 | More than study hours | Sleep, the Life Dashboard, running, screen time, reflections, mistakes. |
 | 0:43 | The experience | The dashboard switching Lavender → Light → Dark on a display, and on two phones. |
 | 0:50 | The end card | The mark, "Your civil services preparation command center", Plan · Track · Analyze · Improve, the call to action. |
+
+## On the website
+
+The film is the first thing on the home page, above the hero
+(`src/components/marketing/home-film.tsx`, paths in `src/lib/film.ts`).
+
+- **It starts by itself, with sound when the browser allows it.** Chrome,
+  Safari and Firefox block sound that starts on its own until the visitor
+  has interacted with the site, so on a first visit it plays muted with
+  captions and a "Turn sound on" button. The visitor's first tap, click or
+  key press on the page turns the sound on (links excepted). The button, or
+  a tap on the picture, also goes back to the start if the film is less than
+  10 seconds in. Where sound is allowed, it plays with sound and no
+  captions.
+- **Muting is remembered.** Muting with the player's controls stores
+  `doordie-film-sound=off` in `localStorage`, and from then on it plays
+  muted on that device.
+- **It pauses** when less than 30% of it is on screen or the tab is in the
+  background, and carries on when it's back. Arriving further down the
+  page, it starts when scrolled into view.
+- **Less data.** Nothing downloads until it plays. Phones (up to 767 px
+  wide) get the 720p file. Visitors who ask for reduced motion or data
+  saving get the cover and a "Watch the film · 58 s" button instead.
+- **The end.** The cover fades back in with the site's own "Start tracking
+  free" and "Watch again" buttons, placed where the film's end card has its
+  call to action.
 
 ## How it was made
 
@@ -57,7 +86,8 @@ buttons).
 6. **Finish.** `scripts/render/frames.mjs` renders the frames;
    `scripts/render/finish.py` encodes the deliverables (fine grain, BT.709,
    limited range), cuts the 30-second version from the master and writes the
-   captions and the site's copy.
+   captions. `finish.py web` writes the site's 1080p and 720p files, the
+   cover (it renders the `Cover` still) and the WebVTT captions.
 
 Checked on the exported files: every frame present (1,740 / 885 / 450), no
 black frames, loudness −14.0 LUFS, true peak −1.2 dBTP, captions in step.

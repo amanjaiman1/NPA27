@@ -565,7 +565,8 @@ const Rings: React.FC<{ f: number; cx: number; cy: number; o: number }> = ({ f, 
   </AbsoluteFill>
 );
 
-export const S8Final: React.FC<SceneProps> = ({ f }) => {
+/** `hideCta` leaves the call to action out: the site puts real buttons in that spot (the Cover still). */
+export const S8Final: React.FC<SceneProps & { hideCta?: boolean }> = ({ f, hideCta = false }) => {
   const cx = 960;
   const cy = 330;
   const HIT = 40; // 51.8 s
@@ -598,7 +599,7 @@ export const S8Final: React.FC<SceneProps> = ({ f }) => {
           <div style={{ height: 56 }} />
           <div
             style={{
-              opacity: ramp(f, HIT + 120, HIT + 140),
+              opacity: hideCta ? 0 : ramp(f, HIT + 120, HIT + 140),
               transform: `translateY(${(1 - ramp(f, HIT + 120, HIT + 144, EASE.out)) * 24}px)`,
               padding: "22px 44px",
               borderRadius: 999,

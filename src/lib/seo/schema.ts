@@ -15,6 +15,7 @@
    ════════════════════════════════════════════════════════════════ */
 
 import { SITE, absoluteUrl } from "./config";
+import { FILM } from "@/lib/film";
 
 type Json = Record<string, unknown>;
 
@@ -111,13 +112,7 @@ export function blogPosting(post: {
   };
 }
 
-/** The 58-second film on the home page, for video results. */
-export const FILM = {
-  src: "/media/doordie-film.mp4",
-  poster: "/media/doordie-film-poster.jpg",
-  captions: "/media/doordie-film.vtt",
-} as const;
-
+/** The 58-second film that opens the home page, for video results. */
 export function filmVideo(): Json {
   return {
     "@context": "https://schema.org",
@@ -127,7 +122,7 @@ export function filmVideo(): Json {
       "A 58-second film of DoOrDie, a free UPSC preparation tracker: logging a study day, syllabus progress, spaced revision, mock analytics, the Life Dashboard and the app's three themes, filmed with a sample account.",
     thumbnailUrl: [absoluteUrl(FILM.poster)],
     uploadDate: "2026-11-18",
-    duration: "PT58S",
+    duration: `PT${FILM.seconds}S`,
     contentUrl: absoluteUrl(FILM.src),
     inLanguage: SITE.language,
     publisher: { "@id": ORGANIZATION_ID },

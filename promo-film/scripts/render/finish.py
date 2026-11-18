@@ -90,23 +90,29 @@ def promo30():
 
 
 def web():
-    """The film for the public site: 1080p, small enough to stream, plus a poster and captions."""
+    """The film for the public site: 1080p for larger screens, 720p for phones, the cover and captions."""
     site = os.path.abspath(os.path.join(ROOT, "..", "public", "media"))
     os.makedirs(site, exist_ok=True)
-    src = os.path.join(EXPORTS, "doordie-hero-4k.mp4")
-    out = os.path.join(site, "doordie-film.mp4")
-    subprocess.run(["ffmpeg", "-y", "-v", "error", "-framerate", "30", "-i", os.path.join(WORK, "hero", "element-%04d.jpeg"),
-                    "-i", os.path.join(AUD, "mix-hero.wav"), "-vf", "scale=1920:1080:flags=lanczos:out_range=limited,format=yuv420p",
-                    "-c:v", "libx264", "-preset", "slow", "-profile:v", "high", "-level", "4.1", "-crf", "22", "-maxrate", "3500k", "-bufsize", "7M",
-                    "-g", "60", "-pix_fmt", "yuv420p", "-color_primaries", "bt709", "-color_trc", "bt709", "-colorspace", "bt709", "-color_range", "tv",
-                    "-c:a", "aac", "-b:a", "160k", "-ar", "48000", "-movflags", "+faststart", "-shortest", out], check=True)
-    # Poster: the end card, where the mark and the promise sit together.
-    subprocess.run(["ffmpeg", "-y", "-v", "error", "-ss", "56.2", "-i", src, "-frames:v", "1", "-vf", "scale=1920:1080:flags=lanczos", "-q:v", "3",
-                    os.path.join(site, "doordie-film-poster.jpg")], check=True)
+    frames = os.path.join(WORK, "hero", "element-%04d.jpeg")
+    mix = os.path.join(AUD, "mix-hero.wav")
+    for name, size, rate in (("doordie-film.mp4", "1920:1080", ["-crf", "22", "-maxrate", "3500k", "-bufsize", "7M", "-level", "4.1"]),
+                             ("doordie-film-720.mp4", "1280:720", ["-crf", "24", "-maxrate", "1800k", "-bufsize", "3600k", "-level", "3.1"])):
+        out = os.path.join(site, name)
+        subprocess.run(["ffmpeg", "-y", "-v", "error", "-framerate", "30", "-i", frames, "-i", mix,
+                        "-vf", f"scale={size}:flags=lanczos:out_range=limited,format=yuv420p",
+                        "-c:v", "libx264", "-preset", "slow", "-profile:v", "high", *rate,
+                        "-g", "60", "-pix_fmt", "yuv420p", "-color_primaries", "bt709", "-color_trc", "bt709", "-colorspace", "bt709", "-color_range", "tv",
+                        "-c:a", "aac", "-b:a", "160k" if "720" not in name else "128k", "-ar", "48000", "-movflags", "+faststart", "-shortest", out], check=True)
+        print(name, os.path.getsize(out) // 1024, "KB")
+    # The cover: the end card without its call to action, which the page draws as real buttons.
+    cover_dir = os.path.join(WORK, "cover")
+    subprocess.run(["node", os.path.join(ROOT, "scripts", "render", "stills.mjs"), "Cover", "1", cover_dir, "0"], check=True, cwd=ROOT)
+    from PIL import Image
+
+    Image.open(os.path.join(cover_dir, "Cover-0000.jpeg")).save(os.path.join(site, "doordie-film-poster.jpg"), quality=86, optimize=True, progressive=True)
     srt = open(os.path.join(EXPORTS, "doordie-subtitles.srt")).read()
     vtt = "WEBVTT\n\n" + "\n".join(line.replace(",", ".") if "-->" in line else line for line in srt.splitlines()) + "\n"
     open(os.path.join(site, "doordie-film.vtt"), "w").write(vtt)
-    print(subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration,size", "-of", "json", out], capture_output=True, text=True).stdout)
 
 
 def main():
