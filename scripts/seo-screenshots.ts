@@ -5,7 +5,8 @@
  * person's data is ever used.
  *
  *     npm run test:e2e                      # once: builds the app against the mock Supabase
- *     npx tsx scripts/seo-screenshots.ts    # writes public/product/*.webp
+ *     npx tsx scripts/seo-screenshots.ts    # writes public/product/*.webp and
+ *                                           # the install dialog's public/screenshots/*.jpg
  *
  * The sample account is built from the same seed the app gives a new account,
  * then restored through Settings → Data, exactly as a user would restore a
@@ -41,6 +42,21 @@ import type {
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const OUT = join(root, "public", "product");
+/**
+ * The pictures in the browser's install dialog (`screenshots` in
+ * public/manifest.webmanifest). Browsers only take JPEG or PNG there, and
+ * every picture of one shape must have the same proportions, so these are
+ * JPEG copies at fixed sizes. Change a size here and in the manifest together.
+ */
+const INSTALL_OUT = join(root, "public", "screenshots");
+const INSTALL_SHOTS: Record<string, { width: number; height: number }> = {
+  dashboard: { width: 1280, height: 800 },
+  journal: { width: 1280, height: 800 },
+  revision: { width: 1280, height: 800 },
+  goals: { width: 1280, height: 800 },
+  "dashboard-mobile": { width: 585, height: 1266 },
+  "journal-entry-mobile": { width: 585, height: 1266 },
+};
 const APP = "http://localhost:3100";
 const PASSWORD = "sampleAccount2027";
 
@@ -517,6 +533,28 @@ async function toWebp(browser: Browser, png: Buffer, quality = 0.84): Promise<Bu
   return Buffer.from(dataUrl.split(",")[1], "base64");
 }
 
+/** A PNG, resized to exactly `width` × `height`, as a JPEG. */
+async function toJpeg(browser: Browser, png: Buffer, width: number, height: number, quality = 0.86): Promise<Buffer> {
+  const page = await browser.newPage();
+  const dataUrl = await page.evaluate(
+    async ({ b64, w, h, q }) => {
+      const img = new Image();
+      img.src = `data:image/png;base64,${b64}`;
+      await img.decode();
+      const canvas = document.createElement("canvas");
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext("2d")!;
+      ctx.imageSmoothingQuality = "high";
+      ctx.drawImage(img, 0, 0, w, h);
+      return canvas.toDataURL("image/jpeg", q);
+    },
+    { b64: png.toString("base64"), w: width, h: height, q: quality },
+  );
+  await page.close();
+  return Buffer.from(dataUrl.split(",")[1], "base64");
+}
+
 /** The morning check-in comes before the app; the sample account skips it. */
 async function passSleepPromptIfShown(page: Page) {
   const prompt = page.getByTestId("sleep-prompt");
@@ -544,10 +582,17 @@ async function shoot(browser: Browser, page: Page, name: string, path: string, b
   writeFileSync(join(OUT, `${name}.webp`), webp);
   const { width, height } = page.viewportSize()!;
   written.push(`${name}.webp  ${Math.round(webp.length / 1024)} KB  (${width}×${height} css px)`);
+  const install = INSTALL_SHOTS[name];
+  if (install) {
+    const jpeg = await toJpeg(browser, png, install.width, install.height);
+    writeFileSync(join(INSTALL_OUT, `${name}.jpg`), jpeg);
+    written.push(`../screenshots/${name}.jpg  ${Math.round(jpeg.length / 1024)} KB  (${install.width}×${install.height} px)`);
+  }
 }
 
 async function main() {
   mkdirSync(OUT, { recursive: true });
+  mkdirSync(INSTALL_OUT, { recursive: true });
   const backupFile = join(root, ".next", "sample-account.json");
   writeFileSync(backupFile, JSON.stringify({ app: "the-upsc-chronicle", schemaVersion: 14, data: sampleData() }));
 
