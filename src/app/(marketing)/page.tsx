@@ -19,6 +19,7 @@ import { pageMetadata } from "@/lib/seo/metadata";
 import { PAGES, RESOURCE_PAGES } from "@/lib/seo/pages";
 import { filmVideo, softwareApplication } from "@/lib/seo/schema";
 import { HomeFilm } from "@/components/marketing/home-film";
+import { InstallAppInline } from "@/components/marketing/install-app-inline";
 import { JsonLd } from "@/components/seo/json-ld";
 import {
   Band,
@@ -438,6 +439,7 @@ export default function HomePage() {
             <FeatureCard icon={Smartphone} title="Works on any device">
               Use it in the browser on a phone or laptop, or install it as an app. It works offline and syncs when you
               reconnect.
+              <InstallAppInline />
             </FeatureCard>
             <FeatureCard icon={Layers} title="Independent">
               DoOrDie is a preparation tool, not affiliated with or endorsed by UPSC.{" "}

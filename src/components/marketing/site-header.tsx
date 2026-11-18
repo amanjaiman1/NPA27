@@ -3,13 +3,15 @@ import { Menu } from "lucide-react";
 import { Logo } from "@/components/layout/logo";
 import { PAGES } from "@/lib/seo/pages";
 import { AccountLinks } from "./account-links";
+import { InstallAppButton } from "./install-app";
 import { Container } from "./ui";
 
 const NAV = [PAGES.features, PAGES.resources, PAGES.blog, PAGES.about];
 
 /**
  * The public site's header. Plain links (crawlable, no JavaScript needed); the
- * mobile menu is a native <details> disclosure.
+ * mobile menu is a native <details> disclosure. "Install app" appears beside
+ * them when this browser can install the app.
  */
 export function SiteHeader() {
   return (
@@ -35,11 +37,14 @@ export function SiteHeader() {
           </ul>
         </nav>
 
-        <div className="ml-auto hidden md:block">
-          <AccountLinks />
+        <div className="ml-auto flex items-center gap-2">
+          <InstallAppButton />
+          <div className="hidden md:block">
+            <AccountLinks />
+          </div>
         </div>
 
-        <details className="group relative ml-auto md:hidden">
+        <details className="group relative md:hidden">
           <summary
             className="grid h-10 w-10 cursor-pointer list-none place-items-center rounded-full border border-line bg-card text-paper shadow-soft [&::-webkit-details-marker]:hidden"
             aria-label="Menu"

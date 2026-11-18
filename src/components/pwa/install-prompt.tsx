@@ -7,6 +7,7 @@ import {
   Share,
   Plus,
   Check,
+  Monitor,
   Smartphone,
   ChevronRight,
 } from "lucide-react";
@@ -21,8 +22,7 @@ import { Logo } from "@/components/layout/logo";
  * fortnight, and it never appears once the app is installed.
  */
 export function InstallPrompt() {
-  const { bannerVisible, canInstall, needsIosInstructions, promptInstall, dismissBanner } =
-    useInstall();
+  const { bannerVisible, canInstall, manual, promptInstall, dismissBanner } = useInstall();
 
   return (
     <AnimatePresence>
@@ -63,7 +63,7 @@ export function InstallPrompt() {
               </div>
             </div>
 
-            {needsIosInstructions && !canInstall ? (
+            {manual === "ios" && !canInstall ? (
               <ol className="relative mt-3.5 space-y-1.5 rounded-xl border border-line bg-paper/[0.03] p-3 text-xs text-paper/65">
                 <li className="flex items-center gap-2">
                   <span className="tabular text-paper/35">1.</span>
@@ -109,25 +109,36 @@ export function InstallPrompt() {
 }
 
 /**
- * The same capability, surfaced permanently in Settings so the app can be
- * installed at any time — including after the banner has been dismissed.
+ * The same capability, always available: in Settings, and under the theme
+ * choices in Appearance, so the app can be installed at any time, including
+ * after the banner was dismissed. `bare` leaves out the heading and the
+ * explanation, for a place that has its own.
  */
-export function InstallCard() {
-  const { canInstall, installed, needsIosInstructions, promptInstall } = useInstall();
+export function InstallCard({ bare = false }: { bare?: boolean }) {
+  const { canInstall, standalone, justInstalled, manual, promptInstall } = useInstall();
 
   return (
     <div>
-      <p className="eyebrow mb-1">Install as an app</p>
-      <p className="mb-3 text-xs leading-relaxed text-paper/45">
-        Add DoOrDie to your home screen or desktop for a full-screen,
-        offline-capable app — your data stays on the device and syncs when
-        you&apos;re back online.
-      </p>
+      {!bare && (
+        <>
+          <p className="eyebrow mb-1">Install as an app</p>
+          <p className="mb-3 text-xs leading-relaxed text-paper/45">
+            Add DoOrDie to your home screen or desktop for a full-screen,
+            offline-capable app — your data stays on the device and syncs when
+            you&apos;re back online.
+          </p>
+        </>
+      )}
 
-      {installed ? (
+      {standalone ? (
         <p className="flex items-center gap-2 rounded-xl border border-accent/30 bg-accent/10 px-3 py-2.5 text-xs text-paper/80">
           <Check className="h-3.5 w-3.5 shrink-0 text-accent" />
-          Installed — you&apos;re running DoOrDie as an app.
+          You&apos;re using DoOrDie as an installed app.
+        </p>
+      ) : justInstalled ? (
+        <p className="flex items-center gap-2 rounded-xl border border-accent/30 bg-accent/10 px-3 py-2.5 text-xs text-paper/80">
+          <Check className="h-3.5 w-3.5 shrink-0 text-accent" />
+          Installed. Open DoOrDie from your home screen or your apps.
         </p>
       ) : canInstall ? (
         <button
@@ -137,13 +148,22 @@ export function InstallCard() {
           <Download className="h-4 w-4" />
           Install DoOrDie
         </button>
-      ) : needsIosInstructions ? (
+      ) : manual === "ios" ? (
         <p className="flex items-start gap-2 rounded-xl border border-line bg-paper/[0.03] px-3 py-2.5 text-xs leading-relaxed text-paper/65">
           <Share className="mt-0.5 h-3.5 w-3.5 shrink-0 text-accent" />
           <span>
-            In Safari, tap <span className="font-medium text-paper">Share</span>{" "}
+            Tap <span className="font-medium text-paper">Share</span>{" "}
             <ChevronRight className="inline h-3 w-3 align-[-2px]" />{" "}
             <span className="font-medium text-paper">Add to Home Screen</span>.
+          </span>
+        </p>
+      ) : manual === "mac-safari" ? (
+        <p className="flex items-start gap-2 rounded-xl border border-line bg-paper/[0.03] px-3 py-2.5 text-xs leading-relaxed text-paper/65">
+          <Monitor className="mt-0.5 h-3.5 w-3.5 shrink-0 text-accent" />
+          <span>
+            In Safari&apos;s menu bar, choose <span className="font-medium text-paper">File</span>{" "}
+            <ChevronRight className="inline h-3 w-3 align-[-2px]" />{" "}
+            <span className="font-medium text-paper">Add to Dock</span>.
           </span>
         </p>
       ) : (

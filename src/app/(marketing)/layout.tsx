@@ -1,6 +1,7 @@
 import { SiteHeader } from "@/components/marketing/site-header";
 import { SiteFooter } from "@/components/marketing/site-footer";
 import { Analytics } from "@/components/marketing/analytics";
+import { SiteServiceWorker } from "@/components/marketing/install-app";
 import { JsonLd } from "@/components/seo/json-ld";
 import { siteGraph } from "@/lib/seo/schema";
 
@@ -9,7 +10,9 @@ import { siteGraph } from "@/lib/seo/schema";
  *
  * Everything under here is server-rendered and statically generated, so the
  * full content is in the HTML that crawlers and visitors receive. None of the
- * app's code (accounts, sync, the data store) is loaded on these pages.
+ * app's code (accounts, sync, the data store) is loaded on these pages. The
+ * service worker is, once the page has loaded: it is what makes the site
+ * installable as the app, and the pages already visited work offline.
  */
 export default function MarketingLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -27,6 +30,7 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
       <SiteFooter />
       <JsonLd data={siteGraph()} />
       <Analytics />
+      <SiteServiceWorker />
     </div>
   );
 }
