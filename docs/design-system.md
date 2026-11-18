@@ -58,8 +58,9 @@ backdrop lit softly from above, charcoal panes with a lit top edge, tiles a
 step lighter, and white for what's interactive. Primary buttons are white
 with black text, selected items a lighter grey, and single-series charts,
 progress and heatmaps are drawn in white and greys. Colour is kept for
-meaning: status colours, and the categorical chart colours (white, violet,
-lime, amber, green, pink).
+meaning: status colours, and the categorical chart colours (white, lime,
+orange, aqua, pink, green). Info notices are a neutral grey, and the loading
+ring is white with a fading tail.
 
 **Readable on glass.** Contrast was worked out by compositing each layer
 (backdrop, stage, pane, tile) at the backdrop's darkest and brightest points:
@@ -209,6 +210,11 @@ Three zones on a desktop, all frosted, floating over the backdrop:
 | **Sidebar** | docked from `xl` (1280px), 256px | every page in its groups, with the revision count. Collapsible; the choice is kept per browser (`upsc-chronicle-sidebar`). Between `lg` and `xl` it opens as a flyout over the page |
 | **Main stage** | `lg` and up | the top bar (the wide search field that opens the command palette, `⌘K` / `Ctrl K`; the days-to-exam chip; Log today) above the page, which sits in `.app-stage` |
 
+Because the docked sidebar takes 256px from `xl` up, a page between 1280 and
+1440px has less room than a tablet. Layouts that need it, such as the
+dashboard's rows of three cards, wait for the `wide` breakpoint (1440px,
+defined in `tailwind.config.ts`) and use two columns until then.
+
 Below `lg` the layout changes rather than shrinks: a slim top bar (menu,
 search, notifications, account), the page edge to edge on the backdrop, a
 floating bottom dock with the four most used pages and More, and the full
@@ -232,7 +238,7 @@ by `scripts/extract-lottie.py` because `lottie-web` cannot read the zip.
 
 | Wait | What you see | Where it lives |
 | --- | --- | --- |
-| Browser refresh / cold start | A cyan→blue→magenta gradient ring | `SleepGate`, via `.boot-ring` |
+| Browser refresh / cold start | A cyan→blue→magenta gradient ring (white on Dark) | `SleepGate`, via `.boot-ring` |
 | Page to page (**desktop only**) | Three quiet dots over a dimmed scrim | `RouteTransition`, via `animations/page-transition.json` |
 | Signing in, loading an account, first cloud pull | The gradient ring | `BootScreen` in `components/account/boot-screen.tsx`, via `.boot-ring` |
 
