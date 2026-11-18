@@ -34,18 +34,15 @@
         color-scheme: light;
       }
       [data-surface="black"] {
-        --ink: 8 8 9;
+        --ink: 0 0 0;
         --paper: 237 237 237;
         --accent: 245 245 245;
         --accent-fg: 10 10 10;
         --shadow: 0 0 0;
-        --pane: rgb(30 30 32 / 0.78);
+        --pane: rgb(20 20 22);
         --pane-edge: rgb(255 255 255 / 0.09);
         --quiet: 0.62;
-        --backdrop:
-          radial-gradient(60% 46% at 50% -8%, rgb(255 255 255 / 0.11), transparent 70%),
-          radial-gradient(50% 60% at 0% 100%, rgb(255 255 255 / 0.025), transparent 70%),
-          linear-gradient(180deg, rgb(13 13 14) 0%, rgb(9 9 10) 55%, rgb(5 5 6) 100%);
+        --backdrop: none;
         color-scheme: dark;
       }
       [data-surface="lavender"] {
@@ -244,7 +241,7 @@
         var meta = document.querySelector('meta[name="theme-color"]');
         if (mode === "dark") {
           document.documentElement.setAttribute("data-surface", "black");
-          meta.setAttribute("content", "#080809");
+          meta.setAttribute("content", "#000000");
         } else if (mode === "lavender") {
           document.documentElement.setAttribute("data-surface", "lavender");
           meta.setAttribute("content", "#f7f6fc");

@@ -5,7 +5,7 @@ import type { ThemeMode } from "./types";
 
      • Light (the default): frosted white panes on a soft sky-blue
        backdrop, navy text, one luminous blue.
-     • Dark: black glass, charcoal panes on a near-black backdrop, with
+     • Dark: pure black, charcoal glass cards on a #000 background, with
        white for what's interactive.
      • Lavender: crisp white panels on a near-white backdrop with pastel
        glows, and one violet.
@@ -41,7 +41,7 @@ export interface ThemeModeMeta {
 
 export const THEME_MODES: ThemeModeMeta[] = [
   { id: "light", label: "Light", hint: "Frosted glass on a soft sky blue" },
-  { id: "dark", label: "Dark", hint: "Black glass, for the night" },
+  { id: "dark", label: "Dark", hint: "Pure black, for the night" },
   { id: "lavender", label: "Lavender", hint: "Crisp white on a soft pastel glow" },
 ];
 
