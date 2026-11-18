@@ -210,7 +210,7 @@ const GROUPS: { title: string; intro: string; features: Feature[] }[] = [
         id: "appearance",
         icon: Palette,
         title: "Make it yours",
-        body: "Light, Dark or Auto to follow your device, an optional Liquid Glass look on either, colour palettes and quiet wallpapers, saved with your account.",
+        body: "Light, Dark, a frosted Blue Glass theme, or Auto to follow your device, plus an optional Liquid Glass look on any of them, colour palettes and quiet wallpapers, saved with your account.",
       },
     ],
   },

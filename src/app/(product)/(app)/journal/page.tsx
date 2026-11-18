@@ -238,7 +238,7 @@ export default function JournalPage() {
                   "inline-flex items-center justify-center gap-2 rounded-xl border px-4 py-2.5 text-sm transition-colors",
                   showFilters || activeFilters
                     ? "border-paper/25 bg-paper/[0.06] text-paper"
-                    : "border-line text-paper/65 hover:border-paper/25 hover:text-paper",
+                    : "glass-ghost border-line text-paper/65 hover:border-paper/25 hover:text-paper",
                 )}
               >
                 <SlidersHorizontal className="h-4 w-4" />

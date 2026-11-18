@@ -131,7 +131,7 @@ export default function KnowledgeGraphPage() {
               onChange={(e) => setSubjectFilter(e.target.value)}
               disabled={!showTopics}
               className={cn(
-                "h-10 appearance-none rounded-xl border border-line bg-paper/[0.03] pl-3.5 pr-9 text-sm text-paper focus:border-paper/30 focus:outline-none disabled:opacity-40",
+                "field h-10 appearance-none rounded-xl border border-line bg-paper/[0.03] pl-3.5 pr-9 text-sm text-paper focus:border-paper/30 focus:outline-none disabled:opacity-40",
               )}
             >
               <option value="all">All subjects</option>

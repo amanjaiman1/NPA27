@@ -1,28 +1,32 @@
 import type { Material, ThemeMode } from "./types";
 
 /* ════════════════════════════════════════════════════════════════
-   Appearance — day and night, plus an accent.
+   Appearance — the theme, an accent, and how surfaces are drawn.
 
-     • Theme mode — Light, Dark, or Auto (follow the device). The mode is
-       what's saved and synced; the screen shows its *resolved* surface,
-       which is the `data-surface` attribute on <html>:
+     • Theme mode — Light, Dark, Blue Glass, or Auto (Light or Dark,
+       following the device). The mode is what's saved and synced; the
+       screen shows its *resolved* surface, the `data-surface` attribute on
+       <html>:
          "white"  the Ivory day surface
          "black"  the charcoal night surface
-     • Palette — the accent and the six chart colours, on either surface.
+         "blue"   Blue Glass: frosted panes on a pale sky-blue canvas, with
+                  its own colours, so the palette and wallpaper rest
+     • Palette — the accent and the six chart colours, on Light and Dark.
      • Material — Standard or Liquid Glass (`data-material`), independent
        of the mode: glass changes how surfaces are drawn, never which theme
-       is showing.
+       is showing. Blue Glass is frosted either way; Liquid Glass makes it
+       clearer and brighter.
 
    The colour values live as CSS variables in globals.css; this module
-   carries the ids, the picker's metadata, and the one function that puts
-   a mode on screen. The inline script in app/layout.tsx does the same
-   before first paint, so a reload never flashes the wrong theme.
+   carries the ids, the picker's metadata, and the functions that put a
+   mode and a material on screen. The inline script in app/layout.tsx does
+   the same before first paint, so a reload never flashes the wrong theme.
    ════════════════════════════════════════════════════════════════ */
 
 export type { Material, ThemeMode } from "./types";
 
-/** The two surfaces the CSS knows. */
-export type Surface = "white" | "black";
+/** The surfaces the CSS knows. */
+export type Surface = "white" | "black" | "blue";
 export type Palette = "rose" | "sunset" | "lagoon" | "orchid" | "meadow" | "ember";
 
 export const DEFAULT_THEME_MODE: ThemeMode = "light";
@@ -37,11 +41,20 @@ export interface ThemeModeMeta {
 export const THEME_MODES: ThemeModeMeta[] = [
   { id: "light", label: "Light", hint: "Warm ivory, for the day" },
   { id: "dark", label: "Dark", hint: "Soft charcoal, for the night" },
-  { id: "system", label: "Auto", hint: "Follows your device's day and night setting" },
+  { id: "blue", label: "Blue Glass", hint: "Frosted glass on a calm sky blue" },
+  { id: "system", label: "Auto", hint: "Light or Dark, following your device" },
 ];
 
 export function isThemeMode(v: unknown): v is ThemeMode {
-  return v === "light" || v === "dark" || v === "system";
+  return v === "light" || v === "dark" || v === "blue" || v === "system";
+}
+
+/**
+ * Blue Glass brings its own accent, chart colours and sky, so the palette
+ * and the wallpaper rest while it's on (and come back with Light or Dark).
+ */
+export function themeHasOwnColours(mode: ThemeMode): boolean {
+  return mode === "blue";
 }
 
 /**
@@ -68,14 +81,27 @@ export function systemPrefersDark(): boolean {
 export function surfaceFor(mode: ThemeMode, prefersDark = systemPrefersDark()): Surface {
   if (mode === "dark") return "black";
   if (mode === "light") return "white";
+  if (mode === "blue") return "blue";
   return prefersDark ? "black" : "white";
+}
+
+let easeTimer = 0;
+
+/**
+ * A short window in which colours, edges and shadows ease into the new look
+ * instead of snapping. The global reduced-motion rule shortens it to nothing.
+ */
+function easeAppearance(root: HTMLElement): void {
+  root.setAttribute("data-appearance-switching", "");
+  window.clearTimeout(easeTimer);
+  easeTimer = window.setTimeout(() => root.removeAttribute("data-appearance-switching"), 450);
 }
 
 /* ── Liquid Glass ────────────────────────────────────────────────
    A second, independent dimension: the material surfaces are drawn in.
-   Light or Dark stays exactly as chosen; glass only changes how cards,
-   bars, menus and dialogs are drawn on top of it. Both choices sync with
-   the account and are painted before load, like the theme. */
+   The theme stays exactly as chosen; glass only changes how cards, bars,
+   menus and dialogs are drawn on top of it. Both choices sync with the
+   account and are painted before load, like the theme. */
 
 export const DEFAULT_MATERIAL: Material = "standard";
 
@@ -95,23 +121,24 @@ export function applyMaterial(material: Material, reduced: boolean, opts: { anim
     root.getAttribute("data-material") !== material ||
     (root.getAttribute("data-transparency") === "reduced") !== reduced;
   if (!changed) return;
-  // A short window in which surfaces ease between materials. The global
-  // reduced-motion rule shortens it to nothing.
-  if (opts.animate) {
-    root.setAttribute("data-material-switching", "");
-    window.setTimeout(() => root.removeAttribute("data-material-switching"), 450);
-  }
+  if (opts.animate) easeAppearance(root);
   root.setAttribute("data-material", material);
   if (reduced) root.setAttribute("data-transparency", "reduced");
   else root.removeAttribute("data-transparency");
 }
 
-/** Puts a mode on screen. Safe to call on the server, where it does nothing. */
-export function applyThemeMode(mode: ThemeMode): Surface {
+/**
+ * Puts a mode on screen. Safe to call on the server, where it does nothing.
+ * `animate` eases the change, for a switch the person just made.
+ */
+export function applyThemeMode(mode: ThemeMode, opts: { animate?: boolean } = {}): Surface {
   const surface = surfaceFor(mode);
   if (typeof document !== "undefined") {
     const root = document.documentElement;
-    if (root.getAttribute("data-surface") !== surface) root.setAttribute("data-surface", surface);
+    if (root.getAttribute("data-surface") !== surface) {
+      if (opts.animate) easeAppearance(root);
+      root.setAttribute("data-surface", surface);
+    }
     root.setAttribute("data-theme-mode", mode);
   }
   return surface;

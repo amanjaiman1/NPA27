@@ -11,8 +11,9 @@ their devices through Supabase and kept within Supabase's free plan.
 - **Notifications and background push:** [`docs/notifications.md`](docs/notifications.md).
 - **Files attached to journal days:** [`docs/attachments.md`](docs/attachments.md).
 - **The four everyday modules:** [Daily Journal](docs/daily-journal.md),
-  [Life Dashboard](docs/life-dashboard.md) (including sleep), and the theme and
-  Liquid Glass in the [design system](docs/design-system.md).
+  [Life Dashboard](docs/life-dashboard.md) (including sleep), and the themes
+  (Light, Dark, Blue Glass) and Liquid Glass in the
+  [design system](docs/design-system.md).
 - **The public site and SEO:** [below](#public-site-and-seo), and the setup steps
   in [`docs/SEO_SETUP_GUIDE.md`](docs/SEO_SETUP_GUIDE.md).
 
@@ -51,9 +52,9 @@ people. Delete `.env.local` when you're done, and never deploy with it.
 
 | Command | What it checks |
 | --- | --- |
-| `npm test` | Unit tests: the three-way merge, the sync engine with two simulated devices (offline edits, clashes, stale devices), per-account browser storage, the one-time move of pre-account data, the new-account template, attached-file rules, completed topics, Life Dashboard reports and form, goals, the clean-up of data older versions wrote, saving a journal day, sleep times and durations, and Liquid Glass as a setting of its own. |
+| `npm test` | Unit tests: the three-way merge, the sync engine with two simulated devices (offline edits, clashes, stale devices), per-account browser storage, the one-time move of pre-account data, the new-account template, attached-file rules, completed topics, Life Dashboard reports and form, goals, the clean-up of data older versions wrote, saving a journal day, sleep times and durations, Liquid Glass as a setting of its own, and Blue Glass as a third theme that never changes Liquid Glass or the palette. |
 | `npm run test:db` | Applies `supabase/schema.sql` and every migration (twice, to prove they re-run safely) to a throwaway Postgres with Supabase's roles, then runs `supabase/tests/rls_isolation.sql`. |
-| `npm run test:e2e` | 17 browser scenarios against the mock: two accounts in one browser, the theme following an account with no light flash, a second device, simultaneous edits, direct database access with another account's token, attached files (stored once, linked to a goal without a copy, unreadable by another account, deleted with the last day that holds them), recording, editing and deleting a night's sleep, Liquid Glass (on either theme, painted before load, on a second device, cleared on sign-out, never on another account), sign-out, the owner's existing data, a fresh account, account deletion (including its files) and password reset. Needs `npx playwright install chromium` once. It builds the app against the mock, so run `npm run build` again afterwards. |
+| `npm run test:e2e` | 18 browser scenarios against the mock: two accounts in one browser, the theme following an account with no light flash, a second device, simultaneous edits, direct database access with another account's token, attached files (stored once, linked to a goal without a copy, unreadable by another account, deleted with the last day that holds them), recording, editing and deleting a night's sleep, Liquid Glass (on either theme, painted before load, on a second device, cleared on sign-out, never on another account), Blue Glass (frosted with or without Liquid Glass, painted before load, on a second device, nearly solid with Reduce transparency, never on another account), sign-out, the owner's existing data, a fresh account, account deletion (including its files) and password reset. Needs `npx playwright install chromium` once. It builds the app against the mock, so run `npm run build` again afterwards. |
 | `npm run lint`, `npx tsc --noEmit`, `npm run check:classes` | Lint, types, and the Tailwind opacity guard. |
 
 To check isolation on the **real** project, paste `supabase/tests/rls_isolation.sql`

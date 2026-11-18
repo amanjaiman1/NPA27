@@ -9,14 +9,15 @@ export type ISODate = string; // "yyyy-mm-dd"
 export type Theme = "dark" | "light";
 
 /**
- * The appearance the user picked: always light, always dark, or whichever the
- * device is set to (most phones switch at sunset). Synced with the account.
+ * The theme the user picked: always light, always dark, Blue Glass, or
+ * whichever of light and dark the device is set to (most phones switch at
+ * sunset). Synced with the account.
  */
-export type ThemeMode = "light" | "dark" | "system";
+export type ThemeMode = "light" | "dark" | "blue" | "system";
 
 /**
- * How surfaces are drawn, on top of either theme. `glass` turns cards, bars,
- * menus and dialogs translucent; it never changes Light or Dark itself.
+ * How surfaces are drawn, on top of any theme. `glass` turns cards, bars,
+ * menus and dialogs translucent; it never changes the theme itself.
  */
 export type Material = "standard" | "glass";
 

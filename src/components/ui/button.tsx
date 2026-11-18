@@ -15,8 +15,9 @@ const variants: Record<Variant, string> = {
     "bg-paper text-ink hover:opacity-90 hover:-translate-y-px active:translate-y-0",
   ghost:
     "bg-card text-paper border border-line shadow-soft hover:border-paper/25 hover:-translate-y-px",
+  // `glass-ghost`: on Blue Glass a faint frosted fill, so it reads as a control on the sky.
   outline:
-    "bg-transparent text-paper border border-line hover:border-paper/30 hover:bg-paper/[0.04]",
+    "glass-ghost bg-transparent text-paper border border-line hover:border-paper/30 hover:bg-paper/[0.04]",
   subtle: "bg-transparent text-paper/55 hover:text-paper hover:bg-paper/[0.06]",
   danger:
     "bg-transparent text-danger border border-danger/30 hover:border-danger/55 hover:bg-danger/10",

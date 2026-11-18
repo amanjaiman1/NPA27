@@ -1,6 +1,7 @@
 "use client";
 
 import { useChronicle } from "@/lib/store";
+import { themeHasOwnColours } from "@/lib/theme";
 
 /**
  * The layer behind the whole app: wallpaper art, then a canvas-coloured dim,
@@ -9,12 +10,16 @@ import { useChronicle } from "@/lib/store";
  * Deliberately static — no animation, no filters, one composited layer. The
  * patterns are CSS gradients built from the palette (see globals.css), so
  * switching palette re-tints the wallpaper for free.
+ *
+ * Blue Glass paints its own sky, so the wallpaper rests while it's on; the
+ * choice is kept for Light and Dark.
  */
 export function Wallpaper() {
   const wallpaper = useChronicle((s) => s.wallpaper);
   const dim = useChronicle((s) => s.wallpaperDim);
+  const ownSky = useChronicle((s) => themeHasOwnColours(s.themeMode));
 
-  if (wallpaper === "none") return null;
+  if (wallpaper === "none" || ownSky) return null;
 
   return (
     <div className="pointer-events-none fixed inset-0 -z-20 overflow-hidden">

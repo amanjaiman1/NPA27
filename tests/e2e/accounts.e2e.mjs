@@ -201,6 +201,16 @@ async function addHabit(page, name, { navigate = true } = {}) {
   await page.getByRole("heading", { name }).waitFor();
 }
 
+/** How see-through the first card in <main> is: 1 is solid, lower is glass. */
+async function cardAlpha(page) {
+  return page.evaluate(() => {
+    const c = getComputedStyle(document.querySelector("main .bg-card")).backgroundColor;
+    const m = /rgba?\(([^)]+)\)/.exec(c);
+    const parts = m ? m[1].split(/[ ,/]+/).filter(Boolean) : [];
+    return parts.length === 4 ? Number(parts[3]) : 1;
+  });
+}
+
 async function dashboardGreets(page, firstName) {
   await page.getByText(new RegExp(`, ${firstName}\\.`)).first().waitFor();
 }
@@ -521,15 +531,8 @@ async function main() {
       await page.getByRole("switch", { name: "Liquid Glass" }).click();
       check((await htmlAttr(page, "data-material")) === "glass", "glass wasn't applied");
       check((await htmlAttr(page, "data-surface")) === surface, "turning glass on changed the theme");
-      const cardAlpha = () =>
-        page.evaluate(() => {
-          const c = getComputedStyle(document.querySelector("main .bg-card")).backgroundColor;
-          const m = /rgba?\(([^)]+)\)/.exec(c);
-          const parts = m ? m[1].split(/[ ,/]+/).filter(Boolean) : [];
-          return parts.length === 4 ? Number(parts[3]) : 1;
-        });
       // Surfaces ease across for under half a second; then cards are see-through.
-      await waitFor("translucent cards", async () => (await cardAlpha()) < 0.8, 5000);
+      await waitFor("translucent cards", async () => (await cardAlpha(page)) < 0.8, 5000);
       await waitFor("glass in A's cloud copy", async () => (await cloudOf(A.email))?.data?.material === "glass");
       check((await cloudOf(A.email)).data.themeMode === "dark", "the synced theme changed with glass");
 
@@ -541,7 +544,7 @@ async function main() {
       // Reduce transparency keeps glass but makes it nearly solid.
       await page.getByRole("switch", { name: "Reduce transparency" }).click();
       check((await htmlAttr(page, "data-transparency")) === "reduced", "reduce transparency not applied");
-      await waitFor("nearly solid cards", async () => (await cardAlpha()) > 0.9, 5000);
+      await waitFor("nearly solid cards", async () => (await cardAlpha(page)) > 0.9, 5000);
       await page.getByRole("switch", { name: "Reduce transparency" }).click();
 
       // Painted before the app loads, so a reload never flashes Standard.
@@ -561,9 +564,53 @@ async function main() {
       check((await htmlAttr(phonePage, "data-surface")) === "black", "the phone lost the dark theme");
     });
 
-    await scenario("11. After sign-out nothing private is reachable", async () => {
+
+    await scenario("11. Blue Glass is a theme of its own, frosted with or without Liquid Glass, and follows the account", async () => {
+      // Picked while Liquid Glass is on: the theme changes, the material doesn't.
+      await page.getByRole("radio", { name: /^Blue Glass/ }).click();
+      check((await htmlAttr(page, "data-surface")) === "blue", "Blue Glass wasn't applied");
+      check((await htmlAttr(page, "data-material")) === "glass", "picking Blue Glass turned Liquid Glass off");
+      await waitFor("Blue Glass in A's cloud copy", async () => (await cloudOf(A.email))?.data?.themeMode === "blue");
+      check((await cloudOf(A.email)).data.material === "glass", "the synced material changed with the theme");
+
+      // With Liquid Glass off it is still glass: see-through cards and frosted bars.
+      await page.getByRole("switch", { name: "Liquid Glass" }).click();
+      check((await htmlAttr(page, "data-material")) === "standard", "Liquid Glass didn't turn off");
+      check((await htmlAttr(page, "data-surface")) === "blue", "turning Liquid Glass off left Blue Glass");
+      await waitFor("frosted cards on Blue Glass alone", async () => {
+        const a = await cardAlpha(page);
+        return a >= 0.45 && a < 0.8;
+      }, 5000);
+      const bar = await page.evaluate(() => getComputedStyle(document.querySelector(".chrome-glass")).backdropFilter);
+      check(/blur/.test(bar), `the top bar isn't frosted on Blue Glass alone (${bar})`);
+
+      // Painted before the app loads, so a reload never flashes Light.
+      await page.reload();
+      check((await page.evaluate(() => window.__firstPaintSurface)) === "blue", "Blue Glass isn't painted before the app loads");
+      check((await page.evaluate(() => window.__firstPaintMaterial)) === "standard", "the first paint brought back Liquid Glass");
+
+      // And it reaches A's other device, without Liquid Glass.
+      await phonePage.reload();
+      await waitFor("Blue Glass on the phone", async () => (await htmlAttr(phonePage, "data-surface")) === "blue");
+      await waitFor("Liquid Glass off on the phone", async () => (await htmlAttr(phonePage, "data-material")) === "standard");
+
+      // Reduce transparency makes it nearly solid, and it is still Blue Glass.
+      await page.getByRole("switch", { name: "Reduce transparency" }).click();
+      await waitFor("nearly solid cards on Blue Glass", async () => (await cardAlpha(page)) > 0.9, 5000);
+      check((await htmlAttr(page, "data-surface")) === "blue", "reduce transparency changed the theme");
+      await page.getByRole("switch", { name: "Reduce transparency" }).click();
+
+      // Light still works, and Blue Glass comes back as it was.
+      await page.getByRole("radio", { name: /^Light/ }).click();
+      check((await htmlAttr(page, "data-surface")) === "white", "Light no longer applies");
+      await page.getByRole("radio", { name: /^Blue Glass/ }).click();
+      await waitFor("Blue Glass back in A's cloud copy", async () => (await cloudOf(A.email))?.data?.themeMode === "blue");
+    });
+
+    await scenario("12. After sign-out nothing private is reachable", async () => {
       await signOut(page);
       check((await htmlAttr(page, "data-material")) === "standard", "the signed-out screen kept A's glass");
+      check((await htmlAttr(page, "data-surface")) === "white", "the signed-out screen kept A's Blue Glass");
       await page.goto(`${APP}/journal/${today()}`);
       await page.waitForURL(/\/login/);
       check(!(await page.content()).includes("A-only highlight"), "A's journal is still rendered");
@@ -571,13 +618,13 @@ async function main() {
       check(!keys.some((k) => k.startsWith("upsc-chronicle-store")), `stores left behind: ${keys}`);
     });
 
-    await scenario("12. Notification preferences are per account", async () => {
+    await scenario("13. Notification preferences are per account", async () => {
       const a = await cloudOf(A.email);
       const b = await cloudOf(B.email);
       check(a.data.notify.digest === false && b.data.notify?.digest !== false, "digest settings crossed accounts");
     });
 
-    await scenario("13. Pre-account data on the owner's browser moves into the owner's account only", async () => {
+    await scenario("14. Pre-account data on the owner's browser moves into the owner's account only", async () => {
       const owner = await (await fetch(`${MOCK}/auth/v1/signup`, {
         method: "POST",
         headers: { apikey: mockEnv.NEXT_PUBLIC_SUPABASE_ANON_KEY, "Content-Type": "application/json" },
@@ -619,7 +666,7 @@ async function main() {
     });
 
     const cPage = await (await browser.newContext()).newPage();
-    await scenario("14. A fresh account starts clean, with only reference content", async () => {
+    await scenario("15. A fresh account starts clean, with only reference content", async () => {
       await signIn(cPage, C.email);
       await onboard(cPage, C.name);
       await passSleepPromptIfShown(cPage);
@@ -638,7 +685,7 @@ async function main() {
       await waitFor("C's file in Storage", async () => (await storedFor(ids.C)).length === 1);
     });
 
-    await scenario("15. Deleting an account removes only that account", async () => {
+    await scenario("16. Deleting an account removes only that account", async () => {
       await cPage.goto(`${APP}/settings#danger`);
       await cPage.getByRole("button", { name: "Delete my account" }).click();
       const dialog = cPage.getByRole("dialog", { name: "Delete your account?" });
@@ -680,6 +727,7 @@ async function main() {
       await passSleepPromptIfShown(p);
       await dashboardGreets(p, "Student");
       check((await htmlAttr(p, "data-material")) === "standard", "B got A's Liquid Glass");
+      check((await htmlAttr(p, "data-surface")) === "white", "B got A's Blue Glass");
     });
 
     await scenario("An expired reset link explains itself", async () => {
