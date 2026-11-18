@@ -348,12 +348,92 @@
   color-scheme: light;
 }
 
+/* ── Liquid glass buttons: the values per theme ───────────────────────
+   Every button is a pill or circle of liquid glass (the rules are in the
+   Materials section). Clear glass is a translucent fill that blurs what's
+   behind it, a bright rim lit from the top left, a softer rim at the
+   bottom right, light pooling along the bottom edge and a soft drop.
+   Tinted glass, for the main action and selected toggles, is the accent
+   with the same rims and a sheen that stays clear of the label, so text
+   keeps its contrast.
+   ─────────────────────────────────────────────────────────────────── */
+
+:root,
+[data-surface="white"] {
+  --lg-fill: rgb(255 255 255 / 0.52);
+  --lg-fill-hover: rgb(255 255 255 / 0.8);
+  --lg-border: rgb(32 88 132 / 0.13);
+  --lg-sheen: linear-gradient(180deg, rgb(255 255 255 / 0.85) 0%, rgb(255 255 255 / 0.22) 46%, rgb(255 255 255 / 0.04) 70%, rgb(255 255 255 / 0.4) 100%);
+  --lg-shadow:
+    inset 1px 1.5px 0 rgb(255 255 255 / 1),
+    inset -1px -1px 0 rgb(255 255 255 / 0.65),
+    inset 0 -2px 3px -2px rgb(32 88 132 / 0.2),
+    inset 0 -8px 14px -10px rgb(255 255 255 / 0.95),
+    0 1px 2px rgb(32 88 132 / 0.08),
+    0 8px 18px -10px rgb(32 88 132 / 0.36);
+  --lg-tint-sheen: linear-gradient(180deg, rgb(255 255 255 / 0.32) 0%, rgb(255 255 255 / 0.06) 26%, rgb(255 255 255 / 0) 36%, rgb(255 255 255 / 0) 72%, rgb(255 255 255 / 0.16) 100%);
+  --lg-tint-rims:
+    inset 1px 1.5px 0 rgb(255 255 255 / 0.55),
+    inset -1px -1px 0 rgb(255 255 255 / 0.2),
+    inset 0 0 0 1px rgb(255 255 255 / 0.1),
+    inset 0 -8px 14px -10px rgb(255 255 255 / 0.45);
+  --lg-track: rgb(32 88 132 / 0.05);
+  --lg-track-shadow: inset 0 1px 2px rgb(32 88 132 / 0.1), inset 0 -1px 0 rgb(255 255 255 / 0.7);
+  --lg-blur: blur(14px) saturate(1.8);
+}
+
+[data-surface="black"] {
+  --lg-fill: rgb(255 255 255 / 0.07);
+  --lg-fill-hover: rgb(255 255 255 / 0.13);
+  --lg-border: rgb(255 255 255 / 0.14);
+  --lg-sheen: linear-gradient(180deg, rgb(255 255 255 / 0.16) 0%, rgb(255 255 255 / 0.04) 46%, rgb(255 255 255 / 0) 70%, rgb(255 255 255 / 0.06) 100%);
+  --lg-shadow:
+    inset 1px 1.5px 0 rgb(255 255 255 / 0.32),
+    inset -1px -1px 0 rgb(255 255 255 / 0.1),
+    inset 0 -8px 14px -10px rgb(255 255 255 / 0.2),
+    0 8px 18px -10px rgb(0 0 0 / 0.9);
+  /* White glass: brighter at the rim, a touch of grey at the bottom for
+     thickness. */
+  --lg-tint-sheen: linear-gradient(180deg, rgb(255 255 255 / 0.9) 0%, rgb(255 255 255 / 0) 36%, rgb(0 0 0 / 0) 70%, rgb(0 0 0 / 0.07) 100%);
+  --lg-tint-rims:
+    inset 1px 1.5px 0 rgb(255 255 255 / 1),
+    inset -1px -1px 0 rgb(0 0 0 / 0.16),
+    inset 0 -8px 14px -10px rgb(0 0 0 / 0.18);
+  --lg-track: rgb(255 255 255 / 0.04);
+  --lg-track-shadow: inset 0 1px 2px rgb(0 0 0 / 0.7), inset 0 -1px 0 rgb(255 255 255 / 0.05);
+  --lg-blur: blur(14px) saturate(1.4);
+}
+
+[data-surface="lavender"] {
+  --lg-fill: rgb(255 255 255 / 0.72);
+  --lg-fill-hover: rgb(255 255 255 / 0.95);
+  --lg-border: rgb(76 60 160 / 0.14);
+  --lg-sheen: linear-gradient(180deg, rgb(255 255 255 / 0.9) 0%, rgb(255 255 255 / 0.25) 46%, rgb(255 255 255 / 0.05) 70%, rgb(255 255 255 / 0.45) 100%);
+  --lg-shadow:
+    inset 1px 1.5px 0 rgb(255 255 255 / 1),
+    inset -1px -1px 0 rgb(255 255 255 / 0.7),
+    inset 0 -2px 3px -2px rgb(76 60 160 / 0.18),
+    inset 0 -8px 14px -10px rgb(255 255 255 / 0.95),
+    0 1px 2px rgb(76 60 160 / 0.07),
+    0 8px 18px -10px rgb(76 60 160 / 0.3);
+  --lg-tint-sheen: linear-gradient(180deg, rgb(255 255 255 / 0.3) 0%, rgb(255 255 255 / 0.05) 26%, rgb(255 255 255 / 0) 36%, rgb(255 255 255 / 0) 72%, rgb(255 255 255 / 0.15) 100%);
+  --lg-tint-rims:
+    inset 1px 1.5px 0 rgb(255 255 255 / 0.5),
+    inset -1px -1px 0 rgb(255 255 255 / 0.18),
+    inset 0 0 0 1px rgb(255 255 255 / 0.1),
+    inset 0 -8px 14px -10px rgb(255 255 255 / 0.4);
+  --lg-track: rgb(76 60 160 / 0.05);
+  --lg-track-shadow: inset 0 1px 2px rgb(76 60 160 / 0.09), inset 0 -1px 0 rgb(255 255 255 / 0.8);
+  --lg-blur: blur(14px) saturate(1.6);
+}
+
 /* Phones: less blur, which is most of the cost, for the same look. */
 @media (max-width: 640px) {
   [data-surface] {
     --shell-filter: blur(18px) saturate(1.4);
     --glass-chrome-filter: blur(16px) saturate(1.5);
     --glass-overlay-filter: blur(22px) saturate(1.6);
+    --lg-blur: blur(8px) saturate(1.5);
   }
 }
 
@@ -1082,6 +1162,112 @@ samp {
     var(--tw-shadow, 0 0 #0000);
 }
 
+/* ── Liquid glass buttons ──────────────────────────────────────────────
+   Every button is liquid glass, in two kinds, read from the values each
+   theme sets (the "Liquid glass buttons" block near the top):
+
+     clear   the Button component's quiet variants, icon buttons and chips
+             (`.lg-clear`), and any pill-shaped button or link drawn with a
+             hairline or the frosted ghost fill. A translucent fill that
+             blurs what's behind it, rims lit from the top left, light pooled
+             along the bottom edge, a soft drop.
+     tinted  any button or link filled with the accent: the main action,
+             the selected segment, selected toggles. The accent with the same
+             rims and a sheen that stays clear of the label.
+
+   A selected chip keeps its accent wash under the glass; danger, success
+   and warning fills take the glass in their own colour. Switches are left
+   as switches. Each rule keeps Tailwind's ring and shadow variables, so
+   focus rings and the accent glow still show.
+   ─────────────────────────────────────────────────────────────────── */
+
+/* Clear glass. A hairline-edged pill counts, and so does a squarer button
+   whose content is centred (icon buttons, steppers, "Restore from file");
+   list rows, cards and form fields stay as they are. */
+.lg-clear,
+:is(button, a, summary):where(.glass-ghost, .border-line:is(.rounded-full, :is(.rounded-lg, .rounded-xl):is(.justify-center, .place-items-center))):not(.field) {
+  background-color: var(--lg-fill);
+  background-image: var(--lg-sheen);
+  box-shadow:
+    var(--lg-shadow),
+    var(--tw-ring-offset-shadow, 0 0 #0000),
+    var(--tw-ring-shadow, 0 0 #0000);
+  -webkit-backdrop-filter: var(--lg-blur);
+  backdrop-filter: var(--lg-blur);
+}
+/* The edge: only where it was the plain hairline, so a danger or selected
+   border keeps its colour. */
+.lg-clear:where(.border-line),
+:is(button, a, summary).border-line:where(.rounded-full, :is(.rounded-lg, .rounded-xl):is(.justify-center, .place-items-center), .glass-ghost):not(.field) {
+  border-color: var(--lg-border);
+}
+.lg-clear:is(:hover, [aria-expanded="true"], [aria-current="page"], .lg-on),
+:is(button, a, summary):where(.glass-ghost, .border-line:is(.rounded-full, :is(.rounded-lg, .rounded-xl):is(.justify-center, .place-items-center))):not(.field):hover {
+  background-color: var(--lg-fill-hover);
+}
+
+/* Quiet icon buttons (a bin, a pencil, a close cross) with no fill or edge
+   of their own are clear glass too. Any resting `bg-` utility opts out. */
+button:is(.rounded-md, .rounded-lg, .rounded-xl, .rounded-full).place-items-center:not([class^="bg-"], [class*=" bg-"], .border, [role="switch"], .chrome-glass, .lg-clear) {
+  background-color: var(--lg-fill);
+  background-image: var(--lg-sheen);
+  box-shadow:
+    var(--lg-shadow),
+    var(--tw-ring-offset-shadow, 0 0 #0000),
+    var(--tw-ring-shadow, 0 0 #0000);
+  -webkit-backdrop-filter: var(--lg-blur);
+  backdrop-filter: var(--lg-blur);
+}
+button:is(.rounded-md, .rounded-lg, .rounded-xl, .rounded-full).place-items-center:not([class^="bg-"], [class*=" bg-"], .border, [role="switch"], .chrome-glass, .lg-clear):hover {
+  background-color: var(--lg-fill-hover);
+}
+
+/* A selected chip keeps its accent wash under the glass. */
+:is(button, a):is(.bg-accent\/10, .bg-accent\/15):where(.rounded-full, .rounded-lg, .rounded-xl, .lg-clear) {
+  background-color: rgb(var(--accent) / 0.14);
+  background-image: var(--lg-sheen);
+  box-shadow:
+    var(--lg-shadow),
+    var(--tw-ring-offset-shadow, 0 0 #0000),
+    var(--tw-ring-shadow, 0 0 #0000);
+  -webkit-backdrop-filter: var(--lg-blur);
+  backdrop-filter: var(--lg-blur);
+}
+:is(button, a):is(.bg-accent\/10, .bg-accent\/15):where(.rounded-full, .rounded-lg, .rounded-xl, .lg-clear):hover {
+  background-color: rgb(var(--accent) / 0.2);
+}
+
+/* Tinted glass. */
+:is(button, a).bg-accent:not([role="switch"]) {
+  background-color: rgb(var(--accent));
+  background-image: var(--lg-tint-sheen);
+  box-shadow:
+    var(--lg-tint-rims),
+    var(--tw-ring-offset-shadow, 0 0 #0000),
+    var(--tw-ring-shadow, 0 0 #0000),
+    var(--tw-shadow, 0 0 #0000);
+}
+
+:is(button, a):is(.bg-danger, .bg-positive, .bg-warning) {
+  background-image: linear-gradient(180deg, rgb(255 255 255 / 0.3) 0%, rgb(255 255 255 / 0.05) 26%, rgb(255 255 255 / 0) 36%, rgb(255 255 255 / 0) 72%, rgb(255 255 255 / 0.15) 100%);
+  box-shadow:
+    inset 1px 1.5px 0 rgb(255 255 255 / 0.5),
+    inset -1px -1px 0 rgb(255 255 255 / 0.18),
+    inset 0 -8px 14px -10px rgb(255 255 255 / 0.4),
+    var(--tw-ring-offset-shadow, 0 0 #0000),
+    var(--tw-ring-shadow, 0 0 #0000),
+    var(--tw-shadow, 0 0 #0000);
+}
+
+/* A segmented control's track: a shallow groove the tinted segment floats
+   in. */
+.lg-track {
+  background-color: var(--lg-track);
+  background-image: none;
+  border-color: var(--lg-border);
+  box-shadow: var(--lg-track-shadow);
+}
+
 /* ── Fallbacks and Reduce transparency ─────────────────────────────── */
 
 /* No backdrop-filter support: translucent surfaces would show sharp content
@@ -1116,10 +1302,13 @@ samp {
   --glass-chrome-filter: none;
   --glass-overlay-filter: none;
   --shell-filter: none;
+  --lg-blur: none;
 }
 /* On Light, near-solid white leaves nothing for white to stand out against,
    so tiles take a pale blue and the selected item an accent tint. */
 [data-transparency="reduced"][data-surface="white"] {
+  --lg-fill: rgb(250 253 255);
+  --lg-fill-hover: rgb(238 246 252);
   --glass-field-a: 0.9;
   --glass-inner-tint: 236 245 252;
   --shell-bg: rgb(246 251 255 / 0.97);
@@ -1130,11 +1319,15 @@ samp {
   --nav-active-ring: rgb(var(--accent) / 0.22);
 }
 [data-transparency="reduced"][data-surface="black"] {
+  --lg-fill: rgb(34 34 37);
+  --lg-fill-hover: rgb(46 46 50);
   --shell-bg: rgb(0 0 0);
   --stage-bg: rgb(0 0 0);
   --drawer-bg: rgb(10 10 11);
 }
 [data-transparency="reduced"][data-surface="lavender"] {
+  --lg-fill: rgb(255 255 255);
+  --lg-fill-hover: rgb(246 245 251);
   --glass-field-a: 1;
   --shell-bg: rgb(255 255 255 / 0.98);
   --stage-bg: rgb(251 250 255 / 0.97);
@@ -1158,8 +1351,11 @@ samp {
     --glass-chrome-filter: none;
     --glass-overlay-filter: none;
     --shell-filter: none;
+    --lg-blur: none;
   }
   [data-surface="white"] {
+    --lg-fill: rgb(250 253 255);
+    --lg-fill-hover: rgb(238 246 252);
     --glass-field-a: 0.9;
     --glass-inner-tint: 236 245 252;
     --shell-bg: rgb(246 251 255 / 0.97);
@@ -1170,11 +1366,15 @@ samp {
     --nav-active-ring: rgb(var(--accent) / 0.22);
   }
   [data-surface="black"] {
+    --lg-fill: rgb(34 34 37);
+    --lg-fill-hover: rgb(46 46 50);
     --shell-bg: rgb(0 0 0);
     --stage-bg: rgb(0 0 0);
     --drawer-bg: rgb(10 10 11);
   }
   [data-surface="lavender"] {
+    --lg-fill: rgb(255 255 255);
+    --lg-fill-hover: rgb(246 245 251);
     --glass-field-a: 1;
     --shell-bg: rgb(255 255 255 / 0.98);
     --stage-bg: rgb(251 250 255 / 0.97);

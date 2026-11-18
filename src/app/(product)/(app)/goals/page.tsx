@@ -342,7 +342,7 @@ export default function GoalsPage() {
                 <button
                   type="button"
                   onClick={clearFilters}
-                  className="inline-flex items-center gap-1 rounded-full px-2.5 py-1.5 text-xs font-semibold text-paper/55 hover:text-paper"
+                  className="lg-clear inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold text-paper/70 transition-all hover:text-paper"
                 >
                   <X className="h-3 w-3" /> Clear filters
                 </button>

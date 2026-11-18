@@ -108,7 +108,7 @@ function NoticeRow({
                 markRead(notice.id);
                 onNavigate();
               }}
-              className="flex items-center gap-1 rounded-full bg-paper/[0.07] px-2.5 py-1 text-[0.7rem] font-semibold text-paper transition-colors hover:bg-paper/[0.12]"
+              className="lg-clear flex items-center gap-1 rounded-full px-2.5 py-1 text-[0.7rem] font-semibold text-paper transition-all"
             >
               {notice.cta}
               <ArrowRight className="h-3 w-3" />
@@ -121,7 +121,7 @@ function NoticeRow({
                 onClick={() => markRead(notice.id)}
                 aria-label={`Mark "${notice.title}" as read`}
                 title="Mark as read"
-                className="grid h-7 w-7 place-items-center rounded-full text-paper/35 transition-colors hover:bg-paper/[0.07] hover:text-paper"
+                className="lg-clear grid h-7 w-7 place-items-center rounded-full text-paper/60 transition-all hover:text-paper"
               >
                 <Check className="h-3.5 w-3.5" />
               </button>
@@ -137,7 +137,7 @@ function NoticeRow({
               title={`Hide for ${SNOOZE_DAYS[notice.priority]} day${
                 SNOOZE_DAYS[notice.priority] === 1 ? "" : "s"
               }`}
-              className="grid h-7 w-7 place-items-center rounded-full text-paper/35 transition-colors hover:bg-paper/[0.07] hover:text-paper"
+              className="lg-clear grid h-7 w-7 place-items-center rounded-full text-paper/60 transition-all hover:text-paper"
             >
               <Clock className="h-3.5 w-3.5" />
             </button>
@@ -145,7 +145,7 @@ function NoticeRow({
               onClick={() => dismiss(notice.id)}
               aria-label={`Dismiss "${notice.title}"`}
               title="Dismiss"
-              className="grid h-7 w-7 place-items-center rounded-full text-paper/35 transition-colors hover:bg-paper/[0.07] hover:text-paper"
+              className="lg-clear grid h-7 w-7 place-items-center rounded-full text-paper/60 transition-all hover:text-paper"
             >
               <X className="h-3.5 w-3.5" />
             </button>
@@ -208,7 +208,7 @@ function Panel({ onClose, placement }: { onClose: () => void; placement: Popover
               onClick={() => markMany(inbox.items.map((i) => i.id))}
               title="Mark all as read"
               aria-label="Mark all as read"
-              className="grid h-8 w-8 place-items-center rounded-full text-paper/45 transition-colors hover:bg-paper/[0.07] hover:text-paper"
+              className="lg-clear grid h-8 w-8 place-items-center rounded-full text-paper/60 transition-all hover:text-paper"
             >
               <CheckCheck className="h-4 w-4" />
             </button>
@@ -218,8 +218,8 @@ function Panel({ onClose, placement }: { onClose: () => void; placement: Popover
             title={tab === "inbox" ? "Settings" : "Back to notifications"}
             aria-label={tab === "inbox" ? "Notification settings" : "Back to notifications"}
             className={cn(
-              "grid h-8 w-8 place-items-center rounded-full transition-colors hover:bg-paper/[0.07]",
-              tab === "settings" ? "text-accent" : "text-paper/45 hover:text-paper",
+              "lg-clear grid h-8 w-8 place-items-center rounded-full transition-all",
+              tab === "settings" ? "lg-on text-accent" : "text-paper/60 hover:text-paper",
             )}
           >
             <Settings2 className="h-4 w-4" />
@@ -227,7 +227,7 @@ function Panel({ onClose, placement }: { onClose: () => void; placement: Popover
           <button
             onClick={onClose}
             aria-label="Close notifications"
-            className="grid h-8 w-8 place-items-center rounded-full text-paper/45 transition-colors hover:bg-paper/[0.07] hover:text-paper"
+            className="lg-clear grid h-8 w-8 place-items-center rounded-full text-paper/60 transition-all hover:text-paper"
           >
             <X className="h-4 w-4" />
           </button>
@@ -317,8 +317,8 @@ export function NotificationCentre({
         title="Notifications"
         aria-expanded={open}
         className={cn(
-          "relative grid h-10 w-10 place-items-center rounded-full text-paper/60 transition-all duration-200 hover:bg-[var(--nav-hover)] hover:text-paper",
-          open && "bg-[var(--nav-hover)] text-paper",
+          "lg-clear relative grid h-10 w-10 place-items-center rounded-full text-paper/65 transition-all duration-200 hover:text-paper",
+          open && "text-paper",
           className,
         )}
       >

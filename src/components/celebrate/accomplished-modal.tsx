@@ -141,7 +141,7 @@ export function AccomplishedModal({
             <button
               onClick={onClose}
               aria-label="Close"
-              className="absolute right-3 top-3 z-10 grid h-9 w-9 place-items-center rounded-full text-paper/40 transition-colors hover:bg-paper/[0.06] hover:text-paper"
+              className="lg-clear absolute right-3 top-3 z-10 grid h-9 w-9 place-items-center rounded-full text-paper/65 transition-all hover:text-paper"
             >
               <X className="h-4 w-4" />
             </button>
