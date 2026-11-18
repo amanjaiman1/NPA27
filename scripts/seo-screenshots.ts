@@ -464,7 +464,8 @@ function sampleData(): ChronicleData & Record<string, unknown> {
     selection: buildSelection("UPSC CSE 2027"),
     files: [],
     plans: [],
-    themeMode: "light",
+    // The default theme, so the public site shows what a new account sees.
+    themeMode: "lavender",
     lastSleepPrompt: sleepDayKey(new Date()),
   };
 }

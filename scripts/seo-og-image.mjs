@@ -16,11 +16,12 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const shot = readFileSync(join(root, "public", "product", "dashboard.webp")).toString("base64");
 const out = join(root, "public", "og", "doordie.png");
 
+// Drawn in Lavender, the default theme: ink #181828 and violet #6c5ce7.
 const logo = `<svg viewBox="0 0 32 32" width="64" height="64" fill="none">
-  <circle cx="16" cy="16" r="12.5" stroke="rgba(22,49,71,0.3)" stroke-width="1.5"/>
-  <circle cx="16" cy="16" r="7" stroke="rgba(22,49,71,0.15)" stroke-width="1.5"/>
-  <line x1="16" y1="3.5" x2="16" y2="9" stroke="rgba(14,107,196,0.55)" stroke-width="1.5" stroke-linecap="round"/>
-  <circle cx="16" cy="3.5" r="2.4" fill="#0e6bc4"/>
+  <circle cx="16" cy="16" r="12.5" stroke="rgba(24,24,40,0.3)" stroke-width="1.5"/>
+  <circle cx="16" cy="16" r="7" stroke="rgba(24,24,40,0.15)" stroke-width="1.5"/>
+  <line x1="16" y1="3.5" x2="16" y2="9" stroke="rgba(108,92,231,0.55)" stroke-width="1.5" stroke-linecap="round"/>
+  <circle cx="16" cy="3.5" r="2.4" fill="#6c5ce7"/>
 </svg>`;
 
 const html = `<!doctype html><html><head><meta charset="utf-8">
@@ -28,23 +29,24 @@ const html = `<!doctype html><html><head><meta charset="utf-8">
 <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@700&family=Poppins:wght@500;600&display=block" rel="stylesheet">
 <style>
   * { box-sizing: border-box; margin: 0; }
-  body { width: 1200px; height: 630px; overflow: hidden; position: relative; background: #d6eefb; color: #163147;
+  body { width: 1200px; height: 630px; overflow: hidden; position: relative; background: #f7f6fc; color: #181828;
          font-family: Poppins, system-ui, sans-serif; letter-spacing: -0.015em; }
   .aura { position: absolute; inset: 0;
-    background: radial-gradient(64% 70% at 18% -10%, rgba(255,255,255,0.95), transparent 68%),
-                radial-gradient(40% 70% at -6% 60%, rgba(100,188,235,0.6), transparent 72%),
-                radial-gradient(50% 60% at 100% 0%, rgba(186,226,250,0.9), transparent 70%),
-                radial-gradient(60% 60% at 90% 110%, rgba(122,196,240,0.5), transparent 72%),
-                linear-gradient(165deg, #e2f3fd 0%, #d3ecfb 55%, #c6e6f9 100%); }
+    background: radial-gradient(42% 56% at 30% 10%, rgba(186,160,255,0.5), transparent 70%),
+                radial-gradient(34% 50% at 8% 40%, rgba(255,196,168,0.5), transparent 70%),
+                radial-gradient(30% 46% at 86% 16%, rgba(244,182,255,0.4), transparent 70%),
+                radial-gradient(40% 54% at 4% 100%, rgba(120,226,212,0.38), transparent 70%),
+                radial-gradient(40% 54% at 98% 100%, rgba(196,180,255,0.34), transparent 70%),
+                linear-gradient(180deg, #fcfbff 0%, #f7f6fc 60%, #f3f1fa 100%); }
   .text { position: absolute; left: 72px; top: 76px; width: 520px; }
   .brand { display: flex; align-items: center; gap: 16px; }
   .brand span { font-family: Comfortaa, sans-serif; font-weight: 700; font-size: 40px; letter-spacing: -0.04em; }
   h1 { margin-top: 56px; font-family: Comfortaa, sans-serif; font-weight: 700; font-size: 58px; line-height: 1.08; letter-spacing: -0.045em; }
-  p { margin-top: 26px; font-size: 22px; line-height: 1.5; color: rgba(22,49,71,0.78); font-weight: 500; }
-  .pill { display: inline-block; margin-top: 34px; padding: 12px 22px; border-radius: 999px; background: #0e6bc4; color: #fff;
-          font-weight: 600; font-size: 20px; }
+  p { margin-top: 26px; font-size: 22px; line-height: 1.5; color: rgba(24,24,40,0.72); font-weight: 500; }
+  .pill { display: inline-block; margin-top: 34px; padding: 12px 22px; border-radius: 999px; background: #6c5ce7; color: #fff;
+          font-weight: 600; font-size: 20px; box-shadow: 0 12px 28px -14px rgba(108,92,231,0.7); }
   .shot { position: absolute; left: 640px; top: 92px; width: 760px; border-radius: 22px; overflow: hidden;
-          border: 1px solid rgba(255,255,255,0.85); box-shadow: 0 30px 60px -28px rgba(32,88,132,0.5); background: #fff; }
+          border: 1px solid #eae7f4; box-shadow: 0 30px 60px -28px rgba(76,60,160,0.4); background: #fff; }
   .shot img { display: block; width: 100%; }
 </style></head><body>
   <div class="aura"></div>

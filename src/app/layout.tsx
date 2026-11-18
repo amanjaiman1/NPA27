@@ -71,8 +71,9 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  // The Light canvas; ThemeColorSync follows the theme once the app loads.
-  themeColor: "#d6eefb",
+  // The Lavender canvas, the default; ThemeColorSync follows the theme once
+  // the app loads.
+  themeColor: "#f7f6fc",
   width: "device-width",
   initialScale: 1,
   // Pinch-zoom stays available — an installed app shouldn't cost accessibility.
@@ -99,20 +100,21 @@ const themeScript = `
       id = s && s.user && s.user.id ? s.user.id : null;
     }
     var get = function (k, f) { return (id && localStorage.getItem('upsc-chronicle-' + k + ':' + id)) || f; };
-    // Light, Dark or Lavender. Values older versions saved still paint the
+    // Lavender, Light or Dark. Values older versions saved still paint the
     // theme they now mean (lib/theme.ts, legacyThemeMode): Blue Glass is
     // Light, Auto is whichever theme the device shows, and a browser that
     // last ran the five-surface version has only the old key, where Ivory
-    // meant light.
+    // meant light. Nothing saved, or no account, is the default, Lavender.
     var mode = get('theme', '');
-    if (!mode) { var old = get('surface', ''); mode = old && old !== 'white' ? 'dark' : 'light'; }
+    if (!mode) { var old = get('surface', ''); mode = old ? (old === 'white' ? 'light' : 'dark') : 'lavender'; }
     if (mode === 'system') mode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-    if (mode !== 'dark' && mode !== 'lavender') mode = 'light';
-    d.setAttribute('data-surface', mode === 'dark' ? 'black' : mode === 'lavender' ? 'lavender' : 'white');
+    if (mode === 'blue') mode = 'light';
+    if (mode !== 'dark' && mode !== 'light') mode = 'lavender';
+    d.setAttribute('data-surface', mode === 'dark' ? 'black' : mode === 'light' ? 'white' : 'lavender');
     d.setAttribute('data-theme-mode', mode);
     if (get('transparency', '') === 'reduced') d.setAttribute('data-transparency', 'reduced');
   } catch (e) {
-    d.setAttribute('data-surface','white');
+    d.setAttribute('data-surface','lavender');
   }
 })();
 `;
@@ -132,7 +134,7 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" data-surface="white" suppressHydrationWarning>
+    <html lang="en" data-surface="lavender" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
         <script dangerouslySetInnerHTML={{ __html: installCaptureScript }} />

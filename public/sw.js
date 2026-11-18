@@ -12,9 +12,9 @@
  * Bump CACHE_VERSION to retire every previous cache on the next activation.
  */
 
-// v10 — a third theme, Lavender; the precached offline page knows it.
-// (v9: the redesign, with Light and Dark.)
-const CACHE_VERSION = "v10";
+// v11 — Lavender is the default; the precached offline page opens in it.
+// (v10: a third theme, Lavender. v9: the redesign, with Light and Dark.)
+const CACHE_VERSION = "v11";
 const SHELL_CACHE = `chronicle-shell-${CACHE_VERSION}`;
 const PAGE_CACHE = `chronicle-pages-${CACHE_VERSION}`;
 const ASSET_CACHE = `chronicle-assets-${CACHE_VERSION}`;

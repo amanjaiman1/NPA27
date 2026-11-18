@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="en" data-surface="white">
+<html lang="en" data-surface="lavender">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#d6eefb" />
+    <meta name="theme-color" content="#f7f6fc" />
     <title>Offline · DoOrDie</title>
     <link rel="icon" href="/icons/icon-192.png" type="image/png" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
@@ -13,10 +13,11 @@
       Deliberately a standalone document: no app JavaScript, no build chunks,
       no auth or sleep gate. It has to render when nothing else can, so the
       design tokens below are a hand-copy of the app's three themes (Light,
-      Dark and Lavender in src/app/globals.css).
+      Dark and Lavender in src/app/globals.css). Lavender is the default.
     -->
     <style>
-      :root {
+      :root,
+      [data-surface="white"] {
         --ink: 214 238 251;
         --paper: 22 49 71;
         --accent: 14 107 196;
@@ -233,18 +234,19 @@
         var mode = localStorage.getItem("upsc-chronicle-theme:" + id) || "";
         if (!mode) {
           var old = localStorage.getItem("upsc-chronicle-surface:" + id) || "";
-          mode = old && old !== "white" ? "dark" : "light";
+          mode = old ? (old === "white" ? "light" : "dark") : "lavender";
         }
         if (mode === "system") {
           mode = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
         }
+        if (mode === "blue") mode = "light";
         var meta = document.querySelector('meta[name="theme-color"]');
         if (mode === "dark") {
           document.documentElement.setAttribute("data-surface", "black");
           meta.setAttribute("content", "#000000");
-        } else if (mode === "lavender") {
-          document.documentElement.setAttribute("data-surface", "lavender");
-          meta.setAttribute("content", "#f7f6fc");
+        } else if (mode === "light") {
+          document.documentElement.setAttribute("data-surface", "white");
+          meta.setAttribute("content", "#d6eefb");
         }
       } catch (e) {}
       window.addEventListener("online", function () {

@@ -3,12 +3,12 @@ import type { ThemeMode } from "./types";
 /* ════════════════════════════════════════════════════════════════
    Appearance — three themes.
 
-     • Light (the default): frosted white panes on a soft sky-blue
-       backdrop, navy text, one luminous blue.
+     • Lavender (the default): crisp white panels on a near-white
+       backdrop with pastel glows, and one violet.
+     • Light: frosted white panes on a soft sky-blue backdrop, navy text,
+       one luminous blue.
      • Dark: pure black, charcoal glass cards on a #000 background, with
        white for what's interactive.
-     • Lavender: crisp white panels on a near-white backdrop with pastel
-       glows, and one violet.
 
    The mode is what's saved and synced; the screen shows its surface, the
    `data-surface` attribute on <html> ("white", "black" or "lavender").
@@ -31,7 +31,12 @@ export type { ThemeMode } from "./types";
 /** The surfaces the CSS knows. */
 export type Surface = "white" | "black" | "lavender";
 
-export const DEFAULT_THEME_MODE: ThemeMode = "light";
+/**
+ * What a new account, a signed-out screen and the public site wear. An
+ * account keeps whichever theme it has saved; this only fills in where
+ * nothing was chosen.
+ */
+export const DEFAULT_THEME_MODE: ThemeMode = "lavender";
 
 export interface ThemeModeMeta {
   id: ThemeMode;
@@ -62,7 +67,8 @@ export function systemPrefersDark(): boolean {
 /**
  * The theme a value saved by any version means today. Blue Glass was the
  * look Light now has; Auto becomes whichever theme this device shows; the
- * old five surfaces were one light and four dark ones.
+ * old five surfaces were one light and four dark ones. Nothing saved, or
+ * something unrecognisable, is the default.
  */
 export function legacyThemeMode(saved: unknown, prefersDark = systemPrefersDark()): ThemeMode {
   if (saved === "dark" || saved === "lavender") return saved;

@@ -287,7 +287,7 @@ async function main() {
       const keys = Object.keys(await storageOf(page));
       check(!keys.some((k) => k.includes(ids.A)), `A's data left in the browser after sign-out: ${keys.filter((k) => k.includes(ids.A))}`);
       check(!keys.includes("upsc-chronicle-auth"), "the session was removed");
-      check((await htmlAttr(page, "data-surface")) === "white", "the signed-out screen is light");
+      check((await htmlAttr(page, "data-surface")) === "lavender", "the signed-out screen isn't in the default theme, Lavender");
       check((await htmlAttr(page, "data-transparency")) === null, "the signed-out screen kept A's reduced transparency");
     });
 
@@ -299,7 +299,7 @@ async function main() {
       await page.goto(`${APP}/journal`);
       await page.getByText("Daily Journal").first().waitFor();
       check(!(await page.content()).includes("A-only highlight"), "B can see A's journal");
-      check((await htmlAttr(page, "data-surface")) === "white", "B inherited A's theme");
+      check((await htmlAttr(page, "data-surface")) === "lavender", "B inherited A's theme instead of starting in Lavender");
       check((await htmlAttr(page, "data-transparency")) === null, "B inherited A's reduced transparency");
       await writeJournal(page, "B-only highlight");
       await waitFor("B's entry in the cloud", async () => JSON.stringify((await cloudOf(B.email))?.data ?? "").includes("B-only highlight"));
@@ -843,8 +843,8 @@ async function main() {
 
     await scenario("14. After sign-out nothing private is reachable", async () => {
       await signOut(page);
-      check((await htmlAttr(page, "data-surface")) === "white", "the signed-out screen kept A's dark theme");
-      check((await htmlAttr(page, "data-theme-mode")) === "light", "the signed-out screen isn't in the default theme");
+      check((await htmlAttr(page, "data-surface")) === "lavender", "the signed-out screen kept A's dark theme");
+      check((await htmlAttr(page, "data-theme-mode")) === "lavender", "the signed-out screen isn't in the default theme");
       await page.goto(`${APP}/journal/${today()}`);
       await page.waitForURL(/\/login/);
       check(!(await page.content()).includes("A-only highlight"), "A's journal is still rendered");
@@ -962,7 +962,7 @@ async function main() {
       await signIn(p, B.email, "brandNew2028");
       await passSleepPromptIfShown(p);
       await dashboardGreets(p, "Student");
-      check((await htmlAttr(p, "data-surface")) === "white", "B got A's dark theme");
+      check((await htmlAttr(p, "data-surface")) === "lavender", "B got A's dark theme");
       check((await htmlAttr(p, "data-transparency")) === null, "B got a reduced transparency B never chose");
     });
 

@@ -42,6 +42,9 @@ recessed fill in every theme, not a light or dark one.
 
 Three themes. The choice (`themeMode` on the store: `light`, `dark` or
 `lavender`) syncs with the account, so it follows the person to every device.
+**Lavender is the default**: a new account, the sign-in screens, the public
+site and the offline page start in it, and so does anything that was never
+chosen. An account that already saved Light or Dark keeps it.
 The CSS sees it as `data-surface` on `<html>`: `white` for Light, `black` for
 Dark, `lavender` for Lavender. Each theme sets every token itself, so a
 preview of one drawn inside another (the cards in Appearance) shows its own
@@ -49,9 +52,9 @@ colours.
 
 | Theme | Canvas | Panes | Text | Accent |
 | --- | --- | --- | --- | --- |
-| **Light** (default) | pale sky `rgb(214 238 251)` under a layered sky | white at 60%, a top sheen and a bright rim | navy `#163147` | `#0E6BC4` fills with white text; `#0A58A6` for accent text |
+| **Light** | pale sky `rgb(214 238 251)` under a layered sky | white at 60%, a top sheen and a bright rim | navy `#163147` | `#0E6BC4` fills with white text; `#0A58A6` for accent text |
 | **Dark** | pure black `#000`, with no glow | charcoal glass `rgb(28 28 31)` at 72% (a `#141416` card on black), a fine lit top edge | soft white `#EDEDED` | white fills with black text; white for accent text |
-| **Lavender** | near-white `rgb(247 246 252)` under pastel glows | crisp white at 90%, a lavender-grey edge, soft violet-tinted shadows | ink `#181828` | violet `#6C5CE7` fills with white text; `#5848D6` for accent text |
+| **Lavender** (default) | near-white `rgb(247 246 252)` under pastel glows | crisp white at 90%, a lavender-grey edge, soft violet-tinted shadows | ink `#181828` | violet `#6C5CE7` fills with white text; `#5848D6` for accent text |
 
 **Light** is a soft sky of layered cyan and pale-blue light, brightest at the
 top left, with frosted white panes, soft blue-grey shadows and one luminous
