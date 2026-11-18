@@ -1,0 +1,23 @@
+{
+  "name": "doordie-promo-film",
+  "private": true,
+  "version": "1.0.0",
+  "description": "The DoOrDie promotional films: Remotion compositions, capture scripts and audio.",
+  "scripts": {
+    "studio": "remotion studio src/index.ts",
+    "render:hero": "remotion render src/index.ts Hero exports/.video-hero.mp4 --scale=2",
+    "render:30": "remotion render src/index.ts Promo30 exports/.video-30.mp4",
+    "render:vertical": "remotion render src/index.ts Vertical15 exports/.video-vertical.mp4",
+    "render:thumb": "remotion still src/index.ts Thumbnail exports/doordie-thumbnail.png --scale=2"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.544",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "remotion": "4.0.544"
+  },
+  "devDependencies": {
+    "@types/react": "18.3.12",
+    "typescript": "5.6.3"
+  }
+}

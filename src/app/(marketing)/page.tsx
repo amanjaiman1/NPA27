@@ -17,7 +17,8 @@ import {
 } from "lucide-react";
 import { pageMetadata } from "@/lib/seo/metadata";
 import { PAGES, RESOURCE_PAGES } from "@/lib/seo/pages";
-import { softwareApplication } from "@/lib/seo/schema";
+import { filmVideo, softwareApplication } from "@/lib/seo/schema";
+import { HomeFilm } from "@/components/marketing/home-film";
 import { JsonLd } from "@/components/seo/json-ld";
 import {
   Band,
@@ -52,6 +53,8 @@ export const metadata = pageMetadata(PAGES.home);
  * 2. Someone already signed in on this browser came for their dashboard, not
  *    the brochure.
  */
+const FILM_SCHEMA = filmVideo();
+
 const HOME_REDIRECTS = `try{var h=location.hash;if(/(^|[#&])(access_token|error_description|error_code)=/.test(h)){location.replace((/(^|[#&])type=recovery(&|$)/.test(h)?'/reset-password':'/auth/callback')+h)}else{var s=JSON.parse(localStorage.getItem('upsc-chronicle-auth')||'null');if(s&&s.user&&s.user.id)location.replace('/dashboard')}}catch(e){}`;
 
 const FEATURE_LIST = [
@@ -178,6 +181,16 @@ export default function HomePage() {
     <>
       <script dangerouslySetInnerHTML={{ __html: HOME_REDIRECTS }} />
       <JsonLd data={softwareApplication(FEATURE_LIST)} />
+
+      {/* ── The film: the first thing a visitor sees ─────────── */}
+      <JsonLd data={FILM_SCHEMA} />
+      <HomeFilm
+        cta={
+          <ButtonLink href="/signup" arrow size="md" track="cta_film" className="h-9 shrink-0 px-3.5 text-xs sm:h-12 sm:px-6 sm:text-[0.95rem]">
+            Start tracking free
+          </ButtonLink>
+        }
+      />
 
       {/* ── Hero ─────────────────────────────────────────────── */}
       <section aria-labelledby="hero-title" className="relative overflow-hidden">
