@@ -74,9 +74,21 @@ const FAQS: FaqItem[] = [
     q: "Is there a ready-made study plan?",
     a: (
       <>
-        There is an optional CSE 2027 roadmap: a week-by-week plan running from June 2026 that takes GS Paper II, then
-        III, I and IV, with Sociology as the optional alongside. It is a fixed plan rather than one built around you,
-        so it is off by default. Switch it on in Settings if it suits you.
+        No. The Roadmap starts empty and holds only the plans you write: a yearly plan for your strategy, monthly plans
+        for focus and milestones, and weekly plans with the activities you tick off. Use one level or all three. If you
+        want a method to follow, the guide on making a UPSC study plan walks through it, and the plan you write from it
+        stays yours to change.
+      </>
+    ),
+  },
+  {
+    q: "How is roadmap progress different from goal progress?",
+    a: (
+      <>
+        Roadmap progress is how much of the work you planned is done: completed activities out of all the activities
+        in a plan. Goal progress is how close you are to an outcome, measured from your journal, syllabus, revision or
+        mocks. An activity can serve a goal, and the goal is shown alongside it, but finishing the activity never
+        changes the goal&apos;s number. Each keeps its own.
       </>
     ),
   },
@@ -155,7 +167,59 @@ export default function StudyPlannerPage() {
         </Container>
       </Band>
 
-      <Band tone="raised" labelledBy="day-title">
+      <Band tone="raised" labelledBy="roadmap">
+        <Container>
+          <div className="grid items-start gap-10 lg:grid-cols-2">
+            <div>
+              <SectionHeading
+                id="roadmap"
+                eyebrow="Roadmap"
+                title="Your plan, year by year, month by month and week by week"
+                intro="The Roadmap starts empty. Every plan in it is one you write, at the level of detail you want."
+              />
+              <CheckList
+                className="mt-6"
+                items={[
+                  "Use one level or all three: a week can sit inside a month, and a month inside a year, but none has to.",
+                  "Weekly plans hold activities with a priority, a target date, a subject and a status you set.",
+                  "Progress is the share of planned activities you finished. Nothing is estimated or filled in for you.",
+                  "Link an activity to a goal or a journal day. Both stay exactly as they were, and links can be removed.",
+                  "Carry unfinished work into next week, duplicate a plan, and archive old years while keeping them readable.",
+                ]}
+              />
+            </div>
+            <Prose>
+              <TableWrap>
+                <table>
+                  <caption className="sr-only">The three planning levels</caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">Level</th>
+                      <th scope="col">What goes in it</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>Yearly plan</td>
+                      <td>The year&apos;s focus, objectives and milestones, and the goals it serves</td>
+                    </tr>
+                    <tr>
+                      <td>Monthly plan</td>
+                      <td>The month&apos;s focus, milestones and deadlines, and the weeks it breaks into</td>
+                    </tr>
+                    <tr>
+                      <td>Weekly plan</td>
+                      <td>The activities you will do, ticked off as you go, and a short review at the end</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </TableWrap>
+            </Prose>
+          </div>
+        </Container>
+      </Band>
+
+      <Band labelledBy="day-title">
         <Container>
           <div className="grid items-start gap-10 lg:grid-cols-[1fr_1.1fr]">
             <div>
@@ -180,7 +244,7 @@ export default function StudyPlannerPage() {
         </Container>
       </Band>
 
-      <Band labelledBy="use-title">
+      <Band tone="raised" labelledBy="use-title">
         <Container>
           <SectionHeading
             id="use-title"
@@ -193,6 +257,7 @@ export default function StudyPlannerPage() {
               steps={[
                 { title: "Set a daily hours target", body: "One you can hit on an ordinary day, not your best day. It lives in your profile." },
                 { title: "Pick two or three weekly goals", body: "Hours, mocks, revision passes or a subject's mastery. Link each to what measures it." },
+                { title: "Plan the week", body: "List the week's activities in a weekly plan, inside the month if you plan by month too." },
                 { title: "Check the suggested day", body: "Each morning, see what the coach would put first. Take it, reorder it or ignore it." },
                 { title: "Log the day", body: "Your journal entry is what moves the goals and shapes tomorrow's suggestion." },
                 { title: "Review the week", body: "The weekly review shows what happened. Write next week's focus and adjust the goals." },
@@ -202,7 +267,7 @@ export default function StudyPlannerPage() {
         </Container>
       </Band>
 
-      <Band tone="raised" labelledBy="why-title">
+      <Band labelledBy="why-title">
         <Container className="max-w-3xl">
           <SectionHeading id="why-title" eyebrow="Why it matters" title="Why plans built from data hold up better" />
           <Prose className="mt-6">
@@ -229,14 +294,14 @@ export default function StudyPlannerPage() {
               items={[
                 "There is no drag-and-drop timetable or calendar, and nothing syncs to Google Calendar.",
                 "The suggested day is not saved as a schedule. It is recalculated from your data each time.",
-                "The built-in roadmap is one fixed example plan for CSE 2027, not a plan generated for you.",
+                "The Roadmap holds the plans you write. It doesn't generate a plan for you, and it moves unfinished work to next week only when you ask.",
               ]}
             />
           </div>
         </Container>
       </Band>
 
-      <Band labelledBy="faq-title">
+      <Band tone="raised" labelledBy="faq-title">
         <Container className="max-w-3xl">
           <SectionHeading id="faq-title" eyebrow="Questions" title="Study planner questions" />
           <div className="mt-8">

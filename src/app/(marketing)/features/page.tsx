@@ -17,6 +17,7 @@ import {
   Palette,
   Quote,
   Repeat,
+  Route,
   Sparkles,
   Target,
   TriangleAlert,
@@ -137,6 +138,14 @@ const GROUPS: { title: string; intro: string; features: Feature[] }[] = [
         body: "Daily to long-term goals that measure themselves from your hours, syllabus, revision, mocks or books, or from milestones you tick off. Each has a pace, a history, notes, and links to journal days and files, with reminders when one slips.",
         href: PAGES.planner.path,
         link: "Goals and planning",
+      },
+      {
+        id: "roadmap",
+        icon: Route,
+        title: "Your own roadmap",
+        body: "Yearly, monthly and weekly plans you write yourself, used alone or one inside another. Weeks hold activities with priorities and dates, and progress counts only the ones you finish. Plans can point at a goal or a journal day without changing either.",
+        href: `${PAGES.planner.path}#roadmap`,
+        link: "How the roadmap works",
       },
       {
         id: "reviews",
