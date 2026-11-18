@@ -567,7 +567,7 @@ async function main() {
       check((await htmlAttr(phonePage, "data-surface")) === "black", "the phone lost the dark theme");
     });
 
-    await scenario("11. Both themes are frosted glass, and a theme an older version saved opens as the one it means now", async () => {
+    await scenario("11. Three themes follow the account: Light and Dark frosted, Lavender crisp; an older device's Blue Glass opens as Light", async () => {
       // Light and Dark alike: see-through cards and a frosted bar.
       for (const [radio, surface] of [[/^Light/, "white"], [/^Dark/, "black"]]) {
         await page.getByRole("radio", { name: radio }).click();
@@ -579,6 +579,19 @@ async function main() {
         const bar = await page.evaluate(() => getComputedStyle(document.querySelector(".chrome-glass")).backdropFilter);
         check(/blur/.test(bar), `the bars aren't frosted on ${surface} (${bar})`);
       }
+
+      // Lavender: crisp white panels rather than see-through ones, synced,
+      // painted before the app loads, and on A's other device.
+      await page.getByRole("radio", { name: /^Lavender/ }).click();
+      check((await htmlAttr(page, "data-surface")) === "lavender", "Lavender wasn't applied");
+      await waitFor("crisp panels on Lavender", async () => (await cardAlpha(page)) >= 0.85, 5000);
+      await waitFor("Lavender in A's cloud copy", async () => (await cloudOf(A.email))?.data?.themeMode === "lavender");
+      await page.reload();
+      check((await page.evaluate(() => window.__firstPaintSurface)) === "lavender", "Lavender isn't painted before the app loads");
+      await phonePage.reload();
+      await waitFor("Lavender on the phone", async () => (await htmlAttr(phonePage, "data-surface")) === "lavender");
+
+      await page.getByRole("radio", { name: /^Dark/ }).click();
       await waitFor("Dark in A's cloud copy", async () => (await cloudOf(A.email))?.data?.themeMode === "dark");
 
       // A device still on an older version saves Blue Glass, with a colour

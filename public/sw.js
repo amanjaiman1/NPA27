@@ -12,9 +12,9 @@
  * Bump CACHE_VERSION to retire every previous cache on the next activation.
  */
 
-// v9 — the redesign: two themes, Light and Dark. The precached offline page
-// and manifest carry the new colours.
-const CACHE_VERSION = "v9";
+// v10 — a third theme, Lavender; the precached offline page knows it.
+// (v9: the redesign, with Light and Dark.)
+const CACHE_VERSION = "v10";
 const SHELL_CACHE = `chronicle-shell-${CACHE_VERSION}`;
 const PAGE_CACHE = `chronicle-pages-${CACHE_VERSION}`;
 const ASSET_CACHE = `chronicle-assets-${CACHE_VERSION}`;

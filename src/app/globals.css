@@ -5,13 +5,14 @@
 /* ═══════════════════════════════════════════════════════════════════
    DoOrDie — design tokens.
 
-   Two themes, both frosted glass, set by `data-surface` on <html>
-   (lib/theme.ts):
+   Three themes, set by `data-surface` on <html> (lib/theme.ts):
      • white → Light, the default: frosted white panes on a soft sky-blue
        backdrop, navy text, one luminous blue
      • black → Dark: black glass, charcoal panes on a near-black backdrop,
        with white for what's interactive
-   Reduce transparency (`data-transparency="reduced"`) makes either theme
+     • lavender → Lavender: crisp white panels on a near-white backdrop with
+       pastel glows, and one violet
+   Reduce transparency (`data-transparency="reduced"`) makes any theme
    nearly solid; see the end of this file.
 
    Token model:
@@ -21,7 +22,7 @@
      --paper       foreground / text
      --line        hairline borders
      --accent      fills, active states, data highlights: blue on Light,
-                   white on Dark
+                   white on Dark, violet on Lavender
      --accent-ink  accent-coloured text and icons
      --accent-glow how strongly accent buttons glow beneath
      --bloom-*     the six-colour data palette used by charts
@@ -32,8 +33,8 @@
      --stage-*         the large panel the page sits in (desktop)
      --glass-*         panes, tiles inside them, overlays and fields
      --nav-*           the navigation's hover and active states
-   A theme sets all of them, so a preview drawn in one theme inside the
-   other (Appearance) shows its own colours.
+   A theme sets all of them, so a preview drawn in one theme inside another
+   (Appearance) shows its own colours.
    ═══════════════════════════════════════════════════════════════════ */
 
 /* ── Light ────────────────────────────────────────────────────────────
@@ -125,6 +126,7 @@
      most solid, with the deepest shadow. */
   --glass-tint: 255 255 255;
   --glass-inner-tint: 255 255 255;
+  --glass-edge: 255 255 255;
   --glass-panel-a: 0.6;
   --glass-inner-a: 0.5;
   --glass-chrome-a: 0.42;
@@ -222,6 +224,7 @@
   --nav-active-ring: rgb(255 255 255 / 0.12);
   --glass-tint: 30 30 32;
   --glass-inner-tint: 58 58 62;
+  --glass-edge: 255 255 255;
   --glass-panel-a: 0.7;
   --glass-inner-a: 0.5;
   --glass-chrome-a: 0.72;
@@ -244,6 +247,105 @@
   --glass-chrome-filter: blur(24px) saturate(1.2);
   --glass-overlay-filter: blur(28px) saturate(1.2);
   color-scheme: dark;
+}
+
+/* ── Lavender ─────────────────────────────────────────────────────────
+   Bright and airy: crisp white panels with a fine lavender-grey edge and
+   soft violet-tinted shadows, light grey tiles inside them, on a near-white
+   backdrop lit by pastel glows (lavender, peach, pink and mint). One violet
+   for what's interactive: buttons are violet with white text, and the
+   selected item is a light grey pill.
+
+   Measured for small text, at the brightest and the deepest points of the
+   glows:
+     text #181828          about 17:1 on a panel
+     accent text #5848D6   about 5.3–6.3:1, on a panel or the accent's tints
+     accent fill #6C5CE7   white text on it about 4.9:1
+     status colours        about 4.6:1 or more, on a panel or a tile
+     quiet text            raised to a floor that clears 4.5:1 (below)
+   ─────────────────────────────────────────────────────────────────── */
+
+[data-surface="lavender"] {
+  --ink: 247 246 252;
+  --card: 255 255 255;
+  --card-2: 246 245 251;
+  --paper: 24 24 40;
+  --line: 232 229 242;
+  /* Shadows are a soft violet-grey: depth without weight. */
+  --shadow: 76 60 160;
+  --scrim: 20 16 40;
+  --wash: 1;
+  --aura-1: 167 139 250;
+  --aura-2: 255 170 140;
+  --accent: 108 92 231;
+  --accent-fg: 255 255 255;
+  --accent-ink: 88 72 214;
+  --accent-glow: 0.45;
+  --selection: 108 92 231;
+  --positive: 21 128 61;
+  --warning: 180 83 9;
+  --danger: 200 30 30;
+  --info: 37 99 235;
+  --vivid-up: 34 197 94;
+  --vivid-down: 239 68 68;
+  /* Charts: the violet first, then peach, teal, pink, amber and blue. */
+  --bloom-1: 108 92 231;
+  --bloom-2: 251 146 60;
+  --bloom-3: 20 184 166;
+  --bloom-4: 236 72 153;
+  --bloom-5: 245 158 11;
+  --bloom-6: 59 130 246;
+  --quiet: 0.65;
+  --quiet-canvas: 0.66;
+  --gridline: 0.08;
+  --backdrop:
+    radial-gradient(42% 46% at 50% 16%, rgb(186 160 255 / 0.5), transparent 70%),
+    radial-gradient(34% 40% at 22% 30%, rgb(255 196 168 / 0.5), transparent 70%),
+    radial-gradient(30% 36% at 80% 24%, rgb(244 182 255 / 0.4), transparent 70%),
+    radial-gradient(40% 44% at 6% 94%, rgb(120 226 212 / 0.38), transparent 70%),
+    radial-gradient(40% 44% at 96% 96%, rgb(196 180 255 / 0.34), transparent 70%),
+    linear-gradient(180deg, rgb(252 251 255) 0%, rgb(247 246 252) 60%, rgb(243 241 250) 100%);
+  --shell-bg: rgb(255 255 255 / 0.78);
+  --shell-border: rgb(234 231 244);
+  --shell-shadow: 0 1px 2px rgb(76 60 160 / 0.04), 0 12px 32px -20px rgb(76 60 160 / 0.2);
+  --shell-filter: blur(20px) saturate(1.4);
+  --stage-bg: rgb(255 255 255 / 0.42);
+  --stage-border: rgb(234 231 244 / 0.85);
+  --stage-shadow: 0 1px 2px rgb(76 60 160 / 0.03), 0 24px 60px -40px rgb(76 60 160 / 0.25);
+  --stage-image: none;
+  --drawer-bg: rgb(255 255 255 / 0.96);
+  --drawer-border: rgb(234 231 244);
+  --nav-hover: rgb(24 24 40 / 0.04);
+  --nav-active: rgb(243 241 250);
+  --nav-active-fg: rgb(var(--paper));
+  --nav-active-ring: rgb(232 229 242);
+  /* Panels are crisp white rather than see-through: no sheen or glint, a
+     visible lavender-grey edge and a soft drop. */
+  --glass-tint: 255 255 255;
+  --glass-inner-tint: 246 245 251;
+  --glass-edge: 234 231 244;
+  --glass-panel-a: 0.9;
+  --glass-inner-a: 0.9;
+  --glass-chrome-a: 0.82;
+  --glass-overlay-a: 0.97;
+  --glass-field: 255 255 255;
+  --glass-field-a: 0.95;
+  --glass-field-focus-a: 1;
+  --glass-field-border: var(--paper);
+  --glass-field-border-a: 0.12;
+  --glass-edge-a: 1;
+  --glass-rim-a: 0.9;
+  --glass-outline: var(--shadow);
+  --glass-outline-a: 0.03;
+  --glass-sheen: none;
+  --glass-glint: none;
+  --glass-gloss: linear-gradient(180deg, rgb(255 255 255 / 0.18), rgb(255 255 255 / 0) 60%);
+  --glass-inner-image: none;
+  --glass-drop: 0 1px 2px rgb(76 60 160 / 0.04), 0 10px 28px -16px rgb(76 60 160 / 0.16);
+  --glass-drop-lift: 0 2px 6px rgb(76 60 160 / 0.06), 0 22px 48px -22px rgb(76 60 160 / 0.26);
+  --glass-chrome-filter: blur(20px) saturate(1.4);
+  --glass-overlay-filter: blur(24px) saturate(1.4);
+  color-scheme: light;
 }
 
 /* Phones: less blur, which is most of the cost, for the same look. */
@@ -276,7 +378,7 @@
   ) {
   color: rgb(var(--paper) / var(--quiet));
 }
-:where([data-surface="white"]) :is(.text-paper\/60, .text-paper\/65) {
+:where([data-surface="white"], [data-surface="lavender"]) :is(.text-paper\/60, .text-paper\/65) {
   color: rgb(var(--paper) / var(--quiet));
 }
 .text-accent {
@@ -284,7 +386,7 @@
 }
 /* Straight on the stage, on no pane of its own and in none, the same text
    needs a little more on Light. Still the weight of one utility. */
-:where([data-surface="white"] main)
+:where([data-surface="white"] main, [data-surface="lavender"] main)
   :is(
     .text-paper\/25,
     .text-paper\/30,
@@ -626,7 +728,8 @@ samp {
      The dots are very close to neutral, so an invert shifts no hue; recolouring
      the Lottie's fills at runtime would be the alternative, and this is one line
      instead of a JSON walk. */
-  [data-surface="white"] .lottie-neutral {
+  [data-surface="white"] .lottie-neutral,
+  [data-surface="lavender"] .lottie-neutral {
     filter: invert(1);
   }
 
@@ -892,7 +995,7 @@ samp {
 /* The pane's own edge, only where the border is the plain hairline, so an
    accent, warning or selected border keeps its colour. */
 :is(.bg-card, .bg-card\/60, .bg-card\/80, .bg-card\/85, .bg-card\/95):where(.border-line) {
-  border-color: rgb(255 255 255 / var(--glass-edge-a));
+  border-color: rgb(var(--glass-edge) / var(--glass-edge-a));
 }
 /* Interactive cards brighten a little under the pointer. */
 .bg-card:where(.hover\:shadow-lift):hover {
@@ -908,7 +1011,7 @@ samp {
 }
 :is(.inset-panel, .bg-card-2) {
   background-color: rgb(var(--glass-inner-tint) / var(--glass-inner-a));
-  border-color: rgb(255 255 255 / calc(var(--glass-edge-a) * 0.8));
+  border-color: rgb(var(--glass-edge) / calc(var(--glass-edge-a) * 0.8));
 }
 
 /* Depth comes from soft, wide drops. */
@@ -996,11 +1099,15 @@ samp {
     --shell-bg: rgb(22 22 23 / 0.96);
     --drawer-bg: rgb(18 18 19);
   }
+  [data-surface="lavender"] {
+    --shell-bg: rgb(255 255 255 / 0.96);
+    --drawer-bg: rgb(255 255 255);
+  }
 }
 
 /* Reduce transparency, chosen in Appearance or asked for by the device:
    nearly solid surfaces and no blur, in the same theme. Last in the file, so
-   it wins over both themes before it. */
+   it wins over every theme before it. */
 [data-transparency="reduced"] {
   --glass-panel-a: 0.94;
   --glass-inner-a: 0.94;
@@ -1026,6 +1133,12 @@ samp {
   --shell-bg: rgb(22 22 23 / 0.98);
   --stage-bg: rgb(14 14 15 / 0.97);
   --drawer-bg: rgb(18 18 19);
+}
+[data-transparency="reduced"][data-surface="lavender"] {
+  --glass-field-a: 1;
+  --shell-bg: rgb(255 255 255 / 0.98);
+  --stage-bg: rgb(251 250 255 / 0.97);
+  --drawer-bg: rgb(255 255 255);
 }
 /* Behind a dialog or a sheet the page dims instead of blurring. */
 [data-transparency="reduced"]
@@ -1060,6 +1173,12 @@ samp {
     --shell-bg: rgb(22 22 23 / 0.98);
     --stage-bg: rgb(14 14 15 / 0.97);
     --drawer-bg: rgb(18 18 19);
+  }
+  [data-surface="lavender"] {
+    --glass-field-a: 1;
+    --shell-bg: rgb(255 255 255 / 0.98);
+    --stage-bg: rgb(251 250 255 / 0.97);
+    --drawer-bg: rgb(255 255 255);
   }
   :is(.backdrop-blur, .backdrop-blur-sm, .backdrop-blur-md, .backdrop-blur-xl, .sm\:backdrop-blur-xl, .backdrop-blur-\[2px\]) {
     -webkit-backdrop-filter: none;
