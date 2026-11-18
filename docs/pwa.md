@@ -75,9 +75,9 @@ next activation (do this if a caching rule changes, not for ordinary releases).
 ## Icons
 
 `scripts/generate-icons.py` renders the Chronicle mark (the same ring-and-node
-as `components/layout/logo.tsx`) in ivory over a vivid crimson plate — matching
-the app's default Ivory + Crimson appearance — using only the Python standard
-library:
+as `components/layout/logo.tsx`) in ivory over a vivid crimson plate, using only
+the Python standard library. The icons kept the crimson brand plate when the app
+moved to its blue Light and Dark themes:
 
 ```bash
 python3 scripts/generate-icons.py
@@ -85,8 +85,8 @@ python3 scripts/generate-icons.py
 
 It writes `icon-192`, `icon-512`, `icon-maskable-{192,512}` (mark inside the
 80% safe zone) and `apple-touch-icon.png` into `public/icons/`. Re-run it after
-changing the mark or the accent colour. `offline.html` hand-copies the Ivory
-surface tokens (it can't import the app's CSS), so refresh it too if those move
+changing the mark or the accent colour. `offline.html` hand-copies the Light
+and Dark tokens (it can't import the app's CSS), so refresh it too if those move
 — see `docs/design-system.md`.
 
 ## Notes and caveats
