@@ -5,13 +5,14 @@
 /* ═══════════════════════════════════════════════════════════════════
    DoOrDie — design tokens.
 
-   Two themes, both frosted glass, set by `data-surface` on <html>
-   (lib/theme.ts):
+   Three themes, set by `data-surface` on <html> (lib/theme.ts):
      • white → Light, the default: frosted white panes on a soft sky-blue
        backdrop, navy text, one luminous blue
-     • black → Dark: black glass, charcoal panes on a near-black backdrop,
+     • black → Dark: pure black, charcoal glass cards on a #000 background,
        with white for what's interactive
-   Reduce transparency (`data-transparency="reduced"`) makes either theme
+     • lavender → Lavender: crisp white panels on a near-white backdrop with
+       pastel glows, and one violet
+   Reduce transparency (`data-transparency="reduced"`) makes any theme
    nearly solid; see the end of this file.
 
    Token model:
@@ -21,7 +22,7 @@
      --paper       foreground / text
      --line        hairline borders
      --accent      fills, active states, data highlights: blue on Light,
-                   white on Dark
+                   white on Dark, violet on Lavender
      --accent-ink  accent-coloured text and icons
      --accent-glow how strongly accent buttons glow beneath
      --bloom-*     the six-colour data palette used by charts
@@ -32,8 +33,8 @@
      --stage-*         the large panel the page sits in (desktop)
      --glass-*         panes, tiles inside them, overlays and fields
      --nav-*           the navigation's hover and active states
-   A theme sets all of them, so a preview drawn in one theme inside the
-   other (Appearance) shows its own colours.
+   A theme sets all of them, so a preview drawn in one theme inside another
+   (Appearance) shows its own colours.
    ═══════════════════════════════════════════════════════════════════ */
 
 /* ── Light ────────────────────────────────────────────────────────────
@@ -125,6 +126,7 @@
      most solid, with the deepest shadow. */
   --glass-tint: 255 255 255;
   --glass-inner-tint: 255 255 255;
+  --glass-edge: 255 255 255;
   --glass-panel-a: 0.6;
   --glass-inner-a: 0.5;
   --glass-chrome-a: 0.42;
@@ -150,30 +152,32 @@
 }
 
 /* ── Dark ─────────────────────────────────────────────────────────────
-   Black glass. A near-black backdrop with a soft spotlight from above,
-   charcoal panes with a fine lit top edge, tiles inside them a step
-   lighter, and white for what's interactive: primary buttons are white
-   with black text, selected items a lighter grey. No blue anywhere in the
-   surfaces; colour is kept for data and status.
+   Pure black. The background, the page's stage and the navigation are
+   #000, set apart by fine hairlines; cards are charcoal glass with a fine
+   lit top edge, tiles inside them a step lighter, and white is for what's
+   interactive: primary buttons are white with black text, selected items a
+   lighter grey. No blue anywhere in the surfaces; colour is kept for data
+   and status.
 
-   Measured for small text, at the darkest and brightest points:
-     text #EDEDED          about 13.7–15.4:1 on a pane
-     white on a pane       about 16:1; black text on a white button 18:1
-     status colours        about 4.9:1 or more, on a pane or a tile
+   Measured for small text:
+     text #EDEDED          about 15:1 on a card, 18:1 on the background
+     white on a card       about 17:1; black text on a white button 18:1
+     status colours        about 4.9:1 or more, on a card or a tile
      quiet text            raised to a floor that clears 4.5:1 (below)
    ─────────────────────────────────────────────────────────────────── */
 
 [data-surface="black"] {
-  --ink: 8 8 9;
-  --card: 26 26 28;
-  --card-2: 36 36 39;
+  --ink: 0 0 0;
+  --card: 20 20 22;
+  --card-2: 32 32 35;
   --paper: 237 237 237;
-  --line: 46 46 50;
+  --line: 40 40 44;
   --shadow: 0 0 0;
   --scrim: 0 0 0;
   --wash: 0.8;
-  --aura-1: 150 150 156;
-  --aura-2: 110 110 118;
+  /* No glow anywhere on black. */
+  --aura-1: 0 0 0;
+  --aura-2: 0 0 0;
   /* White is the accent: a white fill takes black text, and accent text
      and icons are plain white, a step brighter than body text. */
   --accent: 245 245 245;
@@ -199,33 +203,32 @@
   --quiet: 0.56;
   --quiet-canvas: 0.56;
   --gridline: 0.1;
-  --backdrop:
-    radial-gradient(60% 46% at 50% -8%, rgb(255 255 255 / 0.11), transparent 70%),
-    radial-gradient(36% 30% at 50% -4%, rgb(255 255 255 / 0.05), transparent 64%),
-    radial-gradient(50% 60% at 0% 100%, rgb(255 255 255 / 0.025), transparent 70%),
-    radial-gradient(50% 60% at 100% 100%, rgb(255 255 255 / 0.02), transparent 70%),
-    linear-gradient(180deg, rgb(13 13 14) 0%, rgb(9 9 10) 55%, rgb(5 5 6) 100%);
-  --shell-bg: rgb(22 22 23 / 0.72);
-  --shell-border: rgb(255 255 255 / 0.08);
-  --shell-shadow: inset 0 1px 0 rgb(255 255 255 / 0.07), 0 0 0 1px rgb(0 0 0 / 0.3), 0 22px 48px -26px rgb(0 0 0 / 0.8);
+  --backdrop: none;
+  /* The navigation is black glass: black over black, but what scrolls under
+     the top bar is blurred and dimmed. */
+  --shell-bg: rgb(0 0 0 / 0.7);
+  --shell-border: rgb(255 255 255 / 0.09);
+  --shell-shadow: inset 0 1px 0 rgb(255 255 255 / 0.05);
   --shell-filter: blur(24px) saturate(1.2);
-  --stage-bg: rgb(16 16 17 / 0.62);
-  --stage-border: rgb(255 255 255 / 0.07);
-  --stage-shadow: inset 0 1px 0 rgb(255 255 255 / 0.09), 0 24px 60px -38px rgb(0 0 0 / 0.7);
-  /* The stage's glossy top edge, as on a pane of dark glass. */
-  --stage-image: linear-gradient(180deg, rgb(255 255 255 / 0.035), rgb(255 255 255 / 0) 220px);
-  --drawer-bg: rgb(18 18 19 / 0.96);
+  --stage-bg: rgb(0 0 0);
+  --stage-border: rgb(255 255 255 / 0.08);
+  --stage-shadow: none;
+  --stage-image: none;
+  --drawer-bg: rgb(10 10 11 / 0.97);
   --drawer-border: rgb(255 255 255 / 0.08);
   --nav-hover: rgb(255 255 255 / 0.06);
   --nav-active: rgb(255 255 255 / 0.1);
   --nav-active-fg: rgb(var(--paper));
   --nav-active-ring: rgb(255 255 255 / 0.12);
-  --glass-tint: 30 30 32;
-  --glass-inner-tint: 58 58 62;
-  --glass-panel-a: 0.7;
+  /* Over black only the tint shows, so this is a #141416 card, still glass
+     over whatever is behind it. */
+  --glass-tint: 28 28 31;
+  --glass-inner-tint: 52 52 56;
+  --glass-edge: 255 255 255;
+  --glass-panel-a: 0.72;
   --glass-inner-a: 0.5;
   --glass-chrome-a: 0.72;
-  --glass-overlay-a: 0.94;
+  --glass-overlay-a: 0.96;
   --glass-field: 255 255 255;
   --glass-field-a: 0.05;
   --glass-field-focus-a: 0.08;
@@ -235,8 +238,8 @@
   --glass-rim-a: 0.1;
   --glass-outline: 0 0 0;
   --glass-outline-a: 0.35;
-  --glass-sheen: linear-gradient(180deg, rgb(255 255 255 / 0.055) 0%, rgb(255 255 255 / 0.015) 38%, rgb(255 255 255 / 0) 66%);
-  --glass-glint: radial-gradient(90% 60% at 0% 0%, rgb(255 255 255 / 0.04), rgb(255 255 255 / 0) 60%);
+  --glass-sheen: linear-gradient(180deg, rgb(255 255 255 / 0.04) 0%, rgb(255 255 255 / 0.01) 38%, rgb(255 255 255 / 0) 66%);
+  --glass-glint: none;
   --glass-gloss: linear-gradient(180deg, rgb(255 255 255 / 0.28), rgb(255 255 255 / 0) 58%);
   --glass-inner-image: none;
   --glass-drop: 0 1px 2px rgb(0 0 0 / 0.4), 0 16px 36px -20px rgb(0 0 0 / 0.75);
@@ -246,12 +249,191 @@
   color-scheme: dark;
 }
 
+/* ── Lavender ─────────────────────────────────────────────────────────
+   Bright and airy: crisp white panels with a fine lavender-grey edge and
+   soft violet-tinted shadows, light grey tiles inside them, on a near-white
+   backdrop lit by pastel glows (lavender, peach, pink and mint). One violet
+   for what's interactive: buttons are violet with white text, and the
+   selected item is a light grey pill.
+
+   Measured for small text, at the brightest and the deepest points of the
+   glows:
+     text #181828          about 17:1 on a panel
+     accent text #5848D6   about 5.3–6.3:1, on a panel or the accent's tints
+     accent fill #6C5CE7   white text on it about 4.9:1
+     status colours        about 4.6:1 or more, on a panel or a tile
+     quiet text            raised to a floor that clears 4.5:1 (below)
+   ─────────────────────────────────────────────────────────────────── */
+
+[data-surface="lavender"] {
+  --ink: 247 246 252;
+  --card: 255 255 255;
+  --card-2: 246 245 251;
+  --paper: 24 24 40;
+  --line: 232 229 242;
+  /* Shadows are a soft violet-grey: depth without weight. */
+  --shadow: 76 60 160;
+  --scrim: 20 16 40;
+  --wash: 1;
+  --aura-1: 167 139 250;
+  --aura-2: 255 170 140;
+  --accent: 108 92 231;
+  --accent-fg: 255 255 255;
+  --accent-ink: 88 72 214;
+  --accent-glow: 0.45;
+  --selection: 108 92 231;
+  --positive: 21 128 61;
+  --warning: 180 83 9;
+  --danger: 200 30 30;
+  --info: 37 99 235;
+  --vivid-up: 34 197 94;
+  --vivid-down: 239 68 68;
+  /* Charts: the violet first, then peach, teal, pink, amber and blue. */
+  --bloom-1: 108 92 231;
+  --bloom-2: 251 146 60;
+  --bloom-3: 20 184 166;
+  --bloom-4: 236 72 153;
+  --bloom-5: 245 158 11;
+  --bloom-6: 59 130 246;
+  --quiet: 0.65;
+  --quiet-canvas: 0.66;
+  --gridline: 0.08;
+  --backdrop:
+    radial-gradient(42% 46% at 50% 16%, rgb(186 160 255 / 0.5), transparent 70%),
+    radial-gradient(34% 40% at 22% 30%, rgb(255 196 168 / 0.5), transparent 70%),
+    radial-gradient(30% 36% at 80% 24%, rgb(244 182 255 / 0.4), transparent 70%),
+    radial-gradient(40% 44% at 6% 94%, rgb(120 226 212 / 0.38), transparent 70%),
+    radial-gradient(40% 44% at 96% 96%, rgb(196 180 255 / 0.34), transparent 70%),
+    linear-gradient(180deg, rgb(252 251 255) 0%, rgb(247 246 252) 60%, rgb(243 241 250) 100%);
+  --shell-bg: rgb(255 255 255 / 0.78);
+  --shell-border: rgb(234 231 244);
+  --shell-shadow: 0 1px 2px rgb(76 60 160 / 0.04), 0 12px 32px -20px rgb(76 60 160 / 0.2);
+  --shell-filter: blur(20px) saturate(1.4);
+  --stage-bg: rgb(255 255 255 / 0.42);
+  --stage-border: rgb(234 231 244 / 0.85);
+  --stage-shadow: 0 1px 2px rgb(76 60 160 / 0.03), 0 24px 60px -40px rgb(76 60 160 / 0.25);
+  --stage-image: none;
+  --drawer-bg: rgb(255 255 255 / 0.96);
+  --drawer-border: rgb(234 231 244);
+  --nav-hover: rgb(24 24 40 / 0.04);
+  --nav-active: rgb(243 241 250);
+  --nav-active-fg: rgb(var(--paper));
+  --nav-active-ring: rgb(232 229 242);
+  /* Panels are crisp white rather than see-through: no sheen or glint, a
+     visible lavender-grey edge and a soft drop. */
+  --glass-tint: 255 255 255;
+  --glass-inner-tint: 246 245 251;
+  --glass-edge: 234 231 244;
+  --glass-panel-a: 0.9;
+  --glass-inner-a: 0.9;
+  --glass-chrome-a: 0.82;
+  --glass-overlay-a: 0.97;
+  --glass-field: 255 255 255;
+  --glass-field-a: 0.95;
+  --glass-field-focus-a: 1;
+  --glass-field-border: var(--paper);
+  --glass-field-border-a: 0.12;
+  --glass-edge-a: 1;
+  --glass-rim-a: 0.9;
+  --glass-outline: var(--shadow);
+  --glass-outline-a: 0.03;
+  --glass-sheen: none;
+  --glass-glint: none;
+  --glass-gloss: linear-gradient(180deg, rgb(255 255 255 / 0.18), rgb(255 255 255 / 0) 60%);
+  --glass-inner-image: none;
+  --glass-drop: 0 1px 2px rgb(76 60 160 / 0.04), 0 10px 28px -16px rgb(76 60 160 / 0.16);
+  --glass-drop-lift: 0 2px 6px rgb(76 60 160 / 0.06), 0 22px 48px -22px rgb(76 60 160 / 0.26);
+  --glass-chrome-filter: blur(20px) saturate(1.4);
+  --glass-overlay-filter: blur(24px) saturate(1.4);
+  color-scheme: light;
+}
+
+/* ── Liquid glass buttons: the values per theme ───────────────────────
+   Every button is a pill or circle of liquid glass (the rules are in the
+   Materials section). Clear glass is a translucent fill that blurs what's
+   behind it, a bright rim lit from the top left, a softer rim at the
+   bottom right, light pooling along the bottom edge and a soft drop.
+   Tinted glass, for the main action and selected toggles, is the accent
+   with the same rims and a sheen that stays clear of the label, so text
+   keeps its contrast.
+   ─────────────────────────────────────────────────────────────────── */
+
+:root,
+[data-surface="white"] {
+  --lg-fill: rgb(255 255 255 / 0.52);
+  --lg-fill-hover: rgb(255 255 255 / 0.8);
+  --lg-border: rgb(32 88 132 / 0.13);
+  --lg-sheen: linear-gradient(180deg, rgb(255 255 255 / 0.85) 0%, rgb(255 255 255 / 0.22) 46%, rgb(255 255 255 / 0.04) 70%, rgb(255 255 255 / 0.4) 100%);
+  --lg-shadow:
+    inset 1px 1.5px 0 rgb(255 255 255 / 1),
+    inset -1px -1px 0 rgb(255 255 255 / 0.65),
+    inset 0 -2px 3px -2px rgb(32 88 132 / 0.2),
+    inset 0 -8px 14px -10px rgb(255 255 255 / 0.95),
+    0 1px 2px rgb(32 88 132 / 0.08),
+    0 8px 18px -10px rgb(32 88 132 / 0.36);
+  --lg-tint-sheen: linear-gradient(180deg, rgb(255 255 255 / 0.32) 0%, rgb(255 255 255 / 0.06) 26%, rgb(255 255 255 / 0) 36%, rgb(255 255 255 / 0) 72%, rgb(255 255 255 / 0.16) 100%);
+  --lg-tint-rims:
+    inset 1px 1.5px 0 rgb(255 255 255 / 0.55),
+    inset -1px -1px 0 rgb(255 255 255 / 0.2),
+    inset 0 0 0 1px rgb(255 255 255 / 0.1),
+    inset 0 -8px 14px -10px rgb(255 255 255 / 0.45);
+  --lg-track: rgb(32 88 132 / 0.05);
+  --lg-track-shadow: inset 0 1px 2px rgb(32 88 132 / 0.1), inset 0 -1px 0 rgb(255 255 255 / 0.7);
+  --lg-blur: blur(14px) saturate(1.8);
+}
+
+[data-surface="black"] {
+  --lg-fill: rgb(255 255 255 / 0.07);
+  --lg-fill-hover: rgb(255 255 255 / 0.13);
+  --lg-border: rgb(255 255 255 / 0.14);
+  --lg-sheen: linear-gradient(180deg, rgb(255 255 255 / 0.16) 0%, rgb(255 255 255 / 0.04) 46%, rgb(255 255 255 / 0) 70%, rgb(255 255 255 / 0.06) 100%);
+  --lg-shadow:
+    inset 1px 1.5px 0 rgb(255 255 255 / 0.32),
+    inset -1px -1px 0 rgb(255 255 255 / 0.1),
+    inset 0 -8px 14px -10px rgb(255 255 255 / 0.2),
+    0 8px 18px -10px rgb(0 0 0 / 0.9);
+  /* White glass: brighter at the rim, a touch of grey at the bottom for
+     thickness. */
+  --lg-tint-sheen: linear-gradient(180deg, rgb(255 255 255 / 0.9) 0%, rgb(255 255 255 / 0) 36%, rgb(0 0 0 / 0) 70%, rgb(0 0 0 / 0.07) 100%);
+  --lg-tint-rims:
+    inset 1px 1.5px 0 rgb(255 255 255 / 1),
+    inset -1px -1px 0 rgb(0 0 0 / 0.16),
+    inset 0 -8px 14px -10px rgb(0 0 0 / 0.18);
+  --lg-track: rgb(255 255 255 / 0.04);
+  --lg-track-shadow: inset 0 1px 2px rgb(0 0 0 / 0.7), inset 0 -1px 0 rgb(255 255 255 / 0.05);
+  --lg-blur: blur(14px) saturate(1.4);
+}
+
+[data-surface="lavender"] {
+  --lg-fill: rgb(255 255 255 / 0.72);
+  --lg-fill-hover: rgb(255 255 255 / 0.95);
+  --lg-border: rgb(76 60 160 / 0.14);
+  --lg-sheen: linear-gradient(180deg, rgb(255 255 255 / 0.9) 0%, rgb(255 255 255 / 0.25) 46%, rgb(255 255 255 / 0.05) 70%, rgb(255 255 255 / 0.45) 100%);
+  --lg-shadow:
+    inset 1px 1.5px 0 rgb(255 255 255 / 1),
+    inset -1px -1px 0 rgb(255 255 255 / 0.7),
+    inset 0 -2px 3px -2px rgb(76 60 160 / 0.18),
+    inset 0 -8px 14px -10px rgb(255 255 255 / 0.95),
+    0 1px 2px rgb(76 60 160 / 0.07),
+    0 8px 18px -10px rgb(76 60 160 / 0.3);
+  --lg-tint-sheen: linear-gradient(180deg, rgb(255 255 255 / 0.3) 0%, rgb(255 255 255 / 0.05) 26%, rgb(255 255 255 / 0) 36%, rgb(255 255 255 / 0) 72%, rgb(255 255 255 / 0.15) 100%);
+  --lg-tint-rims:
+    inset 1px 1.5px 0 rgb(255 255 255 / 0.5),
+    inset -1px -1px 0 rgb(255 255 255 / 0.18),
+    inset 0 0 0 1px rgb(255 255 255 / 0.1),
+    inset 0 -8px 14px -10px rgb(255 255 255 / 0.4);
+  --lg-track: rgb(76 60 160 / 0.05);
+  --lg-track-shadow: inset 0 1px 2px rgb(76 60 160 / 0.09), inset 0 -1px 0 rgb(255 255 255 / 0.8);
+  --lg-blur: blur(14px) saturate(1.6);
+}
+
 /* Phones: less blur, which is most of the cost, for the same look. */
 @media (max-width: 640px) {
   [data-surface] {
     --shell-filter: blur(18px) saturate(1.4);
     --glass-chrome-filter: blur(16px) saturate(1.5);
     --glass-overlay-filter: blur(22px) saturate(1.6);
+    --lg-blur: blur(8px) saturate(1.5);
   }
 }
 
@@ -276,7 +458,7 @@
   ) {
   color: rgb(var(--paper) / var(--quiet));
 }
-:where([data-surface="white"]) :is(.text-paper\/60, .text-paper\/65) {
+:where([data-surface="white"], [data-surface="lavender"]) :is(.text-paper\/60, .text-paper\/65) {
   color: rgb(var(--paper) / var(--quiet));
 }
 .text-accent {
@@ -284,7 +466,7 @@
 }
 /* Straight on the stage, on no pane of its own and in none, the same text
    needs a little more on Light. Still the weight of one utility. */
-:where([data-surface="white"] main)
+:where([data-surface="white"] main, [data-surface="lavender"] main)
   :is(
     .text-paper\/25,
     .text-paper\/30,
@@ -626,7 +808,8 @@ samp {
      The dots are very close to neutral, so an invert shifts no hue; recolouring
      the Lottie's fills at runtime would be the alternative, and this is one line
      instead of a JSON walk. */
-  [data-surface="white"] .lottie-neutral {
+  [data-surface="white"] .lottie-neutral,
+  [data-surface="lavender"] .lottie-neutral {
     filter: invert(1);
   }
 
@@ -892,7 +1075,7 @@ samp {
 /* The pane's own edge, only where the border is the plain hairline, so an
    accent, warning or selected border keeps its colour. */
 :is(.bg-card, .bg-card\/60, .bg-card\/80, .bg-card\/85, .bg-card\/95):where(.border-line) {
-  border-color: rgb(255 255 255 / var(--glass-edge-a));
+  border-color: rgb(var(--glass-edge) / var(--glass-edge-a));
 }
 /* Interactive cards brighten a little under the pointer. */
 .bg-card:where(.hover\:shadow-lift):hover {
@@ -908,7 +1091,7 @@ samp {
 }
 :is(.inset-panel, .bg-card-2) {
   background-color: rgb(var(--glass-inner-tint) / var(--glass-inner-a));
-  border-color: rgb(255 255 255 / calc(var(--glass-edge-a) * 0.8));
+  border-color: rgb(var(--glass-edge) / calc(var(--glass-edge-a) * 0.8));
 }
 
 /* Depth comes from soft, wide drops. */
@@ -979,6 +1162,112 @@ samp {
     var(--tw-shadow, 0 0 #0000);
 }
 
+/* ── Liquid glass buttons ──────────────────────────────────────────────
+   Every button is liquid glass, in two kinds, read from the values each
+   theme sets (the "Liquid glass buttons" block near the top):
+
+     clear   the Button component's quiet variants, icon buttons and chips
+             (`.lg-clear`), and any pill-shaped button or link drawn with a
+             hairline or the frosted ghost fill. A translucent fill that
+             blurs what's behind it, rims lit from the top left, light pooled
+             along the bottom edge, a soft drop.
+     tinted  any button or link filled with the accent: the main action,
+             the selected segment, selected toggles. The accent with the same
+             rims and a sheen that stays clear of the label.
+
+   A selected chip keeps its accent wash under the glass; danger, success
+   and warning fills take the glass in their own colour. Switches are left
+   as switches. Each rule keeps Tailwind's ring and shadow variables, so
+   focus rings and the accent glow still show.
+   ─────────────────────────────────────────────────────────────────── */
+
+/* Clear glass. A hairline-edged pill counts, and so does a squarer button
+   whose content is centred (icon buttons, steppers, "Restore from file");
+   list rows, cards and form fields stay as they are. */
+.lg-clear,
+:is(button, a, summary):where(.glass-ghost, .border-line:is(.rounded-full, :is(.rounded-lg, .rounded-xl):is(.justify-center, .place-items-center))):not(.field) {
+  background-color: var(--lg-fill);
+  background-image: var(--lg-sheen);
+  box-shadow:
+    var(--lg-shadow),
+    var(--tw-ring-offset-shadow, 0 0 #0000),
+    var(--tw-ring-shadow, 0 0 #0000);
+  -webkit-backdrop-filter: var(--lg-blur);
+  backdrop-filter: var(--lg-blur);
+}
+/* The edge: only where it was the plain hairline, so a danger or selected
+   border keeps its colour. */
+.lg-clear:where(.border-line),
+:is(button, a, summary).border-line:where(.rounded-full, :is(.rounded-lg, .rounded-xl):is(.justify-center, .place-items-center), .glass-ghost):not(.field) {
+  border-color: var(--lg-border);
+}
+.lg-clear:is(:hover, [aria-expanded="true"], [aria-current="page"], .lg-on),
+:is(button, a, summary):where(.glass-ghost, .border-line:is(.rounded-full, :is(.rounded-lg, .rounded-xl):is(.justify-center, .place-items-center))):not(.field):hover {
+  background-color: var(--lg-fill-hover);
+}
+
+/* Quiet icon buttons (a bin, a pencil, a close cross) with no fill or edge
+   of their own are clear glass too. Any resting `bg-` utility opts out. */
+button:is(.rounded-md, .rounded-lg, .rounded-xl, .rounded-full).place-items-center:not([class^="bg-"], [class*=" bg-"], .border, [role="switch"], .chrome-glass, .lg-clear) {
+  background-color: var(--lg-fill);
+  background-image: var(--lg-sheen);
+  box-shadow:
+    var(--lg-shadow),
+    var(--tw-ring-offset-shadow, 0 0 #0000),
+    var(--tw-ring-shadow, 0 0 #0000);
+  -webkit-backdrop-filter: var(--lg-blur);
+  backdrop-filter: var(--lg-blur);
+}
+button:is(.rounded-md, .rounded-lg, .rounded-xl, .rounded-full).place-items-center:not([class^="bg-"], [class*=" bg-"], .border, [role="switch"], .chrome-glass, .lg-clear):hover {
+  background-color: var(--lg-fill-hover);
+}
+
+/* A selected chip keeps its accent wash under the glass. */
+:is(button, a):is(.bg-accent\/10, .bg-accent\/15):where(.rounded-full, .rounded-lg, .rounded-xl, .lg-clear) {
+  background-color: rgb(var(--accent) / 0.14);
+  background-image: var(--lg-sheen);
+  box-shadow:
+    var(--lg-shadow),
+    var(--tw-ring-offset-shadow, 0 0 #0000),
+    var(--tw-ring-shadow, 0 0 #0000);
+  -webkit-backdrop-filter: var(--lg-blur);
+  backdrop-filter: var(--lg-blur);
+}
+:is(button, a):is(.bg-accent\/10, .bg-accent\/15):where(.rounded-full, .rounded-lg, .rounded-xl, .lg-clear):hover {
+  background-color: rgb(var(--accent) / 0.2);
+}
+
+/* Tinted glass. */
+:is(button, a).bg-accent:not([role="switch"]) {
+  background-color: rgb(var(--accent));
+  background-image: var(--lg-tint-sheen);
+  box-shadow:
+    var(--lg-tint-rims),
+    var(--tw-ring-offset-shadow, 0 0 #0000),
+    var(--tw-ring-shadow, 0 0 #0000),
+    var(--tw-shadow, 0 0 #0000);
+}
+
+:is(button, a):is(.bg-danger, .bg-positive, .bg-warning) {
+  background-image: linear-gradient(180deg, rgb(255 255 255 / 0.3) 0%, rgb(255 255 255 / 0.05) 26%, rgb(255 255 255 / 0) 36%, rgb(255 255 255 / 0) 72%, rgb(255 255 255 / 0.15) 100%);
+  box-shadow:
+    inset 1px 1.5px 0 rgb(255 255 255 / 0.5),
+    inset -1px -1px 0 rgb(255 255 255 / 0.18),
+    inset 0 -8px 14px -10px rgb(255 255 255 / 0.4),
+    var(--tw-ring-offset-shadow, 0 0 #0000),
+    var(--tw-ring-shadow, 0 0 #0000),
+    var(--tw-shadow, 0 0 #0000);
+}
+
+/* A segmented control's track: a shallow groove the tinted segment floats
+   in. */
+.lg-track {
+  background-color: var(--lg-track);
+  background-image: none;
+  border-color: var(--lg-border);
+  box-shadow: var(--lg-track-shadow);
+}
+
 /* ── Fallbacks and Reduce transparency ─────────────────────────────── */
 
 /* No backdrop-filter support: translucent surfaces would show sharp content
@@ -993,14 +1282,18 @@ samp {
     --drawer-bg: rgb(244 250 255);
   }
   [data-surface="black"] {
-    --shell-bg: rgb(22 22 23 / 0.96);
-    --drawer-bg: rgb(18 18 19);
+    --shell-bg: rgb(0 0 0 / 0.96);
+    --drawer-bg: rgb(10 10 11);
+  }
+  [data-surface="lavender"] {
+    --shell-bg: rgb(255 255 255 / 0.96);
+    --drawer-bg: rgb(255 255 255);
   }
 }
 
 /* Reduce transparency, chosen in Appearance or asked for by the device:
    nearly solid surfaces and no blur, in the same theme. Last in the file, so
-   it wins over both themes before it. */
+   it wins over every theme before it. */
 [data-transparency="reduced"] {
   --glass-panel-a: 0.94;
   --glass-inner-a: 0.94;
@@ -1009,10 +1302,13 @@ samp {
   --glass-chrome-filter: none;
   --glass-overlay-filter: none;
   --shell-filter: none;
+  --lg-blur: none;
 }
 /* On Light, near-solid white leaves nothing for white to stand out against,
    so tiles take a pale blue and the selected item an accent tint. */
 [data-transparency="reduced"][data-surface="white"] {
+  --lg-fill: rgb(250 253 255);
+  --lg-fill-hover: rgb(238 246 252);
   --glass-field-a: 0.9;
   --glass-inner-tint: 236 245 252;
   --shell-bg: rgb(246 251 255 / 0.97);
@@ -1023,9 +1319,19 @@ samp {
   --nav-active-ring: rgb(var(--accent) / 0.22);
 }
 [data-transparency="reduced"][data-surface="black"] {
-  --shell-bg: rgb(22 22 23 / 0.98);
-  --stage-bg: rgb(14 14 15 / 0.97);
-  --drawer-bg: rgb(18 18 19);
+  --lg-fill: rgb(34 34 37);
+  --lg-fill-hover: rgb(46 46 50);
+  --shell-bg: rgb(0 0 0);
+  --stage-bg: rgb(0 0 0);
+  --drawer-bg: rgb(10 10 11);
+}
+[data-transparency="reduced"][data-surface="lavender"] {
+  --lg-fill: rgb(255 255 255);
+  --lg-fill-hover: rgb(246 245 251);
+  --glass-field-a: 1;
+  --shell-bg: rgb(255 255 255 / 0.98);
+  --stage-bg: rgb(251 250 255 / 0.97);
+  --drawer-bg: rgb(255 255 255);
 }
 /* Behind a dialog or a sheet the page dims instead of blurring. */
 [data-transparency="reduced"]
@@ -1045,8 +1351,11 @@ samp {
     --glass-chrome-filter: none;
     --glass-overlay-filter: none;
     --shell-filter: none;
+    --lg-blur: none;
   }
   [data-surface="white"] {
+    --lg-fill: rgb(250 253 255);
+    --lg-fill-hover: rgb(238 246 252);
     --glass-field-a: 0.9;
     --glass-inner-tint: 236 245 252;
     --shell-bg: rgb(246 251 255 / 0.97);
@@ -1057,9 +1366,19 @@ samp {
     --nav-active-ring: rgb(var(--accent) / 0.22);
   }
   [data-surface="black"] {
-    --shell-bg: rgb(22 22 23 / 0.98);
-    --stage-bg: rgb(14 14 15 / 0.97);
-    --drawer-bg: rgb(18 18 19);
+    --lg-fill: rgb(34 34 37);
+    --lg-fill-hover: rgb(46 46 50);
+    --shell-bg: rgb(0 0 0);
+    --stage-bg: rgb(0 0 0);
+    --drawer-bg: rgb(10 10 11);
+  }
+  [data-surface="lavender"] {
+    --lg-fill: rgb(255 255 255);
+    --lg-fill-hover: rgb(246 245 251);
+    --glass-field-a: 1;
+    --shell-bg: rgb(255 255 255 / 0.98);
+    --stage-bg: rgb(251 250 255 / 0.97);
+    --drawer-bg: rgb(255 255 255);
   }
   :is(.backdrop-blur, .backdrop-blur-sm, .backdrop-blur-md, .backdrop-blur-xl, .sm\:backdrop-blur-xl, .backdrop-blur-\[2px\]) {
     -webkit-backdrop-filter: none;

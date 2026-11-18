@@ -292,7 +292,7 @@ export function GoalCard({
                 <button
                   type="button"
                   onClick={startUpdate}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-accent/35 px-2.5 py-1 text-[0.7rem] font-semibold text-accent transition-colors hover:bg-accent/10"
+                  className="lg-clear inline-flex items-center gap-1.5 rounded-full border border-accent/35 px-2.5 py-1 text-[0.7rem] font-semibold text-accent transition-all"
                 >
                   <TrendingUp className="h-3 w-3" /> Update progress
                 </button>

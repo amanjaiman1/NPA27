@@ -14,16 +14,36 @@ beforeEach(() => {
   useChronicle.setState(blankChronicleState());
 });
 
-test("there are two themes, Light and Dark, and Light is the default", () => {
+test("there are three themes, Light, Dark and Lavender, and Light is the default", () => {
   assert.deepEqual(
     THEME_MODES.map((m) => m.label),
-    ["Light", "Dark"],
+    ["Light", "Dark", "Lavender"],
   );
   assert.equal(DEFAULT_THEME_MODE, "light");
   assert.equal(store().themeMode, "light");
+  for (const m of ["light", "dark", "lavender"]) assert.equal(isThemeMode(m), true);
   for (const retired of ["blue", "system", "ocean"]) assert.equal(isThemeMode(retired), false);
   assert.equal(surfaceFor("light"), "white");
   assert.equal(surfaceFor("dark"), "black");
+  assert.equal(surfaceFor("lavender"), "lavender");
+});
+
+test("Lavender is kept as it is: chosen, synced, painted before load, and read back from the cloud", () => {
+  setActiveAccount("account-a");
+  store().setThemeMode("lavender");
+  assert.equal(store().themeMode, "lavender");
+  assert.equal(readCloudSnapshot().themeMode, "lavender");
+  assert.equal(readKey("upsc-chronicle-theme:account-a"), "lavender");
+  // Never mistaken for an older value.
+  assert.equal(legacyThemeMode("lavender"), "lavender");
+  assert.equal(normalizeSnapshot({ themeMode: "lavender" as const }).themeMode, "lavender");
+  useChronicle.setState(blankChronicleState());
+  store().applyCloudSnapshot({ themeMode: "lavender" });
+  assert.equal(store().themeMode, "lavender");
+  // Upgrading a store saved with it keeps it.
+  const migrate = useChronicle.persist.getOptions().migrate!;
+  const after = migrate({ themeMode: "lavender", journal: [] }, 15) as unknown as Record<string, unknown>;
+  assert.equal(after.themeMode, "lavender");
 });
 
 test("a theme an older version saved opens as the theme it means today", () => {

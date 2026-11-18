@@ -44,7 +44,7 @@ export function AccountLinks({ compact = false }: { compact?: boolean }) {
     <div className={compact ? "flex w-full flex-col items-stretch gap-2" : "flex items-center gap-2"}>
       <Link
         href="/login"
-        className="inline-flex h-10 items-center justify-center rounded-full px-4 text-sm font-semibold tracking-snugg text-paper/75 transition-colors hover:bg-paper/[0.06] hover:text-paper"
+        className="lg-clear inline-flex h-10 items-center justify-center rounded-full px-4 text-sm font-semibold tracking-snugg text-paper/80 transition-all hover:text-paper"
       >
         Sign in
       </Link>

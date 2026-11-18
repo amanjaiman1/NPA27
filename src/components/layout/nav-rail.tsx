@@ -32,7 +32,20 @@ const SHORTCUTS: { href: string; label: string; icon: LucideIcon }[] = [
   { href: "/roadmap", label: "Roadmap", icon: Route },
 ];
 
-function RailLink({ href, label, icon: Icon, active }: { href: string; label: string; icon: LucideIcon; active: boolean }) {
+function RailLink({
+  href,
+  label,
+  icon: Icon,
+  active,
+  utility = false,
+}: {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+  active: boolean;
+  /** Drawn as a glass button, like the utilities beside it, rather than a nav item. */
+  utility?: boolean;
+}) {
   return (
     <Link
       href={href}
@@ -42,9 +55,11 @@ function RailLink({ href, label, icon: Icon, active }: { href: string; label: st
       className={cn(
         "group relative grid h-11 w-11 place-items-center rounded-2xl transition-all duration-200",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/45",
-        active
-          ? "bg-[var(--nav-active)] text-accent shadow-[inset_0_0_0_1px_var(--nav-active-ring),0_6px_16px_-10px_rgb(var(--shadow)/0.45)]"
-          : "text-paper/60 hover:bg-[var(--nav-hover)] hover:text-paper",
+        utility
+          ? cn("lg-clear", active ? "text-accent" : "text-paper/65 hover:text-paper")
+          : active
+            ? "bg-[var(--nav-active)] text-accent shadow-[inset_0_0_0_1px_var(--nav-active-ring),0_6px_16px_-10px_rgb(var(--shadow)/0.45)]"
+            : "text-paper/60 hover:bg-[var(--nav-hover)] hover:text-paper",
       )}
     >
       <Icon className="h-[1.15rem] w-[1.15rem]" strokeWidth={active ? 2.1 : 1.85} />
@@ -119,7 +134,7 @@ export function NavRail({
         <IconButton label="Appearance" size="lg" onClick={onOpenAppearance} className="rounded-2xl">
           <Palette className="h-[1.1rem] w-[1.1rem]" />
         </IconButton>
-        <RailLink href="/settings" label="Settings" icon={Settings} active={isActivePath(pathname, "/settings")} />
+        <RailLink href="/settings" label="Settings" icon={Settings} active={isActivePath(pathname, "/settings")} utility />
       </div>
     </nav>
   );

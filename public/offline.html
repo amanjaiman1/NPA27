@@ -12,8 +12,8 @@
 
       Deliberately a standalone document: no app JavaScript, no build chunks,
       no auth or sleep gate. It has to render when nothing else can, so the
-      design tokens below are a hand-copy of the app's two themes (Light and
-      Dark in src/app/globals.css).
+      design tokens below are a hand-copy of the app's three themes (Light,
+      Dark and Lavender in src/app/globals.css).
     -->
     <style>
       :root {
@@ -34,19 +34,32 @@
         color-scheme: light;
       }
       [data-surface="black"] {
-        --ink: 8 8 9;
+        --ink: 0 0 0;
         --paper: 237 237 237;
         --accent: 245 245 245;
         --accent-fg: 10 10 10;
         --shadow: 0 0 0;
-        --pane: rgb(30 30 32 / 0.78);
+        --pane: rgb(20 20 22);
         --pane-edge: rgb(255 255 255 / 0.09);
         --quiet: 0.62;
-        --backdrop:
-          radial-gradient(60% 46% at 50% -8%, rgb(255 255 255 / 0.11), transparent 70%),
-          radial-gradient(50% 60% at 0% 100%, rgb(255 255 255 / 0.025), transparent 70%),
-          linear-gradient(180deg, rgb(13 13 14) 0%, rgb(9 9 10) 55%, rgb(5 5 6) 100%);
+        --backdrop: none;
         color-scheme: dark;
+      }
+      [data-surface="lavender"] {
+        --ink: 247 246 252;
+        --paper: 24 24 40;
+        --accent: 108 92 231;
+        --accent-fg: 255 255 255;
+        --shadow: 76 60 160;
+        --pane: rgb(255 255 255 / 0.92);
+        --pane-edge: rgb(234 231 244);
+        --quiet: 0.68;
+        --backdrop:
+          radial-gradient(42% 46% at 50% 16%, rgb(186 160 255 / 0.42), transparent 70%),
+          radial-gradient(34% 40% at 22% 30%, rgb(255 196 168 / 0.45), transparent 70%),
+          radial-gradient(40% 44% at 6% 94%, rgb(120 226 212 / 0.32), transparent 70%),
+          linear-gradient(180deg, rgb(252 251 255) 0%, rgb(247 246 252) 60%, rgb(243 241 250) 100%);
+        color-scheme: light;
       }
       * {
         box-sizing: border-box;
@@ -225,9 +238,13 @@
         if (mode === "system") {
           mode = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
         }
+        var meta = document.querySelector('meta[name="theme-color"]');
         if (mode === "dark") {
           document.documentElement.setAttribute("data-surface", "black");
-          document.querySelector('meta[name="theme-color"]').setAttribute("content", "#080809");
+          meta.setAttribute("content", "#000000");
+        } else if (mode === "lavender") {
+          document.documentElement.setAttribute("data-surface", "lavender");
+          meta.setAttribute("content", "#f7f6fc");
         }
       } catch (e) {}
       window.addEventListener("online", function () {

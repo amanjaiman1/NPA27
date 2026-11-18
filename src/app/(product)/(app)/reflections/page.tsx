@@ -182,7 +182,9 @@ export default function ReflectionsPage() {
         <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-accent/15 text-accent">
           <Quote className="h-4 w-4" />
         </span>
-        <div className="min-w-0 flex-1">
+        {/* The prompt takes the row's width; on a phone the buttons wrap
+            below it instead of squeezing it to a word per line. */}
+        <div className="min-w-[12rem] flex-1">
           <p className="eyebrow mb-1">Today&rsquo;s prompt</p>
           <p className="font-display text-base font-medium leading-snug text-paper sm:text-lg">
             {daily}

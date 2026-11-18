@@ -1,17 +1,19 @@
 import type { ThemeMode } from "./types";
 
 /* ════════════════════════════════════════════════════════════════
-   Appearance — two themes, both frosted glass.
+   Appearance — three themes.
 
      • Light (the default): frosted white panes on a soft sky-blue
        backdrop, navy text, one luminous blue.
-     • Dark: black glass, charcoal panes on a near-black backdrop, with
+     • Dark: pure black, charcoal glass cards on a #000 background, with
        white for what's interactive.
+     • Lavender: crisp white panels on a near-white backdrop with pastel
+       glows, and one violet.
 
    The mode is what's saved and synced; the screen shows its surface, the
-   `data-surface` attribute on <html> ("white" or "black"). Reduce
-   transparency (`data-transparency="reduced"`) makes either theme nearly
-   solid, for anyone who finds see-through panels hard to read.
+   `data-surface` attribute on <html> ("white", "black" or "lavender").
+   Reduce transparency (`data-transparency="reduced"`) makes any theme
+   nearly solid, for anyone who finds see-through panels hard to read.
 
    Older versions also offered a separate Blue Glass theme, Auto, colour
    palettes and a Liquid Glass material. Those are retired: Blue Glass
@@ -27,7 +29,7 @@ import type { ThemeMode } from "./types";
 export type { ThemeMode } from "./types";
 
 /** The surfaces the CSS knows. */
-export type Surface = "white" | "black";
+export type Surface = "white" | "black" | "lavender";
 
 export const DEFAULT_THEME_MODE: ThemeMode = "light";
 
@@ -39,11 +41,12 @@ export interface ThemeModeMeta {
 
 export const THEME_MODES: ThemeModeMeta[] = [
   { id: "light", label: "Light", hint: "Frosted glass on a soft sky blue" },
-  { id: "dark", label: "Dark", hint: "Black glass, for the night" },
+  { id: "dark", label: "Dark", hint: "Pure black, for the night" },
+  { id: "lavender", label: "Lavender", hint: "Crisp white on a soft pastel glow" },
 ];
 
 export function isThemeMode(v: unknown): v is ThemeMode {
-  return v === "light" || v === "dark";
+  return v === "light" || v === "dark" || v === "lavender";
 }
 
 export const DARK_QUERY = "(prefers-color-scheme: dark)";
@@ -62,7 +65,7 @@ export function systemPrefersDark(): boolean {
  * old five surfaces were one light and four dark ones.
  */
 export function legacyThemeMode(saved: unknown, prefersDark = systemPrefersDark()): ThemeMode {
-  if (saved === "dark") return "dark";
+  if (saved === "dark" || saved === "lavender") return saved;
   if (saved === "light" || saved === "blue") return "light";
   if (saved === "system") return prefersDark ? "dark" : "light";
   return DEFAULT_THEME_MODE;
@@ -76,7 +79,9 @@ export function themeModeFromSurface(surface: unknown): ThemeMode {
 }
 
 export function surfaceFor(mode: ThemeMode): Surface {
-  return mode === "dark" ? "black" : "white";
+  if (mode === "dark") return "black";
+  if (mode === "lavender") return "lavender";
+  return "white";
 }
 
 let easeTimer = 0;

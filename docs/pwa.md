@@ -77,7 +77,7 @@ next activation (do this if a caching rule changes, not for ordinary releases).
 `scripts/generate-icons.py` renders the Chronicle mark (the same ring-and-node
 as `components/layout/logo.tsx`) in ivory over a vivid crimson plate, using only
 the Python standard library. The icons kept the crimson brand plate when the app
-moved to its sky-blue Light and black Dark themes:
+moved to its Light, Dark and Lavender themes:
 
 ```bash
 python3 scripts/generate-icons.py

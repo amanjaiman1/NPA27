@@ -137,7 +137,7 @@ export function Segmented<T extends string>({
   return (
     <div
       className={cn(
-        "no-scrollbar flex max-w-full items-center gap-0.5 overflow-x-auto rounded-full border border-line bg-card p-1 shadow-soft",
+        "lg-track no-scrollbar flex max-w-full items-center gap-0.5 overflow-x-auto rounded-full border border-line p-1",
         className,
       )}
     >
@@ -170,10 +170,10 @@ export function Chip({
   return (
     <button
       className={cn(
-        "rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-all duration-200",
+        "lg-clear rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-all duration-200",
         active
           ? "border-accent/35 bg-accent/15 text-accent"
-          : "border-line bg-card text-paper/55 hover:border-paper/25 hover:text-paper",
+          : "border-line text-paper/65 hover:border-paper/25 hover:text-paper",
         className,
       )}
       {...props}

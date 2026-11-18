@@ -99,15 +99,16 @@ const themeScript = `
       id = s && s.user && s.user.id ? s.user.id : null;
     }
     var get = function (k, f) { return (id && localStorage.getItem('upsc-chronicle-' + k + ':' + id)) || f; };
-    // Light or Dark. Values older versions saved still paint the theme they
-    // now mean (lib/theme.ts, legacyThemeMode): Blue Glass is Light, Auto is
-    // whichever theme the device shows, and a browser that last ran the
-    // five-surface version has only the old key, where Ivory meant light.
+    // Light, Dark or Lavender. Values older versions saved still paint the
+    // theme they now mean (lib/theme.ts, legacyThemeMode): Blue Glass is
+    // Light, Auto is whichever theme the device shows, and a browser that
+    // last ran the five-surface version has only the old key, where Ivory
+    // meant light.
     var mode = get('theme', '');
     if (!mode) { var old = get('surface', ''); mode = old && old !== 'white' ? 'dark' : 'light'; }
     if (mode === 'system') mode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-    if (mode !== 'dark') mode = 'light';
-    d.setAttribute('data-surface', mode === 'dark' ? 'black' : 'white');
+    if (mode !== 'dark' && mode !== 'lavender') mode = 'light';
+    d.setAttribute('data-surface', mode === 'dark' ? 'black' : mode === 'lavender' ? 'lavender' : 'white');
     d.setAttribute('data-theme-mode', mode);
     if (get('transparency', '') === 'reduced') d.setAttribute('data-transparency', 'reduced');
   } catch (e) {

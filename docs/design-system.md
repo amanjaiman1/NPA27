@@ -1,7 +1,7 @@
 # Design system
 
 DoOrDie's look: **calm frosted glass**. Translucent panes on a soft sky-blue
-backdrop with one luminous blue by day, black glass with white buttons by
+backdrop with one luminous blue by day, pure black with white buttons by
 night, Poppins throughout the app, and depth from soft wide shadows and lit
 edges rather than hard borders.
 
@@ -36,46 +36,56 @@ Dark.
 
 Note the naming: **`ink` is the background and `paper` is the foreground**, and
 they swap with the theme. A tint like `bg-paper/[0.04]` is therefore a subtle
-recessed fill in both themes, not a light or dark one.
+recessed fill in every theme, not a light or dark one.
 
-## Themes: Light and Dark
+## Themes: Light, Dark and Lavender
 
-Two themes, both frosted glass. The choice (`themeMode` on the store, `light`
-or `dark`) syncs with the account, so it follows the person to every device.
+Three themes. The choice (`themeMode` on the store: `light`, `dark` or
+`lavender`) syncs with the account, so it follows the person to every device.
 The CSS sees it as `data-surface` on `<html>`: `white` for Light, `black` for
-Dark. Each theme sets every token itself, so a preview of one drawn inside the
-other (the cards in Appearance) shows its own colours.
+Dark, `lavender` for Lavender. Each theme sets every token itself, so a
+preview of one drawn inside another (the cards in Appearance) shows its own
+colours.
 
 | Theme | Canvas | Panes | Text | Accent |
 | --- | --- | --- | --- | --- |
 | **Light** (default) | pale sky `rgb(214 238 251)` under a layered sky | white at 60%, a top sheen and a bright rim | navy `#163147` | `#0E6BC4` fills with white text; `#0A58A6` for accent text |
-| **Dark** | near-black `rgb(8 8 9)` under a soft spotlight from above | charcoal `rgb(30 30 32)` at 70%, a fine lit top edge | soft white `#EDEDED` | white fills with black text; white for accent text |
+| **Dark** | pure black `#000`, with no glow | charcoal glass `rgb(28 28 31)` at 72% (a `#141416` card on black), a fine lit top edge | soft white `#EDEDED` | white fills with black text; white for accent text |
+| **Lavender** | near-white `rgb(247 246 252)` under pastel glows | crisp white at 90%, a lavender-grey edge, soft violet-tinted shadows | ink `#181828` | violet `#6C5CE7` fills with white text; `#5848D6` for accent text |
 
 **Light** is a soft sky of layered cyan and pale-blue light, brightest at the
 top left, with frosted white panes, soft blue-grey shadows and one luminous
-blue. **Dark** is black glass with no blue in its surfaces: a near-black
-backdrop lit softly from above, charcoal panes with a lit top edge, tiles a
-step lighter, and white for what's interactive. Primary buttons are white
+blue. **Dark** is pure black with no blue in its surfaces: the background,
+the page's stage and the navigation are `#000`, set apart by fine hairlines;
+cards are charcoal glass with a lit top edge, tiles a step lighter, and white
+is for what's interactive. Primary buttons are white
 with black text, selected items a lighter grey, and single-series charts,
 progress and heatmaps are drawn in white and greys. Colour is kept for
 meaning: status colours, and the categorical chart colours (white, lime,
 orange, aqua, pink, green). Info notices are a neutral grey, and the loading
-ring is white with a fading tail.
+ring is white with a fading tail. **Lavender** is bright and airy rather than
+glassy: crisp white panels with a fine lavender-grey edge on a near-white
+backdrop, lit by soft lavender, peach, pink and mint glows. Panels have no
+sheen or glint, tiles inside them are a light grey, and one violet marks
+what's interactive: violet buttons with white text, and a light grey pill
+for the selected item. Its charts lead with the violet, then peach, teal,
+pink, amber and blue.
 
 **Readable on glass.** Contrast was worked out by compositing each layer
 (backdrop, stage, pane, tile) at the backdrop's darkest and brightest points:
 
-| | Light | Dark |
-| --- | --- | --- |
-| text on a pane | 11–13:1 | 13.7–15.4:1 |
-| accent text on a pane | 5.8–6.8:1 | 16–18:1 (white) |
-| text on an accent fill | 5.4:1 (white) | 18:1 (black on white) |
-| status colours on a pane or tile | 4.6–6.3:1 | 4.9–11.8:1 |
+| | Light | Dark | Lavender |
+| --- | --- | --- | --- |
+| text on a pane | 11–13:1 | 13.2–15.7:1 (18:1 on the background) | 16.8–17.5:1 |
+| accent text on a pane | 5.8–6.8:1 | 15.5–18.4:1 (white) | 5.3–6.3:1 |
+| text on an accent fill | 5.4:1 (white) | 18:1 (black on white) | 4.9:1 (white) |
+| status colours on a pane or tile | 4.6–6.3:1 | 5.6–12:1 (4.6:1 on a tile with Reduce transparency) | 4.6–5.7:1 |
 
 Quiet text is written as low-opacity ink (`text-paper/40`), which suits an
 opaque card but is hard to read on glass. Every step below the theme's floor
 is raised to it: `--quiet` is 0.7 on Light panes (0.74 straight on the
-stage) and 0.56 on Dark, the lowest strengths that still clear 4.5:1 there.
+stage), 0.56 on Dark and 0.65 on Lavender (0.66 on the stage), the lowest
+strengths that still clear 4.5:1 there.
 Placeholders, chart labels and gridlines are covered the same way. On Dark the
 faint wells and hover fills (`bg-paper/[0.02]` to `[0.06]`) also take one more
 step. These rules keep the weight of a single utility, so hover and focus
@@ -100,6 +110,7 @@ pre-paint script):
 | Saved by an older version | Opens as |
 | --- | --- |
 | Blue Glass (`blue`) | Light, which is the same look |
+| Lavender, on a device still running a version from before it | Light on that device until it reloads the new version. If it syncs before then, it saves Light, and Lavender has to be picked again |
 | Auto (`system`) | whichever theme the device shows when it's read |
 | the five surfaces (Ivory, Pure Black, Indigo, Velvet, Abyss) | Ivory is Light, the rest Dark |
 | a colour palette, Liquid Glass, a wallpaper | dropped; nothing else changes |
@@ -112,8 +123,9 @@ longer read; sign-out still removes them (`ACCOUNT_KEY_PREFIXES` in
 
 ## Materials
 
-One layout and one set of materials for both themes; each theme only sets the
-values. They map from what the markup already says, rather than a new class
+One layout and one set of materials for every theme; each theme only sets the
+values, so Lavender's crisp panels are the same rules with no sheen, a firm
+tint (`--glass-panel-a` 0.9) and a coloured edge (`--glass-edge`). They map from what the markup already says, rather than a new class
 on every component:
 
 | Layer | Matched by | Treatment |
@@ -144,6 +156,27 @@ visible, so their glass comes from translucency, the sheen, the glint and the
 edge, painted as backgrounds and shadows on the element itself. A dialog over
 a blurred scrim skips its own blur (`.glass-on-scrim`): one backdrop filter
 per layer, never two. Phones use smaller blur radii.
+
+### Buttons: liquid glass
+
+Every button is liquid glass, in two kinds. Each theme sets the values
+(`--lg-*` in the "Liquid glass buttons" block near the top of
+`globals.css`) and one set of rules draws them (in the Materials section):
+
+| Kind | What gets it | Look |
+| --- | --- | --- |
+| clear | `Button` ghost, outline, subtle and danger; `IconButton`; `Chip`; anything with `.lg-clear`; any button or link that is a hairline pill (`border-line rounded-full`) or a centred hairline button (`rounded-lg`/`rounded-xl` with `justify-center` or `place-items-center`); any quiet round or rounded icon button with no fill of its own | a translucent fill that blurs what's behind it (`--lg-blur`, 14px, 8px on phones), a bright rim lit from the top left, a softer rim at the bottom right, light pooled along the bottom edge, a soft drop |
+| tinted | any button or link filled with the accent: the main action, the selected segment, selected toggles | the accent with the same rims and a sheen that stays clear of the label, so text keeps its contrast; danger, success and warning fills get the same in their own colour |
+
+A selected chip keeps its accent wash under clear glass. A segmented
+control's track is a shallow groove (`.lg-track`) the tinted segment sits
+in. Switches stay switches, and cards, list rows and form fields are not
+buttons, so they keep their own materials. Navigation links (the sidebar,
+the rail's page shortcuts, the phone dock) stay navigation items, so actions
+stand out from them; the rail's utilities (search, notifications,
+appearance, settings) are glass buttons. A button opts out of the automatic
+glass by having a resting `bg-` utility. With Reduce transparency the glass
+turns solid: no blur, and an opaque fill in the theme's colours.
 
 **Reduce transparency** (in Appearance, synced as `reduceTransparency`, or
 asked for by the device through `prefers-reduced-transparency`) makes every
@@ -330,7 +363,7 @@ the same day always shows the same line, with streak milestones (3, 7, 14, 21,
 A region sitting on a photo or another busy image gets the `.on-media` class.
 It pins that subtree to a fixed light-on-dark palette (`--paper` white,
 `--card` near-black, `--line` a soft grey), so every token-based utility
-inside it resolves correctly in both themes without a single conditional. On
+inside it resolves correctly in every theme without a single conditional. On
 top of the image, stack cheap scrims rather than one flat overlay, and give
 small text a `drop-shadow`. Measure the result rather than eyeballing it:
 WCAG AA is 4.5:1, or 3:1 for text 24px and up.
@@ -390,10 +423,10 @@ Reach for the primitives in `src/components/ui` (`Card`, `Panel`,
 `MetricCard`, `Button`, `IconButton`, `Badge`, `Segmented`, `Chip`,
 `Progress`, `Modal`, `PageHeader`, `Stat`, `EmptyState`, `Avatar`) before
 writing new class strings. When you do write them, compose from the tokens
-(`bg-card`, `border-line`, `text-paper/55`, `bg-accent`) so both themes and
+(`bg-card`, `border-line`, `text-paper/55`, `bg-accent`) so every theme and
 Reduce transparency keep working. The materials find surfaces by those
 classes, plus a few hooks: `field` on any hand-styled input or select,
 `glass-ghost` on an outline control with no fill, `.glass-overlay` on a custom
 floating panel, and `glass-on-scrim` on a dialog that sits over a blurred
-scrim. Check new screens in both themes, with Reduce transparency on, and at
+scrim. Check new screens in every theme, with Reduce transparency on, and at
 phone, tablet and desktop widths.

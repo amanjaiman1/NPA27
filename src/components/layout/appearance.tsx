@@ -2,7 +2,7 @@
 
 import { useId } from "react";
 import Link from "next/link";
-import { ArrowRight, Check, Clock, Moon, Sun } from "lucide-react";
+import { ArrowRight, Check, Clock, Flower2, Moon, Sun } from "lucide-react";
 import { useChronicle } from "@/lib/store";
 import { Modal } from "@/components/ui/modal";
 import { Switch } from "@/components/ui/switch";
@@ -11,7 +11,7 @@ import { deviceTimeFormat } from "@/lib/sleep";
 import { cn } from "@/lib/utils";
 import { InstallCard } from "@/components/pwa/install-prompt";
 
-const MODE_ICON: Record<ThemeMode, typeof Sun> = { light: Sun, dark: Moon };
+const MODE_ICON: Record<ThemeMode, typeof Sun> = { light: Sun, dark: Moon, lavender: Flower2 };
 
 /**
  * A miniature of a theme in its own colours and glass: the backdrop, a
@@ -33,9 +33,9 @@ function ThemePreview({ mode, reduced }: { mode: ThemeMode; reduced: boolean }) 
         <span className="block h-1 w-3 rounded-full bg-paper/30" />
       </span>
       <span className="relative flex flex-1 flex-col justify-between rounded-lg border border-line bg-card p-2 shadow-soft">
-        <span className="block h-1.5 w-14 rounded-full bg-paper/70" />
+        <span className="block h-1.5 w-14 max-w-full rounded-full bg-paper/70" />
         <span className="block h-1 w-20 max-w-full rounded-full bg-paper/30" />
-        <span className="block h-2.5 w-10 rounded-full bg-accent" />
+        <span className="block h-2.5 w-10 max-w-full rounded-full bg-accent" />
       </span>
     </span>
   );
@@ -66,7 +66,7 @@ export function AppearanceControls() {
     <div className="space-y-7">
       <section>
         <GroupTitle id={themeId}>Theme</GroupTitle>
-        <div className="grid grid-cols-2 gap-2.5" role="radiogroup" aria-labelledby={themeId}>
+        <div className="grid grid-cols-3 gap-2 sm:gap-2.5" role="radiogroup" aria-labelledby={themeId}>
           {THEME_MODES.map((m) => {
             const active = mode === m.id;
             const Icon = MODE_ICON[m.id];
@@ -78,17 +78,18 @@ export function AppearanceControls() {
                 role="radio"
                 aria-checked={active}
                 className={cn(
-                  "group relative flex flex-col items-start gap-2 rounded-2xl border p-2.5 text-left transition-all",
+                  "group relative flex min-w-0 flex-col items-start gap-2 rounded-2xl border p-2 text-left transition-all sm:p-2.5",
                   active ? "border-accent ring-1 ring-accent/40" : "border-line hover:border-paper/30",
                 )}
               >
                 <ThemePreview mode={m.id} reduced={reduce} />
-                <span className="flex items-center gap-1.5 px-0.5 text-sm font-semibold text-paper">
-                  <Icon className="h-3.5 w-3.5" /> {m.label}
+                <span className="flex min-w-0 items-center gap-1.5 px-0.5 text-[0.8rem] font-semibold text-paper sm:text-sm">
+                  <Icon className="h-3.5 w-3.5 shrink-0" /> <span className="truncate">{m.label}</span>
                 </span>
-                <span className="px-0.5 text-xs leading-snug text-paper/60">{m.hint}</span>
+                {/* On a phone the three cards are narrow: the preview says it. */}
+                <span className="hidden px-0.5 text-xs leading-snug text-paper/60 sm:block">{m.hint}</span>
                 {active && (
-                  <span className="absolute right-4 top-4 grid h-5 w-5 place-items-center rounded-full bg-accent text-accent-fg">
+                  <span className="absolute right-3 top-3 grid h-5 w-5 place-items-center rounded-full bg-accent text-accent-fg sm:right-4 sm:top-4">
                     <Check className="h-3 w-3" />
                   </span>
                 )}
@@ -102,7 +103,7 @@ export function AppearanceControls() {
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold text-paper">Reduce transparency</p>
           <p className="mt-0.5 text-xs leading-relaxed text-paper/60" id={reduceId}>
-            Nearly solid panels and no blur, in either theme, for easier reading. Devices that ask for less transparency
+            Nearly solid panels and no blur, in any theme, for easier reading. Devices that ask for less transparency
             get this automatically.
           </p>
         </div>
