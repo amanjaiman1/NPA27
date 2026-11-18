@@ -1,7 +1,7 @@
 # Design system
 
 DoOrDie's look: **calm frosted glass**. Translucent panes on a soft sky-blue
-backdrop with one luminous blue by day, black glass with white buttons by
+backdrop with one luminous blue by day, pure black with white buttons by
 night, Poppins throughout the app, and depth from soft wide shadows and lit
 edges rather than hard borders.
 
@@ -50,14 +50,15 @@ colours.
 | Theme | Canvas | Panes | Text | Accent |
 | --- | --- | --- | --- | --- |
 | **Light** (default) | pale sky `rgb(214 238 251)` under a layered sky | white at 60%, a top sheen and a bright rim | navy `#163147` | `#0E6BC4` fills with white text; `#0A58A6` for accent text |
-| **Dark** | near-black `rgb(8 8 9)` under a soft spotlight from above | charcoal `rgb(30 30 32)` at 70%, a fine lit top edge | soft white `#EDEDED` | white fills with black text; white for accent text |
+| **Dark** | pure black `#000`, with no glow | charcoal glass `rgb(28 28 31)` at 72% (a `#141416` card on black), a fine lit top edge | soft white `#EDEDED` | white fills with black text; white for accent text |
 | **Lavender** | near-white `rgb(247 246 252)` under pastel glows | crisp white at 90%, a lavender-grey edge, soft violet-tinted shadows | ink `#181828` | violet `#6C5CE7` fills with white text; `#5848D6` for accent text |
 
 **Light** is a soft sky of layered cyan and pale-blue light, brightest at the
 top left, with frosted white panes, soft blue-grey shadows and one luminous
-blue. **Dark** is black glass with no blue in its surfaces: a near-black
-backdrop lit softly from above, charcoal panes with a lit top edge, tiles a
-step lighter, and white for what's interactive. Primary buttons are white
+blue. **Dark** is pure black with no blue in its surfaces: the background,
+the page's stage and the navigation are `#000`, set apart by fine hairlines;
+cards are charcoal glass with a lit top edge, tiles a step lighter, and white
+is for what's interactive. Primary buttons are white
 with black text, selected items a lighter grey, and single-series charts,
 progress and heatmaps are drawn in white and greys. Colour is kept for
 meaning: status colours, and the categorical chart colours (white, lime,
@@ -75,10 +76,10 @@ pink, amber and blue.
 
 | | Light | Dark | Lavender |
 | --- | --- | --- | --- |
-| text on a pane | 11–13:1 | 13.7–15.4:1 | 16.8–17.5:1 |
-| accent text on a pane | 5.8–6.8:1 | 16–18:1 (white) | 5.3–6.3:1 |
+| text on a pane | 11–13:1 | 13.2–15.7:1 (18:1 on the background) | 16.8–17.5:1 |
+| accent text on a pane | 5.8–6.8:1 | 15.5–18.4:1 (white) | 5.3–6.3:1 |
 | text on an accent fill | 5.4:1 (white) | 18:1 (black on white) | 4.9:1 (white) |
-| status colours on a pane or tile | 4.6–6.3:1 | 4.9–11.8:1 | 4.6–5.7:1 |
+| status colours on a pane or tile | 4.6–6.3:1 | 5.6–12:1 (4.6:1 on a tile with Reduce transparency) | 4.6–5.7:1 |
 
 Quiet text is written as low-opacity ink (`text-paper/40`), which suits an
 opaque card but is hard to read on glass. Every step below the theme's floor
@@ -155,6 +156,27 @@ visible, so their glass comes from translucency, the sheen, the glint and the
 edge, painted as backgrounds and shadows on the element itself. A dialog over
 a blurred scrim skips its own blur (`.glass-on-scrim`): one backdrop filter
 per layer, never two. Phones use smaller blur radii.
+
+### Buttons: liquid glass
+
+Every button is liquid glass, in two kinds. Each theme sets the values
+(`--lg-*` in the "Liquid glass buttons" block near the top of
+`globals.css`) and one set of rules draws them (in the Materials section):
+
+| Kind | What gets it | Look |
+| --- | --- | --- |
+| clear | `Button` ghost, outline, subtle and danger; `IconButton`; `Chip`; anything with `.lg-clear`; any button or link that is a hairline pill (`border-line rounded-full`) or a centred hairline button (`rounded-lg`/`rounded-xl` with `justify-center` or `place-items-center`); any quiet round or rounded icon button with no fill of its own | a translucent fill that blurs what's behind it (`--lg-blur`, 14px, 8px on phones), a bright rim lit from the top left, a softer rim at the bottom right, light pooled along the bottom edge, a soft drop |
+| tinted | any button or link filled with the accent: the main action, the selected segment, selected toggles | the accent with the same rims and a sheen that stays clear of the label, so text keeps its contrast; danger, success and warning fills get the same in their own colour |
+
+A selected chip keeps its accent wash under clear glass. A segmented
+control's track is a shallow groove (`.lg-track`) the tinted segment sits
+in. Switches stay switches, and cards, list rows and form fields are not
+buttons, so they keep their own materials. Navigation links (the sidebar,
+the rail's page shortcuts, the phone dock) stay navigation items, so actions
+stand out from them; the rail's utilities (search, notifications,
+appearance, settings) are glass buttons. A button opts out of the automatic
+glass by having a resting `bg-` utility. With Reduce transparency the glass
+turns solid: no blur, and an opaque fill in the theme's colours.
 
 **Reduce transparency** (in Appearance, synced as `reduceTransparency`, or
 asked for by the device through `prefers-reduced-transparency`) makes every

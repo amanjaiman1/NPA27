@@ -12,8 +12,8 @@ their devices through Supabase and kept within Supabase's free plan.
 - **Files attached to journal days:** [`docs/attachments.md`](docs/attachments.md).
 - **The four everyday modules:** [Daily Journal](docs/daily-journal.md),
   [Life Dashboard](docs/life-dashboard.md) (including sleep), and the look:
-  the layout, the three themes (Light and Dark, both frosted glass, and
-  Lavender) and Reduce transparency in the
+  the layout, the three themes (Light, Dark and Lavender), liquid glass
+  buttons and Reduce transparency in the
   [design system](docs/design-system.md).
 - **The Roadmap** (your own yearly, monthly and weekly plans):
   [`docs/roadmap.md`](docs/roadmap.md).
