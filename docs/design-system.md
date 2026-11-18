@@ -361,6 +361,21 @@ Lines live in `lib/motivation.ts`, chosen by day index rather than at random so
 the same day always shows the same line, with streak milestones (3, 7, 14, 21,
 30, 50, 75, 100, 150, 200, 365) taking over when they land.
 
+## The exam countdown
+
+The dashboard's greeting carries the days to the exam on a split-flap board
+(`components/dashboard/exam-countdown.tsx`, styled by `.flap` in
+`globals.css`): a tile per digit, lit from above and shaded below, with a hinge
+across the middle and a pin at each end. There are always at least three tiles,
+and leading zeros are dimmed, so the board keeps its shape as the number falls.
+Inside each tile is a reel of 0 to 9 that rolls down to its digit when the
+dashboard opens, hundreds first and units last, and rolls again when the day
+changes; under `prefers-reduced-motion` it simply shows the number. The tiles
+are the accent on Lavender and Light and charcoal on Dark, always with white
+figures. It counts days only: hours and minutes would be noise months out.
+Screen readers hear one sentence ("186 days to UPSC CSE 2027, on 24 May 2027"),
+and the tooltip adds how much of the preparation time has passed.
+
 ## Text over media
 
 A region sitting on a photo or another busy image gets the `.on-media` class.

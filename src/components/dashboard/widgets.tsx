@@ -47,6 +47,7 @@ import { Heatmap } from "@/components/charts/heatmap";
 import { BarChart } from "@/components/charts/bar-chart";
 import { Donut } from "@/components/charts/donut";
 import { Sparkline } from "@/components/charts/sparkline";
+import { ExamCountdown } from "./exam-countdown";
 import { cn } from "@/lib/utils";
 
 const MOOD = ["", "Drained", "Low", "Steady", "Good", "In flow"];
@@ -103,21 +104,20 @@ export function WelcomePanel({ className }: { className?: string }) {
             <div className="min-w-0 leading-tight">
               <p className="truncate text-[0.82rem] font-semibold text-paper">{profile.name || "Your chronicle"}</p>
               {mounted && (
+                // Short, so it stays whole beside the countdown on a phone.
                 <p className="truncate text-[0.72rem] text-paper/60">
-                  {now.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}
+                  {now.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })}
                 </p>
               )}
             </div>
           </div>
-          <div className="flex shrink-0 flex-col items-center gap-1" title={`${Math.round(elapsed)}% of your preparation time has passed`}>
-            <RadialProgress
-              value={elapsed}
-              size={76}
-              stroke={6}
-              label={<span className="text-[1.05rem]">{Math.max(0, daysLeft)}</span>}
-              sublabel="days left"
-            />
-          </div>
+          <ExamCountdown
+            className="shrink-0"
+            daysLeft={daysLeft}
+            examDate={profile.examDate}
+            exam={profile.targetExam}
+            elapsed={elapsed}
+          />
         </div>
 
         <h1 className="mt-5 text-[1.7rem] font-semibold leading-[1.15] tracking-[-0.035em] text-paper sm:text-[2rem]">
