@@ -68,6 +68,12 @@ self.addEventListener("install", (event) => {
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     (async () => {
+      // Pages are network-first. Navigation preload starts that request while
+      // the worker is still waking up, so having a worker never makes a page
+      // slower to arrive: the public site runs it too, on every visit.
+      if (self.registration.navigationPreload) {
+        await self.registration.navigationPreload.enable().catch(() => {});
+      }
       const names = await caches.keys();
       await Promise.all(
         names
@@ -421,7 +427,7 @@ async function staleWhileRevalidate(request, cacheName) {
  * `/journal` share one entry — the app reads its own query string on the
  * client, so the HTML is interchangeable.
  */
-async function documentStrategy(request) {
+async function documentStrategy(request, preloaded) {
   const url = new URL(request.url);
   const key = new Request(url.origin + url.pathname, {
     headers: { accept: "text/html" },
@@ -429,7 +435,8 @@ async function documentStrategy(request) {
   const cache = await caches.open(PAGE_CACHE);
 
   try {
-    const res = await fetch(request);
+    // The response navigation preload already asked for, when there is one.
+    const res = (await preloaded) || (await fetch(request));
     if (res && res.ok && res.type === "basic") {
       cache.put(key, res.clone()).catch(() => {});
     }
@@ -476,11 +483,22 @@ self.addEventListener("fetch", (event) => {
     request.headers.get("Next-Router-Prefetch") === "1" ||
     url.pathname.startsWith("/api/")
   ) {
+    // An API address opened as a page. With navigation preload on, the
+    // browser has already asked for it, and leaving the request to the
+    // browser would ask a second time; so the preloaded answer is used.
+    if (request.mode === "navigate") {
+      event.respondWith(
+        Promise.resolve(event.preloadResponse).then(
+          (res) => res || fetch(request),
+          () => fetch(request),
+        ),
+      );
+    }
     return;
   }
 
   if (request.mode === "navigate" || request.destination === "document") {
-    event.respondWith(documentStrategy(request));
+    event.respondWith(documentStrategy(request, event.preloadResponse));
     return;
   }
 

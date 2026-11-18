@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Bell, Palette } from "lucide-react";
+import { Bell, Palette, Smartphone } from "lucide-react";
 import { useChronicle, useHasHydrated } from "@/lib/store";
 import { withDefaults } from "@/lib/notifications";
 import { PageHeader } from "@/components/ui/page-header";
@@ -13,12 +13,14 @@ import { SettingsSection } from "@/components/settings/section";
 import { ProfileSettings } from "@/components/settings/profile-settings";
 import { AccountSecurity, DangerZone } from "@/components/settings/account-settings";
 import { DataSettings } from "@/components/settings/data-settings";
+import { InstallCard } from "@/components/pwa/install-prompt";
 
 const JUMPS = [
   { id: "profile", label: "Profile & exam" },
   { id: "account", label: "Account", cloudOnly: true },
   { id: "appearance", label: "Appearance" },
   { id: "notifications", label: "Notifications" },
+  { id: "app", label: "App" },
   { id: "data", label: "Data" },
   { id: "danger", label: "Delete" },
 ];
@@ -63,6 +65,15 @@ export default function SettingsPage() {
         description="What's worth telling you, and when. Preferences are per account."
       >
         <SettingsPane settings={withDefaults(notify)} />
+      </SettingsSection>
+
+      <SettingsSection
+        id="app"
+        icon={Smartphone}
+        title="Install the app"
+        description="One tap away on your phone or computer, full screen, and it keeps working offline. Your data syncs when you're back online."
+      >
+        <InstallCard bare />
       </SettingsSection>
 
       <DataSettings />

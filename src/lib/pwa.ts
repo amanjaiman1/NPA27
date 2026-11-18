@@ -1,6 +1,16 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
+
+/* ════════════════════════════════════════════════════════════════
+   THE INSTALLABLE APP — the browser half
+   Registering the service worker, and everything about installing:
+   whether the browser can install the app right now, how to do it
+   where there is no install prompt, and whether it already is.
+
+   Imported by the public site as well as the app, so it must stay
+   small and must not pull in the app's account or storage code.
+   ════════════════════════════════════════════════════════════════ */
 
 /** The (still non-standard) install prompt event. */
 export interface BeforeInstallPromptEvent extends Event {
@@ -39,10 +49,200 @@ export function isIos(): boolean {
   );
 }
 
-export type InstallState = {
+/**
+ * Safari 17 or later on a Mac, which installs web apps from File → Add to
+ * Dock and has no install prompt either. Best effort by nature: a wrong guess
+ * only means the wrong instructions are offered, never a broken page.
+ */
+export function isMacSafari(): boolean {
+  if (typeof navigator === "undefined") return false;
+  const ua = navigator.userAgent;
+  if (!/Macintosh/.test(ua) || navigator.maxTouchPoints > 1) return false;
+  if (/Chrome|Chromium|CriOS|Edg|OPR|Firefox|FxiOS/.test(ua)) return false;
+  const version = /Version\/(\d+)/.exec(ua);
+  return Boolean(version && Number(version[1]) >= 17 && /Safari\//.test(ua));
+}
+
+/* ── the service worker ──────────────────────────────────────────── */
+
+let registering: Promise<ServiceWorkerRegistration | null> | null = null;
+
+/**
+ * Registers the service worker, once per page, on the public site and in the
+ * app alike. It waits until the page has finished loading and the browser is
+ * idle, so it never competes with what the visitor came to see.
+ *
+ * Production builds only: `next dev` is left alone so hot reload keeps
+ * working. Resolves to null wherever there can be no worker (an old browser,
+ * private browsing that blocks it, a page served over plain HTTP).
+ */
+export function registerServiceWorker(): Promise<ServiceWorkerRegistration | null> {
+  if (registering) return registering;
+  if (
+    typeof window === "undefined" ||
+    process.env.NODE_ENV !== "production" ||
+    !("serviceWorker" in navigator) ||
+    !window.isSecureContext
+  ) {
+    return Promise.resolve(null);
+  }
+  registering = new Promise((resolve) => {
+    const go = () => {
+      navigator.serviceWorker.register("/sw.js", { scope: "/" }).then(resolve, () => resolve(null));
+    };
+    // Safari has no requestIdleCallback; a timer is the next best thing.
+    const idle = (window as Window & { requestIdleCallback?: Window["requestIdleCallback"] })
+      .requestIdleCallback;
+    const whenIdle = () => {
+      if (idle) idle.call(window, go, { timeout: 3000 });
+      else setTimeout(go, 1);
+    };
+    if (document.readyState === "complete") whenIdle();
+    else window.addEventListener("load", whenIdle, { once: true });
+  });
+  return registering;
+}
+
+/* ── installing ──────────────────────────────────────────────────── */
+
+/** How to install where the browser offers no prompt. */
+export type ManualInstall = "ios" | "mac-safari" | null;
+
+export interface InstallSnapshot {
+  /** The browser's own install dialog is ready to be opened (Chrome, Edge, Android). */
+  canPrompt: boolean;
+  /** Running as the installed app right now. */
+  standalone: boolean;
+  /** Installed from this tab during this visit. */
+  justInstalled: boolean;
+  /** Instructions to give instead, where there is no install dialog. */
+  manual: ManualInstall;
+}
+
+const NOTHING: InstallSnapshot = {
+  canPrompt: false,
+  standalone: false,
+  justInstalled: false,
+  manual: null,
+};
+
+/**
+ * One install state for the whole page. Every button reads it, so they all
+ * change together: once one opens the browser's install dialog, the others
+ * stop offering it (the browser's event can only be used once).
+ */
+let deferred: BeforeInstallPromptEvent | null = null;
+let installedNow = false;
+let snapshot: InstallSnapshot = NOTHING;
+let listening = false;
+const listeners = new Set<() => void>();
+
+function compute(): InstallSnapshot {
+  const standalone = isStandalone();
+  const settled = standalone || installedNow;
+  return {
+    canPrompt: Boolean(deferred) && !settled,
+    standalone,
+    justInstalled: installedNow,
+    manual: settled ? null : isIos() ? "ios" : isMacSafari() ? "mac-safari" : null,
+  };
+}
+
+function publish() {
+  const next = compute();
+  if (
+    next.canPrompt === snapshot.canPrompt &&
+    next.standalone === snapshot.standalone &&
+    next.justInstalled === snapshot.justInstalled &&
+    next.manual === snapshot.manual
+  ) {
+    return;
+  }
+  snapshot = next;
+  listeners.forEach((listener) => listener());
+}
+
+/** The event can only be used once, so the copy stashed before React loaded goes too. */
+function forgetEvent() {
+  deferred = null;
+  delete (window as unknown as { __chronicleInstallEvent?: unknown }).__chronicleInstallEvent;
+}
+
+function listen() {
+  if (listening || typeof window === "undefined") return;
+  listening = true;
+  // `beforeinstallprompt` often fires before React has loaded, so an inline
+  // script in app/layout.tsx keeps the earliest one on `window`.
+  const stashed = (window as unknown as { __chronicleInstallEvent?: BeforeInstallPromptEvent })
+    .__chronicleInstallEvent;
+  if (stashed) deferred = stashed;
+  window.addEventListener("beforeinstallprompt", (e) => {
+    // Our own buttons offer it, so the browser's mini-infobar stays away.
+    e.preventDefault();
+    deferred = e as BeforeInstallPromptEvent;
+    publish();
+  });
+  window.addEventListener("appinstalled", () => {
+    forgetEvent();
+    installedNow = true;
+    publish();
+  });
+  for (const query of [
+    "(display-mode: standalone)",
+    "(display-mode: minimal-ui)",
+    "(display-mode: window-controls-overlay)",
+  ]) {
+    window.matchMedia(query).addEventListener?.("change", publish);
+  }
+  snapshot = compute();
+}
+
+function subscribe(listener: () => void) {
+  listen();
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+}
+
+function readSnapshot(): InstallSnapshot {
+  listen();
+  return snapshot;
+}
+
+/** The server never knows; the first render in the browser corrects it. */
+const serverSnapshot = (): InstallSnapshot => NOTHING;
+
+/** What the browser allows right now. Offers nothing until the page has loaded. */
+export function useInstallState(): InstallSnapshot {
+  return useSyncExternalStore(subscribe, readSnapshot, serverSnapshot);
+}
+
+/**
+ * Opens the browser's install dialog. Must be called from a click or a tap.
+ * Resolves to true when the person installed the app.
+ */
+export async function promptInstall(): Promise<boolean> {
+  const event = deferred;
+  if (!event) return false;
+  try {
+    await event.prompt();
+    const { outcome } = await event.userChoice;
+    forgetEvent();
+    if (outcome === "accepted") installedNow = true;
+    publish();
+    return outcome === "accepted";
+  } catch {
+    forgetEvent();
+    publish();
+    return false;
+  }
+}
+
+export type InstallState = InstallSnapshot & {
   /** The browser offered a native install prompt. */
   canInstall: boolean;
-  /** Already installed / launched as an app. */
+  /** Running as the app, or installed during this visit. */
   installed: boolean;
   /** Needs the manual iOS "Add to Home Screen" flow. */
   needsIosInstructions: boolean;
@@ -54,72 +254,20 @@ export type InstallState = {
   dismissBanner: () => void;
 };
 
-/**
- * Tracks installability. `beforeinstallprompt` can fire before React mounts,
- * so `pwa-install-listener.ts` stashes the earliest event on `window` and we
- * read it back here.
- */
+/** The install state, plus the fortnight-long "not now" of the app's banner. */
 export function useInstall(): InstallState {
-  const [event, setEvent] = useState<BeforeInstallPromptEvent | null>(null);
-  const [installed, setInstalled] = useState(false);
+  const state = useInstallState();
   const [dismissed, setDismissed] = useState(true); // assume dismissed until read
-  const [ios, setIos] = useState(false);
 
   useEffect(() => {
-    setInstalled(isStandalone());
-    setIos(isIos() && !isStandalone());
-
     try {
       const raw = localStorage.getItem(DISMISS_KEY);
       const at = raw ? Number(raw) : 0;
-      setDismissed(
-        Boolean(at) && Date.now() - at < DISMISS_DAYS * 86_400_000,
-      );
+      setDismissed(Boolean(at) && Date.now() - at < DISMISS_DAYS * 86_400_000);
     } catch {
       setDismissed(false);
     }
-
-    const stashed = (
-      window as unknown as { __chronicleInstallEvent?: BeforeInstallPromptEvent }
-    ).__chronicleInstallEvent;
-    if (stashed) setEvent(stashed);
-
-    const onPrompt = (e: Event) => {
-      e.preventDefault();
-      setEvent(e as BeforeInstallPromptEvent);
-    };
-    const onInstalled = () => {
-      setInstalled(true);
-      setEvent(null);
-    };
-    const display = window.matchMedia("(display-mode: standalone)");
-    const onDisplayChange = () => setInstalled(isStandalone());
-
-    window.addEventListener("beforeinstallprompt", onPrompt);
-    window.addEventListener("appinstalled", onInstalled);
-    display.addEventListener("change", onDisplayChange);
-    return () => {
-      window.removeEventListener("beforeinstallprompt", onPrompt);
-      window.removeEventListener("appinstalled", onInstalled);
-      display.removeEventListener("change", onDisplayChange);
-    };
   }, []);
-
-  const promptInstall = useCallback(async () => {
-    if (!event) return false;
-    try {
-      await event.prompt();
-      const { outcome } = await event.userChoice;
-      // The event can only be used once.
-      setEvent(null);
-      delete (window as unknown as { __chronicleInstallEvent?: unknown })
-        .__chronicleInstallEvent;
-      if (outcome === "accepted") setInstalled(true);
-      return outcome === "accepted";
-    } catch {
-      return false;
-    }
-  }, [event]);
 
   const dismissBanner = useCallback(() => {
     setDismissed(true);
@@ -130,14 +278,14 @@ export function useInstall(): InstallState {
     }
   }, []);
 
-  const canInstall = Boolean(event) && !installed;
-
+  const installed = state.standalone || state.justInstalled;
   return {
-    canInstall,
+    ...state,
+    canInstall: state.canPrompt,
     installed,
-    needsIosInstructions: ios,
+    needsIosInstructions: state.manual === "ios",
     promptInstall,
-    bannerVisible: !installed && !dismissed && (canInstall || ios),
+    bannerVisible: !installed && !dismissed && (state.canPrompt || state.manual === "ios"),
     dismissBanner,
   };
 }
@@ -160,9 +308,6 @@ export function useServiceWorker() {
   }, []);
 
   useEffect(() => {
-    if (process.env.NODE_ENV !== "production") return;
-    if (!("serviceWorker" in navigator)) return;
-
     let cancelled = false;
     let reg: ServiceWorkerRegistration | undefined;
 
@@ -182,18 +327,13 @@ export function useServiceWorker() {
       });
     };
 
-    navigator.serviceWorker
-      .register("/sw.js", { scope: "/" })
-      .then((r) => {
-        if (cancelled) return;
-        reg = r;
-        track(r);
-        // Look for a fresh build on load and hourly thereafter.
-        r.update().catch(() => {});
-      })
-      .catch(() => {
-        /* registration blocked (private mode, unsupported) — app still works */
-      });
+    void registerServiceWorker().then((r) => {
+      if (!r || cancelled) return;
+      reg = r;
+      track(r);
+      // Look for a fresh build on load and hourly thereafter.
+      r.update().catch(() => {});
+    });
 
     const interval = window.setInterval(
       () => reg?.update().catch(() => {}),

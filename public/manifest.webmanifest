@@ -6,7 +6,6 @@
   "start_url": "/dashboard?source=pwa",
   "scope": "/",
   "display": "standalone",
-  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
   "orientation": "any",
   "background_color": "#f7f6fc",
   "theme_color": "#f7f6fc",
@@ -38,6 +37,50 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshots/dashboard.jpg",
+      "sizes": "1280x800",
+      "type": "image/jpeg",
+      "form_factor": "wide",
+      "label": "The Command Center: the days to the exam, streaks, hours and a year of study"
+    },
+    {
+      "src": "/screenshots/journal.jpg",
+      "sizes": "1280x800",
+      "type": "image/jpeg",
+      "form_factor": "wide",
+      "label": "The daily journal, with every day of preparation written down"
+    },
+    {
+      "src": "/screenshots/revision.jpg",
+      "sizes": "1280x800",
+      "type": "image/jpeg",
+      "form_factor": "wide",
+      "label": "Revision on a spaced schedule, with what is due today"
+    },
+    {
+      "src": "/screenshots/goals.jpg",
+      "sizes": "1280x800",
+      "type": "image/jpeg",
+      "form_factor": "wide",
+      "label": "Goals that track themselves from your study"
+    },
+    {
+      "src": "/screenshots/dashboard-mobile.jpg",
+      "sizes": "585x1266",
+      "type": "image/jpeg",
+      "form_factor": "narrow",
+      "label": "The Command Center on a phone"
+    },
+    {
+      "src": "/screenshots/journal-entry-mobile.jpg",
+      "sizes": "585x1266",
+      "type": "image/jpeg",
+      "form_factor": "narrow",
+      "label": "Logging a day of study on a phone"
     }
   ],
   "shortcuts": [
