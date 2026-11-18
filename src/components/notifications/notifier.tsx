@@ -2,8 +2,10 @@
 
 import { useEffect, useRef } from "react";
 import { useChronicle } from "@/lib/store";
-import { planDelivery } from "@/lib/notifications";
+import { useAccount } from "@/components/account/account-session";
+import { DIGEST_TAG, foldDeviceDeliveries, planDelivery } from "@/lib/notifications";
 import { useNotifications, useNotificationPermission } from "./use-notifications";
+import { readDeviceDeliveries, rememberDelivery } from "./device-deliveries";
 
 /**
  * Hands a notice to the operating system.
@@ -65,16 +67,19 @@ async function show(opts: {
  * verified without a browser.
  */
 export function Notifier() {
-  const { inbox, settings, notifyLog, hydrated } = useNotifications();
+  const { inbox, settings, notifyLog, now, hydrated, ready } = useNotifications();
   const { permission } = useNotificationPermission();
+  const { accountId } = useAccount();
   const record = useChronicle((s) => s.recordNoticeDelivery);
 
   /**
-   * Guards against a second effect run firing the same thing twice before the
-   * store write that would have deduped it has landed. React 18 in development
-   * mounts effects twice, and without this the first toast arrives in pairs.
+   * Set while a notification is being shown. Another run in that window — data
+   * changing as it goes out, or React 18 mounting effects twice in development —
+   * would otherwise send a second one before the first is in the log. Cleared
+   * once it is; from then on the log does the deduping, and the change to it
+   * re-runs the effect, so nothing skipped here is lost.
    */
-  const inFlight = useRef<string | null>(null);
+  const busy = useRef(false);
 
   /**
    * The app badge: the count on the macOS dock icon and the Android launcher
@@ -93,47 +98,76 @@ export function Notifier() {
     else void navigator.clearAppBadge().catch(() => {});
   }, [hydrated, inbox.unread]);
 
+  /**
+   * Re-run every minute (`now`) as well as on every change, because the digest
+   * hour and the end of quiet hours arrive without anything else changing.
+   *
+   * Waits for `ready`, not just hydration: until the first sync lands, the data
+   * here can be days behind another device, and a notice already read on the
+   * phone would be announced again on the laptop.
+   */
   useEffect(() => {
-    if (!hydrated) return;
+    if (!ready) return;
     if (permission !== "granted") return;
     if (!settings.enabled || !settings.deliver) return;
 
-    const now = new Date();
-    const plan = planDelivery(inbox, settings, notifyLog, now);
-    if (plan.kind === "none") return;
-
-    const digest = plan.kind === "digest";
-    const key = digest
-      ? `digest:${plan.notices.map((n) => n.id).join(",")}`
-      : `one:${plan.notices[0].id}`;
-    if (inFlight.current === key) return;
-    inFlight.current = key;
-
-    const title = digest ? plan.title : plan.notices[0].title;
-    const body = digest ? plan.body : plan.notices[0].body;
     /**
-     * The digest links home, not to any one page — picking the top notice's
-     * destination would silently drop the other things it is telling you about.
+     * Decided without any I/O first. Folding in what the server has pushed can
+     * only make the gates stricter, so when the page's own log already says
+     * "nothing", the device record is never read — which is nearly every minute.
      */
-    const href = digest ? "/dashboard" : plan.notices[0].href;
-    const tag = digest ? "chronicle-digest" : plan.notices[0].dedupeKey;
+    const first = planDelivery(inbox, settings, notifyLog, new Date());
+    if (first.kind === "none") return;
 
-    let cancelled = false;
-    void show({ title, body, href, tag }).then((sent) => {
-      if (cancelled) return;
+    let stale = false;
+    void (async () => {
+      const shown = await readDeviceDeliveries(accountId);
+      // A newer run (fresher data, or the next minute) decides instead.
+      if (stale) return;
+
+      const at = new Date();
+      // The newest log, not this render's: a delivery recorded a moment ago by
+      // an earlier run must count here.
+      const log = foldDeviceDeliveries(useChronicle.getState().notifyLog, shown, at);
+      const plan = planDelivery(inbox, settings, log, at);
+      if (plan.kind === "none") return;
+
+      if (busy.current) return;
+      busy.current = true;
+
+      const digest = plan.kind === "digest";
+
+      const title = digest ? plan.title : plan.notices[0].title;
+      const body = digest ? plan.body : plan.notices[0].body;
       /**
-       * Only recorded once the OS actually accepted it. Recording a delivery
-       * that never appeared would burn the day's cap and the per-subject
-       * cooldown on a notification nobody ever saw.
+       * The digest links home, not to any one page — picking the top notice's
+       * destination would silently drop the other things it is telling you about.
        */
-      if (sent) record(plan.notices, now, digest);
-      else inFlight.current = null;
-    });
+      const href = digest ? "/dashboard" : plan.notices[0].href;
+      const tag = digest ? DIGEST_TAG : plan.notices[0].dedupeKey;
+
+      try {
+        const sent = await show({ title, body, href, tag });
+        /**
+         * Only recorded once the OS actually accepted it — recording a delivery
+         * that never appeared would burn the day's cap and the per-subject
+         * cooldown on a notification nobody saw. And recorded even if this run
+         * has since gone stale: it *was* shown, and an unrecorded delivery is
+         * one that gets sent again.
+         */
+        if (sent) {
+          record(plan.notices, at, digest);
+          void rememberDelivery(tag, accountId);
+        }
+      } finally {
+        busy.current = false;
+      }
+    })();
 
     return () => {
-      cancelled = true;
+      stale = true;
     };
-  }, [hydrated, permission, inbox, settings, notifyLog, record]);
+  }, [ready, permission, inbox, settings, notifyLog, now, record, accountId]);
 
   return null;
 }

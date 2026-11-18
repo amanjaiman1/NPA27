@@ -246,31 +246,50 @@ export function usePushSubscription() {
       setSubscribed(false);
       return;
     }
-    const reg = await serviceWorkerReady();
-    const sub = await reg?.pushManager.getSubscription();
-    setSubscribed(Boolean(sub));
+    try {
+      const reg = await serviceWorkerReady();
+      const sub = await reg?.pushManager.getSubscription();
+      setSubscribed(Boolean(sub));
+    } catch {
+      setSubscribed(false);
+    }
   }, []);
 
   useEffect(() => {
     void refresh();
   }, [refresh]);
 
+  /**
+   * `finally`, so a throw anywhere on the way — the worker, the push service,
+   * the network — can't leave the switch disabled for the rest of the visit.
+   */
   const enable = useCallback(async () => {
     setBusy(true);
     setError(null);
-    const result = await subscribeToPush();
-    if (!result.ok) setError(result.reason);
-    await refresh();
-    setBusy(false);
-    return result.ok;
+    try {
+      const result = await subscribeToPush();
+      if (!result.ok) setError(result.reason);
+      return result.ok;
+    } catch {
+      setError("failed");
+      return false;
+    } finally {
+      await refresh().catch(() => {});
+      setBusy(false);
+    }
   }, [refresh]);
 
   const disable = useCallback(async () => {
     setBusy(true);
     setError(null);
-    await unsubscribeFromPush();
-    await refresh();
-    setBusy(false);
+    try {
+      await unsubscribeFromPush();
+    } catch {
+      setError("failed");
+    } finally {
+      await refresh().catch(() => {});
+      setBusy(false);
+    }
   }, [refresh]);
 
   return {

@@ -12,6 +12,7 @@ import { CommandPalette } from "./command-palette";
 import { AppearanceModal } from "./appearance";
 import { BottomNav } from "./bottom-nav";
 import { FileJanitor } from "@/components/attachments/file-janitor";
+import { NotificationsProvider } from "@/components/notifications/use-notifications";
 import { useMatchMedia } from "@/lib/hooks";
 
 /** "1" when the person hid the sidebar on a wide screen. Same key as before. */
@@ -106,129 +107,133 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <MotionConfig reducedMotion="user">
-      <div className="app-root relative flex h-[100dvh] overflow-hidden">
-        {/* The page-to-page wait. Driven from the tap rather than from the
-            router; see `route-transition.tsx`. In Suspense because it reads
-            the search params. */}
-        <Suspense fallback={null}>
-          <RouteTransition />
-        </Suspense>
+    // One notification inbox for the whole shell: the bell, its panel and the
+    // notifier all read the same evaluation.
+    <NotificationsProvider>
+      <MotionConfig reducedMotion="user">
+        <div className="app-root relative flex h-[100dvh] overflow-hidden">
+          {/* The page-to-page wait. Driven from the tap rather than from the
+              router; see `route-transition.tsx`. In Suspense because it reads
+              the search params. */}
+          <Suspense fallback={null}>
+            <RouteTransition />
+          </Suspense>
 
-        {/* The environment: each theme's layered backdrop, painted once. */}
-        <div aria-hidden className="app-backdrop pointer-events-none fixed inset-0 -z-10" />
+          {/* The environment: each theme's layered backdrop, painted once. */}
+          <div aria-hidden className="app-backdrop pointer-events-none fixed inset-0 -z-10" />
 
-        {/* Desktop: the rail, and the sidebar docked beside it. */}
-        {desktop && (
-          <div className="flex shrink-0 py-3 pl-3">
-            <NavRail
-              sidebarOpen={sidebarShowing}
-              onToggleSidebar={toggleSidebar}
-              onOpenPalette={openPalette}
-              onOpenAppearance={openAppearance}
-            />
-            <AnimatePresence initial={false}>
-              {docked && (
+          {/* Desktop: the rail, and the sidebar docked beside it. */}
+          {desktop && (
+            <div className="flex shrink-0 py-3 pl-3">
+              <NavRail
+                sidebarOpen={sidebarShowing}
+                onToggleSidebar={toggleSidebar}
+                onOpenPalette={openPalette}
+                onOpenAppearance={openAppearance}
+              />
+              <AnimatePresence initial={false}>
+                {docked && (
+                  <motion.div
+                    key="docked-sidebar"
+                    className="h-full shrink-0 [overflow-clip-margin:2.5rem] [overflow:clip]"
+                    initial={{ width: 0, marginLeft: 0, opacity: 0 }}
+                    animate={{ width: "16rem", marginLeft: "0.75rem", opacity: 1 }}
+                    exit={{ width: 0, marginLeft: 0, opacity: 0 }}
+                    transition={{ duration: 0.3, ease: EASE }}
+                  >
+                    <Sidebar
+                      variant="docked"
+                      onCollapse={() => setCollapsedPref(true)}
+                      onOpenPalette={openPalette}
+                      onOpenAppearance={openAppearance}
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          )}
+
+          {/* A narrower desktop: the sidebar opens from the rail, over the page. */}
+          <AnimatePresence>
+            {desktop && !wide && flyoutOpen && (
+              <>
                 <motion.div
-                  key="docked-sidebar"
-                  className="h-full shrink-0 [overflow-clip-margin:2.5rem] [overflow:clip]"
-                  initial={{ width: 0, marginLeft: 0, opacity: 0 }}
-                  animate={{ width: "16rem", marginLeft: "0.75rem", opacity: 1 }}
-                  exit={{ width: 0, marginLeft: 0, opacity: 0 }}
-                  transition={{ duration: 0.3, ease: EASE }}
+                  key="flyout-scrim"
+                  className="fixed inset-0 z-40 bg-scrim/15"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.15 }}
+                  onClick={() => setFlyoutOpen(false)}
+                />
+                <motion.div
+                  key="flyout"
+                  className="fixed bottom-3 left-[6.25rem] top-3 z-50"
+                  initial={{ opacity: 0, x: -12 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -8 }}
+                  transition={{ duration: 0.22, ease: EASE }}
                 >
                   <Sidebar
-                    variant="docked"
-                    onCollapse={() => setCollapsedPref(true)}
+                    variant="flyout"
+                    onNavigate={() => setFlyoutOpen(false)}
                     onOpenPalette={openPalette}
                     onOpenAppearance={openAppearance}
                   />
                 </motion.div>
-              )}
-            </AnimatePresence>
+              </>
+            )}
+          </AnimatePresence>
+
+          {/* A phone: the sidebar as a drawer. */}
+          <AnimatePresence>
+            {!desktop && drawerOpen && (
+              <>
+                <motion.div
+                  key="drawer-scrim"
+                  className="fixed inset-0 z-40 bg-scrim/50 backdrop-blur-[2px]"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  onClick={() => setDrawerOpen(false)}
+                />
+                <motion.div
+                  key="drawer"
+                  className="fixed inset-y-0 left-0 z-50"
+                  initial={{ x: "-100%" }}
+                  animate={{ x: 0 }}
+                  exit={{ x: "-100%" }}
+                  transition={{ type: "spring", damping: 32, stiffness: 320 }}
+                >
+                  <Sidebar
+                    variant="drawer"
+                    onNavigate={() => setDrawerOpen(false)}
+                    onOpenPalette={openPalette}
+                    onOpenAppearance={openAppearance}
+                  />
+                </motion.div>
+              </>
+            )}
+          </AnimatePresence>
+
+          {/* The page: the search bar, then the stage. */}
+          <div className="flex min-w-0 flex-1 flex-col gap-3 lg:py-3 lg:pl-3 lg:pr-3">
+            <Topbar desktop={desktop} onOpenDrawer={() => setDrawerOpen(true)} onOpenPalette={openPalette} />
+            <main className="app-stage no-scrollbar relative min-h-0 flex-1 overflow-y-auto">
+              {/* Bottom padding clears the phone's dock. */}
+              <div className="mx-auto w-full max-w-[1480px] px-4 pb-[calc(var(--bottom-nav-h,0px)+1.5rem)] pt-3 sm:px-6 lg:px-8 lg:pb-10 lg:pt-8 2xl:px-10">
+                <PageTransition>{children}</PageTransition>
+              </div>
+            </main>
           </div>
-        )}
 
-        {/* A narrower desktop: the sidebar opens from the rail, over the page. */}
-        <AnimatePresence>
-          {desktop && !wide && flyoutOpen && (
-            <>
-              <motion.div
-                key="flyout-scrim"
-                className="fixed inset-0 z-40 bg-scrim/15"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.15 }}
-                onClick={() => setFlyoutOpen(false)}
-              />
-              <motion.div
-                key="flyout"
-                className="fixed bottom-3 left-[6.25rem] top-3 z-50"
-                initial={{ opacity: 0, x: -12 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -8 }}
-                transition={{ duration: 0.22, ease: EASE }}
-              >
-                <Sidebar
-                  variant="flyout"
-                  onNavigate={() => setFlyoutOpen(false)}
-                  onOpenPalette={openPalette}
-                  onOpenAppearance={openAppearance}
-                />
-              </motion.div>
-            </>
-          )}
-        </AnimatePresence>
+          <BottomNav onOpenMenu={() => setDrawerOpen(true)} />
+          <FileJanitor />
 
-        {/* A phone: the sidebar as a drawer. */}
-        <AnimatePresence>
-          {!desktop && drawerOpen && (
-            <>
-              <motion.div
-                key="drawer-scrim"
-                className="fixed inset-0 z-40 bg-scrim/50 backdrop-blur-[2px]"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                onClick={() => setDrawerOpen(false)}
-              />
-              <motion.div
-                key="drawer"
-                className="fixed inset-y-0 left-0 z-50"
-                initial={{ x: "-100%" }}
-                animate={{ x: 0 }}
-                exit={{ x: "-100%" }}
-                transition={{ type: "spring", damping: 32, stiffness: 320 }}
-              >
-                <Sidebar
-                  variant="drawer"
-                  onNavigate={() => setDrawerOpen(false)}
-                  onOpenPalette={openPalette}
-                  onOpenAppearance={openAppearance}
-                />
-              </motion.div>
-            </>
-          )}
-        </AnimatePresence>
-
-        {/* The page: the search bar, then the stage. */}
-        <div className="flex min-w-0 flex-1 flex-col gap-3 lg:py-3 lg:pl-3 lg:pr-3">
-          <Topbar desktop={desktop} onOpenDrawer={() => setDrawerOpen(true)} onOpenPalette={openPalette} />
-          <main className="app-stage no-scrollbar relative min-h-0 flex-1 overflow-y-auto">
-            {/* Bottom padding clears the phone's dock. */}
-            <div className="mx-auto w-full max-w-[1480px] px-4 pb-[calc(var(--bottom-nav-h,0px)+1.5rem)] pt-3 sm:px-6 lg:px-8 lg:pb-10 lg:pt-8 2xl:px-10">
-              <PageTransition>{children}</PageTransition>
-            </div>
-          </main>
+          <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
+          <AppearanceModal open={appearanceOpen} onClose={() => setAppearanceOpen(false)} />
         </div>
-
-        <BottomNav onOpenMenu={() => setDrawerOpen(true)} />
-        <FileJanitor />
-
-        <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
-        <AppearanceModal open={appearanceOpen} onClose={() => setAppearanceOpen(false)} />
-      </div>
-    </MotionConfig>
+      </MotionConfig>
+    </NotificationsProvider>
   );
 }

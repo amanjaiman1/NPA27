@@ -9,7 +9,7 @@ export type ISODate = string; // "yyyy-mm-dd"
 export type Theme = "dark" | "light";
 
 /**
- * The theme the user picked: Light (the default), Dark or Lavender. Synced
+ * The theme the user picked: Lavender (the default), Light or Dark. Synced
  * with the account. Values older versions saved ("blue", "system") are read
  * by `legacyThemeMode` in lib/theme.ts.
  */

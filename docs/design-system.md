@@ -42,6 +42,9 @@ recessed fill in every theme, not a light or dark one.
 
 Three themes. The choice (`themeMode` on the store: `light`, `dark` or
 `lavender`) syncs with the account, so it follows the person to every device.
+**Lavender is the default**: a new account, the sign-in screens, the public
+site and the offline page start in it, and so does anything that was never
+chosen. An account that already saved Light or Dark keeps it.
 The CSS sees it as `data-surface` on `<html>`: `white` for Light, `black` for
 Dark, `lavender` for Lavender. Each theme sets every token itself, so a
 preview of one drawn inside another (the cards in Appearance) shows its own
@@ -49,9 +52,9 @@ colours.
 
 | Theme | Canvas | Panes | Text | Accent |
 | --- | --- | --- | --- | --- |
-| **Light** (default) | pale sky `rgb(214 238 251)` under a layered sky | white at 60%, a top sheen and a bright rim | navy `#163147` | `#0E6BC4` fills with white text; `#0A58A6` for accent text |
+| **Light** | pale sky `rgb(214 238 251)` under a layered sky | white at 60%, a top sheen and a bright rim | navy `#163147` | `#0E6BC4` fills with white text; `#0A58A6` for accent text |
 | **Dark** | pure black `#000`, with no glow | charcoal glass `rgb(28 28 31)` at 72% (a `#141416` card on black), a fine lit top edge | soft white `#EDEDED` | white fills with black text; white for accent text |
-| **Lavender** | near-white `rgb(247 246 252)` under pastel glows | crisp white at 90%, a lavender-grey edge, soft violet-tinted shadows | ink `#181828` | violet `#6C5CE7` fills with white text; `#5848D6` for accent text |
+| **Lavender** (default) | near-white `rgb(247 246 252)` under pastel glows | crisp white at 90%, a lavender-grey edge, soft violet-tinted shadows | ink `#181828` | violet `#6C5CE7` fills with white text; `#5848D6` for accent text |
 
 **Light** is a soft sky of layered cyan and pale-blue light, brightest at the
 top left, with frosted white panes, soft blue-grey shadows and one luminous
@@ -357,6 +360,21 @@ and the static medal carries the moment.
 Lines live in `lib/motivation.ts`, chosen by day index rather than at random so
 the same day always shows the same line, with streak milestones (3, 7, 14, 21,
 30, 50, 75, 100, 150, 200, 365) taking over when they land.
+
+## The exam countdown
+
+The dashboard's greeting carries the days to the exam on a split-flap board
+(`components/dashboard/exam-countdown.tsx`, styled by `.flap` in
+`globals.css`): a tile per digit, lit from above and shaded below, with a hinge
+across the middle and a pin at each end. There are always at least three tiles,
+and leading zeros are dimmed, so the board keeps its shape as the number falls.
+Inside each tile is a reel of 0 to 9 that rolls down to its digit when the
+dashboard opens, hundreds first and units last, and rolls again when the day
+changes; under `prefers-reduced-motion` it simply shows the number. The tiles
+are the accent on Lavender and Light and charcoal on Dark, always with white
+figures. It counts days only: hours and minutes would be noise months out.
+Screen readers hear one sentence ("186 days to UPSC CSE 2027, on 24 May 2027"),
+and the tooltip adds how much of the preparation time has passed.
 
 ## Text over media
 

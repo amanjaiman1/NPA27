@@ -24,7 +24,12 @@ still have a complete, useful feature — layers 4 and 5 are delivery mechanisms
 | 5 · Background push | Delivers when the app is **closed**: a cron-driven dispatcher, per-device subscriptions, and the worker's `push` / `notificationclick` handlers. Off unless configured. | `src/app/api/push/*`, `src/lib/push*.ts`, `public/sw.js` |
 
 The store binding lives in `src/components/notifications/use-notifications.ts`,
-which is the only place the engine is called from the UI.
+which is the only place the engine is called from the UI. Its
+`NotificationsProvider` is mounted once, in the app shell, and evaluates once:
+the bell, the panel (rendered through a portal, which keeps React context) and
+the notifier all read that one result through `useNotifications()`. Each used to
+run its own copy, with its own clock and listeners, so every change was
+evaluated two or three times over.
 
 ### Data flow
 
@@ -51,8 +56,9 @@ settings ───────┘                                            │
 ```
 
 `evaluate`, `buildInbox`, `planDelivery` and `recordDelivery` are all pure and
-all tested under plain `node`. The component layer only supplies the clock, the
-permission state and the one actual side effect.
+all tested under plain `node` (`tests/notifications.test.ts`, and the server half
+in `tests/push-dispatch.test.ts`). The component layer only supplies the clock,
+the permission state and the one actual side effect.
 
 The engine is called with an explicit `now`, never `new Date()` internally.
 Every rule is therefore testable at any instant, and the timezone bug class that
@@ -209,6 +215,19 @@ a single summary the moment the night is over.
 
 A delivery is recorded only once the OS has accepted it. Recording one that never
 appeared would burn the day's cap and the cooldown on a notification nobody saw.
+Once accepted it is always recorded, even if the data changed while it was going
+out; an unrecorded delivery is one that gets sent again.
+
+The page does not notify until the first cloud sync of the visit has finished
+(or cannot happen: offline, an error, a local-only account). Until then the data
+on screen may be days behind another device, and something already read on the
+phone would be announced again on the laptop. The bell itself shows straight
+away.
+
+The log only keeps a subject for a week (`DELIVERY_LOG_KEEP_DAYS`). The gates
+only ever look at today and at the newest instant, so older entries were dead
+weight that grew with every goal and book that ever produced a notice. The
+server's log is folded by the same function.
 
 ## Where state lives
 
@@ -268,6 +287,13 @@ the feature already visible above it.
 plainly and points at the browser's own site settings instead of pretending a
 retry will help.
 
+The permission is one value for the whole page (`useNotificationPermission`
+reads a shared store). Each caller used to keep its own copy, so allowing
+notifications in the settings pane left the notifier still believing the answer
+was "not yet", and nothing was delivered until a reload. A change made in the
+browser's own site settings is picked up too: live through the Permissions API
+where the browser reports it, and on returning to the tab everywhere else.
+
 ## What works when
 
 | Situation | Centre / bell | OS notification |
@@ -311,7 +337,11 @@ alone, an Indian user's quiet hours would begin at 03:30 their time and "today"
 would roll over mid-afternoon.
 
 `zonedNow(tz)` in `lib/zoned-time.ts` returns a `Date` whose component getters
-already read as the user's wall clock, so no rule needed changing. The device's
+already read as the user's wall clock, so no rule needed changing. The minimum
+gap is the one check that must not use it: it is a duration, measured against
+the true instants in `lastSentAt`, so `planDelivery` takes the real instant as a
+separate argument. Measured from the carrier it was off by the zone's whole
+offset, and for India it never held at all. The device's
 IANA zone is captured at subscribe time; where a user's devices disagree the
 majority wins, with an alphabetical tie-break so the choice is stable.
 
@@ -357,6 +387,38 @@ One payload, fields a platform doesn't support are simply ignored:
 **Later** dismisses the notification and nothing else — the point is to clear
 your lock screen *without* being pulled into the app. It resolves nothing, so the
 notice comes back by the normal rules.
+
+Clicking a notification while the app is open changes page inside the app, with
+nothing reloaded: the worker focuses the window and asks it to route
+(`chronicle:navigate`, answered by `NotificationsProvider`). Only when nothing
+answers within 700 ms — a public page, the sign-in screen — is the window
+navigated the slow way. The link is always kept on this site, whatever the
+payload says.
+
+### One device, two senders, one notification
+
+With background push on, a device hears from two senders: the open page and the
+server. Each keeps its own count, so on their own the server's 07:30 digest was
+followed by the page's the moment the app was opened.
+
+The device keeps a small record of what it has shown — the tag and the time,
+for the last three days — in the Cache API, the one store a page and a service
+worker can both reach (`components/notifications/device-deliveries.ts`, and the
+same names in `public/sw.js`):
+
+- The worker notes every push it shows. Before notifying, the page folds those
+  into its own log (`foldDeviceDeliveries`, pure and tested), so a digest or a
+  subject the server already delivered is not delivered again. That fold only
+  ever makes the gates stricter, so the page skips it entirely whenever its own
+  log already says "nothing", which is nearly every minute.
+- The page notes everything it shows. A push for something already shown on the
+  device that day is still displayed, because a push must always show something,
+  but silently: it replaces the one on screen or waits in the tray, and never
+  buzzes twice.
+
+Entries carry the account they were for (the dispatcher adds it to the payload,
+which is encrypted to the device), so someone else signing in on a shared
+computer does not inherit the record. Test pushes are never counted.
 
 The badge count rides along with the push so `sw.js` can set it while the app is
 closed; the page keeps it honest afterwards and clears it when the last notice is
@@ -425,6 +487,29 @@ means what it says.
 Call it often — every 15 minutes is reasonable. Frequency is not how often you
 get notified; the engine's own gates decide that. A rare cron just means an
 hour-gated rule fires up to an hour late.
+
+**GitHub's schedule is best effort.** It delays scheduled runs under load and
+skips some altogether, so a `*/15` workflow can run a handful of times a day
+instead of 96, and go quiet for days. For dependable timing, use a scheduler
+that keeps time: Vercel Cron on Pro, or Supabase `pg_cron` with `pg_net`, which
+is free:
+
+```sql
+-- Run once in the Supabase SQL editor, with your own URL and secret.
+create extension if not exists pg_cron;
+create extension if not exists pg_net;
+select cron.schedule(
+  'doordie-push-dispatch',
+  '*/15 * * * *',
+  $$ select net.http_get(
+       url := 'https://YOUR-APP/api/push/dispatch',
+       headers := jsonb_build_object('Authorization', 'Bearer YOUR-CRON-SECRET'),
+       timeout_milliseconds := 30000
+     ) $$
+);
+```
+
+Keep the secret out of the repository: paste it in the SQL editor only.
 
 ### Operational notes
 

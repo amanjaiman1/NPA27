@@ -893,6 +893,14 @@ export function planDelivery(
   settings: NotifySettings,
   log: Partial<DeliveryLog> | null | undefined,
   now: Date,
+  /**
+   * The true instant, for the minimum gap — a duration, measured against the
+   * true instants in `lastSentAt`. The same as `now` in a browser. The server
+   * passes it separately because its `now` is a carrier shifted into the user's
+   * zone (see `zonedNow`): measured from that, the gap was off by the zone's
+   * whole offset, and for India never held at all.
+   */
+  instant: Date = now,
 ): DeliveryPlan {
   const cfg = withDefaults(settings);
   const l = { ...EMPTY_DELIVERY_LOG, ...(log ?? {}) };
@@ -935,7 +943,7 @@ export function planDelivery(
     .sort((a, b) => b - a)[0];
   const gapOk =
     lastAny === undefined ||
-    now.getTime() - lastAny >= cfg.minGapMinutes * 60_000;
+    instant.getTime() - lastAny >= cfg.minGapMinutes * 60_000;
 
   const picked: NoticeView[] = [];
   for (const n of inbox.deliverable) {
@@ -965,18 +973,70 @@ export function planDelivery(
   return { kind: "individual", notices: picked };
 }
 
-/** Fold a delivery back into the log, resetting the counter on a new day. */
+/**
+ * The tag a daily digest is shown under, everywhere it is shown: by the page, by
+ * the server's push, and in the service worker. One tag means a second digest
+ * replaces the first on screen instead of stacking beside it.
+ */
+export const DIGEST_TAG = "chronicle-digest";
+
+/** The server's "send a test" notification. Never counted as a delivery. */
+export const TEST_TAG = "chronicle-test";
+
+/**
+ * How long a per-subject entry stays in the log. The gates only ever look at
+ * today (the cooldown) and at the newest instant (the minimum gap), so anything
+ * older than a week is dead weight that would otherwise grow with every goal
+ * and book that ever produced a notice.
+ */
+export const DELIVERY_LOG_KEEP_DAYS = 7;
+
+/** Drop per-subject entries older than `DELIVERY_LOG_KEEP_DAYS`. */
+export function pruneDeliveryLog(
+  log: Partial<DeliveryLog> | null | undefined,
+  now: Date,
+  today: ISODate = toISODate(now),
+): DeliveryLog {
+  const l = { ...EMPTY_DELIVERY_LOG, ...(log ?? {}) };
+  const lastSentAt: Record<string, string> = {};
+  const lastSentOn: Record<string, ISODate> = {};
+  const cutoffMs = now.getTime() - DELIVERY_LOG_KEEP_DAYS * 86_400_000;
+  const keys = new Set([
+    ...Object.keys(l.lastSentAt ?? {}),
+    ...Object.keys(l.lastSentOn ?? {}),
+  ]);
+  for (const key of keys) {
+    const on = l.lastSentOn?.[key];
+    const at = l.lastSentAt?.[key];
+    const atMs = at ? new Date(at).getTime() : NaN;
+    // The recorded local day decides when there is one; the instant otherwise.
+    const fresh = on
+      ? daysBetween(on, today) <= DELIVERY_LOG_KEEP_DAYS
+      : Number.isFinite(atMs) && atMs >= cutoffMs;
+    if (!fresh) continue;
+    if (at) lastSentAt[key] = at;
+    if (on) lastSentOn[key] = on;
+  }
+  return { ...l, lastSentAt, lastSentOn };
+}
+
+/**
+ * Fold a delivery back into the log, resetting the counter on a new day.
+ *
+ * `today` is the user's local day. In a browser it is simply `now`'s, which is
+ * the default; the server passes it in, because its own clock is in UTC.
+ */
 export function recordDelivery(
   log: Partial<DeliveryLog> | null | undefined,
   notices: { dedupeKey: string }[],
   now: Date,
   digest = false,
+  today: ISODate = toISODate(now),
 ): DeliveryLog {
-  const l = { ...EMPTY_DELIVERY_LOG, ...(log ?? {}) };
-  const today = toISODate(now);
+  const l = pruneDeliveryLog(log, now, today);
   const sentToday = l.sentOnDate === today ? l.sentToday : 0;
-  const lastSentAt = { ...(l.lastSentAt ?? {}) };
-  const lastSentOn = { ...(l.lastSentOn ?? {}) };
+  const lastSentAt = { ...l.lastSentAt };
+  const lastSentOn = { ...l.lastSentOn };
   for (const n of notices) {
     lastSentAt[n.dedupeKey] = now.toISOString();
     // The local day, recorded rather than left to be re-derived later.
@@ -988,5 +1048,69 @@ export function recordDelivery(
     sentToday: sentToday + (digest ? 1 : notices.length),
     sentOnDate: today,
     lastDigestOn: digest ? today : l.lastDigestOn,
+  };
+}
+
+/**
+ * Something this device put on screen, as recorded on the device itself by the
+ * service worker and the page: the notification's tag and when it was shown.
+ * See `components/notifications/device-deliveries.ts`.
+ */
+export interface DeviceDelivery {
+  tag: string;
+  /** Epoch milliseconds. */
+  at: number;
+  /** Who showed it. Only server pushes need folding in; the page logs its own. */
+  source: "push" | "page";
+}
+
+/**
+ * Fold the server's pushes that this device has already shown into the page's
+ * own log, before the page decides whether to notify.
+ *
+ * Without this the page and the server each kept their own count, and a digest
+ * pushed at 07:30 was followed by the same digest from the page the moment the
+ * app was opened. A tag is the digest's or a notice's `dedupeKey`, so it maps
+ * straight back onto the fields the gates read.
+ *
+ * The result feeds one decision and is never stored: the page's log stays a
+ * record of what the page itself sent, and folding again from the same inputs
+ * gives the same answer.
+ */
+export function foldDeviceDeliveries(
+  log: Partial<DeliveryLog> | null | undefined,
+  shown: DeviceDelivery[],
+  now: Date,
+): DeliveryLog {
+  const l = { ...EMPTY_DELIVERY_LOG, ...(log ?? {}) };
+  const today = toISODate(now);
+  const lastSentAt = { ...(l.lastSentAt ?? {}) };
+  const lastSentOn = { ...(l.lastSentOn ?? {}) };
+  let lastDigestOn = l.lastDigestOn;
+  let pushedToday = 0;
+
+  for (const d of shown) {
+    if (d.source !== "push" || !d.tag || d.tag === TEST_TAG) continue;
+    if (!Number.isFinite(d.at)) continue;
+    const at = new Date(d.at);
+    const on = toISODate(at);
+    if (on === today) pushedToday++;
+    if (d.tag === DIGEST_TAG) {
+      if (!lastDigestOn || on > lastDigestOn) lastDigestOn = on;
+      continue;
+    }
+    const prev = lastSentAt[d.tag] ? new Date(lastSentAt[d.tag]).getTime() : NaN;
+    if (!Number.isFinite(prev) || d.at > prev) lastSentAt[d.tag] = at.toISOString();
+    if (!lastSentOn[d.tag] || on > lastSentOn[d.tag]) lastSentOn[d.tag] = on;
+  }
+
+  const ownToday = l.sentOnDate === today ? l.sentToday : 0;
+  return {
+    lastSentAt,
+    lastSentOn,
+    // The server's sends count toward this device's cap: they buzzed it too.
+    sentToday: ownToday + pushedToday,
+    sentOnDate: today,
+    lastDigestOn,
   };
 }

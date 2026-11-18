@@ -14,13 +14,13 @@ beforeEach(() => {
   useChronicle.setState(blankChronicleState());
 });
 
-test("there are three themes, Light, Dark and Lavender, and Light is the default", () => {
+test("there are three themes, Light, Dark and Lavender, and Lavender is the default", () => {
   assert.deepEqual(
     THEME_MODES.map((m) => m.label),
     ["Light", "Dark", "Lavender"],
   );
-  assert.equal(DEFAULT_THEME_MODE, "light");
-  assert.equal(store().themeMode, "light");
+  assert.equal(DEFAULT_THEME_MODE, "lavender");
+  assert.equal(store().themeMode, "lavender");
   for (const m of ["light", "dark", "lavender"]) assert.equal(isThemeMode(m), true);
   for (const retired of ["blue", "system", "ocean"]) assert.equal(isThemeMode(retired), false);
   assert.equal(surfaceFor("light"), "white");
@@ -52,11 +52,12 @@ test("a theme an older version saved opens as the theme it means today", () => {
   // Auto settles on the theme the device shows.
   assert.equal(legacyThemeMode("system", true), "dark");
   assert.equal(legacyThemeMode("system", false), "light");
-  // Light and Dark are kept; anything unknown is Light.
+  // Light and Dark are kept, so an account that saved Light stays Light;
+  // nothing saved, or anything unknown, is the default, Lavender.
   assert.equal(legacyThemeMode("dark"), "dark");
   assert.equal(legacyThemeMode("light"), "light");
-  assert.equal(legacyThemeMode("ocean"), "light");
-  assert.equal(legacyThemeMode(undefined), "light");
+  assert.equal(legacyThemeMode("ocean"), "lavender");
+  assert.equal(legacyThemeMode(undefined), "lavender");
 
   // From another device, through the cloud.
   assert.equal(normalizeSnapshot({ themeMode: "blue" as never }).themeMode, "light");
@@ -83,8 +84,17 @@ test("the theme follows the account: synced, painted before load, and cleared on
 
   // Signing out (or switching account) goes back to the default look.
   useChronicle.setState(blankChronicleState());
-  assert.equal(store().themeMode, "light");
+  assert.equal(store().themeMode, "lavender");
   assert.equal(store().reduceTransparency, false);
+});
+
+test("an account that saved Light keeps it when the default changes", () => {
+  const migrate = useChronicle.persist.getOptions().migrate!;
+  const kept = migrate({ themeMode: "light", journal: [] }, 16) as unknown as Record<string, unknown>;
+  assert.equal(kept.themeMode, "light");
+  assert.equal(normalizeSnapshot({ themeMode: "light" as const }).themeMode, "light");
+  store().applyCloudSnapshot({ themeMode: "light" });
+  assert.equal(store().themeMode, "light");
 });
 
 test("colour palettes, Liquid Glass and wallpapers an older version saved are dropped, and nothing else changes", () => {

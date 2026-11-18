@@ -12,13 +12,18 @@
  * Bump CACHE_VERSION to retire every previous cache on the next activation.
  */
 
-// v10 — a third theme, Lavender; the precached offline page knows it.
-// (v9: the redesign, with Light and Dark.)
-const CACHE_VERSION = "v10";
+// v11 — Lavender is the default; the precached offline page opens in it.
+// (v10: a third theme, Lavender. v9: the redesign, with Light and Dark.)
+const CACHE_VERSION = "v11";
 const SHELL_CACHE = `chronicle-shell-${CACHE_VERSION}`;
 const PAGE_CACHE = `chronicle-pages-${CACHE_VERSION}`;
 const ASSET_CACHE = `chronicle-assets-${CACHE_VERSION}`;
-const KNOWN_CACHES = [SHELL_CACHE, PAGE_CACHE, ASSET_CACHE];
+/**
+ * What this device has shown lately — see "what this device has shown" below.
+ * Not versioned: it is data, not a copy of the site, and must outlive updates.
+ */
+const DELIVERY_CACHE = "chronicle-deliveries";
+const KNOWN_CACHES = [SHELL_CACHE, PAGE_CACHE, ASSET_CACHE, DELIVERY_CACHE];
 
 /** A standalone document — no app JS — so the fallback can never fail. */
 const OFFLINE_URL = "/offline.html";
@@ -80,6 +85,63 @@ self.addEventListener("message", (event) => {
     self.skipWaiting();
   }
 });
+
+// -------------------------------------------- what this device has shown
+//
+// The page and the server both notify, each with its own count, so the same
+// digest could arrive from the server at 07:30 and again from the page when the
+// app was opened. This record, kept on the device, is shared by the two: the
+// worker notes every push it shows, the page notes every notification it shows,
+// and each reads the other's before notifying. The shape and the names must
+// match `src/components/notifications/device-deliveries.ts`.
+
+const DELIVERY_KEY = "/__chronicle/deliveries";
+const DELIVERY_KEEP_MS = 3 * 86400000;
+const DELIVERY_MAX = 60;
+/** The fallback tag and the server's test: never a real delivery. */
+const UNCOUNTED_TAGS = ["chronicle", "chronicle-test"];
+
+async function readDeliveries() {
+  try {
+    const cache = await caches.open(DELIVERY_CACHE);
+    const res = await cache.match(DELIVERY_KEY);
+    const list = res ? await res.json() : [];
+    const now = Date.now();
+    return Array.isArray(list)
+      ? list.filter(
+          (e) =>
+            e &&
+            typeof e.tag === "string" &&
+            typeof e.at === "number" &&
+            now - e.at <= DELIVERY_KEEP_MS,
+        )
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+async function writeDeliveries(list) {
+  try {
+    const cache = await caches.open(DELIVERY_CACHE);
+    await cache.put(
+      DELIVERY_KEY,
+      new Response(JSON.stringify(list.slice(-DELIVERY_MAX)), {
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+  } catch {
+    /* storage full or blocked — the cost is a possible repeat, never a miss */
+  }
+}
+
+/** The device's own calendar day, which is the user's. */
+function localDay(ms) {
+  const d = new Date(ms);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
+    d.getDate(),
+  ).padStart(2, "0")}`;
+}
 
 // -------------------------------------------------------------- notifications
 
@@ -171,14 +233,82 @@ self.addEventListener("push", (event) => {
     }
   }
 
-  event.waitUntil(self.registration.showNotification(title, options));
+  // Whose push this is, so a shared computer keeps each account's record apart.
+  const account = typeof payload.account === "string" ? payload.account : null;
+  const counted = !UNCOUNTED_TAGS.includes(options.tag);
+
+  event.waitUntil(
+    (async () => {
+      const shown = counted ? await readDeliveries() : [];
+      const today = localDay(Date.now());
+      /**
+       * Already shown on this device today — the open app got there first. A
+       * push must still show something, so it is shown silently: it replaces
+       * the one on screen, or waits quietly in the tray, and never buzzes twice.
+       */
+      const repeat =
+        counted &&
+        shown.some(
+          (e) => e.tag === options.tag && e.account === account && localDay(e.at) === today,
+        );
+      if (repeat) {
+        options.silent = true;
+        delete options.vibrate;
+        delete options.renotify;
+      }
+
+      try {
+        await self.registration.showNotification(title, options);
+      } catch {
+        // An option this browser rejects must not cost the notification itself.
+        await self.registration.showNotification(title, {
+          body: options.body,
+          tag: options.tag,
+          icon: options.icon,
+          data: options.data,
+        });
+      }
+
+      if (counted && !repeat) {
+        shown.push({ tag: options.tag, at: Date.now(), source: "push", account });
+        await writeDeliveries(shown);
+      }
+    })(),
+  );
 });
+
+/**
+ * Ask an open window of the app to change page itself, as an ordinary in-app
+ * navigation. Resolves true once it confirms; false when nothing answers in
+ * time — a public page or the sign-in screen has no one listening.
+ */
+function askToRoute(client, path) {
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = (ok) => {
+      if (settled) return;
+      settled = true;
+      resolve(ok);
+    };
+    const channel = new MessageChannel();
+    channel.port1.onmessage = () => finish(true);
+    setTimeout(() => finish(false), 700);
+    try {
+      client.postMessage({ type: "chronicle:navigate", href: path }, [channel.port2]);
+    } catch {
+      finish(false);
+    }
+  });
+}
 
 /**
  * Focus an already-open tab and route it, rather than opening a second copy of
  * the app. `clients.matchAll` needs `includeUncontrolled` because a tab loaded
  * before this worker took control is not yet controlled by it, but is still the
  * window the user means.
+ *
+ * When that tab is inside the app, it changes page in place — instant, with
+ * nothing reloaded. Only a tab elsewhere on the site is navigated the slow way.
  */
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
@@ -191,8 +321,17 @@ self.addEventListener("notificationclick", (event) => {
    */
   if (event.action === "later") return;
 
-  const href = event.notification.data?.href || "/dashboard";
-  const target = new URL(href, self.location.origin);
+  let target;
+  try {
+    target = new URL(event.notification.data?.href || "/dashboard", self.location.origin);
+  } catch {
+    target = new URL("/dashboard", self.location.origin);
+  }
+  // Only ever somewhere on this site, whatever the payload said.
+  if (target.origin !== self.location.origin) {
+    target = new URL("/dashboard", self.location.origin);
+  }
+  const path = target.pathname + target.search + target.hash;
 
   event.waitUntil(
     (async () => {
@@ -200,18 +339,31 @@ self.addEventListener("notificationclick", (event) => {
         type: "window",
         includeUncontrolled: true,
       });
-      for (const client of clientList) {
-        // Same-origin only; navigating a foreign window is not ours to do.
-        if (new URL(client.url).origin !== self.location.origin) continue;
-        if ("navigate" in client) {
-          const focused = await client.focus();
-          await (focused || client).navigate(target.href);
-          return;
+      // Same-origin only; navigating a foreign window is not ours to do.
+      const ours = clientList.filter((c) => {
+        try {
+          return new URL(c.url).origin === self.location.origin;
+        } catch {
+          return false;
         }
-        await client.focus();
+      });
+      // The window last in use, if there are several.
+      const client =
+        ours.find((c) => c.focused) ||
+        ours.find((c) => c.visibilityState === "visible") ||
+        ours[0];
+      if (!client) {
+        await self.clients.openWindow(target.href);
         return;
       }
-      await self.clients.openWindow(target.href);
+
+      const focused = (await client.focus().catch(() => null)) || client;
+      if (await askToRoute(focused, path)) return;
+      if ("navigate" in focused) {
+        // Rejects for a window this worker doesn't control yet; it has at
+        // least been brought forward.
+        await focused.navigate(target.href).catch(() => {});
+      }
     })(),
   );
 });

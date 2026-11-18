@@ -154,7 +154,11 @@ async function dispatch(request: Request) {
     let deliveredToAny = false;
 
     for (const device of devices) {
-      const payload = payloadForPlatform(decision.payload, device.platform, priority);
+      const payload = payloadForPlatform(
+        { ...decision.payload, account: userId },
+        device.platform,
+        priority,
+      );
       try {
         await webpush.sendNotification(
           {
