@@ -194,9 +194,10 @@ export default function Body() {
       </p>
       <p>
         A printable <Link href={PAGES.weeklyReview.path}>weekly review template</Link> keeps this to twenty minutes. In
-        DoOrDie, the <Link href={PAGES.planner.path}>study planner</Link> does much of it with your data: goals that
-        measure themselves and show whether you are on pace, a suggested day built from your weak subjects and revision
-        queue, and a weekly review with the numbers already filled in.
+        DoOrDie, the <Link href={PAGES.planner.path}>study planner</Link> does much of it with your data: a roadmap where
+        you write your own yearly, monthly and weekly plans, goals that measure themselves and show whether you are on
+        pace, a suggested day built from your weak subjects and revision queue, and a weekly review with the numbers
+        already filled in.
       </p>
 
       <h2 id="mistakes">Common planning mistakes</h2>

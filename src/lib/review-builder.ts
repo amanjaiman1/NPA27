@@ -7,7 +7,6 @@ import type {
   Subject,
 } from "./types";
 import { fromISODate, toISODate, daysBetween, round, avg, uid } from "./utils";
-import { weekNumberFor, currentPhase } from "./plan";
 import { countCompletedTopics } from "./topics";
 
 /* ════════════════════════════════════════════════════════════════
@@ -51,10 +50,7 @@ function label(type: ReviewType, start: ISODate, end: ISODate): string {
       s.getMonth() === e.getMonth()
         ? `${s.getDate()}–${e.getDate()} ${MONTHS[s.getMonth()]}`
         : `${s.getDate()} ${MONTHS[s.getMonth()]} – ${e.getDate()} ${MONTHS[e.getMonth()]}`;
-    const n = weekNumberFor(start);
-    // The plan starts partway through the journey, so a week before it has no
-    // number to quote — the date span alone is honest there.
-    return n > 0 ? `Week ${n} · ${span}` : span;
+    return span;
   }
   if (type === "Monthly") return `${MONTHS[s.getMonth()]} ${s.getFullYear()}`;
   return String(s.getFullYear());
@@ -141,7 +137,6 @@ export interface ReviewMetrics {
   topSubjects: { name: string; hours: number; share: number }[];
   previous: { totalHours: number; activeDays: number; mocksTaken: number; avgMood: number | null };
   change: { hours: number | null; activeDays: number | null };
-  phase: string;
 }
 
 function inWindow<T extends { date: ISODate }>(rows: T[], w: PeriodWindow, todayISO: ISODate): T[] {
@@ -232,7 +227,6 @@ export function computeReviewMetrics(
       hours: frac(totalHours, prevHours),
       activeDays: frac(active.length, prevActive.length),
     },
-    phase: currentPhase(w.startDate).name,
   };
 }
 

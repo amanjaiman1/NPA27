@@ -36,7 +36,7 @@ test("the optional chosen at setup shapes the syllabus and books", () => {
 });
 
 test("an existing named profile is treated as already set up, once", () => {
-  // The shape the old app saved: no `useRoadmap`, no `onboardedAt`, no `timezone`.
+  // The shape the old app saved: no `onboardedAt`, no `timezone`.
   const legacy = {
     name: "Owner",
     targetExam: "UPSC CSE 2027",
@@ -48,7 +48,7 @@ test("an existing named profile is treated as already set up, once", () => {
   };
   const once = normalizeProfile(legacy);
   assert.equal(once.onboardedAt, "2026-06-15");
-  assert.equal(once.useRoadmap, true);
+  assert.equal("useRoadmap" in once, false, "the retired roadmap switch isn't added");
   assert.equal(normalizeProfile(once), once, "idempotent");
   assert.equal(normalizeProfile(createBlankAccount().profile).onboardedAt, undefined, "a blank profile still goes to setup");
 });

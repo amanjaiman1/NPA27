@@ -65,7 +65,7 @@ export const navGroups: NavGroup[] = [
     label: "Command",
     items: [
       { label: "Command Center", href: "/dashboard", icon: LayoutDashboard, short: "Dashboard overview" },
-      { label: "Roadmap", href: "/roadmap", icon: Route, short: "The CSE 2027 week-by-week plan" },
+      { label: "Roadmap", href: "/roadmap", icon: Route, short: "Your yearly, monthly and weekly plans" },
       { label: "Milestone Timeline", href: "/timeline", icon: Milestone, short: "The journey so far" },
     ],
   },
@@ -108,12 +108,6 @@ export const navGroups: NavGroup[] = [
     ],
   },
 ];
-
-/** The roadmap is opt-in (it is one specific CSE 2027 plan), so it can be hidden. */
-export function visibleNavGroups(useRoadmap: boolean | undefined): NavGroup[] {
-  if (useRoadmap) return navGroups;
-  return navGroups.map((g) => ({ ...g, items: g.items.filter((i) => i.href !== "/roadmap") }));
-}
 
 /**
  * The four life metrics that have a page of their own. These are deliberately

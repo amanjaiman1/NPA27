@@ -167,6 +167,8 @@ export function decideForUser(
     topicLinks: snapshot.topicLinks ?? [],
     selection: snapshot.selection ?? [],
     files: [],
+    // No rule reads plans, and the dispatcher's reader leaves them out.
+    plans: [],
   };
   if (!data.profile) return { send: false, reason: "Snapshot has no profile." };
 

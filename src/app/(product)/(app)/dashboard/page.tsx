@@ -1,6 +1,6 @@
 "use client";
 
-import { useChronicle, useHasHydrated } from "@/lib/store";
+import { useHasHydrated } from "@/lib/store";
 import { Loading } from "@/components/ui/loading";
 import {
   CommandPanel,
@@ -14,12 +14,11 @@ import {
   GoalsCard,
   MilestonesMini,
   CoachNudge,
-  ThisWeekCard,
 } from "@/components/dashboard/widgets";
+import { RoadmapWeekCard } from "@/components/roadmap/dashboard-card";
 
 export default function CommandCenter() {
   const hydrated = useHasHydrated();
-  const roadmapOn = useChronicle((s) => s.profile.useRoadmap);
   if (!hydrated) return <Loading />;
 
   return (
@@ -40,7 +39,7 @@ export default function CommandCenter() {
 
         <div className="min-w-0 space-y-4">
           <TodayCard />
-          {roadmapOn && <ThisWeekCard />}
+          <RoadmapWeekCard />
           <MockMomentumCard />
           <RevisionDueCard />
           <GoalsCard />

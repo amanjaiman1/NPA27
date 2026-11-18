@@ -52,7 +52,23 @@ const SET_PATHS = new Set([
   "goals.fileIds",
   "goals.journalDates",
   "lifeLog.fileIds",
+  // A goal linked to a plan on one device and another goal on a second device
+  // are both kept, and so are journal days linked to an activity.
+  "plans.goalIds",
+  "plans.items.journalDates",
 ]);
+
+/**
+ * Timestamps that only record when something last changed. Two devices
+ * editing different parts of one plan both move it; that isn't a clash, so
+ * the later time is kept and nothing is reported.
+ */
+const LATEST_PATHS = new Set(["plans.updatedAt"]);
+
+function latestOf(path: string, a: unknown, b: unknown): string | null {
+  if (!LATEST_PATHS.has(policyPath(path)) || typeof a !== "string" || typeof b !== "string") return null;
+  return a > b ? a : b;
+}
 
 function isObj(v: unknown): v is Obj {
   return typeof v === "object" && v !== null && !Array.isArray(v);
@@ -190,6 +206,9 @@ function m3(base: unknown, local: unknown, remote: unknown, path: string, out: M
   if (local === undefined) return remote;
   if (remote === undefined) return local;
 
+  const latest = latestOf(path, local, remote);
+  if (latest !== null) return latest;
+
   // A genuine clash on a single value. Keep this device's, report the other.
   out.push({ path, kept: local, discarded: remote });
   return local;
@@ -239,6 +258,9 @@ function m2(
       return sortedSet([...local, ...remote]);
     }
   }
+
+  const latest = latestOf(path, local, remote);
+  if (latest !== null) return latest;
 
   const kept = prefer === "local" ? local : remote;
   const discarded = prefer === "local" ? remote : local;

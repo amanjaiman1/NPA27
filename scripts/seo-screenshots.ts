@@ -442,7 +442,6 @@ function sampleData(): ChronicleData & Record<string, unknown> {
       startDate: daysAgo(START),
       dailyHourTarget: 8,
       timezone: "Asia/Kolkata",
-      useRoadmap: false,
       onboardedAt: daysAgo(START),
     },
     accomplished,
@@ -464,6 +463,7 @@ function sampleData(): ChronicleData & Record<string, unknown> {
     topicLinks: buildTopicLinks(subjects, daysAgo(START)),
     selection: buildSelection("UPSC CSE 2027"),
     files: [],
+    plans: [],
     themeMode: "light",
     palette: "rose",
     wallpaper: "none",
@@ -551,7 +551,7 @@ async function shoot(browser: Browser, page: Page, name: string, path: string, b
 async function main() {
   mkdirSync(OUT, { recursive: true });
   const backupFile = join(root, ".next", "sample-account.json");
-  writeFileSync(backupFile, JSON.stringify({ app: "the-upsc-chronicle", schemaVersion: 13, data: sampleData() }));
+  writeFileSync(backupFile, JSON.stringify({ app: "the-upsc-chronicle", schemaVersion: 14, data: sampleData() }));
 
   await start("node", ["scripts/mock-supabase.mjs"], "Mock Supabase on");
   await start("npx", ["next", "start", "-p", "3100"], "Ready");

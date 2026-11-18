@@ -13,7 +13,7 @@ import { useAccount } from "@/components/account/account-session";
 import { dropForeignFiles } from "@/lib/files";
 
 /** Bumped alongside the store's persisted `version`. Stamped into backups. */
-const BACKUP_SCHEMA_VERSION = 13;
+const BACKUP_SCHEMA_VERSION = 14;
 const BACKUP_APP_ID = "the-upsc-chronicle";
 
 type Note = { kind: "ok" | "err"; text: string } | null;

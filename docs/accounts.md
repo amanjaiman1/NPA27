@@ -7,14 +7,16 @@ enforced, layer by layer, and how one account's data moves between its devices.
 
 | Kind | Examples | Where it lives |
 | --- | --- | --- |
-| **Private, per account** | Profile and exam date, journal, study hours, syllabus progress, revision schedule, mocks, mistakes, goals, books' progress, current affairs, reviews, reflections, habits, life log, knowledge-graph links, accomplished days, notification preferences and read state, appearance | The account's snapshot: one `chronicle_state` row, mirrored in the browser under the account's own keys |
+| **Private, per account** | Profile and exam date, journal, study hours, syllabus progress, revision schedule, mocks, mistakes, goals, Roadmap plans, books' progress, current affairs, reviews, reflections, habits, life log, knowledge-graph links, accomplished days, notification preferences and read state, appearance | The account's snapshot: one `chronicle_state` row, mirrored in the browser under the account's own keys |
 | **Per account, per device** | Notification delivery bookkeeping, the last-synced copy used for merging | Browser only, under keys or IndexedDB slots that carry the account id |
 | **Device-wide, not personal** | Sidebar collapsed, PWA install prompt dismissed | Browser only |
-| **Shared reference** | The GS syllabus and its topics, the standard book list, habit suggestions, the curated links between syllabus topics, the optional CSE 2027 roadmap | Code (`lib/seed.ts`, `lib/plan.ts`). Each account gets its own copy at setup, so progress on it is private |
+| **Shared reference** | The GS syllabus and its topics, the standard book list, habit suggestions, the curated links between syllabus topics | Code (`lib/seed.ts`). Each account gets its own copy at setup, so progress on it is private |
 
 A new account starts from the shared reference only: an empty journal, no mocks,
-goals or mistakes, a syllabus with nothing studied, and a profile filled in by its
-owner during first-run setup (`components/account/onboarding.tsx`).
+goals or mistakes, an empty Roadmap, a syllabus with nothing studied, and a
+profile filled in by its owner during first-run setup
+(`components/account/onboarding.tsx`). The fixed CSE 2027 plan older versions
+showed has been retired; see [`docs/roadmap.md`](./roadmap.md).
 
 ## The database (the security boundary)
 
@@ -22,7 +24,9 @@ owner during first-run setup (`components/account/onboarding.tsx`).
   policies of `auth.uid() = user_id`. Since the multi-user migration, browser roles
   can no longer write the table directly at all: the only write path is
   `save_chronicle_state(p_data, p_base_version)`, a function that acts on
-  `auth.uid()`'s own row and never on an id the caller supplies.
+  `auth.uid()`'s own row and never on an id the caller supplies. Since the
+  Roadmap migration, a save with no `plans` key (from a device on a version
+  before the Roadmap) keeps the plans already stored.
 - A trigger stamps every write server-side: `version` goes up by one,
   `updated_at` is the database clock, and `user_id` can never change.
 - `chronicle_push_subscriptions` and `chronicle_push_log` keep their per-user RLS
@@ -88,8 +92,9 @@ else. The browser's copy is wiped too.
 3. **Merge, then save.** On a refusal it fetches the newer copy and merges three
    ways (`lib/sync/merge.ts`): the version both devices started from, this
    device's copy, and the cloud's. Journal days and the life log are matched by
-   date, every other list by `id`, and objects field by field, so edits to
-   different things are all kept and a deletion only wins over an unchanged item.
+   date, every other list by `id` (Roadmap plans, and the activities inside
+   each plan, included), and objects field by field, so edits to different
+   things are all kept and a deletion only wins over an unchanged item.
    When the same field was changed on both devices, this device's value is kept
    and the other is recorded in Settings → Data, where it can be downloaded.
 4. **Retry.** Network failures back off (2 s to 60 s); the status shows

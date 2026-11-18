@@ -1,8 +1,8 @@
 # DoOrDie — UPSC Chronicle
 
 A personal operating system for UPSC preparation: daily journal, study hours,
-syllabus progress, revision, mocks, mistakes, goals, wellbeing, reflections and
-reviews. Each person who signs up gets their own private chronicle, synced across
+syllabus progress, revision, mocks, mistakes, goals, a roadmap of your own
+yearly, monthly and weekly plans, wellbeing, reflections and reviews. Each person who signs up gets their own private chronicle, synced across
 their devices through Supabase and kept within Supabase's free plan.
 
 - **Stack:** Next.js 14 (App Router), React 18, TypeScript, Tailwind, Zustand,
@@ -14,6 +14,8 @@ their devices through Supabase and kept within Supabase's free plan.
   [Life Dashboard](docs/life-dashboard.md) (including sleep), and the themes
   (Light, Dark, Blue Glass) and Liquid Glass in the
   [design system](docs/design-system.md).
+- **The Roadmap** (your own yearly, monthly and weekly plans):
+  [`docs/roadmap.md`](docs/roadmap.md).
 - **The public site and SEO:** [below](#public-site-and-seo), and the setup steps
   in [`docs/SEO_SETUP_GUIDE.md`](docs/SEO_SETUP_GUIDE.md).
 
@@ -52,9 +54,9 @@ people. Delete `.env.local` when you're done, and never deploy with it.
 
 | Command | What it checks |
 | --- | --- |
-| `npm test` | Unit tests: the three-way merge, the sync engine with two simulated devices (offline edits, clashes, stale devices), per-account browser storage, the one-time move of pre-account data, the new-account template, attached-file rules, completed topics, Life Dashboard reports and form, goals, the clean-up of data older versions wrote, saving a journal day, sleep times and durations, Liquid Glass as a setting of its own, and Blue Glass as a third theme that never changes Liquid Glass or the palette. |
+| `npm test` | Unit tests: the three-way merge, the sync engine with two simulated devices (offline edits, clashes, stale devices), per-account browser storage, the one-time move of pre-account data, the new-account template, attached-file rules, completed topics, Life Dashboard reports and form, goals, the clean-up of data older versions wrote, saving a journal day, sleep times and durations, Liquid Glass as a setting of its own, Blue Glass as a third theme that never changes Liquid Glass or the palette, and the Roadmap (periods across month and year ends, leap years and time zones, progress from activities only, carry forward, duplicate, archive, goal and journal links that change neither, two accounts, two devices). |
 | `npm run test:db` | Applies `supabase/schema.sql` and every migration (twice, to prove they re-run safely) to a throwaway Postgres with Supabase's roles, then runs `supabase/tests/rls_isolation.sql`. |
-| `npm run test:e2e` | 18 browser scenarios against the mock: two accounts in one browser, the theme following an account with no light flash, a second device, simultaneous edits, direct database access with another account's token, attached files (stored once, linked to a goal without a copy, unreadable by another account, deleted with the last day that holds them), recording, editing and deleting a night's sleep, Liquid Glass (on either theme, painted before load, on a second device, cleared on sign-out, never on another account), Blue Glass (frosted with or without Liquid Glass, painted before load, on a second device, nearly solid with Reduce transparency, never on another account), sign-out, the owner's existing data, a fresh account, account deletion (including its files) and password reset. Needs `npx playwright install chromium` once. It builds the app against the mock, so run `npm run build` again afterwards. |
+| `npm run test:e2e` | 20 browser scenarios against the mock: two accounts in one browser, the theme following an account with no light flash, a second device, simultaneous edits, direct database access with another account's token, attached files (stored once, linked to a goal without a copy, unreadable by another account, deleted with the last day that holds them), recording, editing and deleting a night's sleep, Liquid Glass (on either theme, painted before load, on a second device, cleared on sign-out, never on another account), Blue Glass (frosted with or without Liquid Glass, painted before load, on a second device, nearly solid with Reduce transparency, never on another account), the Roadmap (empty at first; a year, its months and a week planned by hand; deleting one month; a goal and a journal day linked without changing either; edits from two devices at once; archiving; another account seeing none of it), sign-out, the owner's existing data, a fresh account, account deletion (including its files) and password reset. Needs `npx playwright install chromium` once. It builds the app against the mock, so run `npm run build` again afterwards. |
 | `npm run lint`, `npx tsc --noEmit`, `npm run check:classes` | Lint, types, and the Tailwind opacity guard. |
 
 To check isolation on the **real** project, paste `supabase/tests/rls_isolation.sql`
@@ -109,6 +111,11 @@ In the Supabase SQL Editor, run these files in order:
    - `20261118120000_journal_attachments.sql`: the private Storage bucket for
      files attached to journal days, its owner-only policies, and a dispatcher
      snapshot that leaves file details out. See [`docs/attachments.md`](docs/attachments.md).
+   - `20261125120000_roadmap_plans.sql`: a device still running the previous
+     version can no longer erase Roadmap plans when it saves, and the
+     dispatcher's reader leaves plans out, since no notification uses them.
+     The app works without it, but run it before you start planning. See
+     [`docs/roadmap.md`](docs/roadmap.md).
 
 All of them are additive and safe to re-run: nothing is dropped or rewritten, and
 existing data keeps working. A SQL file in the repo does nothing until you run it.
@@ -147,6 +154,9 @@ Vercel → Project → Settings → Environment Variables.
    un-migrated database shows "Cloud sync needs a database update" and keeps
    changes on the device until it can save them. Without the attachments
    migration everything works except attaching files, which shows an error.
+   Without the Roadmap migration everything works, but a device still running
+   the previous version can take plans out of the cloud copy until a device on
+   the new version puts them back.
 2. Set the environment variables above, then deploy (`git push` to the
    production branch, or **Redeploy** in Vercel).
 3. Add the production URLs to Supabase's Redirect URLs (see the table above).
@@ -168,7 +178,10 @@ Your existing data is kept and stays yours:
   — and is reconciled with the cloud: entries made while offline are kept. The old
   key is removed only after that first sync succeeds.
 - **Your profile** is recognised as already set up, so you won't see first-run
-  setup, and the CSE 2027 roadmap stays on.
+  setup.
+- **The Roadmap** is now your own plans, and starts empty. The fixed CSE 2027
+  plan it used to show was built into the app rather than saved in your
+  account, so retiring it removed none of your data.
 - **New accounts** never receive any of it. They start from the syllabus, the
   standard books and a few habit suggestions, with every personal record empty.
 
@@ -189,10 +202,13 @@ storage and 50,000 monthly active users
 matters, and it is driven by how often whole snapshots are downloaded:
 
 - A new account's data is about 24 KB; a year of daily logging about 360 KB.
+  A heavily used Roadmap adds about 170 KB a year (a full week of plans is
+  about 3 KB).
 - Opening the app or coming back to it asks only for the version number (a few
   bytes) and downloads the data only when another device changed it.
 - Saves upload the snapshot and receive only the new version back.
-- The push dispatcher reads a trimmed copy without long text.
+- The push dispatcher reads a trimmed copy without long text, and (with the
+  Roadmap migration) without plans.
 - Attached files go to Storage, never into the synced data: each costs about
   200 bytes of sync whatever its size. Each file is stored once, photos are
   resized before upload, and the app holds each account to 100 MB of the free
@@ -209,6 +225,8 @@ Usage page stays comfortably inside the plan.
 - [ ] Run `supabase/migrations/20261115120000_multi_user_sync.sql` in the SQL Editor.
 - [ ] Run `supabase/migrations/20261118120000_journal_attachments.sql` in the SQL Editor
       (journal attachments).
+- [ ] Run `supabase/migrations/20261125120000_roadmap_plans.sql` in the SQL Editor
+      (Roadmap: keeps plans safe from devices still on the previous version).
 - [ ] Run `supabase/tests/rls_isolation.sql` and confirm `All isolation checks passed`.
 - [ ] Set Site URL and the two Redirect URLs in Authentication → URL Configuration.
 - [ ] Configure custom SMTP, or decide to run with "Confirm email" off.

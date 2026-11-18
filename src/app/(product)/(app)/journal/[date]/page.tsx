@@ -26,6 +26,7 @@ import {
   HeartPulse,
   ListChecks,
   BookMarked,
+  Route,
 } from "lucide-react";
 import { useChronicle, useHasHydrated } from "@/lib/store";
 import type { FileRecord, JournalEntry } from "@/lib/types";
@@ -58,6 +59,8 @@ import {
   cn,
 } from "@/lib/utils";
 import { formatClock, timeFormatOf } from "@/lib/sleep";
+import { itemsForJournalDay, planName, STATUS_LABEL as PLAN_STATUS } from "@/lib/roadmap";
+import { roadmapHref } from "@/components/roadmap/shared";
 
 function addDaysISO(iso: string, n: number): string {
   const d = fromISODate(iso);
@@ -149,6 +152,8 @@ export default function JournalDayPage() {
   const topics = useMemo(() => (entry ? completedTopicsOf(entry) : []), [entry]);
   const dayFiles = useMemo(() => filesByIds(files, entry?.fileIds), [files, entry]);
   const dayGoals = useMemo(() => goals.filter((g) => g.journalDates?.includes(date)), [goals, date]);
+  const plans = useChronicle((s) => s.plans);
+  const dayPlanned = useMemo(() => itemsForJournalDay(plans, date), [plans, date]);
   const life = useMemo(() => {
     const l = lifeLog.find((x) => x.date === date);
     return l && (l.sleepHours || l.exerciseMinutes || l.runKm || l.walkKm || l.note) ? l : null;
@@ -358,7 +363,7 @@ export default function JournalDayPage() {
           )}
 
           {/* Files, goals and the life side of the same day */}
-          {(dayFiles.length > 0 || dayGoals.length > 0 || life) && (
+          {(dayFiles.length > 0 || dayGoals.length > 0 || dayPlanned.length > 0 || life) && (
             <div className="grid gap-4 lg:grid-cols-3">
               {dayFiles.length > 0 && (
                 <SectionCard icon={Paperclip} title="Files" count={dayFiles.length}>
@@ -366,6 +371,28 @@ export default function JournalDayPage() {
                     {dayFiles.map((f) => (
                       <li key={f.id}>
                         <FileTile record={f} onOpen={() => setPreview(f)} />
+                      </li>
+                    ))}
+                  </ul>
+                </SectionCard>
+              )}
+              {dayPlanned.length > 0 && (
+                <SectionCard icon={Route} title="Planned work done this day" count={dayPlanned.length}>
+                  <ul className="space-y-1.5">
+                    {dayPlanned.map(({ plan, item }) => (
+                      <li key={`${plan.id}:${item.id}`}>
+                        <Link
+                          href={roadmapHref({ plan: plan.id, item: item.id })}
+                          className="flex items-center justify-between gap-2 text-sm text-paper/80 hover:text-accent"
+                        >
+                          <span className="min-w-0">
+                            <span className="block truncate">{item.title}</span>
+                            <span className="block truncate text-[0.68rem] text-paper/55">
+                              {PLAN_STATUS[item.status]} · {planName(plan)}
+                            </span>
+                          </span>
+                          <ChevronRight className="h-3.5 w-3.5 shrink-0 text-paper/40" />
+                        </Link>
                       </li>
                     ))}
                   </ul>

@@ -67,7 +67,7 @@ export const PAGES = {
     label: "Study planner",
     title: "UPSC Study Planner with Daily Plans and Goals",
     description:
-      "Plan UPSC preparation with goals that measure themselves, a suggested time-blocked day built from your weak subjects and revision queue, and weekly reviews.",
+      "Plan UPSC preparation with your own yearly, monthly and weekly roadmap, goals that measure themselves, and a suggested day built from your weak subjects.",
     primaryKeyword: "UPSC study planner",
     kind: "feature",
     updated: LAUNCH,

@@ -607,7 +607,222 @@ async function main() {
       await waitFor("Blue Glass back in A's cloud copy", async () => (await cloudOf(A.email))?.data?.themeMode === "blue");
     });
 
-    await scenario("12. After sign-out nothing private is reachable", async () => {
+    // The Roadmap, planned for next year so the dates never run into today.
+    const Y = new Date().getFullYear() + 1;
+    const week = (() => {
+      const d = new Date(Date.UTC(Y, 0, 8)); // the Monday on or after 8 January: a week wholly in January
+      while (d.getUTCDay() !== 1) d.setUTCDate(d.getUTCDate() + 1);
+      return d.toISOString().slice(0, 10);
+    })();
+    const plansOf = async (email) => (await cloudOf(email))?.data?.plans ?? [];
+    const weekOf = async (email) => (await plansOf(email)).find((p) => p.level === "week" && p.start === week);
+    const itemOf = (plan, title) => plan?.items?.find((i) => i.title === title);
+    const crumbs = (pg) => pg.getByRole("navigation", { name: "Breadcrumb" });
+    const roadmap = {};
+
+    await scenario("12. The Roadmap starts empty; a year, its months and a week are planned by hand", async () => {
+      check((await plansOf(A.email)).length === 0, "A's roadmap didn't start empty");
+      await page.goto(`${APP}/roadmap`);
+      await passSleepPromptIfShown(page);
+      await page.getByRole("heading", { name: "My Roadmap" }).waitFor();
+      await page.getByText("Your roadmap starts empty.").waitFor();
+      const html = await page.content();
+      for (const old of ["Foundation & Notes", "Prelims Grind", "Mains Intensive"]) check(!html.includes(old), `the retired plan shows: ${old}`);
+
+      // A year…
+      await page.getByRole("button", { name: "Create a plan" }).first().click();
+      const form = page.getByRole("dialog", { name: "Create a plan" });
+      await form.getByRole("radio", { name: /^A year/ }).click();
+      await form.getByLabel("Year", { exact: true }).selectOption(String(Y));
+      await form.getByLabel("Title", { exact: true }).fill("Attempt year");
+      await form.getByRole("button", { name: "Create plan" }).click();
+      await page.getByRole("heading", { name: "Attempt year", exact: true }).waitFor();
+
+      // …three months, from the year's own month grid…
+      for (const m of ["January", "February", "March"]) {
+        await page.getByRole("button", { name: `Plan ${m} ${Y}` }).click();
+        await page.getByRole("dialog", { name: "New monthly plan" }).getByRole("button", { name: "Create plan" }).click();
+        await page.getByRole("heading", { name: `${m} ${Y}`, exact: true }).waitFor();
+        await crumbs(page).getByRole("button", { name: "Attempt year" }).click();
+        await page.getByRole("heading", { name: "Attempt year", exact: true }).waitFor();
+      }
+      const four = await waitFor("the year and its months in A's cloud", async () => {
+        const p = await plansOf(A.email);
+        return p.length === 4 ? p : null;
+      });
+      const year = four.find((p) => p.level === "year");
+      roadmap.year = year.id;
+      check(year.year === Y && year.title === "Attempt year", "the year isn't what was entered");
+      check(four.filter((p) => p.level === "month").every((p) => p.parentId === year.id), "a month isn't in the year");
+
+      // …and deleting February leaves the year, January and March exactly as they were.
+      const before = Object.fromEntries(four.map((p) => [p.id, JSON.stringify(p)]));
+      await page.getByRole("button", { name: new RegExp(`^February ${Y}`) }).click();
+      await page.getByRole("heading", { name: `February ${Y}`, exact: true }).waitFor();
+      await page.getByRole("button", { name: "Delete", exact: true }).click();
+      await page.getByRole("dialog", { name: `Delete February ${Y}?` }).getByRole("button", { name: "Delete plan" }).click();
+      await page.getByRole("heading", { name: "Attempt year", exact: true }).waitFor();
+      const three = await waitFor("February gone from A's cloud", async () => {
+        const p = await plansOf(A.email);
+        return p.length === 3 ? p : null;
+      });
+      check(!three.some((p) => p.level === "month" && p.start === `${Y}-02-01`), "February is still there");
+      for (const p of three) check(JSON.stringify(p) === before[p.id], `deleting February changed ${p.title ?? p.start}`);
+
+      // A week inside January, planned activity by activity.
+      await page.getByRole("button", { name: new RegExp(`^January ${Y}`) }).click();
+      await page.getByRole("heading", { name: `January ${Y}`, exact: true }).waitFor();
+      const [y, mo, d] = week.split("-").map(Number);
+      const label = `${d} ${["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][mo - 1]} ${y}`;
+      await page.getByRole("button", { name: `Plan the week of ${label}` }).click();
+      const weekForm = page.getByRole("dialog", { name: "New weekly plan" });
+      await weekForm.getByLabel("Title", { exact: true }).fill("First full week");
+      await weekForm.getByRole("button", { name: "Create plan" }).click();
+      await page.getByRole("heading", { name: "First full week", exact: true }).waitFor();
+      for (const t of ["Revise Polity notes", "Two Prelims mocks", "One full essay"]) {
+        await page.getByLabel("New activity").fill(t);
+        await page.getByRole("button", { name: "Add activity" }).click();
+        await page.getByRole("button", { name: `Edit “${t}”` }).waitFor();
+      }
+      const w = await waitFor("the week and its activities in A's cloud", async () => {
+        const p = await weekOf(A.email);
+        return p?.items?.length === 3 ? p : null;
+      });
+      roadmap.week = w.id;
+      const january = three.find((p) => p.level === "month" && p.start === `${Y}-01-01`);
+      check(w.parentId === january.id, "the week isn't in January");
+      check(w.items.every((i) => i.status === "notStarted"), "new activities didn't start as not started");
+      await page.getByText("Activities · 0 of 3 done").waitFor();
+    });
+
+    await scenario("13. Roadmap work points at a goal and a journal day without changing either, and follows A to the phone", async () => {
+      // A goal, made in Goals.
+      await page.goto(`${APP}/goals?new=1`);
+      const goalForm = page.getByRole("dialog", { name: "New goal" });
+      await goalForm.getByLabel("Name", { exact: true }).fill("Four Prelims mocks");
+      await goalForm.getByRole("button", { name: "Add goal" }).click();
+      await goalForm.waitFor({ state: "detached" });
+      const goalBefore = await waitFor("A's goal in the cloud", async () =>
+        (await cloudOf(A.email))?.data?.goals?.find((g) => g.title === "Four Prelims mocks"),
+      );
+      const goalCount = (await cloudOf(A.email)).data.goals.length;
+      const entryBefore = JSON.stringify((await cloudOf(A.email)).data.journal.find((e) => e.date === today()));
+      check(entryBefore?.includes("A-only highlight"), "A's journal entry for today is missing");
+
+      // The activity serves the goal, by reference.
+      await page.goto(`${APP}/roadmap?plan=${roadmap.week}`);
+      await page.getByRole("heading", { name: "First full week", exact: true }).waitFor();
+      await page.getByRole("button", { name: "Edit “Two Prelims mocks”" }).click();
+      let item = page.getByRole("dialog", { name: "Activity" });
+      await item.getByRole("radio", { name: "Link goal “Four Prelims mocks”" }).check();
+      await item.getByRole("button", { name: "Save", exact: true }).click();
+      await item.waitFor({ state: "detached" });
+      await waitFor("the goal link in A's cloud", async () => itemOf(await weekOf(A.email), "Two Prelims mocks")?.goalId === goalBefore.id);
+
+      // Finishing planned work moves roadmap progress only.
+      await page.getByRole("button", { name: "Mark “Revise Polity notes” complete" }).click();
+      await page.getByRole("button", { name: "Mark “Two Prelims mocks” complete" }).click();
+      await page.getByText("Activities · 2 of 3 done").waitFor();
+      await page.getByText("Goal achievement (from Goals)").first().waitFor();
+      await waitFor("two activities completed in A's cloud", async () => {
+        const w = await weekOf(A.email);
+        return w?.items?.filter((i) => i.status === "completed").length === 2;
+      });
+      const after = await cloudOf(A.email);
+      check(after.data.goals.length === goalCount, "the roadmap added or removed a goal");
+      check(
+        JSON.stringify(after.data.goals.find((g) => g.id === goalBefore.id)) === JSON.stringify(goalBefore),
+        "completing roadmap activities changed the goal",
+      );
+
+      // A journal day linked on purpose: the activity stays open, the entry stays as it was.
+      await page.getByRole("button", { name: "Edit “One full essay”" }).click();
+      item = page.getByRole("dialog", { name: "Activity" });
+      await item.getByLabel("Journal day to link").selectOption(today());
+      await item.getByRole("button", { name: "Link", exact: true }).click();
+      await item.getByRole("button", { name: "Save", exact: true }).click();
+      await item.waitFor({ state: "detached" });
+      const linked = await waitFor("the journal link in A's cloud", async () => {
+        const it = itemOf(await weekOf(A.email), "One full essay");
+        return it?.journalDates?.includes(today()) ? it : null;
+      });
+      check(linked.status === "notStarted", "linking a journal day marked the activity done");
+      await page.goto(`${APP}/journal/${today()}`);
+      await page.getByText("Planned work done this day").waitFor();
+      await page.getByRole("link", { name: /One full essay/ }).waitFor();
+      check(JSON.stringify((await cloudOf(A.email)).data.journal.find((e) => e.date === today())) === entryBefore, "linking changed the journal entry");
+
+      // Unlinking deletes nothing.
+      await page.goto(`${APP}/roadmap?plan=${roadmap.week}`);
+      await page.getByRole("button", { name: "Edit “One full essay”" }).click();
+      item = page.getByRole("dialog", { name: "Activity" });
+      await item.getByRole("button", { name: /^Unlink / }).click();
+      await item.getByRole("button", { name: "Save", exact: true }).click();
+      await item.waitFor({ state: "detached" });
+      await waitFor("the journal link gone from A's cloud", async () => {
+        const it = itemOf(await weekOf(A.email), "One full essay");
+        return it && !it.journalDates;
+      });
+      check(JSON.stringify((await cloudOf(A.email)).data.journal.find((e) => e.date === today())) === entryBefore, "unlinking changed the journal entry");
+
+      // The phone has it all, and activities added on both devices at once are both kept.
+      await phonePage.goto(`${APP}/roadmap?plan=${roadmap.week}`);
+      await passSleepPromptIfShown(phonePage);
+      await phonePage.getByRole("heading", { name: "First full week", exact: true }).waitFor();
+      await phonePage.getByText("Activities · 2 of 3 done").waitFor();
+      await phone.setOffline(true);
+      await phonePage.getByLabel("New activity").fill("Phone activity");
+      await phonePage.getByRole("button", { name: "Add activity" }).click();
+      await phonePage.getByRole("button", { name: "Edit “Phone activity”" }).waitFor();
+      await page.getByLabel("New activity").fill("Laptop activity");
+      await page.getByRole("button", { name: "Add activity" }).click();
+      await waitFor("the laptop's activity in A's cloud", async () => Boolean(itemOf(await weekOf(A.email), "Laptop activity")));
+      await phone.setOffline(false);
+      const merged = await waitFor("both new activities in A's cloud", async () => {
+        const w = await weekOf(A.email);
+        return itemOf(w, "Laptop activity") && itemOf(w, "Phone activity") ? w : null;
+      });
+      check(merged.items.length === 5, `the week has ${merged.items.length} items, not 5`);
+      check(merged.items.filter((i) => i.status === "completed").length === 2, "the merge lost a completion");
+      await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+      await page.getByRole("button", { name: "Edit “Phone activity”" }).waitFor({ timeout: 15_000 });
+
+      // Archiving the year keeps everything in it, readable.
+      await page.goto(`${APP}/roadmap?plan=${roadmap.year}`);
+      await page.getByRole("button", { name: "Archive", exact: true }).click();
+      await page.getByText("Archived", { exact: true }).waitFor();
+      const archived = await waitFor("the archived year in A's cloud", async () => {
+        const p = await plansOf(A.email);
+        return p.find((x) => x.id === roadmap.year)?.archivedAt ? p : null;
+      });
+      check(archived.length === 4 && archived.find((p) => p.id === roadmap.week).items.length === 5, "archiving lost plans or activities");
+      await page.goto(`${APP}/roadmap?plan=${roadmap.week}`);
+      await page.getByText("Part of an archived plan (Attempt year)").waitFor();
+      await page.getByText("Activities · 2 of 5 done").waitFor();
+      await page.getByRole("button", { name: "View “Laptop activity”" }).click();
+      const readOnly = page.getByRole("dialog", { name: "Activity" });
+      check(await readOnly.getByRole("textbox").first().isDisabled(), "an archived activity can still be edited");
+      await readOnly.getByRole("button", { name: "Close", exact: true }).last().click();
+      check((await page.getByLabel("New activity").count()) === 0, "an archived week still takes new activities");
+      await page.goto(`${APP}/roadmap?tab=years`);
+      await page.getByRole("button", { name: /^Show archived/ }).waitFor();
+      check(!(await page.getByText("Attempt year").count()), "an archived year is still in the current list");
+
+      // B, signed in elsewhere, has an empty roadmap of B's own.
+      const bCtx = await browser.newContext();
+      const bPage = await bCtx.newPage();
+      await signIn(bPage, B.email);
+      await passSleepPromptIfShown(bPage);
+      await dashboardGreets(bPage, "Student");
+      await bPage.goto(`${APP}/roadmap`);
+      await bPage.getByText("Your roadmap starts empty.").waitFor();
+      check(!(await bPage.content()).includes("Attempt year"), "B can see A's roadmap");
+      const b = await cloudOf(B.email);
+      check((b.data.plans ?? []).length === 0 && !JSON.stringify(b.data).includes("First full week"), "A's plans reached B's cloud copy");
+      await bCtx.close();
+    });
+
+    await scenario("14. After sign-out nothing private is reachable", async () => {
       await signOut(page);
       check((await htmlAttr(page, "data-material")) === "standard", "the signed-out screen kept A's glass");
       check((await htmlAttr(page, "data-surface")) === "white", "the signed-out screen kept A's Blue Glass");
@@ -618,13 +833,13 @@ async function main() {
       check(!keys.some((k) => k.startsWith("upsc-chronicle-store")), `stores left behind: ${keys}`);
     });
 
-    await scenario("13. Notification preferences are per account", async () => {
+    await scenario("15. Notification preferences are per account", async () => {
       const a = await cloudOf(A.email);
       const b = await cloudOf(B.email);
       check(a.data.notify.digest === false && b.data.notify?.digest !== false, "digest settings crossed accounts");
     });
 
-    await scenario("14. Pre-account data on the owner's browser moves into the owner's account only", async () => {
+    await scenario("16. Pre-account data on the owner's browser moves into the owner's account only", async () => {
       const owner = await (await fetch(`${MOCK}/auth/v1/signup`, {
         method: "POST",
         headers: { apikey: mockEnv.NEXT_PUBLIC_SUPABASE_ANON_KEY, "Content-Type": "application/json" },
@@ -666,7 +881,7 @@ async function main() {
     });
 
     const cPage = await (await browser.newContext()).newPage();
-    await scenario("15. A fresh account starts clean, with only reference content", async () => {
+    await scenario("17. A fresh account starts clean, with only reference content", async () => {
       await signIn(cPage, C.email);
       await onboard(cPage, C.name);
       await passSleepPromptIfShown(cPage);
@@ -675,9 +890,11 @@ async function main() {
         return s?.data?.profile?.onboardedAt ? s : null;
       });
       const text = JSON.stringify(c.data);
-      for (const leak of ["A-only highlight", "B-only highlight", "Owner", "Aman", "Laptop habit"]) {
+      for (const leak of ["A-only highlight", "B-only highlight", "Owner", "Aman", "Laptop habit", "Attempt year", "Four Prelims mocks"]) {
         check(!text.includes(leak), `C's data contains "${leak}"`);
       }
+      check((c.data.plans ?? []).length === 0, "C starts with a roadmap plan");
+      check(!("useRoadmap" in c.data.profile), "C's profile has the retired roadmap switch");
       check(c.data.subjects.every((s) => s.topics.every((t) => t.status === "untouched")), "C starts with progress");
       check(c.data.subjects.length > 10 && c.data.books.length > 0, "C is missing the reference syllabus");
       ids.C = (await sessionOf(cPage)).user.id;
@@ -685,7 +902,7 @@ async function main() {
       await waitFor("C's file in Storage", async () => (await storedFor(ids.C)).length === 1);
     });
 
-    await scenario("16. Deleting an account removes only that account", async () => {
+    await scenario("18. Deleting an account removes only that account", async () => {
       await cPage.goto(`${APP}/settings#danger`);
       await cPage.getByRole("button", { name: "Delete my account" }).click();
       const dialog = cPage.getByRole("dialog", { name: "Delete your account?" });

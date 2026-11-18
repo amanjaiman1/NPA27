@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { PanelLeftClose, Search, Palette, Command } from "lucide-react";
-import { isActivePath, visibleNavGroups } from "@/lib/nav";
+import { isActivePath, navGroups } from "@/lib/nav";
 import { cn } from "@/lib/utils";
 import { Logo } from "./logo";
 import { useChronicle } from "@/lib/store";
@@ -32,7 +32,7 @@ export function Sidebar({
     ? daysBetween(toISODate(new Date()), profile.examDate)
     : null;
   const initials = initialsOf(profile.name);
-  const groups = visibleNavGroups(profile.useRoadmap);
+  const groups = navGroups;
 
   return (
     <aside

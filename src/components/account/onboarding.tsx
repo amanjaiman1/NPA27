@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowLeft, ArrowRight, Check, Route } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check } from "lucide-react";
 import { useChronicle } from "@/lib/store";
 import {
   HABIT_TEMPLATES,
@@ -69,13 +69,10 @@ function Onboarding() {
   }
 
   function finish() {
-    const year = examYear(setup.targetExam);
-    completeOnboarding({ ...setup, useRoadmap: year === 2027 && setup.useRoadmap });
+    completeOnboarding(setup);
     // Keep the account's own record of the name in step, for emails and the menu.
     if (mode === "cloud" && setup.name.trim() !== (user?.name ?? "")) void auth.updateName(setup.name);
   }
-
-  const year = examYear(setup.targetExam);
 
   return (
     <FullScreen>
@@ -249,25 +246,6 @@ function Onboarding() {
                 <p className="mt-1.5 text-[0.7rem] text-paper/40">Add your own later on the Habits page.</p>
               </fieldset>
 
-              {year === 2027 && (
-                <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-line bg-paper/[0.03] p-4">
-                  <input
-                    type="checkbox"
-                    checked={setup.useRoadmap}
-                    onChange={(e) => patch({ useRoadmap: e.target.checked })}
-                    className="mt-0.5 h-4 w-4 accent-[rgb(var(--accent))]"
-                  />
-                  <span className="min-w-0">
-                    <span className="flex items-center gap-1.5 text-sm font-semibold text-paper">
-                      <Route className="h-4 w-4 text-accent" /> Use the built-in CSE 2027 roadmap
-                    </span>
-                    <span className="mt-0.5 block text-xs leading-relaxed text-paper/55">
-                      A week-by-week plan from June 2026: GS2, GS3, GS1 then GS4, with Sociology
-                      alongside. Switch it off any time in Settings.
-                    </span>
-                  </span>
-                </label>
-              )}
             </>
           )}
 

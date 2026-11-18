@@ -730,7 +730,7 @@ export function evaluate(
           body:
             days <= 30
               ? "Consolidation and mocks only. Nothing new."
-              : "Inside the next milestone. Check the plan still fits.",
+              : "Inside the next milestone. Check your roadmap still fits.",
           href: "/roadmap",
           cta: "Open roadmap",
           count: days,

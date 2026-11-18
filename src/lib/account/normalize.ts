@@ -3,22 +3,25 @@ import { toISODate } from "../utils";
 import { DEFAULT_WALLPAPER, isWallpaper, wallpaperMeta } from "../wallpaper";
 import { DEFAULT_MATERIAL, isMaterial, isThemeMode, themeModeFromSurface } from "../theme";
 import { upgradeEntryTopics } from "../topics";
+import { normalizePlans } from "../roadmap";
 
 /**
  * Brings a profile saved by an older version up to the current shape.
  *
- * The one rule that matters: an account that already has a named profile was
- * set up before first-run setup existed, so it is marked as set up (and keeps
- * the roadmap it always had) instead of being sent through setup again.
+ * An account that already has a named profile was set up before first-run
+ * setup existed, so it is marked as set up instead of being sent through
+ * setup again. And `useRoadmap`, the switch for the retired fixed CSE 2027
+ * plan, is removed: the Roadmap is now everyone's own and has no switch.
  * Idempotent — running it twice changes nothing the second time.
  */
 export function normalizeProfile(profile: Profile): Profile {
-  if (profile.onboardedAt || !profile.name?.trim()) return profile;
-  return {
-    ...profile,
-    onboardedAt: profile.startDate || toISODate(new Date()),
-    useRoadmap: profile.useRoadmap ?? true,
-  };
+  let next = profile;
+  if ("useRoadmap" in next) {
+    next = { ...next };
+    delete (next as Profile & { useRoadmap?: unknown }).useRoadmap;
+  }
+  if (next.onboardedAt || !next.name?.trim()) return next;
+  return { ...next, onboardedAt: next.startDate || toISODate(new Date()) };
 }
 
 /**
@@ -182,6 +185,7 @@ type SnapshotLike = {
   journal?: JournalEntry[];
   lifeLog?: LifeEntry[];
   subjects?: Subject[];
+  plans?: unknown;
 };
 
 /**
@@ -214,5 +218,7 @@ export function normalizeSnapshot<T extends SnapshotLike>(snapshot: T): T {
     const up = upgradeRecords(next.journal, next.lifeLog, next.subjects ?? []);
     if (up.changed) next = { ...next, journal: up.journal, lifeLog: up.lifeLog };
   }
+  // Plans from another device, an older version or a backup, made consistent.
+  if (next.plans !== undefined) next = { ...next, plans: normalizePlans(next.plans) };
   return next;
 }
