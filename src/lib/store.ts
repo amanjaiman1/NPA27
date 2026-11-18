@@ -20,6 +20,26 @@ import {
 } from "./theme";
 import { hoursFromTimes, isClock, MAX_SLEEP_HOURS } from "./sleep";
 import { pruneFiles } from "./files";
+import {
+  type ChildPolicy,
+  canParent,
+  carryForward as carryPlanItems,
+  overlapDays,
+  duplicatePlan as duplicatePlanContent,
+  moveItem,
+  normalizePlans,
+  removeItem,
+  removePlan,
+  retargetJournalDate,
+  samePeriod,
+  stripGoal,
+  stripSubject,
+  tidyItem,
+  tidyPlan,
+  undoCarry,
+  withJournalDate,
+  withStatus,
+} from "./roadmap";
 import { completedTopicsOf, normName } from "./topics";
 import {
   type WallpaperId,
@@ -58,6 +78,10 @@ import type {
   TopicLink,
   Habit,
   LifeEntry,
+  PlanItem,
+  PlanItemStatus,
+  PlanReview,
+  RoadmapPlan,
 } from "./types";
 
 /** What a journal save did, for the composer to report. */
@@ -251,6 +275,41 @@ interface ChronicleState extends ChronicleData {
   toggleHabit: (habitId: string, date: string) => void;
   addHabit: (name: string) => void;
 
+  /* roadmap
+     Plans are this person's own; nothing here creates one for them. A plan
+     links to goals and journal days by reference and never edits them. */
+  /**
+   * Creates or updates a plan (with its items), stamping `updatedAt`. A new
+   * plan for a period that already has one is refused: returns false.
+   */
+  savePlan: (plan: RoadmapPlan) => boolean;
+  /** Several new plans at once (a year and its months). Periods already planned are skipped. */
+  addPlans: (plans: RoadmapPlan[]) => number;
+  /** `keep` moves the plans under it up a level, or makes them stand alone; `delete` removes them too. */
+  deletePlan: (id: string, children: ChildPolicy) => void;
+  /** A copy of a plan's own content for another period. Returns the new plan's id, or null if that period is taken. */
+  duplicatePlan: (
+    id: string,
+    target: { year?: number; month?: string; start?: ISODate; title?: string; parentId?: string },
+  ) => string | null;
+  setPlanArchived: (id: string, archived: boolean) => void;
+  /**
+   * Puts plans under a parent, or takes them out (`parentId` undefined). Only
+   * links that can hold are made: the right levels and overlapping dates.
+   */
+  setPlanParent: (ids: string[], parentId: string | undefined) => number;
+  /** Creates or updates one activity or milestone in a plan. */
+  savePlanItem: (planId: string, item: PlanItem) => void;
+  deletePlanItem: (planId: string, itemId: string) => void;
+  setPlanItemStatus: (planId: string, itemId: string, status: PlanItemStatus) => void;
+  movePlanItem: (planId: string, itemId: string, delta: -1 | 1) => void;
+  /** Copies unfinished activities into another plan; the originals stay, marked as carried. Returns how many moved. */
+  carryForward: (fromPlanId: string, itemIds: string[], toPlanId: string) => number;
+  undoCarryForward: (planId: string, itemId: string) => { ok: boolean; reason?: string };
+  /** Links or unlinks a journal day. Neither record is otherwise changed. */
+  setItemJournalLink: (planId: string, itemId: string, date: ISODate, linked: boolean) => void;
+  savePlanReview: (planId: string, review: PlanReview) => void;
+
   /* life dashboard */
   /**
    * Saves a day. `previousDate` moves an entry opened on another date. The
@@ -360,6 +419,8 @@ export const SNAPSHOT_KEYS = [
   "accomplished",
   // Descriptions of attached files; the bytes are in Storage, never here.
   "files",
+  // The Roadmap: this person's own yearly, monthly and weekly plans.
+  "plans",
   "themeMode",
   "material",
   "reduceTransparency",
@@ -744,6 +805,9 @@ export const useChronicle = create<ChronicleState>()(
         goals = pruned.goals;
         lifeLog = pruned.lifeLog;
 
+        // A day moved to another date takes its links from planned activities along.
+        const plans = moving ? retargetJournalDate(s.plans, moving, entry.date) : s.plans;
+
         set({
           journal,
           files,
@@ -751,6 +815,7 @@ export const useChronicle = create<ChronicleState>()(
           lifeLog,
           subjects,
           revisions,
+          ...(plans !== s.plans ? { plans } : {}),
           ...(pruned.unusedPaths.length
             ? { fileTrash: [...new Set([...s.fileTrash, ...pruned.unusedPaths])] }
             : {}),
@@ -770,11 +835,14 @@ export const useChronicle = create<ChronicleState>()(
             return next;
           });
           const pruned = pruneFiles({ files: s.files, journal, goals, lifeLog: s.lifeLog });
+          // Activities linked to the day keep everything but the link.
+          const plans = retargetJournalDate(s.plans, date, null);
           return {
             journal,
             files: pruned.files,
             goals: pruned.goals,
             lifeLog: pruned.lifeLog,
+            ...(plans !== s.plans ? { plans } : {}),
             ...(pruned.unusedPaths.length
               ? { fileTrash: [...new Set([...s.fileTrash, ...pruned.unusedPaths])] }
               : {}),
@@ -933,6 +1001,8 @@ export const useChronicle = create<ChronicleState>()(
           // left behind as rows whose subject renders as a raw slug.
           revisions: s.revisions.filter((r) => r.subjectId !== id),
           mistakes: s.mistakes.filter((m) => m.subjectId !== id),
+          // Planned activities stay; they just lose the subject label.
+          plans: stripSubject(s.plans, id),
         })),
 
       reviseTopic: (topicId) =>
@@ -1058,7 +1128,11 @@ export const useChronicle = create<ChronicleState>()(
           return { goals };
         }),
       deleteGoal: (id) =>
-        set((s) => ({ goals: s.goals.filter((g) => g.id !== id) })),
+        set((s) => {
+          // Plans that named the goal keep everything but the link.
+          const plans = stripGoal(s.plans, id);
+          return { goals: s.goals.filter((g) => g.id !== id), ...(plans !== s.plans ? { plans } : {}) };
+        }),
 
       setGoalStatus: (id, status) => {
         const g = get().goals.find((x) => x.id === id);
@@ -1379,6 +1453,158 @@ export const useChronicle = create<ChronicleState>()(
           ],
         })),
 
+      /* ── roadmap ──────────────────────────────────────────────── */
+
+      savePlan: (plan) => {
+        const s = get();
+        const exists = s.plans.some((p) => p.id === plan.id);
+        // One plan per period. The form says so before saving; this is the backstop.
+        if (!exists && samePeriod(s.plans, plan)) return false;
+        const stamp = new Date().toISOString();
+        const clean = tidyPlan({ ...plan, updatedAt: stamp });
+        set({
+          plans: exists ? s.plans.map((p) => (p.id === plan.id ? clean : p)) : [...s.plans, clean],
+        });
+        return true;
+      },
+
+      addPlans: (incoming) => {
+        let added = 0;
+        set((s) => {
+          const plans = [...s.plans];
+          for (const plan of incoming) {
+            if (plans.some((p) => p.id === plan.id) || samePeriod(plans, plan)) continue;
+            plans.push(tidyPlan(plan));
+            added++;
+          }
+          return added ? { plans } : {};
+        });
+        return added;
+      },
+
+      deletePlan: (id, children) =>
+        set((s) => {
+          const plans = removePlan(s.plans, id, children);
+          return plans === s.plans ? {} : { plans };
+        }),
+
+      duplicatePlan: (id, target) => {
+        const s = get();
+        const source = s.plans.find((p) => p.id === id);
+        if (!source) return null;
+        const copy = duplicatePlanContent(source, target);
+        if (samePeriod(s.plans, copy)) return null;
+        const parent = target.parentId ? s.plans.find((p) => p.id === target.parentId) : undefined;
+        if (parent) copy.parentId = parent.id;
+        set({ plans: [...s.plans, tidyPlan(copy)] });
+        return copy.id;
+      },
+
+      setPlanArchived: (id, archived) =>
+        set((s) => ({
+          plans: s.plans.map((p) => {
+            if (p.id !== id || Boolean(p.archivedAt) === archived) return p;
+            const stamp = new Date().toISOString();
+            const next: RoadmapPlan = { ...p, updatedAt: stamp };
+            if (archived) next.archivedAt = stamp;
+            else delete next.archivedAt;
+            return next;
+          }),
+        })),
+
+      setPlanParent: (ids, parentId) => {
+        let moved = 0;
+        set((s) => {
+          const parent = parentId ? s.plans.find((p) => p.id === parentId) : undefined;
+          if (parentId && !parent) return {};
+          const wanted = new Set(ids);
+          const stamp = new Date().toISOString();
+          const plans = s.plans.map((p) => {
+            if (!wanted.has(p.id) || p.parentId === parentId) return p;
+            if (parent && (!canParent(parent.level, p.level) || overlapDays(parent.start, parent.end, p.start, p.end) === 0)) return p;
+            moved++;
+            const next: RoadmapPlan = { ...p, updatedAt: stamp };
+            if (parentId) next.parentId = parentId;
+            else delete next.parentId;
+            return next;
+          });
+          return moved ? { plans } : {};
+        });
+        return moved;
+      },
+
+      savePlanItem: (planId, item) =>
+        set((s) => ({
+          plans: s.plans.map((p) => {
+            if (p.id !== planId) return p;
+            const items = p.items ?? [];
+            const before = items.find((i) => i.id === item.id);
+            // A status change made in the form keeps the completion time honest.
+            const next = tidyItem(before && before.status !== item.status ? withStatus({ ...item, status: before.status }, item.status) : item);
+            return {
+              ...p,
+              updatedAt: new Date().toISOString(),
+              items: before ? items.map((i) => (i.id === item.id ? next : i)) : [...items, next],
+            };
+          }),
+        })),
+
+      deletePlanItem: (planId, itemId) => set((s) => ({ plans: removeItem(s.plans, planId, itemId) })),
+
+      setPlanItemStatus: (planId, itemId, status) =>
+        set((s) => ({
+          plans: s.plans.map((p) => {
+            if (p.id !== planId || !p.items?.some((i) => i.id === itemId && i.status !== status)) return p;
+            return {
+              ...p,
+              updatedAt: new Date().toISOString(),
+              items: p.items.map((i) => (i.id === itemId ? withStatus(i, status) : i)),
+            };
+          }),
+        })),
+
+      movePlanItem: (planId, itemId, delta) =>
+        set((s) => ({
+          plans: s.plans.map((p) => {
+            if (p.id !== planId || !p.items) return p;
+            const items = moveItem(p.items, itemId, delta);
+            return items === p.items ? p : { ...p, items, updatedAt: new Date().toISOString() };
+          }),
+        })),
+
+      carryForward: (fromPlanId, itemIds, toPlanId) => {
+        const res = carryPlanItems(get().plans, fromPlanId, itemIds, toPlanId);
+        if (res.moved) set({ plans: res.plans });
+        return res.moved;
+      },
+
+      undoCarryForward: (planId, itemId) => {
+        const res = undoCarry(get().plans, planId, itemId);
+        if (res.ok) set({ plans: res.plans });
+        return { ok: res.ok, reason: res.reason };
+      },
+
+      setItemJournalLink: (planId, itemId, date, linked) =>
+        set((s) => ({
+          plans: s.plans.map((p) => {
+            if (p.id !== planId || !p.items?.some((i) => i.id === itemId)) return p;
+            return {
+              ...p,
+              updatedAt: new Date().toISOString(),
+              items: p.items.map((i) => (i.id === itemId ? withJournalDate(i, date, linked) : i)),
+            };
+          }),
+        })),
+
+      savePlanReview: (planId, review) =>
+        set((s) => ({
+          plans: s.plans.map((p) => {
+            if (p.id !== planId) return p;
+            const stamp = new Date().toISOString();
+            return tidyPlan({ ...p, review: { ...review, reviewedAt: stamp }, updatedAt: stamp });
+          }),
+        })),
+
       upsertLifeEntry: (entry, previousDate) =>
         set((s) => {
           const moving = previousDate && previousDate !== entry.date ? previousDate : null;
@@ -1563,7 +1789,7 @@ export const useChronicle = create<ChronicleState>()(
     }),
     {
       name: STORE_KEY,
-      version: 13,
+      version: 14,
       /**
        * Scoped to the signed-in account: `upsc-chronicle-store:<user id>`.
        * Nothing is read or written until an account is activated, which is why
@@ -1625,6 +1851,15 @@ export const useChronicle = create<ChronicleState>()(
         if (version < 13) {
           if (state.material === undefined) state.material = DEFAULT_MATERIAL;
           if (state.reduceTransparency === undefined) state.reduceTransparency = false;
+        }
+
+        // v13 -> v14: the Roadmap became your own plans. The fixed CSE 2027
+        // plan was never stored per account (it lived in the code), so the
+        // only thing it left behind is the switch that showed it; that goes.
+        // Everything else is untouched.
+        if (version < 14) {
+          if (state.profile) state.profile = normalizeProfile(state.profile);
+          state.plans = normalizePlans(state.plans);
         }
 
         return state as ChronicleState;

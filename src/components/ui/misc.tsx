@@ -127,11 +127,14 @@ export function Segmented<T extends string>({
   value,
   onChange,
   className,
+  compact,
 }: {
   options: { label: string; value: T }[];
   value: T;
   onChange: (v: T) => void;
   className?: string;
+  /** Tighter on phones, so five or so options fit across one. */
+  compact?: boolean;
 }) {
   return (
     <div
@@ -145,7 +148,8 @@ export function Segmented<T extends string>({
           key={o.value}
           onClick={() => onChange(o.value)}
           className={cn(
-            "shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all duration-200",
+            "shrink-0 rounded-full py-1.5 text-xs font-semibold transition-all duration-200",
+            compact ? "px-2.5 sm:px-3.5" : "px-3.5",
             value === o.value
               ? "bg-accent text-accent-fg shadow-accent"
               : "text-paper/55 hover:bg-paper/[0.05] hover:text-paper",

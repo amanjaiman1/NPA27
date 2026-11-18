@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { Search, CornerDownLeft, ArrowUp, ArrowDown } from "lucide-react";
 import { searchableNavItems } from "@/lib/nav";
-import { useChronicle } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { beginRouteTransition } from "./route-transition";
 
@@ -20,21 +19,16 @@ export function CommandPalette({
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
-  const roadmapOn = useChronicle((s) => s.profile.useRoadmap);
-
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const items = roadmapOn
-      ? searchableNavItems
-      : searchableNavItems.filter((i) => i.href !== "/roadmap");
-    if (!q) return items;
-    return items.filter(
+    if (!q) return searchableNavItems;
+    return searchableNavItems.filter(
       (i) =>
         i.label.toLowerCase().includes(q) ||
         i.short.toLowerCase().includes(q) ||
         i.href.toLowerCase().includes(q),
     );
-  }, [query, roadmapOn]);
+  }, [query]);
 
   useEffect(() => {
     if (open) {

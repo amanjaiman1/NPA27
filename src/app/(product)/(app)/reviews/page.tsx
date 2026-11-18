@@ -17,7 +17,9 @@ import {
   ArrowDownRight,
   Target,
   Gauge,
+  Route,
 } from "lucide-react";
+import Link from "next/link";
 import { useChronicle, useHasHydrated } from "@/lib/store";
 import type { Review, ReviewType } from "@/lib/types";
 import { PageHeader } from "@/components/ui/page-header";
@@ -38,6 +40,8 @@ import {
   type ReviewMetrics,
 } from "@/lib/review-builder";
 import { toISODate, formatDate, round, cn } from "@/lib/utils";
+import { planForPeriod, planName } from "@/lib/roadmap";
+import { roadmapHref } from "@/components/roadmap/shared";
 
 const LISTS = [
   { key: "wins", label: "Wins", icon: Trophy },
@@ -111,6 +115,7 @@ function Metric({
 export default function ReviewsPage() {
   const hydrated = useHasHydrated();
   const reviews = useChronicle((s) => s.reviews);
+  const plans = useChronicle((s) => s.plans);
   const journal = useChronicle((s) => s.journal);
   const mocks = useChronicle((s) => s.mocks);
   const subjects = useChronicle((s) => s.subjects);
@@ -295,7 +300,18 @@ export default function ReviewsPage() {
                         {r.periodLabel}
                       </h3>
                       <Badge tone="outline">{r.type}</Badge>
-                      {m && m.phase && <Badge tone="ghost">{m.phase}</Badge>}
+                      {(() => {
+                        const planned = planForPeriod(plans, r.type, r.startDate);
+                        return planned ? (
+                          <Link
+                            href={roadmapHref({ plan: planned.id })}
+                            className="inline-flex items-center gap-1 rounded-full border border-line px-2.5 py-1 text-[0.7rem] font-semibold text-paper/70 hover:border-accent/40 hover:text-accent"
+                            title="Your plan for this period, in the Roadmap"
+                          >
+                            <Route className="h-3 w-3" /> Planned: {planName(planned)}
+                          </Link>
+                        ) : null;
+                      })()}
                     </div>
                     <p className="mt-1 text-xs text-paper/40">
                       {formatDate(r.startDate)} — {formatDate(r.endDate)}

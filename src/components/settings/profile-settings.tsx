@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { UserRound, Route } from "lucide-react";
+import { UserRound } from "lucide-react";
 import { useChronicle } from "@/lib/store";
 import type { Profile } from "@/lib/types";
 import { buildOptionalSubject, deviceTimeZone, optionalSubjectId } from "@/lib/seed";
@@ -14,7 +14,6 @@ import {
   OptionalSelect,
   TimezoneSelect,
   examChoices,
-  examYear,
 } from "@/components/account/profile-fields";
 import { SaveNote, SettingsSection } from "./section";
 
@@ -29,7 +28,6 @@ type Draft = Pick<
   | "optionalSubject"
   | "dailyHourTarget"
   | "timezone"
-  | "useRoadmap"
 >;
 
 function draftFrom(p: Profile): Draft {
@@ -43,7 +41,6 @@ function draftFrom(p: Profile): Draft {
     optionalSubject: p.optionalSubject,
     dailyHourTarget: p.dailyHourTarget,
     timezone: p.timezone ?? deviceTimeZone(),
-    useRoadmap: Boolean(p.useRoadmap),
   };
 }
 
@@ -82,8 +79,6 @@ export function ProfileSettings() {
     if (mode === "cloud" && name !== (user?.name ?? "")) void auth.updateName(name);
     setNote({ kind: "ok", text: "Saved." });
   }
-
-  const roadmapAvailable = examYear(draft.targetExam) === 2027 || draft.useRoadmap;
 
   return (
     <SettingsSection
@@ -146,25 +141,6 @@ export function ProfileSettings() {
             <TimezoneSelect value={draft.timezone ?? ""} onChange={(timezone) => patch({ timezone })} />
           </Field>
         </div>
-
-        {roadmapAvailable && (
-          <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-line bg-paper/[0.03] p-4">
-            <input
-              type="checkbox"
-              checked={Boolean(draft.useRoadmap)}
-              onChange={(e) => patch({ useRoadmap: e.target.checked })}
-              className="mt-0.5 h-4 w-4 accent-[rgb(var(--accent))]"
-            />
-            <span className="min-w-0">
-              <span className="flex items-center gap-1.5 text-sm font-semibold text-paper">
-                <Route className="h-4 w-4 text-accent" /> Show the CSE 2027 roadmap
-              </span>
-              <span className="mt-0.5 block text-xs leading-relaxed text-paper/55">
-                The built-in week-by-week plan, in the sidebar and on the dashboard.
-              </span>
-            </span>
-          </label>
-        )}
 
         <div className="flex items-center gap-3">
           <Button type="submit">Save profile</Button>

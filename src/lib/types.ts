@@ -678,8 +678,12 @@ export interface Profile {
    * always uses the device's clock; this decides when a push may arrive.
    */
   timezone?: string;
-  /** Whether the built-in CSE 2027 week-by-week roadmap is shown. */
-  useRoadmap?: boolean;
+  /**
+   * The day a Roadmap week starts on, 0 (Sunday) to 6 (Saturday). Absent
+   * means Monday. Only suggests where new weekly plans start; every plan
+   * keeps the dates it was given.
+   */
+  weekStart?: number;
   /**
    * The Life Dashboard measurements this person tracks. Absent means all of
    * them; the form and the dashboard only show what is listed.
@@ -718,4 +722,100 @@ export interface ChronicleData {
   selection: SelectionStage[];
   /** Every file attached in the journal. See `FileRecord`. */
   files: FileRecord[];
+  /** The Roadmap: this person's own yearly, monthly and weekly plans. */
+  plans: RoadmapPlan[];
+}
+
+/* ── Roadmap ─────────────────────────────────────────────────── */
+
+/**
+ * The three planning levels. A month may belong to a year; a week to a month
+ * or straight to a year. Any of them can also stand alone.
+ */
+export type PlanLevel = "year" | "month" | "week";
+
+/** A piece of planned work, or a checkpoint to reach by a date. */
+export type PlanItemKind = "activity" | "milestone";
+
+export type PlanItemStatus = "notStarted" | "inProgress" | "completed" | "deferred";
+
+export type PlanPriority = "High" | "Medium" | "Low";
+
+/** Where a carried-forward activity went, or came from. */
+export interface PlanItemRef {
+  planId: string;
+  itemId: string;
+}
+
+/**
+ * Something planned inside one plan. It belongs to that plan only; carrying
+ * it forward makes a copy in the next plan and marks this one as moved on.
+ */
+export interface PlanItem {
+  id: string;
+  kind: PlanItemKind;
+  title: string;
+  description?: string;
+  /** Activities only. Absent reads as Medium. */
+  priority?: PlanPriority;
+  /** An activity's target date, or the date a milestone is due. */
+  targetDate?: ISODate;
+  status: PlanItemStatus;
+  /** A syllabus subject, by id. */
+  subjectId?: string;
+  /** A free label such as "Answer writing". */
+  category?: string;
+  /** A goal this serves. A reference only: its progress stays in Goals. */
+  goalId?: string;
+  /** One of that goal's milestones, referenced rather than copied. */
+  goalMilestoneId?: string;
+  notes?: string;
+  /** When it was marked completed (ISO timestamp). Cleared if reopened. */
+  completedAt?: string;
+  /** Journal days deliberately linked to this activity. */
+  journalDates?: ISODate[];
+  carriedFrom?: PlanItemRef;
+  carriedTo?: PlanItemRef;
+  /** ISO timestamp. */
+  createdAt: string;
+}
+
+/** Looking back at a finished week, month or year. */
+export interface PlanReview {
+  wentWell?: string;
+  improve?: string;
+  nextPriorities?: string;
+  /** ISO timestamp of the last save. */
+  reviewedAt?: string;
+}
+
+/**
+ * One plan. Dates are calendar dates and are the source of truth: a month
+ * runs from its first to its last day, a week for seven days from `start`,
+ * and a year from 1 January to 31 December unless other dates were chosen.
+ */
+export interface RoadmapPlan {
+  id: string;
+  level: PlanLevel;
+  /** Optional. Without one, the period is the name ("January 2027"). */
+  title?: string;
+  /** Year plans: the year it is for. */
+  year?: number;
+  start: ISODate;
+  end: ISODate;
+  /** The plan this one sits under. Never deleted or changed for you. */
+  parentId?: string;
+  focus?: string;
+  objectives?: string[];
+  outcomes?: string;
+  notes?: string;
+  /** Goals this plan works towards, by id. References only. */
+  goalIds?: string[];
+  items?: PlanItem[];
+  review?: PlanReview;
+  /** Set when archived (ISO timestamp). Archived plans stay readable. */
+  archivedAt?: string;
+  /** ISO timestamps. */
+  createdAt: string;
+  updatedAt: string;
 }

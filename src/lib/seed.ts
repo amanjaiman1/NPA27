@@ -353,7 +353,6 @@ export interface AccountSetup {
   dailyHourTarget: number;
   timezone: string;
   habits: string[];
-  useRoadmap: boolean;
 }
 
 export function defaultSetup(today = new Date()): AccountSetup {
@@ -368,7 +367,6 @@ export function defaultSetup(today = new Date()): AccountSetup {
     dailyHourTarget: 8,
     timezone: deviceTimeZone(),
     habits: DEFAULT_HABIT_IDS,
-    useRoadmap: false,
   };
 }
 
@@ -382,7 +380,6 @@ function profileFrom(setup: AccountSetup, onboardedAt?: string): Profile {
     startDate: setup.startDate,
     dailyHourTarget: setup.dailyHourTarget,
     timezone: setup.timezone,
-    useRoadmap: setup.useRoadmap,
     onboardedAt,
   };
 }
@@ -417,6 +414,8 @@ export function createAccountTemplate(setup: AccountSetup, today = new Date()): 
     topicLinks: buildTopicLinks(subjects, todayISO),
     selection: buildSelection(setup.targetExam),
     files: [],
+    // The Roadmap starts empty: no plan is written for anyone.
+    plans: [],
   };
 }
 

@@ -6,10 +6,12 @@ import {
   BookOpen,
   Check,
   ChevronRight,
+  Flag,
   Link2,
   Paperclip,
   Pencil,
   Plus,
+  Route,
   Trash2,
   Unlink,
   X,
@@ -27,6 +29,8 @@ import {
   type GoalProgress,
 } from "@/lib/goals";
 import { filesByIds } from "@/lib/files";
+import { STATUS_LABEL, goalLinks, planContext, planName } from "@/lib/roadmap";
+import { roadmapHref } from "@/components/roadmap/shared";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -214,6 +218,8 @@ function Overview({ p }: { p: GoalProgress }) {
 
       <MilestoneList goal={g} />
 
+      <RoadmapRefs goal={g} />
+
       <Section title="Fed by">
         <div className="flex flex-wrap items-center gap-3 rounded-xl border border-line bg-paper/[0.02] p-3.5">
           <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-accent/15 text-accent">
@@ -235,6 +241,67 @@ function Overview({ p }: { p: GoalProgress }) {
         </div>
       </Section>
     </div>
+  );
+}
+
+/**
+ * Where this goal appears in the Roadmap, read-only. Plans and activities
+ * are edited there; nothing done in them changes this goal's progress.
+ */
+function RoadmapRefs({ goal }: { goal: Goal }) {
+  const plans = useChronicle((s) => s.plans);
+  const links = useMemo(() => goalLinks(plans, goal.id), [plans, goal.id]);
+  const activities = links.items.filter((x) => x.item.kind === "activity");
+  const done = activities.filter((x) => x.item.status === "completed").length;
+  if (!links.plans.length && !links.items.length) {
+    return (
+      <Section title="In your roadmap" hint="Link this goal to a yearly, monthly or weekly plan to see when you mean to work on it.">
+        <Link href="/roadmap" className="inline-flex items-center gap-1 text-[0.78rem] font-semibold text-accent hover:underline">
+          Open the Roadmap <ChevronRight className="h-3.5 w-3.5" />
+        </Link>
+      </Section>
+    );
+  }
+  return (
+    <Section
+      title="In your roadmap"
+      hint={`Planning only.${activities.length ? ` ${done} of ${activities.length} planned activities done.` : ""} Ticking them off doesn't change this goal's progress.`}
+    >
+      <ul className="space-y-1.5">
+        {links.plans.map((p) => (
+          <li key={p.id}>
+            <Link
+              href={roadmapHref({ plan: p.id })}
+              className="flex items-center gap-3 rounded-xl border border-line bg-paper/[0.02] px-3 py-2.5 hover:border-accent/35"
+            >
+              <Route className="h-4 w-4 shrink-0 text-accent" />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-medium text-paper">{planName(p)}</span>
+                <span className="block truncate text-[0.68rem] text-paper/55">{planContext(p)}</span>
+              </span>
+              <ChevronRight className="h-3.5 w-3.5 shrink-0 text-paper/45" />
+            </Link>
+          </li>
+        ))}
+        {links.items.slice(0, 8).map(({ plan, item }) => (
+          <li key={`${plan.id}:${item.id}`}>
+            <Link
+              href={roadmapHref({ plan: plan.id, item: item.id })}
+              className="flex items-center gap-3 rounded-xl px-3 py-1.5 text-[0.8rem] hover:bg-paper/[0.04]"
+            >
+              <span className={cn("min-w-0 flex-1 truncate text-paper/85", item.status === "completed" && "line-through decoration-paper/40")}>
+                {item.kind === "milestone" && <Flag className="mr-1 inline h-3 w-3 align-[-1px] text-accent" aria-label="Roadmap milestone:" />}
+                {item.title}
+              </span>
+              <span className="shrink-0 text-[0.68rem] text-paper/55">
+                {STATUS_LABEL[item.status]} · {planName(plan)}
+              </span>
+            </Link>
+          </li>
+        ))}
+        {links.items.length > 8 && <li className="px-3 text-[0.7rem] text-paper/55">and {links.items.length - 8} more in the Roadmap</li>}
+      </ul>
+    </Section>
   );
 }
 

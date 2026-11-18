@@ -119,6 +119,7 @@ export function useNotifications() {
       topicLinks: [],
       selection: [],
       files: [],
+      plans: [],
     };
   }, [
     hydrated,
