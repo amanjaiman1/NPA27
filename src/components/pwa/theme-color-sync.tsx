@@ -3,11 +3,11 @@
 import { useEffect } from "react";
 
 /**
- * Keeps `<meta name="theme-color">` in step with the chosen surface, so the
- * installed app's title bar / status bar matches the canvas instead of being
- * stuck on the default ink.
+ * Keeps `<meta name="theme-color">` in step with the theme, so the installed
+ * app's title bar / status bar matches the canvas instead of being stuck on
+ * the default ink.
  *
- * Reads the live `--ink` custom property rather than duplicating the palette.
+ * Reads the live `--ink` custom property rather than duplicating the colours.
  */
 export function ThemeColorSync() {
   useEffect(() => {
@@ -39,7 +39,7 @@ export function ThemeColorSync() {
     const observer = new MutationObserver(apply);
     observer.observe(root, {
       attributes: true,
-      attributeFilter: ["data-surface", "data-palette"],
+      attributeFilter: ["data-surface"],
     });
     return () => observer.disconnect();
   }, []);

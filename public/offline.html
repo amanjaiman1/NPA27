@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#f6f4f0" />
+    <meta name="theme-color" content="#d6eefb" />
     <title>Offline · DoOrDie</title>
     <link rel="icon" href="/icons/icon-192.png" type="image/png" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
@@ -12,35 +12,43 @@
 
       Deliberately a standalone document: no app JavaScript, no build chunks,
       no auth or sleep gate. It has to render when nothing else can, so the
-      design tokens below are a hand-copy of the app's Ivory surface.
+      design tokens below are a hand-copy of the app's two themes (Light and
+      Dark in src/app/globals.css).
     -->
     <style>
       :root {
-        --ink: 246 244 240;
-        --card: 255 255 255;
-        --paper: 34 31 28;
-        --line: 226 221 213;
-        --accent: 225 29 72;
+        --ink: 214 238 251;
+        --paper: 22 49 71;
+        --accent: 14 107 196;
         --accent-fg: 255 255 255;
-        --shadow: 32 26 20;
+        --shadow: 32 88 132;
+        --pane: rgb(255 255 255 / 0.62);
+        --pane-edge: rgb(255 255 255 / 0.85);
+        --quiet: 0.72;
+        --backdrop:
+          radial-gradient(64% 54% at 22% -12%, rgb(255 255 255 / 0.95), transparent 68%),
+          radial-gradient(38% 62% at -6% 58%, rgb(100 188 235 / 0.62), transparent 72%),
+          radial-gradient(44% 44% at 104% 6%, rgb(186 226 250 / 0.9), transparent 70%),
+          radial-gradient(56% 50% at 94% 106%, rgb(122 196 240 / 0.46), transparent 72%),
+          linear-gradient(165deg, rgb(226 243 253) 0%, rgb(211 236 251) 55%, rgb(198 230 249) 100%);
+        color-scheme: light;
       }
       [data-surface="black"] {
-        --ink: 18 18 20;
-        --card: 27 27 31;
-        --paper: 242 241 238;
-        --line: 46 46 52;
-        --accent: 251 74 113;
-        --accent-fg: 40 6 16;
+        --ink: 9 19 37;
+        --paper: 230 237 247;
+        --accent: 92 172 255;
+        --accent-fg: 6 22 44;
         --shadow: 0 0 0;
-      }
-      [data-surface="navy"] {
-        --ink: 15 18 33;
-        --card: 23 28 48;
-        --paper: 226 231 245;
-        --line: 41 48 74;
-        --accent: 251 74 113;
-        --accent-fg: 40 6 16;
-        --shadow: 4 6 20;
+        --pane: rgb(24 40 66 / 0.72);
+        --pane-edge: rgb(255 255 255 / 0.1);
+        --quiet: 0.66;
+        --backdrop:
+          radial-gradient(64% 54% at 22% -12%, rgb(64 140 220 / 0.3), transparent 68%),
+          radial-gradient(38% 62% at -6% 58%, rgb(34 112 200 / 0.3), transparent 72%),
+          radial-gradient(44% 44% at 104% 6%, rgb(76 124 224 / 0.24), transparent 70%),
+          radial-gradient(56% 50% at 94% 106%, rgb(36 122 204 / 0.24), transparent 72%),
+          linear-gradient(165deg, rgb(13 27 49) 0%, rgb(9 20 38) 55%, rgb(7 15 30) 100%);
+        color-scheme: dark;
       }
       * {
         box-sizing: border-box;
@@ -54,53 +62,35 @@
         display: grid;
         place-items: center;
         padding: 1.5rem;
-        background: rgb(var(--ink));
+        background-color: rgb(var(--ink));
+        background-image: var(--backdrop);
+        background-attachment: fixed;
         color: rgb(var(--paper));
         /* The app's Poppins is served by the bundler, which this standalone
            document can't reference — so it asks for Poppins (used if the OS has
-           it) and otherwise falls back to the closest rounded system face. */
+           it) and otherwise falls back to the closest system face. */
         font-family:
           Poppins, ui-rounded, "SF Pro Rounded", "Segoe UI Variable",
           ui-sans-serif, system-ui, -apple-system, Roboto, Arial, sans-serif;
         letter-spacing: -0.011em;
         -webkit-font-smoothing: antialiased;
       }
-      .wash {
-        position: fixed;
-        inset: 0;
-        z-index: -1;
-        overflow: hidden;
-      }
-      .wash span {
-        position: absolute;
-        border-radius: 9999px;
-        filter: blur(110px);
-      }
-      .w1 {
-        top: -10rem;
-        left: -10rem;
-        width: 30rem;
-        height: 30rem;
-        background: rgb(var(--accent) / 0.1);
-      }
-      .w2 {
-        right: -8rem;
-        bottom: -8rem;
-        width: 26rem;
-        height: 26rem;
-        background: rgb(37 99 235 / 0.07);
-      }
       .card {
         width: 100%;
         max-width: 27rem;
         padding: 2rem;
-        border: 1px solid rgb(var(--line));
+        border: 1px solid var(--pane-edge);
         border-radius: 1.75rem;
-        background: rgb(var(--card));
+        background: var(--pane);
         box-shadow:
-          0 1px 2px rgb(var(--shadow) / 0.05),
-          0 24px 48px -24px rgb(var(--shadow) / 0.26);
+          inset 0 1px 0 rgb(255 255 255 / 0.5),
+          0 24px 56px -28px rgb(var(--shadow) / 0.45);
         text-align: center;
+      }
+      [data-surface="black"] .card {
+        box-shadow:
+          inset 0 1px 0 rgb(255 255 255 / 0.08),
+          0 24px 56px -28px rgb(0 0 0 / 0.7);
       }
       .mark {
         display: grid;
@@ -109,7 +99,8 @@
         height: 3.25rem;
         margin: 0 auto;
         border-radius: 1rem;
-        border: 1px solid rgb(var(--line));
+        border: 1px solid var(--pane-edge);
+        background: var(--pane);
       }
       h1 {
         margin: 1.35rem 0 0;
@@ -122,7 +113,7 @@
         margin: 0.7rem 0 0;
         font-size: 0.9rem;
         line-height: 1.65;
-        color: rgb(var(--paper) / 0.55);
+        color: rgb(var(--paper) / var(--quiet));
       }
       .actions {
         display: flex;
@@ -155,37 +146,43 @@
         border: 0;
         background: rgb(var(--accent));
         color: rgb(var(--accent-fg));
-        box-shadow: 0 10px 26px -12px rgb(var(--accent) / 0.55);
+        box-shadow: 0 10px 26px -12px rgb(var(--accent) / 0.6);
       }
       button:hover {
         filter: brightness(1.08);
         transform: translateY(-1px);
       }
       a.btn {
-        border: 1px solid rgb(var(--line));
+        border: 1px solid rgb(var(--paper) / 0.16);
         background: transparent;
-        color: rgb(var(--paper) / 0.7);
+        color: rgb(var(--paper) / 0.8);
       }
       a.btn:hover {
-        border-color: rgb(var(--paper) / 0.3);
+        border-color: rgb(var(--paper) / 0.32);
         color: rgb(var(--paper));
         transform: translateY(-1px);
       }
       .note {
         margin-top: 1.4rem;
-        font-size: 0.72rem;
-        color: rgb(var(--paper) / 0.38);
+        font-size: 0.75rem;
+      }
+      :focus-visible {
+        outline: 2px solid rgb(var(--accent) / 0.6);
+        outline-offset: 2px;
       }
       svg {
         display: block;
       }
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          transition-duration: 0.01ms !important;
+        }
+      }
     </style>
   </head>
   <body>
-    <div class="wash"><span class="w1"></span><span class="w2"></span></div>
-
     <main class="card">
-      <!-- The Chronicle mark: the cycle of days, with today lit up. -->
+      <!-- The DoOrDie mark: the cycle of days, with today lit up. -->
       <span class="mark">
         <svg viewBox="0 0 32 32" width="30" height="30" fill="none" aria-hidden="true">
           <circle cx="16" cy="16" r="12.5" stroke="rgb(var(--paper) / 0.3)" stroke-width="1.6" />
@@ -212,14 +209,25 @@
     </main>
 
     <script>
-      // Match the surface the signed-in account chose (appearance is saved per
+      // Match the theme the signed-in account chose (appearance is saved per
       // account, under keys ending in its id), and retry automatically the
-      // moment the connection returns.
+      // moment the connection returns. Values older versions saved still
+      // paint the theme they now mean, as in app/layout.tsx.
       try {
         var session = JSON.parse(localStorage.getItem("upsc-chronicle-auth") || "null");
         var id = session && session.user && session.user.id ? session.user.id : "local";
-        var s = localStorage.getItem("upsc-chronicle-surface:" + id) || "white";
-        document.documentElement.setAttribute("data-surface", s);
+        var mode = localStorage.getItem("upsc-chronicle-theme:" + id) || "";
+        if (!mode) {
+          var old = localStorage.getItem("upsc-chronicle-surface:" + id) || "";
+          mode = old && old !== "white" ? "dark" : "light";
+        }
+        if (mode === "system") {
+          mode = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        }
+        if (mode === "dark") {
+          document.documentElement.setAttribute("data-surface", "black");
+          document.querySelector('meta[name="theme-color"]').setAttribute("content", "#091325");
+        }
       } catch (e) {}
       window.addEventListener("online", function () {
         location.reload();

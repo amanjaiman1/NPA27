@@ -12,9 +12,9 @@
  * Bump CACHE_VERSION to retire every previous cache on the next activation.
  */
 
-// v8 — the dashboard moved to /dashboard and "/" became the public site; the
-// precached manifest and offline page link there now.
-const CACHE_VERSION = "v8";
+// v9 — the redesign: two themes, Light and Dark. The precached offline page
+// and manifest carry the new colours.
+const CACHE_VERSION = "v9";
 const SHELL_CACHE = `chronicle-shell-${CACHE_VERSION}`;
 const PAGE_CACHE = `chronicle-pages-${CACHE_VERSION}`;
 const ASSET_CACHE = `chronicle-assets-${CACHE_VERSION}`;

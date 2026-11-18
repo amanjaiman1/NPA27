@@ -219,7 +219,7 @@ const GROUPS: { title: string; intro: string; features: Feature[] }[] = [
         id: "appearance",
         icon: Palette,
         title: "Make it yours",
-        body: "Light, Dark, a frosted Blue Glass theme, or Auto to follow your device, plus an optional Liquid Glass look on any of them, colour palettes and quiet wallpapers, saved with your account.",
+        body: "Light, with frosted glass on a soft sky blue, or Dark, in smoked navy glass for late nights. Turn on Reduce transparency for nearly solid panels. Both are saved with your account.",
       },
     ],
   },

@@ -89,8 +89,7 @@ test("the old five surfaces become Light or Dark", () => {
   const out = normalizeSnapshot(legacy);
   assert.equal(out.themeMode, "dark");
   assert.equal("surface" in out, false);
-  assert.equal(normalizeSnapshot({ surface: "white", themeMode: "system" as const }).themeMode, "system", "a chosen mode wins");
-  assert.equal(surfaceFor("system", true), "black");
-  assert.equal(surfaceFor("system", false), "white");
-  assert.equal(surfaceFor("dark", false), "black");
+  assert.equal(normalizeSnapshot({ surface: "navy", themeMode: "light" as const }).themeMode, "light", "a chosen mode wins");
+  assert.equal(surfaceFor("light"), "white");
+  assert.equal(surfaceFor("dark"), "black");
 });

@@ -14,6 +14,8 @@ const config: Config = {
         // from these with opacity, so the palette stays theme-agnostic.
         ink: "rgb(var(--ink) / <alpha-value>)",
         card: "rgb(var(--card) / <alpha-value>)",
+        // A surface nested inside a card: a step quieter than the card.
+        "card-2": "rgb(var(--card-2) / <alpha-value>)",
         paper: "rgb(var(--paper) / <alpha-value>)",
         line: "rgb(var(--line) / <alpha-value>)",
         // Modal / drawer backdrop — always darkens, on light and dark surfaces.
@@ -37,12 +39,15 @@ const config: Config = {
         foreground: "rgb(var(--paper) / <alpha-value>)",
       },
       fontFamily: {
-        // The app uses exactly two faces: Poppins for text, Comfortaa for
-        // display. `mono` deliberately resolves to Poppins as well — pair it
-        // with the `.tabular` class for figures that need to line up — so a
-        // stray `font-mono` can never pull in a third typeface.
+        // Exactly two faces: Poppins for text (and, inside the app, for
+        // headings and figures), Comfortaa for the brand. `display` is
+        // Comfortaa on the public site and Poppins in the app (see
+        // globals.css). `mono` deliberately resolves to Poppins as well —
+        // pair it with `.tabular` for figures that line up — so a stray
+        // `font-mono` can never pull in a third typeface.
         sans: ["var(--font-sans)", "system-ui", "sans-serif"],
         display: ["var(--font-display)", "var(--font-sans)", "sans-serif"],
+        brand: ["var(--font-brand)", "var(--font-sans)", "sans-serif"],
         mono: ["var(--font-sans)", "system-ui", "sans-serif"],
       },
       letterSpacing: {

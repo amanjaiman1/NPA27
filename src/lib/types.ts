@@ -9,17 +9,11 @@ export type ISODate = string; // "yyyy-mm-dd"
 export type Theme = "dark" | "light";
 
 /**
- * The theme the user picked: always light, always dark, Blue Glass, or
- * whichever of light and dark the device is set to (most phones switch at
- * sunset). Synced with the account.
+ * The theme the user picked: Light (the default) or Dark, both frosted
+ * glass. Synced with the account. Values older versions saved ("blue",
+ * "system") are read by `legacyThemeMode` in lib/theme.ts.
  */
-export type ThemeMode = "light" | "dark" | "blue" | "system";
-
-/**
- * How surfaces are drawn, on top of any theme. `glass` turns cards, bars,
- * menus and dialogs translucent; it never changes the theme itself.
- */
-export type Material = "standard" | "glass";
+export type ThemeMode = "light" | "dark";
 
 /** How clock times are shown: "11:30 PM" or "23:30". */
 export type TimeFormat = "12h" | "24h";
