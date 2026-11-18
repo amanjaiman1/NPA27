@@ -35,7 +35,7 @@ function StatTile({
     <Card className="p-5">
       <div className="flex items-center gap-2 text-paper/40">
         <Icon className="h-4 w-4" />
-        <span className="text-[0.7rem] font-medium uppercase tracking-wider">
+        <span className="text-xs font-medium">
           {label}
         </span>
       </div>
@@ -111,7 +111,7 @@ export default function HeatmapPage() {
         description="Discipline compounds. Each square is a day; the brighter it glows, the deeper you went. The streak is the story."
       />
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 2xl:grid-cols-6">
         <StatTile
           icon={Flame}
           label="Current streak"

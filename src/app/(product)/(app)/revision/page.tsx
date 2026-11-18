@@ -300,7 +300,7 @@ export default function RevisionPage() {
           <Card key={s.label} className="p-4 sm:p-5">
             <div className="flex items-center gap-2 text-paper/45">
               <s.icon className={cn("h-4 w-4", s.danger && "text-danger")} />
-              <span className="min-w-0 flex-1 truncate text-[0.62rem] font-semibold uppercase tracking-[0.08em]">
+              <span className="min-w-0 flex-1 truncate text-[0.72rem] font-semibold">
                 {s.label}
               </span>
             </div>

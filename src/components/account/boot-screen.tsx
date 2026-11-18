@@ -4,7 +4,7 @@ import { BootRing } from "@/components/ui/loading";
 import { Logo } from "@/components/layout/logo";
 import { cn } from "@/lib/utils";
 
-/** The aura canvas every full-screen state sits on, matching the app shell. */
+/** The backdrop every full-screen state sits on, matching the app shell. */
 export function FullScreen({
   children,
   className,
@@ -19,11 +19,7 @@ export function FullScreen({
         className,
       )}
     >
-      <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
-        <div className="absolute inset-0 bg-aura" />
-        <div className="absolute -left-24 top-[-6rem] hidden h-80 w-80 animate-bloom-float rounded-full bg-[rgb(var(--aura-1)/0.16)] blur-[90px] sm:block" />
-        <div className="absolute bottom-10 right-[-5rem] hidden h-72 w-72 animate-bloom-float-2 rounded-full bg-[rgb(var(--aura-2)/0.14)] blur-[90px] sm:block" />
-      </div>
+      <div aria-hidden className="app-backdrop pointer-events-none fixed inset-0 -z-10" />
       {children}
     </div>
   );

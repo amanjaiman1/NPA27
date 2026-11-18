@@ -17,6 +17,9 @@ export function LineChart({
   height = 220,
   className,
   formatValue = (v) => String(v),
+  formatTick,
+  domain,
+  ticks,
   showArea = true,
   showDots = true,
   target,
@@ -24,7 +27,14 @@ export function LineChart({
   data: LinePoint[];
   height?: number;
   className?: string;
+  /** How a value reads in the tooltip, and on the axis unless `formatTick` is given. */
   formatValue?: (v: number) => string;
+  /** How a gridline's value reads on the axis. */
+  formatTick?: (v: number) => string;
+  /** A fixed scale, for values with known bounds such as a 1–5 rating. */
+  domain?: [number, number];
+  /** Where gridlines go; four even steps across the scale by default. */
+  ticks?: number[];
   showArea?: boolean;
   showDots?: boolean;
   target?: number;
@@ -40,8 +50,8 @@ export function LineChart({
     const values = data.map((d) => d.value);
     const rawMax = Math.max(...values, target ?? 0, 1);
     const rawMin = Math.min(...values, 0);
-    const max = Math.ceil(rawMax * 1.1);
-    const min = Math.floor(rawMin);
+    const max = domain ? domain[1] : Math.ceil(rawMax * 1.1);
+    const min = domain ? domain[0] : Math.floor(rawMin);
     const innerW = w - pad.left - pad.right;
     const innerH = h - pad.top - pad.bottom;
     const x = (i: number) =>
@@ -56,12 +66,12 @@ export function LineChart({
       points.length > 0
         ? `${linePath} L${points[points.length - 1].x.toFixed(1)},${(h - pad.bottom).toFixed(1)} L${points[0].x.toFixed(1)},${(h - pad.bottom).toFixed(1)} Z`
         : "";
-    const gridY = Array.from({ length: 4 }).map((_, i) => {
-      const v = min + ((max - min) / 3) * i;
-      return { v, y: y(v) };
-    });
+    const gridY = (ticks ?? Array.from({ length: 4 }, (_, i) => min + ((max - min) / 3) * i)).map((v) => ({
+      v,
+      y: y(v),
+    }));
     return { min, max, points, areaPath, linePath, gridY };
-  }, [data, w, h, target]);
+  }, [data, w, h, target, domain, ticks]);
 
   const gid = useMemo(() => `lg-${Math.random().toString(36).slice(2, 7)}`, []);
 
@@ -98,7 +108,7 @@ export function LineChart({
               textAnchor="end"
               className="fill-paper/30 text-[9px] tabular"
             >
-              {formatValue(Math.round(g.v))}
+              {formatTick ? formatTick(g.v) : formatValue(Math.round(g.v))}
             </text>
           </g>
         ))}

@@ -85,7 +85,7 @@ function StatCard({
     <Card className="p-4 sm:p-5">
       <div className="flex items-center gap-2 text-paper/50">
         <Icon className="h-3.5 w-3.5 text-accent" />
-        <span className="min-w-0 flex-1 truncate text-[0.62rem] font-semibold uppercase tracking-[0.08em]">
+        <span className="min-w-0 flex-1 truncate text-[0.72rem] font-semibold">
           {label}
         </span>
       </div>
@@ -125,7 +125,7 @@ function RatingBar({
   return (
     <div>
       <div className="mb-1.5 flex items-baseline justify-between gap-2">
-        <span className="text-[0.7rem] font-medium uppercase tracking-wider text-paper/45">
+        <span className="text-xs font-medium text-paper/45">
           {label}
         </span>
         <span className="tabular text-sm font-semibold text-paper">
@@ -164,7 +164,7 @@ function CountTile({
     <div className="rounded-xl border border-line bg-paper/[0.02] p-3.5">
       <div className="flex items-center gap-1.5 text-paper/40">
         <Icon className="h-3.5 w-3.5" />
-        <span className="min-w-0 flex-1 truncate text-[0.6rem] font-medium uppercase tracking-wider">
+        <span className="min-w-0 flex-1 truncate text-[0.7rem] font-medium">
           {label}
         </span>
       </div>
@@ -468,7 +468,7 @@ export function JournalAnalysisView({
         <div className="mt-5 grid gap-5 border-t border-line pt-5 sm:grid-cols-2">
           <div>
             <div className="mb-2 flex items-baseline justify-between gap-2">
-              <span className="text-[0.7rem] font-medium uppercase tracking-wider text-paper/45">
+              <span className="text-xs font-medium text-paper/45">
                 Planned tasks completed
               </span>
               <span className="tabular text-sm font-semibold text-paper">
@@ -499,7 +499,7 @@ export function JournalAnalysisView({
               <div key={n.label}>
                 <div className="flex items-center gap-1.5 text-paper/40">
                   <n.icon className="h-3.5 w-3.5" />
-                  <span className="text-[0.6rem] font-medium uppercase tracking-wider">
+                  <span className="text-[0.7rem] font-medium">
                     {n.label}
                   </span>
                 </div>
@@ -515,7 +515,7 @@ export function JournalAnalysisView({
           <div className="mt-5 border-t border-line pt-4">
             <div className="mb-2.5 flex items-center gap-1.5 text-paper/40">
               <Tag className="h-3.5 w-3.5" />
-              <span className="text-[0.6rem] font-medium uppercase tracking-wider">
+              <span className="text-[0.7rem] font-medium">
                 Most used tags
               </span>
             </div>
@@ -547,7 +547,7 @@ export function JournalAnalysisView({
         <div className="no-scrollbar overflow-x-auto">
           <table className="w-full min-w-[38rem] text-sm">
             <thead>
-              <tr className="border-y border-line text-[0.62rem] uppercase tracking-wider text-paper/40">
+              <tr className="border-y border-line text-[0.72rem] text-paper/40">
                 <th className="px-5 py-2 text-left font-medium sm:px-6">
                   {perbucketSingular(perBucket)}
                 </th>

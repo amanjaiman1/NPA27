@@ -303,7 +303,7 @@ export function GoalForm({
               preview.problem ? "border-warning/30 bg-warning/[0.06]" : "border-accent/25 bg-accent/[0.05]",
             )}
           >
-            <p className="mb-1.5 flex items-center gap-1.5 text-[0.68rem] font-semibold uppercase tracking-wider text-paper/55">
+            <p className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-paper/55">
               <Sparkles className="h-3.5 w-3.5 text-accent" /> Reading right now
             </p>
             {preview.problem ? (

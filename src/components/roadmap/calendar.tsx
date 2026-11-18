@@ -52,7 +52,7 @@ export function MonthCalendar({
 
   return (
     <div className="overflow-hidden rounded-2xl border border-line" role="img" aria-label={`Calendar of ${formatDay(plan.start)} to ${formatDay(plan.end)} with due dates and planned weeks`}>
-      <div className="grid grid-cols-7 border-b border-line bg-paper/[0.03] text-center text-[0.62rem] font-semibold uppercase tracking-wider text-paper/55">
+      <div className="grid grid-cols-7 border-b border-line bg-paper/[0.03] text-center text-[0.72rem] font-semibold text-paper/55">
         {heads.map((h) => (
           <div key={h} className="py-1.5">
             {h}

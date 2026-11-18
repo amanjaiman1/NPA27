@@ -487,7 +487,7 @@ function ProgressTab({ p, data }: { p: GoalProgress; data: GoalData }) {
           {log.length > 0 && (
             <div className="overflow-hidden rounded-xl border border-line">
               <table className="w-full text-left text-[0.78rem]">
-                <thead className="bg-paper/[0.03] text-[0.68rem] uppercase tracking-wider text-paper/50">
+                <thead className="bg-paper/[0.03] text-xs text-paper/50">
                   <tr>
                     <th className="px-3 py-2 font-semibold">Date</th>
                     <th className="px-3 py-2 text-right font-semibold">Total</th>

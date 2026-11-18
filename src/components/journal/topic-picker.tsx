@@ -154,7 +154,7 @@ export function TopicPicker({
           className="max-h-64 overflow-y-auto rounded-xl border border-line bg-card p-1 shadow-lift"
         >
           {!typed && (
-            <li className="px-2.5 pb-1 pt-1.5 text-[0.62rem] font-semibold uppercase tracking-wider text-paper/45" aria-hidden>
+            <li className="px-2.5 pb-1 pt-1.5 text-[0.72rem] font-semibold text-paper/45" aria-hidden>
               {preferSet.size ? "From the subjects you studied" : "Recently finished"}
             </li>
           )}

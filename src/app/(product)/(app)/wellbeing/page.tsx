@@ -94,7 +94,7 @@ function TodayTile({ t }: { t: Tile }) {
     <>
       <div className="flex items-center gap-2 text-paper/50">
         <t.icon className="h-4 w-4" />
-        <span className="min-w-0 flex-1 truncate text-[0.62rem] font-semibold uppercase tracking-wider">{t.label}</span>
+        <span className="min-w-0 flex-1 truncate text-[0.72rem] font-semibold">{t.label}</span>
         {t.href && <ChevronRight className="h-3.5 w-3.5 shrink-0 text-paper/35" />}
       </div>
       {has ? (
@@ -165,7 +165,7 @@ function MetricDeepDives({ lifeLog, tracked }: { lifeLog: LifeEntry[]; tracked: 
             <Card hover className="flex h-full flex-col p-4">
               <div className="flex items-center gap-2 text-paper/55">
                 <m.icon className="h-4 w-4 text-accent" />
-                <span className="min-w-0 flex-1 truncate text-[0.62rem] font-semibold uppercase tracking-wider">{m.label}</span>
+                <span className="min-w-0 flex-1 truncate text-[0.72rem] font-semibold">{m.label}</span>
                 <ChevronRight className="h-3.5 w-3.5 shrink-0 text-paper/35 transition-transform group-hover:translate-x-0.5" />
               </div>
               {readings.length === 0 ? (

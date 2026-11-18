@@ -74,7 +74,7 @@ export function RoadmapIntro({ onCreate }: { onCreate: (req: PlanFormRequest) =>
                   <span className="grid h-9 w-9 place-items-center rounded-xl bg-accent/15 text-accent">
                     <Icon className="h-4 w-4" />
                   </span>
-                  <span className="text-[0.7rem] font-semibold uppercase tracking-[0.1em] text-paper/55">Level {i + 1}</span>
+                  <span className="text-xs font-semibold text-paper/55">Level {i + 1}</span>
                 </span>
                 <h2 className="font-display text-lg font-semibold tracking-snugg text-paper">{intro.title}</h2>
                 <p className="flex-1 text-[0.82rem] leading-relaxed text-paper/70">{intro.body}</p>
@@ -226,24 +226,24 @@ export function RoadmapOverview({ onCreate, onFind }: { onCreate: (req: PlanForm
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Card className="p-4">
-          <p className="text-[0.66rem] font-semibold uppercase tracking-[0.08em] text-paper/60">This week</p>
+          <p className="text-[0.72rem] font-semibold text-paper/60">This week</p>
           <p className="tabular mt-1 font-display text-2xl font-bold text-paper">{weekCounts?.total ? `${weekCounts.pct}%` : "—"}</p>
           <p className="text-[0.7rem] text-paper/60">{weekCounts?.total ? `${weekCounts.completed} of ${weekCounts.total} activities done` : "no activities planned"}</p>
         </Card>
         <button type="button" onClick={() => onFind(true)} className="rounded-2xl text-left" disabled={!overdue.length}>
           <Card className={cn("h-full p-4", overdue.length && "transition-colors hover:border-danger/40")}>
-            <p className="text-[0.66rem] font-semibold uppercase tracking-[0.08em] text-paper/60">Overdue</p>
+            <p className="text-[0.72rem] font-semibold text-paper/60">Overdue</p>
             <p className={cn("tabular mt-1 font-display text-2xl font-bold", overdue.length ? "text-danger" : "text-paper")}>{overdue.length}</p>
             <p className="text-[0.7rem] text-paper/60">{overdue.length ? "open past their date · show them" : "nothing slipping"}</p>
           </Card>
         </button>
         <Card className="p-4">
-          <p className="text-[0.66rem] font-semibold uppercase tracking-[0.08em] text-paper/60">Milestones ahead</p>
+          <p className="text-[0.72rem] font-semibold text-paper/60">Milestones ahead</p>
           <p className="tabular mt-1 font-display text-2xl font-bold text-paper">{milestones.length}</p>
           <p className="text-[0.7rem] text-paper/60">in the next 60 days</p>
         </Card>
         <Card className="p-4">
-          <p className="text-[0.66rem] font-semibold uppercase tracking-[0.08em] text-paper/60">Months planned</p>
+          <p className="text-[0.72rem] font-semibold text-paper/60">Months planned</p>
           <p className="tabular mt-1 font-display text-2xl font-bold text-paper">
             {monthsInSpan - unplannedMonths(plans, yearSpan.start, yearSpan.end).length}
             <span className="text-base text-paper/55"> / {monthsInSpan}</span>

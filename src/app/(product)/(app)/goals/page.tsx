@@ -58,7 +58,7 @@ function SummaryTile({
             tone === "positive" && "text-positive",
           )}
         />
-        <span className="min-w-0 flex-1 truncate text-[0.62rem] font-semibold uppercase tracking-[0.08em]">{label}</span>
+        <span className="min-w-0 flex-1 truncate text-[0.72rem] font-semibold">{label}</span>
       </div>
       <p
         className={cn(

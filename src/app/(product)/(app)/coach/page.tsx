@@ -132,7 +132,7 @@ export default function CoachPage() {
             </div>
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-[0.7rem] font-medium uppercase tracking-wider text-paper/40">
+            <p className="text-xs font-medium text-paper/40">
               Today&apos;s read on you
             </p>
             <p className="mt-2 text-[0.95rem] leading-relaxed text-paper/80">
@@ -140,7 +140,7 @@ export default function CoachPage() {
             </p>
           </div>
           <div className="hidden shrink-0 flex-col items-end justify-center lg:flex">
-            <span className="text-[0.65rem] font-medium uppercase tracking-wider text-paper/40">
+            <span className="text-[0.72rem] font-medium text-paper/40">
               14-day momentum
             </span>
             <Sparkline values={ctx.study.spark14} width={150} height={40} className="mt-1.5" />
@@ -219,7 +219,7 @@ function SignalRow({ ctx }: { ctx: MentorContext }) {
         <div key={s.label} className="bg-ink p-4">
           <div className="flex items-center gap-1.5 text-paper/40">
             <s.icon className="h-3.5 w-3.5" />
-            <span className="text-[0.65rem] font-medium uppercase tracking-wider">
+            <span className="text-[0.72rem] font-medium">
               {s.label}
             </span>
           </div>
@@ -503,7 +503,7 @@ function ReportsView({
         {/* headline + grade */}
         <div className="flex items-start justify-between gap-4 border-b border-paper/[0.06] pb-5">
           <div className="min-w-0">
-            <p className="text-[0.7rem] font-medium uppercase tracking-wider text-paper/40">
+            <p className="text-xs font-medium text-paper/40">
               Mentor&apos;s verdict
             </p>
             <p className="mt-1.5 text-lg font-medium leading-snug text-paper">
@@ -524,7 +524,7 @@ function ReportsView({
         <div className="grid grid-cols-2 gap-4 border-b border-paper/[0.06] py-5 sm:grid-cols-3 lg:grid-cols-6">
           {report.metrics.map((m) => (
             <div key={m.label}>
-              <p className="text-[0.65rem] font-medium uppercase tracking-wider text-paper/40">
+              <p className="text-[0.72rem] font-medium text-paper/40">
                 {m.label}
               </p>
               <p className="tabular mt-1 text-lg font-semibold text-paper">
@@ -548,7 +548,7 @@ function ReportsView({
         <div className="mt-5 grid gap-5 sm:grid-cols-2">
           {report.sections.map((sec) => (
             <div key={sec.heading}>
-              <p className="mb-2 text-[0.7rem] font-medium uppercase tracking-wider text-paper/45">
+              <p className="mb-2 text-xs font-medium text-paper/45">
                 {sec.heading}
               </p>
               <ul className="space-y-1.5">
@@ -799,7 +799,7 @@ function PromptBlock({
     <div>
       <div className="mb-2 flex items-center gap-2 text-paper/55">
         <Icon className="h-3.5 w-3.5" />
-        <span className="text-[0.7rem] font-medium uppercase tracking-wider">
+        <span className="text-xs font-medium">
           {label}
         </span>
       </div>

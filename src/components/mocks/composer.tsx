@@ -88,7 +88,7 @@ function NumField({
 }) {
   return (
     <label className="block min-w-0" title={hint}>
-      <span className="mb-1 block truncate text-[0.62rem] font-medium uppercase tracking-wide text-paper/45">
+      <span className="mb-1 block truncate text-[0.72rem] font-medium text-paper/45">
         {label}
       </span>
       <input
@@ -250,7 +250,7 @@ export function MockComposer({
         {/* Sections */}
         <div>
           <div className="mb-2 flex items-center justify-between">
-            <span className="text-[0.7rem] font-medium uppercase tracking-wider text-paper/45">
+            <span className="text-xs font-medium text-paper/45">
               Section breakdown
             </span>
             {totals && (

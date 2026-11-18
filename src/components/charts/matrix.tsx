@@ -2,7 +2,23 @@
 
 import { cn } from "@/lib/utils";
 
-/** A grayscale matrix heatmap (rows × cols) with intensity by value. */
+/**
+ * Four strengths of the accent, from a faint tint to solid, each with a text
+ * colour that keeps the count readable (4.5:1 or more) on both themes.
+ */
+const STEPS = [
+  { bg: "rgb(var(--accent) / 0.12)", text: "text-accent" },
+  { bg: "rgb(var(--accent) / 0.25)", text: "text-paper" },
+  { bg: "rgb(var(--accent) / 0.45)", text: "text-paper" },
+  { bg: "rgb(var(--accent))", text: "text-accent-fg" },
+] as const;
+
+function stepFor(v: number, max: number) {
+  const r = max > 0 ? v / max : 0;
+  return STEPS[r >= 1 ? 3 : r > 0.5 ? 2 : r > 0.25 ? 1 : 0];
+}
+
+/** A matrix heatmap (rows × cols): the more in a cell, the stronger its blue. */
 export function MatrixHeatmap({
   rowLabels,
   colLabels,
@@ -23,16 +39,13 @@ export function MatrixHeatmap({
       <div
         className="inline-grid min-w-full gap-1"
         style={{
-          gridTemplateColumns: `minmax(104px, 1.2fr) repeat(${colLabels.length}, minmax(44px, 1fr))`,
+          gridTemplateColumns: `minmax(104px, 1.2fr) repeat(${colLabels.length}, minmax(48px, 1fr))`,
         }}
       >
         {/* header */}
         <div />
         {colLabels.map((c) => (
-          <div
-            key={c}
-            className="pb-1 text-center text-[0.58rem] font-medium uppercase tracking-wide text-paper/40"
-          >
+          <div key={c} title={c} className="truncate pb-1 text-center text-[0.68rem] font-medium text-paper/60">
             {c}
           </div>
         ))}
@@ -76,7 +89,7 @@ function RowFragment({
       </div>
       {cols.map((c, ci) => {
         const v = values[ci] ?? 0;
-        const op = v ? 0.12 + (v / max) * 0.8 : 0;
+        const step = v ? stepFor(v, max) : null;
         return (
           <button
             key={c}
@@ -87,18 +100,9 @@ function RowFragment({
               "grid h-9 place-items-center rounded-md border border-paper/[0.05] transition-transform",
               v > 0 && onCell && "hover:scale-[1.06] cursor-pointer",
             )}
-            style={{ background: v ? `rgb(var(--paper) / ${op})` : "rgb(var(--paper) / 0.03)" }}
+            style={{ background: step ? step.bg : "rgb(var(--paper) / 0.03)" }}
           >
-            {v > 0 && (
-              <span
-                className={cn(
-                  "tabular text-[0.7rem] font-semibold",
-                  op > 0.55 ? "text-ink" : "text-paper/75",
-                )}
-              >
-                {v}
-              </span>
-            )}
+            {step && <span className={cn("tabular text-[0.72rem] font-semibold", step.text)}>{v}</span>}
           </button>
         );
       })}
