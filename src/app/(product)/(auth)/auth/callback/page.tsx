@@ -7,16 +7,25 @@ import { useAuth } from "@/components/auth/auth-provider";
 import { AuthCard, AuthPending, AuthMessage } from "@/components/auth/auth-ui";
 import { initialAuthRedirect } from "@/lib/supabase";
 import { describeAuthError } from "@/lib/auth-errors";
+import { landingAfterSignIn } from "@/components/auth/landing";
 
 /** Where the email-confirmation link lands. */
 export default function AuthCallbackPage() {
   const auth = useAuth();
   const router = useRouter();
   const [waited, setWaited] = useState(false);
+  const userId = auth.status === "signedIn" ? (auth.user?.id ?? null) : null;
 
   useEffect(() => {
-    if (auth.status === "signedIn") router.replace("/dashboard");
-  }, [auth.status, router]);
+    if (!userId) return;
+    let live = true;
+    void landingAfterSignIn(userId, null).then((to) => {
+      if (live) router.replace(to);
+    });
+    return () => {
+      live = false;
+    };
+  }, [userId, router]);
 
   useEffect(() => {
     const t = setTimeout(() => setWaited(true), 5_000);

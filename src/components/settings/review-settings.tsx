@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { MessageSquareReply, PenLine, Star } from "lucide-react";
 import { useChronicle } from "@/lib/store";
 import { apiCall, ApiError } from "@/lib/platform/client";
+import { usePlatformUpdates } from "@/components/platform/live-updates";
 import { REVIEW_STAGE, REVIEW_STATUS, featureLabel, type ReviewStatus } from "@/lib/platform/content";
 import type { AuthorReview, Eligibility, MyReview } from "@/lib/platform/types";
 import { useAccount } from "@/components/account/account-session";
@@ -150,6 +151,26 @@ export function ReviewSettings() {
       live = false;
     };
   }, [mode, tick]);
+
+  // A moderator decided or replied, or the review settings changed: show it without a reload.
+  // Quietly, keeping what's shown if the call fails, and never under the person's hands.
+  const quiet = useRef({ editing, busy });
+  quiet.current = { editing, busy };
+  usePlatformUpdates(
+    ["reviews"],
+    () => {
+      if (quiet.current.editing || quiet.current.busy) return;
+      void apiCall<MyReview>("/api/reviews").then(
+        (d) => {
+          if (quiet.current.editing || quiet.current.busy) return;
+          setData(d);
+          setState("ready");
+        },
+        () => undefined,
+      );
+    },
+    mode === "cloud" && state === "ready",
+  );
 
   // Reviews belong to accounts; without the platform's tables there's nothing to show.
   if (mode !== "cloud" || state === "off") return null;

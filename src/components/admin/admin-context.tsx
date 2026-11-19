@@ -6,6 +6,8 @@ import type { Actor, Permission } from "@/lib/platform/roles";
 export interface AdminContextValue {
   actor: Actor;
   can: (permission: Permission) => boolean;
+  /** Ends the session on this device and goes to the sign-in screen. */
+  signOut: () => void;
 }
 
 export const AdminContext = createContext<AdminContextValue | null>(null);

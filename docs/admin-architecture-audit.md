@@ -248,9 +248,13 @@ the app's account deletion also clears the account's screenshots.
   private notes stay in their own table. At most 10 submissions a day per
   account, enforced in the database.
 - **Announcements**: published now or scheduled, optional end date, archived
-  when done. The app fetches them once when it opens and again when it returns
-  to the foreground after 15 minutes: no polling, no Realtime. Read and
-  dismissed state is per account in `platform_announcement_reads`.
+  when done. The app fetches them once when it opens, again when it returns
+  to the foreground after 15 minutes, and again when the team changes them:
+  a content-free message on the private Realtime channel `platform-updates`,
+  sent by the Admin API after the change (added later, in
+  `20261205120000_live_updates.sql`; see ADMIN_SETUP.md, "Changes reach open
+  apps at once"). No polling. Read and dismissed state is per account in
+  `platform_announcement_reads`.
 - **Changelog**: `/changelog` and `/changelog/[slug]`, published entries only,
   in the sitemap. An entry can be linked from the feedback it answers; the
   page then says how many requests led to it, without showing any of them.

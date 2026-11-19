@@ -49,6 +49,7 @@ They are all safe to run again.
 5. `supabase/migrations/20261202120000_diary_coach_privacy.sql`
 6. `supabase/migrations/20261203120000_dispatch_completed_activities.sql`
 7. `supabase/migrations/20261204120000_platform_admin.sql` (the Admin Center)
+8. `supabase/migrations/20261205120000_live_updates.sql` (changes reach open apps at once)
 
 If you use the Supabase CLI, `supabase db push` runs the same migrations.
 
@@ -90,9 +91,27 @@ is recorded in the audit log as done in the SQL Editor.
 
 ### 4. Open it
 
-Reload the app (or sign out and back in). Your account menu now has an
-**Admin Center** link, and `/admin` opens it. The link can take up to five
+Sign in on the ordinary sign-in page (`/login`) with that email and
+password. A Super Admin account goes straight to the Admin Center: there is
+nothing to type after the address.
+
+A Super Admin account runs the platform and has no student app. Opening the
+site, the installed app or any page of the student app while signed in with
+it also opens the Admin Center, so it never goes through student setup or
+sees the dashboard. Sign out from the bottom of the Admin Center's menu (on a
+phone, open the menu first).
+
+Admins and Moderators are student accounts with extra access. They still
+land in the app when they sign in, and reach the Admin Center from the
+**Admin Center** link in the account menu. That link can take up to five
 minutes to appear in a tab that was already open; `/admin` works at once.
+From the Admin Center they can go **Back to the app** or **Sign out**.
+
+The browser remembers the account's role (under
+`upsc-chronicle-platform-role:<user id>`) only to know where to go. It is
+asked fresh at every sign-in and checked again every few minutes, and
+signing out removes it. What anyone may do is still checked on the server
+for every page and request.
 
 ## Day to day
 
@@ -196,8 +215,32 @@ state is kept per account, so dismissing it on a phone dismisses it
 everywhere. Archive an announcement to take it down; only drafts can be
 deleted.
 
-The app asks for announcements once when it opens and again when a tab comes
-back after 15 minutes or more. No polling and no Realtime.
+### Changes reach open apps at once
+
+Publishing, scheduling, editing, unpublishing or archiving an announcement,
+changing the notice in the app or the review settings, answering feedback or
+changing its status, and moderating or replying to a review all show up in
+every open app within a couple of seconds. Nobody has to reload.
+
+How: after the change is saved, the server sends one message on a private
+Supabase Realtime channel (`platform-updates`). The message says only which
+areas changed, never what changed or for whom. Each open app then asks the
+database for its own data, as it does when it opens. Only signed-in accounts
+can listen, and only the server can send (the policy is in
+`supabase/migrations/20261205120000_live_updates.sql`). A scheduled
+announcement appears at its start, and an ending one goes, without any
+message: the app times it from the database's clock.
+
+On the free plan (200 Realtime connections at once, 100 messages a second),
+an app holds a connection only while it's on screen: a tab in the background
+lets go after a minute and catches up when it comes back. Each change is one
+message to each open app, and their reloads are spread over two seconds. If
+Realtime can't be reached or the channel is full, the app works as before: it
+loads announcements when it opens, and again when a tab comes back after 15
+minutes or more.
+
+Changes made in the SQL Editor aren't announced; open apps see them the next
+time they load.
 
 ### Changelog
 
@@ -273,6 +316,7 @@ the audit log end to end, in the browser on a laptop and a phone.
 | "Not set up yet" on `/admin` | The platform migration hasn't been run |
 | "The Admin Center needs Supabase and its service-role key" | `SUPABASE_SERVICE_ROLE_KEY` isn't set on the server |
 | "No access" | The account has no role, or it's suspended |
+| A Super Admin lands on the student dashboard or setup | The membership row is missing, or says another role: run the step 3 SQL again with the account's UID, then sign in again |
 | A page "isn't part of your role" | That role doesn't include the page (Moderators see Reviews, and Feedback only if the setting is on) |
 | No Admin Center link in the account menu | Reload the tab; the menu checks at most every five minutes |
 | Reviews don't appear on the site | The author didn't allow public display, it isn't published yet, or the display settings are off |

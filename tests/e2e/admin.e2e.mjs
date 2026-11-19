@@ -669,11 +669,25 @@ async function browserScenarios(browser, people) {
     check(!links.some((l) => l.includes("Admin Center")), `a student's menu: ${links}`);
     // The app-wide notice the Super Admin switched on, and a new announcement as a banner.
     await page.getByText("NOTICE-E2E: maintenance on Sunday").waitFor();
+    // The open app is listening for the team's changes, and arrives at them without a reload.
+    await waitFor("the app to listen for live updates", async () => {
+      const r = await (await fetch(`${MOCK}/__mock/realtime`)).json();
+      return r.listening.some((l) => l.topic === "realtime:platform-updates" && l.sockets > 0);
+    });
+    const loads = [];
+    page.on("framenavigated", (f) => f === page.mainFrame() && loads.push(f.url()));
     const a = data(await api(owner.token, "POST", "/api/admin/announcements", { title: "BANNER-E2E: Weekly reviews are faster", body: "They open in half the time.", category: "product_update" }));
     await api(owner.token, "POST", `/api/admin/announcements/${a.id}/action`, { action: "publish" });
-    await page.reload();
     const banner = page.getByRole("region", { name: "Announcement from the team" });
-    await banner.getByText("BANNER-E2E: Weekly reviews are faster").waitFor();
+    await banner.getByText("BANNER-E2E: Weekly reviews are faster").waitFor({ timeout: 10_000 });
+    check(loads.length === 0, `the banner needed a page load: ${loads}`);
+    // The notice switched off in Platform settings leaves every open app too.
+    const notice = data(await api(owner.token, "GET", "/api/admin/settings")).values.app_notice;
+    await api(owner.token, "PATCH", "/api/admin/settings", { app_notice: { ...notice, enabled: false } });
+    await page.getByText("NOTICE-E2E: maintenance on Sunday").waitFor({ state: "detached", timeout: 10_000 });
+    await api(owner.token, "PATCH", "/api/admin/settings", { app_notice: notice });
+    await page.getByText("NOTICE-E2E: maintenance on Sunday").waitFor({ timeout: 10_000 });
+    check(loads.length === 0, `the notice needed a page load: ${loads}`);
     await page.screenshot({ path: join(SHOTS, "student-banner.png") });
     await banner.getByRole("button", { name: /^Dismiss/ }).click();
     await banner.waitFor({ state: "detached" });
@@ -681,6 +695,16 @@ async function browserScenarios(browser, people) {
     await page.getByText("NOTICE-E2E: maintenance on Sunday").waitFor();
     await notCrashed(page, "the dashboard with a notice");
     check(!(await page.getByText("BANNER-E2E: Weekly reviews are faster").count()), "a dismissed announcement stays dismissed");
+    // A scheduled one appears at its start, and an unpublished one goes, in the open app.
+    loads.length = 0;
+    const s = data(await api(owner.token, "POST", "/api/admin/announcements", { title: "SCHEDULED-E2E: Mock week starts", body: "Every mock is open.", category: "general" }));
+    await api(owner.token, "POST", `/api/admin/announcements/${s.id}/action`, { action: "publish", startsAt: new Date(Date.now() + 6_000).toISOString() });
+    await page.waitForTimeout(2_000);
+    check(!(await banner.getByText("SCHEDULED-E2E: Mock week starts").count()), "a scheduled announcement showed before its start");
+    await banner.getByText("SCHEDULED-E2E: Mock week starts").waitFor({ timeout: 20_000 });
+    await api(owner.token, "POST", `/api/admin/announcements/${s.id}/action`, { action: "unpublish" });
+    await banner.getByText("SCHEDULED-E2E: Mock week starts").waitFor({ state: "detached", timeout: 10_000 });
+    check(loads.length === 0, `the scheduled announcement needed a page load: ${loads}`);
     // It's still on the Announcements page, with its text.
     await page.goto(`${APP}/announcements`);
     await page.getByRole("heading", { name: "Announcements", level: 1 }).waitFor();
@@ -698,11 +722,13 @@ async function browserScenarios(browser, people) {
     await page.close();
   });
 
-  await scenario("14. A Super Admin gets the link, and every Admin Center page renders its own data", async () => {
+  await scenario("14. A Super Admin signs in on the ordinary sign-in page, lands in the Admin Center, and every page renders its own data", async () => {
     const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
     const page = await ctx.newPage();
-    await signInUi(page, owner.email, "/admin");
+    // Nothing typed after /login: the account's role decides.
+    await signInUi(page, owner.email);
     await page.getByRole("heading", { name: "Overview", level: 1 }).waitFor();
+    check(new URL(page.url()).pathname === "/admin", `a Super Admin's sign-in landed on ${page.url()}`);
     const nav = page.getByRole("navigation", { name: "Admin Center" });
     for (const [link, title] of ADMIN_PAGES) {
       await nav.getByRole("link", { name: link, exact: true }).click();
@@ -723,10 +749,14 @@ async function browserScenarios(browser, people) {
     await open.click();
     await page.getByRole("button", { name: "Save changes" }).first().click();
     await waitFor("reviews open again", async () => data(await api(owner.token, "GET", "/api/admin/settings")).values.reviews_open === true);
-    // The link in the account menu.
-    await intoApp(page, owner);
-    const links = await accountMenuLinks(page);
-    check(links.some((l) => l.includes("Admin Center") && l.includes("Super Admin")), `the owner's menu: ${links}`);
+    // The student app sends a Super Admin to the Admin Center: no setup, no dashboard, no way back into it.
+    for (const path of ["/dashboard", "/dashboard?source=pwa", "/journal", "/"]) {
+      await page.goto(`${APP}${path}`);
+      await page.getByRole("heading", { name: "Overview", level: 1 }).waitFor();
+      check(new URL(page.url()).pathname === "/admin", `a Super Admin opening ${path} ended on ${page.url()}`);
+      check(!(await page.getByLabel("What should we call you?").count()), `${path} showed student setup`);
+    }
+    check(!(await page.getByRole("link", { name: "Back to the app" }).count()), "a Super Admin is offered the student app");
 
     // All three themes.
     for (const [mode, surface] of [["lavender", "lavender"], ["light", "white"], ["dark", "black"]]) {
@@ -737,6 +767,15 @@ async function browserScenarios(browser, people) {
       await page.waitForLoadState("networkidle");
       await page.screenshot({ path: join(SHOTS, `theme-${mode}.png`) });
     }
+
+    // Signing out from the Admin Center ends the session here and goes to the sign-in screen.
+    await page.getByRole("button", { name: "Sign out" }).click();
+    await page.getByRole("button", { name: "Sign in" }).waitFor();
+    check(new URL(page.url()).pathname === "/login", `signing out of the Admin Center went to ${page.url()}`);
+    check(!(await page.evaluate(() => localStorage.getItem("upsc-chronicle-auth"))), "the session is still saved after signing out");
+    check(!(await page.evaluate((id) => localStorage.getItem(`upsc-chronicle-platform-role:${id}`), owner.id)), "the remembered role outlived the sign-out");
+    await page.goto(`${APP}/admin`);
+    await page.getByRole("button", { name: "Sign in" }).waitFor();
     await ctx.close();
   });
 

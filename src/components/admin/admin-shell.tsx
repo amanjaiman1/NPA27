@@ -4,12 +4,13 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowLeft, Menu, ShieldCheck, ShieldOff, X } from "lucide-react";
+import { ArrowLeft, LogOut, Menu, ShieldCheck, ShieldOff, X } from "lucide-react";
 import { Logo } from "@/components/layout/logo";
 import { Avatar } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
+import { Tooltip } from "@/components/ui/tooltip";
 import { ADMIN_NAV, activeAdminItem } from "@/lib/platform/nav";
-import { ROLE_LABEL } from "@/lib/platform/roles";
+import { ROLE_LABEL, opensAdminCenter } from "@/lib/platform/roles";
 import { cn } from "@/lib/utils";
 import { useAdminActor } from "./admin-context";
 
@@ -72,8 +73,16 @@ function Brand() {
   );
 }
 
+const identityAction =
+  "flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-[0.8rem] font-medium text-paper/65 transition-colors hover:bg-[var(--nav-hover)] hover:text-paper focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/45";
+
+/**
+ * Who is signed in, and the ways out. "Back to the app" only for Admins and
+ * Moderators, whose accounts are student accounts too; a Super Admin's
+ * account has no student app (see `opensAdminCenter`).
+ */
 function Identity() {
-  const { actor } = useAdminActor();
+  const { actor, signOut } = useAdminActor();
   return (
     <div className="border-t border-line p-3">
       <div className="flex items-center gap-3 rounded-2xl bg-paper/[0.03] px-3 py-2.5">
@@ -83,12 +92,16 @@ function Identity() {
           <p className="text-[0.7rem] text-paper/55">{ROLE_LABEL[actor.role]}</p>
         </div>
       </div>
-      <Link
-        href="/dashboard"
-        className="mt-2 flex items-center gap-2 rounded-xl px-3 py-2 text-[0.8rem] font-medium text-paper/65 transition-colors hover:bg-[var(--nav-hover)] hover:text-paper"
-      >
-        <ArrowLeft className="h-4 w-4" aria-hidden /> Back to the app
-      </Link>
+      {!opensAdminCenter(actor.role) && (
+        <Link href="/dashboard" className={cn(identityAction, "mt-2")}>
+          <ArrowLeft className="h-4 w-4" aria-hidden /> Back to the app
+        </Link>
+      )}
+      <Tooltip content="Ends the session on this device. Sign in again at any time.">
+        <button type="button" onClick={signOut} className={cn(identityAction, opensAdminCenter(actor.role) ? "mt-2" : "mt-0.5")}>
+          <LogOut className="h-4 w-4" aria-hidden /> Sign out
+        </button>
+      </Tooltip>
     </div>
   );
 }

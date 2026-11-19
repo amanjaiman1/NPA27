@@ -2,6 +2,7 @@ import { revalidateTag } from "next/cache";
 import { liveAuthDeps } from "@/lib/platform/server/auth";
 import { handleAdminRequest, mutationLimiter, type AdminDeps } from "@/lib/platform/server/admin-api";
 import { PlatformError } from "@/lib/platform/server/errors";
+import { broadcastPlatformUpdate } from "@/lib/platform/server/live";
 import { serviceClient, serviceRpc } from "@/lib/platform/server/rpc";
 
 export const runtime = "nodejs";
@@ -30,6 +31,7 @@ const deps: AdminDeps = {
   },
   revalidate: (tags) => tags.forEach((t) => revalidateTag(t)),
   allowMutation: mutationLimiter(),
+  broadcast: broadcastPlatformUpdate,
 };
 
 type Params = { params: { path?: string[] } };

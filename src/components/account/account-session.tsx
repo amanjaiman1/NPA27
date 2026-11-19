@@ -21,6 +21,7 @@ import { chronicleStoreAdapter } from "@/lib/sync/store-adapter";
 import { startCoordinator, type Coordinator, type SyncRole } from "@/lib/sync/coordinator";
 import { settleLegacyClaim } from "@/lib/account/legacy";
 import { unsubscribeFromPush } from "@/lib/push";
+import { forgetRole } from "@/lib/platform/my-role";
 import {
   activateAccount,
   clearConflicts,
@@ -218,6 +219,8 @@ export function AccountSession({
     coordinator.current?.stop();
     coordinator.current = null;
     deactivateAccount();
+    // The remembered Admin Center role goes either way; unsynced data stays.
+    forgetRole(accountId);
     if (synced) await eraseAccountFromDevice(accountId);
     await auth.signOut();
   }, [accountId, auth, confirm, flush]);

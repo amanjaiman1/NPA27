@@ -15,6 +15,7 @@ import {
 } from "@/components/auth/auth-ui";
 import { endPasswordRecovery, initialAuthRedirect, isPasswordRecovery } from "@/lib/supabase";
 import { describeAuthError, passwordProblem } from "@/lib/auth-errors";
+import { landingAfterSignIn } from "@/components/auth/landing";
 
 /** How long to wait for the link's session before calling the link invalid. */
 const GRACE_MS = 4_000;
@@ -67,13 +68,15 @@ export default function ResetPasswordPage() {
     setBusy(true);
     setError(null);
     const result = await auth.updatePassword(password);
-    setBusy(false);
     if (result.error) {
+      setBusy(false);
       setError(result.error);
       return;
     }
+    // Still busy while it works out where to go next.
     endPasswordRecovery();
-    router.replace("/dashboard");
+    const userId = auth.user?.id;
+    router.replace(userId ? await landingAfterSignIn(userId, null) : "/dashboard");
   }
 
   return (

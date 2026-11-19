@@ -155,6 +155,12 @@ In the Supabase SQL Editor, run these files in order:
      database functions that check the caller. Nothing existing changes.
      Until it runs, the Admin Center says it isn't set up, and feedback is
      emailed as before. See [`docs/ADMIN_SETUP.md`](docs/ADMIN_SETUP.md).
+   - `20261205120000_live_updates.sql`: changes made in the Admin Center reach
+     open apps at once. A policy on Realtime's `realtime.messages` lets
+     signed-in accounts listen on the private `platform-updates` channel (only
+     the server can send on it), and the announcements function also returns
+     the next scheduled start or end. No new tables. Until it runs, apps pick
+     up changes when they open or come back after 15 minutes.
 
 All of them are additive and safe to re-run: nothing is dropped or rewritten, and
 existing data keeps working. A SQL file in the repo does nothing until you run it.
@@ -316,8 +322,11 @@ matters, and it is driven by how often whole snapshots are downloaded:
 
 - The Admin Center and the app's announcements cost little: one small database
   call when the app opens (announcements, the in-app notice and unread answers to
-  feedback together) and again only when a tab comes back after 15 minutes, with
-  no polling or Realtime. Public pages read published reviews and the changelog
+  feedback together), again when a tab comes back after 15 minutes, and again
+  when the team changes one of them. That last one is a Realtime message with no
+  content: an app holds a Realtime connection only while it's on screen (the free
+  plan allows 200 at once), so a tab in the background lets go after a minute.
+  No polling. Public pages read published reviews and the changelog
   at most once every five minutes each. Feedback screenshots are at most 2 MB,
   usually far less after the device shrinks them.
 
@@ -340,7 +349,10 @@ Usage page stays comfortably inside the plan.
       SQL Editor (background reminders for habits that count Roadmap work).
 - [ ] Run `supabase/migrations/20261204120000_platform_admin.sql` in the SQL Editor
       (the Admin Center), then make your own account the first Super Admin with the
-      SQL in [`docs/ADMIN_SETUP.md`](docs/ADMIN_SETUP.md), and open `/admin`.
+      SQL in [`docs/ADMIN_SETUP.md`](docs/ADMIN_SETUP.md). Signing in on the
+      ordinary sign-in page then opens the Admin Center.
+- [ ] Run `supabase/migrations/20261205120000_live_updates.sql` in the SQL Editor
+      (Admin Center changes reach open apps at once).
 - [ ] Set `RESEND_API_KEY` and `REPORTS_TO_EMAIL` in Vercel for crash reports and
       feedback (see [Crash reports and feedback](#crash-reports-and-feedback)).
 - [ ] Run `supabase/tests/rls_isolation.sql` and confirm `All isolation checks passed`.
