@@ -32,6 +32,7 @@ import { emptyEntry, toDraft, MOOD_LABELS } from "@/components/journal/constants
 import { completedTopicsOf } from "@/lib/topics";
 import { buildFileRefs, describeLinks } from "@/lib/files";
 import { toISODate, fromISODate, weekday, formatHours, relativeDay, formatDate, cn } from "@/lib/utils";
+import { beginRouteTransition } from "@/components/layout/route-transition";
 
 type Sort = "newest" | "oldest";
 type Tab = "entries" | "topics" | "analysis";
@@ -63,6 +64,19 @@ export default function JournalPage() {
   const [toggles, setToggles] = useState({ mock: false, wins: false, files: false });
   const [showFilters, setShowFilters] = useState(false);
   const [limit, setLimit] = useState(PAGE);
+
+  /**
+   * A day's page is built by the server on request (there is one per date, so
+   * they can't all be built ahead of time), and a server that has been idle
+   * takes the best part of a second to answer the first time. Asking for
+   * today's page in the background as the journal opens wakes it up, so
+   * opening a day is a quick answer instead of a slow one, and today's page,
+   * the one most often opened, is ready before it's tapped.
+   */
+  useEffect(() => {
+    const id = window.setTimeout(() => router.prefetch(`/journal/${toISODate(new Date())}`), 600);
+    return () => window.clearTimeout(id);
+  }, [router]);
 
   // ?new=1 opens today's entry; ?tab=topics opens the topics view. Only once
   // the store has hydrated, or today's entry wouldn't be found yet.
@@ -332,7 +346,12 @@ export default function JournalPage() {
                         <li key={e.date}>
                           <Card
                             hover
-                            onClick={() => router.push(`/journal/${e.date}`)}
+                            onPointerEnter={() => router.prefetch(`/journal/${e.date}`)}
+                            onPointerDown={() => router.prefetch(`/journal/${e.date}`)}
+                            onClick={() => {
+                              beginRouteTransition();
+                              router.push(`/journal/${e.date}`);
+                            }}
                             className="group cursor-pointer p-4 sm:p-5"
                           >
                             <div className="flex items-start gap-4">

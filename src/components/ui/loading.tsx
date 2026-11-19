@@ -1,17 +1,19 @@
 import { cn } from "@/lib/utils";
-import { Lottie } from "./lottie";
 
 /**
- * The two waits in this app are different events and get different animations —
- * but each wait shows exactly one animation, never a hand-off between two.
+ * The two waits in this app are different events and get different
+ * animations, both drawn by CSS so they are on screen the moment the wait
+ * begins, with nothing to download or start first.
  *
- *  1. `BootRing` / `Loading` — a browser refresh or cold start. Pure CSS, and it
- *     has to be: that wait *ends* at hydration, so a JavaScript player cannot
- *     start until the wait is already over. The ring is in the server-rendered
- *     HTML and is turning before any JavaScript has run.
+ *  1. `BootRing` / `Loading` — a browser refresh or cold start. It has to be
+ *     CSS: that wait *ends* at hydration, so a JavaScript player could not
+ *     start until the wait was already over. The ring is in the
+ *     server-rendered HTML and is turning before any JavaScript has run.
  *
- *  2. `PageLoading` — moving between pages. The real Lottie, since by then the
- *     app is running. Desktop only; see below.
+ *  2. `PageLoading` — moving between pages, when the next page isn't ready.
+ *     Three dots. They used to be a Lottie animation, which had to fetch its
+ *     player and its data before it could appear, so on a slow connection it
+ *     showed up late, if at all, and spent the wait it was covering on itself.
  */
 
 /**
@@ -38,13 +40,12 @@ export function Loading() {
 }
 
 /**
- * Page to page: the three dots from `public/loading (2).lottie`.
+ * Page to page: the three dots from `public/loading (2).lottie`, drawn by CSS
+ * (`.loading-dots` in `globals.css`).
  *
- * Hidden below `lg`, deliberately. On a phone this indicator did more harm than
- * good — a slow device plus a real chunk fetch left it on screen long enough to
- * read as a hang, which is worse than the brief unannounced pause it replaced.
- * The same cut-off is applied to `RouteTransition`, so a phone never shows a
- * page-to-page animation from either path.
+ * Hidden below `lg`, deliberately. On a phone a loader in the middle of the
+ * screen read as a hang on a slow connection; the progress bar along the top
+ * (`RouteTransition`) says "on its way" there instead.
  *
  * `hidden lg:grid` rather than a JS width check: a media query costs no
  * hydration and cannot disagree with the server.
@@ -52,12 +53,11 @@ export function Loading() {
 export function PageLoading() {
   return (
     <div className="hidden min-h-[60dvh] place-items-center lg:grid">
-      <Lottie
-        src="/animations/page-transition.json"
-        className="lottie-neutral h-16 w-16"
-        staticFrame={8}
-        label="Loading page"
-      />
+      <span className="loading-dots" role="status" aria-label="Loading page">
+        <span />
+        <span />
+        <span />
+      </span>
     </div>
   );
 }

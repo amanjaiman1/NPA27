@@ -37,18 +37,35 @@ export function daysBetween(a: string, b: string): number {
   return Math.round(ms / 86_400_000);
 }
 
+const formatters = new Map<string, Intl.DateTimeFormat>();
+
+/**
+ * A date formatter, made once and kept. `toLocaleDateString(locale, options)`
+ * builds a new one on every call, which is slow: in a list of a hundred
+ * journal days it was a noticeable part of drawing the page. The output is
+ * identical. `key` names the combination, so a lookup costs no work.
+ */
+export function dateFormat(key: string, locale: string, options: Intl.DateTimeFormatOptions): Intl.DateTimeFormat {
+  let f = formatters.get(key);
+  if (!f) {
+    f = new Intl.DateTimeFormat(locale, options);
+    formatters.set(key, f);
+  }
+  return f;
+}
+
 /** Human friendly "12 Jun 2026". */
 export function formatDate(iso: string): string {
-  return fromISODate(iso).toLocaleDateString("en-GB", {
+  return dateFormat("gb-dd-mmm-yyyy", "en-GB", {
     day: "2-digit",
     month: "short",
     year: "numeric",
-  });
+  }).format(fromISODate(iso));
 }
 
 /** "Mon", "Tue"... */
 export function weekday(iso: string): string {
-  return fromISODate(iso).toLocaleDateString("en-US", { weekday: "short" });
+  return dateFormat("us-weekday", "en-US", { weekday: "short" }).format(fromISODate(iso));
 }
 
 /** Relative phrasing like "Today", "Yesterday", "3 days ago". */
@@ -116,10 +133,10 @@ export function sleepDuration(
 
 /** "19 Jun" — a compact day label for the same year. */
 export function formatDayShort(iso: string): string {
-  return fromISODate(iso).toLocaleDateString("en-GB", {
+  return dateFormat("gb-dd-mmm", "en-GB", {
     day: "2-digit",
     month: "short",
-  });
+  }).format(fromISODate(iso));
 }
 
 /** Clamp a number between min and max. */

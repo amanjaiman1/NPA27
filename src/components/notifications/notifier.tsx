@@ -26,8 +26,8 @@ async function show(opts: {
   const payload: NotificationOptions & { data: { href: string } } = {
     body,
     tag,
-    icon: "/icons/icon-192.png",
-    badge: "/icons/icon-192.png",
+    icon: "/icons/icon-192.png?v=2",
+    badge: "/icons/icon-192.png?v=2",
     data: { href },
   };
 

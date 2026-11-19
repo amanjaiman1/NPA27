@@ -520,67 +520,103 @@
 }
 
 /* ── Opening animations ───────────────────────────────────────────────
-   Each route plays a short rise-and-fade, and its top-level sections follow
-   in sequence. Transform and opacity only, one shot, no layout thrash — so it
-   reads as choreography rather than costing frames. The reduced-motion block
-   at the bottom of this file collapses all of it.
+   A new page fades in over 0.12s, all of it at once: opacity only, one
+   layer, so it costs the compositor a few frames and nothing else.
+
+   It used to rise into place and let its sections follow one after
+   another, and the last of them was fully on screen 0.8s after the page
+   itself was ready. That wait read as loading time, on every page change,
+   and on a phone the frames it needed cost more than the page did. The
+   reduced-motion block at the bottom of this file turns it off.
    ─────────────────────────────────────────────────────────────────── */
 
 @keyframes page-in {
   from {
     opacity: 0;
-    transform: translate3d(0, 14px, 0) scale(0.995);
   }
   to {
     opacity: 1;
-    transform: none;
-  }
-}
-
-@keyframes section-in {
-  from {
-    opacity: 0;
-    transform: translate3d(0, 18px, 0);
-  }
-  to {
-    opacity: 1;
-    transform: none;
   }
 }
 
 .page-enter {
-  animation: page-in 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: page-in 0.12s ease-out both;
 }
 
-/* The page's own sections, cascading. Six steps is enough — beyond that the
-   wait starts to feel like latency instead of polish. */
-.page-enter > * {
-  animation: section-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-.page-enter > *:nth-child(1) {
-  animation-delay: 0.04s;
-}
-.page-enter > *:nth-child(2) {
-  animation-delay: 0.1s;
-}
-.page-enter > *:nth-child(3) {
-  animation-delay: 0.16s;
-}
-.page-enter > *:nth-child(4) {
-  animation-delay: 0.22s;
-}
-.page-enter > *:nth-child(5) {
-  animation-delay: 0.27s;
-}
-.page-enter > *:nth-child(n + 6) {
-  animation-delay: 0.31s;
+/* ── The page-to-page progress bar ────────────────────────────────────
+   A thin line along the top of the window while a page change is under way
+   (components/layout/route-transition.tsx). It appears only when the change
+   takes longer than a glance, never covers the page, and finishes the moment
+   the next page is on screen. Transform and opacity only.
+   ─────────────────────────────────────────────────────────────────── */
+
+@keyframes route-progress {
+  from {
+    transform: scaleX(0.06);
+  }
+  to {
+    transform: scaleX(0.9);
+  }
 }
 
-/* Sticky children must not be transformed — a transform creates a containing
-   block and the stickiness silently breaks. */
-.page-enter > .sticky,
-.page-enter > [class*="sticky"] {
-  animation: fade-in-fast 0.3s ease-out both;
+.route-progress {
+  position: fixed;
+  inset-inline: 0;
+  top: 0;
+  z-index: 90;
+  height: 3px;
+  pointer-events: none;
+  transform-origin: 0 50%;
+  background: rgb(var(--accent));
+  box-shadow: 0 0 10px rgb(var(--accent) / 0.55);
+}
+/* Quick at first, then slower and slower, without ever claiming to be done. */
+.route-progress[data-state="loading"] {
+  animation: route-progress 8s cubic-bezier(0.08, 0.7, 0.2, 1) both;
+}
+.route-progress[data-state="done"] {
+  transform: scaleX(1);
+  opacity: 0;
+  transition:
+    transform 0.16s ease-out,
+    opacity 0.22s ease-out 0.12s;
+}
+
+/* ── The wait inside the page ─────────────────────────────────────────
+   Three dots, drawn by CSS (components/ui/loading.tsx). They are on screen
+   the moment the wait starts, with nothing to download first.
+   ─────────────────────────────────────────────────────────────────── */
+
+@keyframes loading-dot {
+  0%,
+  80%,
+  100% {
+    opacity: 0.25;
+    transform: scale(0.75);
+  }
+  40% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.loading-dots {
+  display: inline-flex;
+  gap: 0.45rem;
+}
+.loading-dots > span {
+  display: block;
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 999px;
+  background: rgb(var(--paper) / 0.55);
+  animation: loading-dot 1s ease-in-out infinite both;
+}
+.loading-dots > span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.loading-dots > span:nth-child(3) {
+  animation-delay: 0.3s;
 }
 
 /* ── The exam countdown ───────────────────────────────────────────────
@@ -911,18 +947,6 @@ samp {
     }
   }
 
-  /* The page-transition dots (`public/loading (2).lottie`) are three light
-     greys — 174–216 — which sit beautifully on the dark surface and all
-     but vanish on the light one, where they measure under 1.5:1 against the
-     canvas. Inverting luminance there maps them to the equivalent dark greys.
-     The dots are very close to neutral, so an invert shifts no hue; recolouring
-     the Lottie's fills at runtime would be the alternative, and this is one line
-     instead of a JSON walk. */
-  [data-surface="white"] .lottie-neutral,
-  [data-surface="lavender"] .lottie-neutral {
-    filter: invert(1);
-  }
-
   /* Pill button */
   .btn {
     display: inline-flex;
@@ -1146,6 +1170,17 @@ samp {
   box-shadow: var(--shell-shadow);
   -webkit-backdrop-filter: var(--shell-filter);
   backdrop-filter: var(--shell-filter);
+}
+
+/* Buttons on the page itself keep their glass fill, rims and sheen, but not
+   the blur. They sit on cards, over soft light with nothing sharp behind
+   them, so the blur changed nothing you could see; it did make every one of
+   them a separate layer for the graphics card to redraw, over a hundred on a
+   long journal, and that cost time on every page change and every scroll.
+   Measured on a phone-speed profile, pages appeared 60 to 100 ms sooner
+   without it. The shell, dialogs, menus and sticky headers keep their blur. */
+.app-stage {
+  --lg-blur: none;
 }
 
 /* The page's panel, from `lg` up. On a phone the page sits straight on the

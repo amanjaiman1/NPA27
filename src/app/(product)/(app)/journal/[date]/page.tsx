@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
@@ -127,8 +127,34 @@ function SectionCard({
   );
 }
 
+/**
+ * Moves to another day without asking the server for anything.
+ *
+ * Every day's page is the same page, filled in from the data on this device,
+ * so stepping to the previous or next day only needs the address to change.
+ * As a normal page change it went to the server each time, because a page
+ * per date can't be built ahead of time, and a quiet server took close to a
+ * second to answer. Next keeps `usePathname` and the back button in step with
+ * `history.pushState`, so this is still a real step in the history.
+ */
+function goToDay(date: string, replace = false) {
+  const href = `/journal/${date}`;
+  if (replace) window.history.replaceState(null, "", href);
+  else window.history.pushState(null, "", href);
+}
+
+/** The date in the address. Read from the address itself, which `goToDay` changes. */
+function dateFromPath(pathname: string | null): string {
+  const part = pathname?.split("/")[2] ?? "";
+  try {
+    return decodeURIComponent(part);
+  } catch {
+    return part;
+  }
+}
+
 export default function JournalDayPage() {
-  const params = useParams();
+  const pathname = usePathname();
   const router = useRouter();
   const hydrated = useHasHydrated();
   const journal = useChronicle((s) => s.journal);
@@ -142,7 +168,7 @@ export default function JournalDayPage() {
   const goals = useChronicle((s) => s.goals);
   const lifeLog = useChronicle((s) => s.lifeLog);
 
-  const date = String(params?.date ?? "");
+  const date = dateFromPath(pathname);
   const entry = useMemo(
     () => journal.find((e) => e.date === date),
     [journal, date],
@@ -194,6 +220,12 @@ export default function JournalDayPage() {
         <div className="flex items-center gap-1">
           <Link
             href={`/journal/${prev}`}
+            prefetch={false}
+            onClick={(e) => {
+              if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+              e.preventDefault();
+              goToDay(prev);
+            }}
             className="grid h-9 w-9 place-items-center rounded-lg border border-line text-paper/55 transition-colors hover:border-paper/25 hover:text-paper"
             aria-label="Previous day"
           >
@@ -201,6 +233,12 @@ export default function JournalDayPage() {
           </Link>
           <Link
             href={`/journal/${next}`}
+            prefetch={false}
+            onClick={(e) => {
+              if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+              e.preventDefault();
+              goToDay(next);
+            }}
             className={cn(
               "grid h-9 w-9 place-items-center rounded-lg border border-line text-paper/55 transition-colors hover:border-paper/25 hover:text-paper",
               next > today && "pointer-events-none opacity-30",
@@ -614,7 +652,7 @@ export default function JournalDayPage() {
         onClose={() => setOpen(false)}
         initial={draft}
         onSaved={(e) => {
-          if (e.date !== date) router.replace(`/journal/${e.date}`);
+          if (e.date !== date) goToDay(e.date, true);
         }}
       />
       <FilePreview record={preview} open={Boolean(preview)} onClose={() => setPreview(null)} />

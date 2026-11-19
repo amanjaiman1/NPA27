@@ -1,5 +1,5 @@
 import type { ISODate, LifeEntry, Profile, SleepTarget, TimeFormat } from "./types";
-import { fromISODate, round, toISODate } from "./utils";
+import { fromISODate, round, toISODate, dateFormat } from "./utils";
 
 /* ════════════════════════════════════════════════════════════════
    SLEEP, AS PURE FUNCTIONS
@@ -304,14 +304,26 @@ export function clockDelta(actual: string, target: string): number {
 
 /* ── showing and typing times ────────────────────────────────── */
 
-/** The device's convention, from its locale. */
+const deviceFormats = new Map<string, TimeFormat>();
+
+/**
+ * The device's convention, from its locale. Worked out once per locale: it
+ * builds a formatter to ask, and every time on screen without a chosen format
+ * asks again.
+ */
 export function deviceTimeFormat(locale?: string): TimeFormat {
+  const key = locale ?? "";
+  const known = deviceFormats.get(key);
+  if (known) return known;
+  let format: TimeFormat;
   try {
     const cycle = new Intl.DateTimeFormat(locale, { hour: "numeric" }).resolvedOptions().hourCycle;
-    return cycle === "h11" || cycle === "h12" ? "12h" : "24h";
+    format = cycle === "h11" || cycle === "h12" ? "12h" : "24h";
   } catch {
-    return "12h";
+    format = "12h";
   }
+  deviceFormats.set(key, format);
+  return format;
 }
 
 export function timeFormatOf(profile: Pick<Profile, "timeFormat"> | undefined): TimeFormat {
@@ -385,13 +397,15 @@ export function parseClock(input: string, opts: { format?: TimeFormat; context?:
 export function nightLabel(date: ISODate): string {
   const end = fromISODate(date);
   const start = fromISODate(shiftDay(date, -1));
-  const day = (d: Date) => d.toLocaleDateString("en-GB", { weekday: "short", day: "numeric" });
-  const month = end.toLocaleDateString("en-GB", { month: "short" });
-  const startMonth = start.toLocaleDateString("en-GB", { month: "short" });
+  const dayFormat = dateFormat("gb-wkd-d", "en-GB", { weekday: "short", day: "numeric" });
+  const monthFormat = dateFormat("gb-mmm", "en-GB", { month: "short" });
+  const day = (d: Date) => dayFormat.format(d);
+  const month = monthFormat.format(end);
+  const startMonth = monthFormat.format(start);
   return startMonth === month ? `${day(start)} – ${day(end)} ${month}` : `${day(start)} ${startMonth} – ${day(end)} ${month}`;
 }
 
 /** "Sun 16 Nov". */
 export function shortDay(date: ISODate): string {
-  return fromISODate(date).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
+  return dateFormat("gb-wkd-d-mmm", "en-GB", { weekday: "short", day: "numeric", month: "short" }).format(fromISODate(date));
 }
