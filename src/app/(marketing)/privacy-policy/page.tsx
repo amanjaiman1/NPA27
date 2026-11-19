@@ -38,6 +38,7 @@ export default function PrivacyPolicyPage() {
               </li>
               <li>Analytics, if it is switched on, only runs on the public pages and only if you agree.</li>
               <li>A review you write appears on the website only if you allow it, and comes down whenever you say so.</li>
+              <li>The interactive demo uses made-up data and stores nothing.</li>
             </ul>
 
             <h2 id="who">Who we are</h2>
@@ -106,13 +107,34 @@ export default function PrivacyPolicyPage() {
             </p>
             <h3>Reviews</h3>
             <p>
-              If you write a review of DoOrDie, we store your rating, what you wrote, the features and preparation stage you
-              chose, and the name you want shown with it. You give two separate permissions, and we record when you gave
-              each: that the team may read it (needed to send it), and that it may appear on our website (optional). To
-              check that a review comes from real use, the database counts the dates of your records, never what they say,
-              and keeps that count with the review: the date of your first record, on how many days you have records, and
-              which features those were. A review appears on the website only with your permission, after a moderator has
-              checked it, under the name you chose, and comes down as soon as you change your mind.
+              If you write a review of DoOrDie, we store your rating, your answers to its questions, the features you
+              chose, and the context you chose to add: your preparation stage, whether you prepare full time or while
+              working, a headline, and how your name is shown (your name, your initials, or none). You give two separate
+              permissions, and we record when you gave each and which version of their wording you agreed to: that the
+              team may read it (needed to send it), and that it may appear on our website (optional). Every time you give
+              or take back a permission, that is added to the review&apos;s consent history. When you edit a review, the
+              version before your edit is kept with it, so moderators can see what changed.
+            </p>
+            <p>
+              To check that a review comes from real use, the database counts the dates of your records, never what they
+              say, and keeps that count with the review: the date of your first record, on how many days you have records,
+              and which features those were. From that count, and from your account&apos;s age if you chose to show it, the
+              database works out the badges shown with a published review, such as &ldquo;Verified active user&rdquo;. The
+              website shows the badges, never the numbers behind them. A review appears on the website only with your
+              permission, after a moderator has checked it, under the name you chose, and comes down as soon as you change
+              your mind. What you wrote in &ldquo;What should we improve?&rdquo; is never published.
+            </p>
+            <p>
+              Once you can write a review, the dashboard may ask you to. If you answer &ldquo;Later&rdquo; or &ldquo;No
+              thanks&rdquo;, we store that answer and when you gave it, so you aren&apos;t asked again too soon, or at all.
+            </p>
+            <h3>The interactive demo</h3>
+            <p>
+              The demo at <Link href={PAGES.demo.path}>/demo</Link> runs the app with a made-up sample account. While it is
+              open, no account is loaded in that browser tab: the sample is held in the tab&apos;s memory and thrown away when
+              you leave, and nothing you change in it is stored on your device or sent to us. The tab remembers only that
+              the demo is on, and which step of the guide you&apos;re at, until you close it. If you are signed in, your own
+              account is not read or changed by the demo.
             </p>
             <h3>Announcements</h3>
             <p>
@@ -218,7 +240,7 @@ export default function PrivacyPolicyPage() {
               </li>
               <li>
                 <strong>Your review:</strong> in Settings, then Review DoOrDie, take it off the website at any time,
-                withdraw it, or delete it entirely.
+                withdraw it, or delete it entirely, together with its earlier versions and its consent history.
               </li>
               <li>
                 <strong>Withdraw analytics consent:</strong> use the button above, or clear this site&apos;s data in your

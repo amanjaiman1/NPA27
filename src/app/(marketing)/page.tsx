@@ -21,6 +21,8 @@ import { filmVideo, softwareApplication } from "@/lib/seo/schema";
 import { HomeFilm } from "@/components/marketing/home-film";
 import { InstallAppInline } from "@/components/marketing/install-app-inline";
 import { TestimonialStrip } from "@/components/marketing/testimonials";
+import { DemoInvite, ProductStatusBand, RecentImprovements } from "@/components/marketing/home-sections";
+import { getPublicChangelog, getYouAsked } from "@/lib/platform/public-content";
 import { JsonLd } from "@/components/seo/json-ld";
 import {
   Band,
@@ -40,6 +42,8 @@ import { SAMPLE_NOTE, SHOTS } from "@/components/marketing/shots";
 import { POSTS, postPath } from "@/content/blog";
 
 export const metadata = pageMetadata(PAGES.home);
+// Reviews and the changelog come from the database: refreshed every five minutes at most.
+export const revalidate = 300;
 
 /**
  * Runs only on a full page load of "/" (typing the address, an old bookmark or
@@ -187,8 +191,15 @@ const FAQS: FaqItem[] = [
   },
 ];
 
-export default function HomePage() {
+/**
+ * The order is the case for DoOrDie, made honestly: what it is, the product
+ * itself (screens, then the demo), what students say (or that none have yet),
+ * how it works, how data is handled, what changed lately, what's available,
+ * and the way in.
+ */
+export default async function HomePage() {
   const guides = POSTS.slice(0, 3);
+  const [changelog, asked] = await Promise.all([getPublicChangelog(3), getYouAsked(3)]);
   return (
     <>
       <script dangerouslySetInnerHTML={{ __html: HOME_REDIRECTS }} />
@@ -226,8 +237,8 @@ export default function HomePage() {
               <ButtonLink href="/signup" arrow track="cta_hero">
                 Start tracking free
               </ButtonLink>
-              <ButtonLink href={PAGES.features.path} variant="ghost">
-                Explore features
+              <ButtonLink href={PAGES.demo.path} variant="ghost" track="cta_hero_demo">
+                Try the demo
               </ButtonLink>
             </div>
             <ul className="mt-6 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs font-medium text-paper/60">
@@ -365,6 +376,12 @@ export default function HomePage() {
         </Container>
       </Band>
 
+      {/* ── Try it: the demo ────────────────────────────────── */}
+      <DemoInvite />
+
+      {/* ── Student experiences: published reviews, or the honest "none yet" ── */}
+      <TestimonialStrip placement="home" tone="raised" />
+
       {/* ── How it works ─────────────────────────────────────── */}
       <Band labelledBy="how-title">
         <Container>
@@ -460,11 +477,15 @@ export default function HomePage() {
               .
             </FeatureCard>
           </div>
+          <Link href={PAGES.trust.path} className="mt-6 inline-flex items-center gap-1.5 text-sm font-semibold text-accent hover:underline">
+            How DoOrDie handles your data, in the Trust Center <ArrowRight className="h-4 w-4" aria-hidden />
+          </Link>
         </Container>
       </Band>
 
-      {/* ── Reviews (only once there are published ones) ───────── */}
-      <TestimonialStrip placement="home" />
+      {/* ── Recent improvements, then what's available ───────── */}
+      <RecentImprovements changelog={changelog} asked={asked} />
+      <ProductStatusBand />
 
       {/* ── FAQ ──────────────────────────────────────────────── */}
       <Band tone="raised" labelledBy="faq-title">
