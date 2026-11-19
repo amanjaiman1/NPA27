@@ -10,7 +10,9 @@
  * auto-confirmed), password reset (the email is printed here instead of sent),
  * the Auth admin calls (read, ban and delete a user; a banned account can't
  * sign in or refresh), reads/saves of `chronicle_state`, any function in
- * `public` through /rest/v1/rpc, and Storage. Data lives in an
+ * `public` through /rest/v1/rpc, Storage, and Realtime broadcast on the one
+ * private channel the app uses (the REST endpoints the server sends with,
+ * and the WebSocket the browser listens on). Data lives in an
  * in-memory Postgres (PGlite) running the real `supabase/schema.sql` and
  * migrations, and every request runs as the caller's role with their JWT
  * claims, so Row Level Security is enforced exactly as on Supabase.
@@ -20,7 +22,7 @@
  */
 
 import { createServer } from "node:http";
-import { createHmac, randomUUID, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
+import { createHash, createHmac, randomUUID, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import { readFileSync, readdirSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -550,13 +552,162 @@ async function handleStorage(req, res, url) {
   return storageError(res, 404, "not_found", `no mock for ${req.method} ${path}`);
 }
 
-createServer(async (req, res) => {
+/* ── realtime ───────────────────────────────────────────────────────
+   Broadcast only, as the app uses it (src/lib/platform/live.ts). The
+   server sends through the REST endpoints with the service-role key; the
+   browser listens on a WebSocket speaking the Phoenix protocol that
+   realtime-js 2.x speaks (JSON arrays, "2.0.0"). Joining a private topic
+   follows the policy in supabase/migrations/20261205120000_live_updates.sql:
+   a signed-in account may join `platform-updates`, and nothing else;
+   nobody but the service role may send on it. */
+
+const LIVE_TOPICS = new Set(["platform-updates"]);
+/** topic -> sockets joined to it, with the join ref each used. */
+const subscribers = new Map();
+let realtimeSent = 0;
+
+function wsFrame(text) {
+  const data = Buffer.from(text);
+  const head = data.length < 126 ? Buffer.from([0x81, data.length]) : data.length < 65536 ? Buffer.from([0x81, 126, data.length >> 8, data.length & 255]) : null;
+  if (!head) {
+    const big = Buffer.alloc(10);
+    big[0] = 0x81;
+    big[1] = 127;
+    big.writeBigUInt64BE(BigInt(data.length), 2);
+    return Buffer.concat([big, data]);
+  }
+  return Buffer.concat([head, data]);
+}
+
+function wsSend(socket, message) {
+  if (!socket.destroyed) socket.write(wsFrame(JSON.stringify(message)));
+}
+
+function deliver(topic, event, payload) {
+  const joined = subscribers.get(`realtime:${topic}`);
+  if (!joined) return 0;
+  for (const [socket, joinRef] of joined) {
+    wsSend(socket, [joinRef, null, `realtime:${topic}`, "broadcast", { type: "broadcast", event, payload }]);
+    realtimeSent++;
+  }
+  return joined.size;
+}
+
+function leaveAll(socket) {
+  for (const joined of subscribers.values()) joined.delete(socket);
+}
+
+function onRealtimeMessage(socket, raw) {
+  let msg;
+  try {
+    msg = JSON.parse(raw);
+  } catch {
+    return;
+  }
+  const [joinRef, ref, topic, event, payload] = Array.isArray(msg) ? msg : [msg.join_ref, msg.ref, msg.topic, msg.event, msg.payload];
+  const reply = (status, response = {}) => wsSend(socket, [joinRef ?? null, ref ?? null, topic, "phx_reply", { status, response }]);
+  if (topic === "phoenix" && event === "heartbeat") return reply("ok");
+  if (event === "phx_join") {
+    const name = String(topic).replace(/^realtime:/, "");
+    const claims = verify(payload?.access_token);
+    const isPrivate = payload?.config?.private === true;
+    if (!isPrivate || !LIVE_TOPICS.has(name) || claims?.role !== "authenticated") {
+      return reply("error", { reason: "Unauthorized: You do not have permissions to read from this Channel topic: " + name });
+    }
+    if (!subscribers.has(topic)) subscribers.set(topic, new Map());
+    subscribers.get(topic).set(socket, joinRef);
+    return reply("ok", { postgres_changes: [] });
+  }
+  if (event === "phx_leave") {
+    subscribers.get(topic)?.delete(socket);
+    return reply("ok");
+  }
+  if (event === "access_token") return; // a refreshed token: still the same account
+  if (event === "broadcast") return reply("error", { reason: "Unauthorized: only the server sends on this channel" });
+}
+
+function acceptWebSocket(req, socket) {
+  const key = req.headers["sec-websocket-key"];
+  if (!key) return socket.destroy();
+  const accept = createHash("sha1").update(`${key}258EAFA5-E914-47DA-95CA-C5AB0DC85B11`).digest("base64");
+  socket.write(`HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: ${accept}\r\n\r\n`);
+  let buffer = Buffer.alloc(0);
+  let text = [];
+  socket.on("data", (chunk) => {
+    buffer = Buffer.concat([buffer, chunk]);
+    for (;;) {
+      if (buffer.length < 2) return;
+      const fin = (buffer[0] & 0x80) !== 0;
+      const opcode = buffer[0] & 0x0f;
+      const masked = (buffer[1] & 0x80) !== 0;
+      let length = buffer[1] & 0x7f;
+      let offset = 2;
+      if (length === 126) {
+        if (buffer.length < 4) return;
+        length = buffer.readUInt16BE(2);
+        offset = 4;
+      } else if (length === 127) {
+        if (buffer.length < 10) return;
+        length = Number(buffer.readBigUInt64BE(2));
+        offset = 10;
+      }
+      const maskAt = offset;
+      if (masked) offset += 4;
+      if (buffer.length < offset + length) return;
+      const data = Buffer.from(buffer.subarray(offset, offset + length));
+      if (masked) for (let i = 0; i < data.length; i++) data[i] ^= buffer[maskAt + (i % 4)];
+      buffer = buffer.subarray(offset + length);
+      if (opcode === 0x8) {
+        leaveAll(socket);
+        socket.end(Buffer.from([0x88, 0]));
+        return;
+      }
+      if (opcode === 0x9) {
+        socket.write(Buffer.concat([Buffer.from([0x8a, data.length]), data]));
+        continue;
+      }
+      if (opcode === 0x1 || opcode === 0x0) {
+        text.push(data);
+        if (fin) {
+          onRealtimeMessage(socket, Buffer.concat(text).toString("utf8"));
+          text = [];
+        }
+      }
+    }
+  });
+  const gone = () => leaveAll(socket);
+  socket.on("close", gone);
+  socket.on("error", gone);
+}
+
+/** POST /realtime/v1/api/broadcast[/<topic>/events/<event>], as Supabase's REST broadcast. */
+async function handleRealtime(req, res, url) {
+  if (req.method !== "POST") return send(res, 404, { error: "not found" });
+  if (verify(req.headers.apikey)?.role !== "service_role") return send(res, 401, { message: "Only the server may send on this channel" });
+  const one = url.pathname.match(/^\/realtime\/v1\/api\/broadcast\/([^/]+)\/events\/([^/]+)$/);
+  const messages = one
+    ? [{ topic: decodeURIComponent(one[1]), event: decodeURIComponent(one[2]), payload: await body(req), private: url.searchParams.get("private") === "true" }]
+    : url.pathname === "/realtime/v1/api/broadcast"
+      ? ((await body(req)).messages ?? [])
+      : null;
+  if (!messages) return send(res, 404, { error: "not found" });
+  for (const m of messages) if (m.private === true && LIVE_TOPICS.has(m.topic)) deliver(m.topic, m.event, m.payload);
+  return send(res, 202);
+}
+
+const server = createServer(async (req, res) => {
   const url = new URL(req.url, `http://localhost:${PORT}`);
   if (req.method === "OPTIONS") return send(res, 204);
   try {
     if (url.pathname.startsWith("/auth/v1")) return await handleAuth(req, res, url);
     if (url.pathname.startsWith("/rest/v1")) return await handleRest(req, res, url);
     if (url.pathname.startsWith("/storage/v1")) return await handleStorage(req, res, url);
+    if (url.pathname.startsWith("/realtime/v1/api/broadcast")) return await handleRealtime(req, res, url);
+    if (url.pathname === "/__mock/realtime") {
+      // Tests only: who is listening, and how many messages went out.
+      const listening = [...subscribers].map(([topic, joined]) => ({ topic, sockets: joined.size }));
+      return send(res, 200, { listening, sent: realtimeSent });
+    }
     if (url.pathname === "/__mock/last-email") return send(res, 200, lastEmail);
     if (url.pathname === "/__mock/sql" && req.method === "POST") {
       // Tests only: run SQL as the database owner, as the Supabase SQL Editor does.
@@ -602,6 +753,11 @@ createServer(async (req, res) => {
     console.error(e);
     return send(res, 500, { error: String(e?.message ?? e) });
   }
-}).listen(PORT, () => {
+});
+server.on("upgrade", (req, socket) => {
+  if (new URL(req.url, `http://localhost:${PORT}`).pathname === "/realtime/v1/websocket") acceptWebSocket(req, socket);
+  else socket.destroy();
+});
+server.listen(PORT, () => {
   console.log(`Mock Supabase on http://localhost:${PORT}\n${ENV.replace(/^/gm, "  ")}`);
 });

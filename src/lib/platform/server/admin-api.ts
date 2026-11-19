@@ -35,6 +35,7 @@ import {
   type Parsed,
 } from "../validate";
 import { REVIEW_STATUS } from "../content";
+import type { LiveArea } from "../live";
 import { PUBLIC_TAGS } from "../public-content";
 import { sameSite } from "@/lib/report-server";
 import { errorResponse, json, PlatformError } from "./errors";
@@ -51,6 +52,11 @@ export interface AdminDeps extends AuthDeps {
   revalidate: (tags: string[]) => void;
   /** False once an administrator has made too many changes in a short time. */
   allowMutation: (actorId: string) => boolean;
+  /**
+   * Tells every open app that these areas changed, so they reload them
+   * (lib/platform/live.ts). Never throws. Absent in tests that don't need it.
+   */
+  broadcast?: (areas: LiveArea[]) => Promise<unknown>;
 }
 
 type Method = "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
@@ -69,7 +75,17 @@ export interface AdminRoute {
   path: string;
   permission: Permission;
   run: (ctx: Ctx) => Promise<unknown>;
+  /**
+   * What students see that a successful call changes, so open apps reload
+   * it at once. A function decides from the result (an edited draft changes
+   * nothing anyone sees). Absent: nothing students see.
+   */
+  live?: readonly LiveArea[] | ((result: unknown) => readonly LiveArea[]);
 }
+
+/** Students only see published announcements; editing a draft or an archived one changes nothing for them. */
+const ifPublished = (result: unknown): readonly LiveArea[] =>
+  (result as { status?: unknown } | null)?.status === "published" ? ["announcements"] : [];
 
 function take<T>(parsed: Parsed<T>): T {
   if (!parsed.ok) throw new PlatformError(400, "invalid", parsed.error);
@@ -179,6 +195,8 @@ export const ADMIN_ROUTES: AdminRoute[] = [
     method: "POST",
     path: "reviews/:id/moderate",
     permission: "reviews.moderate",
+    // The author sees the decision in Settings.
+    live: ["reviews"],
     run: async (ctx) => {
       const m = take(parseModeration(ctx.body));
       const out = await ctx.deps.rpc("platform_admin_moderate_review", {
@@ -196,6 +214,7 @@ export const ADMIN_ROUTES: AdminRoute[] = [
     method: "PUT",
     path: "reviews/:id/response",
     permission: "reviews.moderate",
+    live: ["reviews"],
     run: async (ctx) => {
       const r = take(parseResponse(ctx.body, 1000));
       const out = await ctx.deps.rpc("platform_admin_respond_review", {
@@ -233,6 +252,8 @@ export const ADMIN_ROUTES: AdminRoute[] = [
     method: "PATCH",
     path: "feedback/:id",
     permission: "feedback.manage",
+    // The author sees the status (never the priority or the notes).
+    live: ["feedback"],
     run: async (ctx) => {
       const patch = take(parseFeedbackPatch(ctx.body));
       const out = await ctx.deps.rpc("platform_admin_update_feedback", { ...actorArgs(ctx), p_id: ctx.params.id, p_patch: patch });
@@ -254,6 +275,8 @@ export const ADMIN_ROUTES: AdminRoute[] = [
     method: "PUT",
     path: "feedback/:id/response",
     permission: "feedback.manage",
+    // The answer in Settings, and the bell's "The team answered your feedback".
+    live: ["feedback"],
     run: (ctx) => {
       const r = take(parseResponse(ctx.body, 2000));
       return withScreenshot(
@@ -281,6 +304,7 @@ export const ADMIN_ROUTES: AdminRoute[] = [
     method: "PATCH",
     path: "announcements/:id",
     permission: "announcements.manage",
+    live: ifPublished,
     run: (ctx) =>
       ctx.deps.rpc("platform_admin_save_announcement", {
         ...actorArgs(ctx),
@@ -292,6 +316,9 @@ export const ADMIN_ROUTES: AdminRoute[] = [
     method: "POST",
     path: "announcements/:id/action",
     permission: "announcements.manage",
+    // Publish (now or from a later start), unpublish, archive or restore. A later start then
+    // appears on time by itself: the apps time it from `nextChangeAt`.
+    live: ["announcements"],
     run: (ctx) => {
       const a = take(parseAnnouncementAction(ctx.body));
       return ctx.deps.rpc("platform_admin_announcement_action", {
@@ -371,6 +398,8 @@ export const ADMIN_ROUTES: AdminRoute[] = [
     method: "PATCH",
     path: "settings",
     permission: "settings.manage",
+    // The notice in the app, and whether reviews are open (and when an account may write one).
+    live: ["notice", "reviews"],
     run: async (ctx) => {
       const out = await ctx.deps.rpc("platform_admin_update_settings", { ...actorArgs(ctx), p_values: take(parseSettings(ctx.body)) });
       ctx.deps.revalidate([PUBLIC_TAGS.site, PUBLIC_TAGS.testimonials]);
@@ -494,6 +523,9 @@ export async function handleAdminRequest(request: Request, segments: string[], d
     }
     const body = mutating ? await readJson(request) : undefined;
     const data = await match.route.run({ actor, params: match.params, query: new URL(request.url).searchParams, body, deps });
+    // Saved: tell the open apps, before answering, so a serverless function isn't frozen mid-send.
+    const live = typeof match.route.live === "function" ? match.route.live(data) : match.route.live;
+    if (mutating && live?.length && deps.broadcast) await deps.broadcast([...live]).catch(() => undefined);
     return json({ data: data ?? null });
   } catch (e) {
     return errorResponse(e);

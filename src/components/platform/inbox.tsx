@@ -4,17 +4,28 @@
    FROM THE TEAM
    Announcements, the app-wide notice and "the team answered your
    feedback", for the signed-in account. One database call when the app
-   opens, and again when the tab comes back after 15 minutes or more: no
-   polling and no Realtime, so it costs next to nothing on the free plan.
-   Read and dismissed state is kept per account in the database
-   (platform_announcement_reads), so it follows the person between devices.
+   opens, then again:
+   - the moment the team changes any of them in the Admin Center (a live
+     update, see live-updates.ts);
+   - when a scheduled announcement starts or a running one ends, timed by
+     the database's clock;
+   - when the tab comes back after 15 minutes or more.
+   No polling. Read and dismissed state is kept per account in the
+   database (platform_announcement_reads), so it follows the person
+   between devices.
    ════════════════════════════════════════════════════════════════ */
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import type { MyAnnouncement, MyAnnouncements } from "@/lib/platform/types";
+import { usePlatformUpdates } from "./live-updates";
 
 const REFRESH_AFTER = 15 * 60_000;
+/** A scheduled change is reloaded a moment after it happens, spread so every app doesn't ask at once. */
+const AFTER_CHANGE_MS = 1_500;
+const CHANGE_SPREAD_MS = 4_000;
+/** Further off than this, opening or coming back to the app catches it instead. */
+const LONGEST_WAIT_MS = 24 * 60 * 60_000;
 
 export interface InboxValue {
   notice: MyAnnouncements["notice"];
@@ -41,20 +52,44 @@ const EMPTY: MyAnnouncements = { notice: null, unseenResponses: 0, items: [] };
 export function PlatformInbox({ userId, children }: { userId: string | null; children: React.ReactNode }) {
   const [state, setState] = useState<MyAnnouncements>(EMPTY);
   const last = useRef(0);
+  /** The reload at the next scheduled start or end. */
+  const changeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** Answers are applied in the order the calls were made, so a slow one can't undo a newer one. */
+  const seq = useRef(0);
+  /** False once the inbox has gone, so an answer still on its way sets no new timer. */
+  const alive = useRef(false);
+  const loadRef = useRef<() => Promise<void>>(async () => undefined);
 
   const load = useCallback(async () => {
     if (!userId || !supabase) return;
     last.current = Date.now();
+    const call = ++seq.current;
     const { data, error } = await supabase.rpc("platform_my_announcements");
     // Not set up yet, or offline: show nothing rather than an error, and ask again later.
-    if (error || !data) return;
+    if (error || !data || call !== seq.current || !alive.current) return;
     const d = data as Partial<MyAnnouncements>;
     setState({ notice: d.notice ?? null, unseenResponses: Number(d.unseenResponses ?? 0), items: Array.isArray(d.items) ? d.items : [] });
+
+    // Timed from the database's clock, so a phone set a few minutes wrong still gets it on time.
+    if (changeTimer.current) clearTimeout(changeTimer.current);
+    changeTimer.current = null;
+    const wait = d.nextChangeAt && d.now ? Date.parse(d.nextChangeAt) - Date.parse(d.now) : NaN;
+    if (Number.isFinite(wait) && wait < LONGEST_WAIT_MS) {
+      changeTimer.current = setTimeout(
+        () => {
+          changeTimer.current = null;
+          void loadRef.current();
+        },
+        Math.max(0, wait) + AFTER_CHANGE_MS + Math.random() * CHANGE_SPREAD_MS,
+      );
+    }
   }, [userId]);
+  loadRef.current = load;
 
   useEffect(() => {
     setState(EMPTY);
     if (!userId) return;
+    alive.current = true;
     void load();
     const again = () => {
       if (document.visibilityState === "visible" && Date.now() - last.current >= REFRESH_AFTER) void load();
@@ -64,8 +99,14 @@ export function PlatformInbox({ userId, children }: { userId: string | null; chi
     return () => {
       document.removeEventListener("visibilitychange", again);
       window.removeEventListener("focus", again);
+      alive.current = false;
+      if (changeTimer.current) clearTimeout(changeTimer.current);
+      changeTimer.current = null;
     };
   }, [userId, load]);
+
+  // The team changed an announcement, the notice or an answer to feedback: show it now.
+  usePlatformUpdates(["announcements", "notice", "feedback"], () => void load(), Boolean(userId));
 
   const patch = useCallback((ids: string[] | "all", fields: Partial<MyAnnouncement>) => {
     setState((s) => ({ ...s, items: s.items.map((a) => (ids === "all" || ids.includes(a.id) ? { ...a, ...fields } : a)) }));

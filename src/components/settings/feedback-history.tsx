@@ -25,8 +25,14 @@ const day = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", y
  */
 export function FeedbackHistory({ items, onSeen }: { items: MyFeedback[]; onSeen: () => void }) {
   const list = useRef<HTMLDivElement>(null);
-  // Answers that were new when the list appeared keep their "New" mark while it's open.
-  const [fresh] = useState(() => new Set(items.filter((i) => i.response && !i.responseSeen).map((i) => i.id)));
+  // Answers that were new when the list appeared, or that arrived while it's open, keep their "New" mark while it's open.
+  const [fresh, setFresh] = useState(() => new Set(items.filter((i) => i.response && !i.responseSeen).map((i) => i.id)));
+  useEffect(() => {
+    setFresh((had) => {
+      const add = items.filter((i) => i.response && !i.responseSeen && !had.has(i.id));
+      return add.length ? new Set([...had, ...add.map((i) => i.id)]) : had;
+    });
+  }, [items]);
   const pending = items.some((i) => i.response && !i.responseSeen);
   const seen = useRef(onSeen);
   seen.current = onSeen;

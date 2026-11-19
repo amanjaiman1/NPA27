@@ -205,6 +205,13 @@ export interface MyAnnouncements {
   /** The team's answers to the person's feedback that they haven't opened yet. */
   unseenResponses: number;
   items: MyAnnouncement[];
+  /**
+   * The next scheduled start or end of a published announcement (ISO), and
+   * the database's time when it answered, so the app can reload at that
+   * moment. Absent before the live-updates migration.
+   */
+  nextChangeAt?: string | null;
+  now?: string;
 }
 
 export interface ChangelogEntry {

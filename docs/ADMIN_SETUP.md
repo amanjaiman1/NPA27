@@ -49,6 +49,7 @@ They are all safe to run again.
 5. `supabase/migrations/20261202120000_diary_coach_privacy.sql`
 6. `supabase/migrations/20261203120000_dispatch_completed_activities.sql`
 7. `supabase/migrations/20261204120000_platform_admin.sql` (the Admin Center)
+8. `supabase/migrations/20261205120000_live_updates.sql` (changes reach open apps at once)
 
 If you use the Supabase CLI, `supabase db push` runs the same migrations.
 
@@ -214,8 +215,32 @@ state is kept per account, so dismissing it on a phone dismisses it
 everywhere. Archive an announcement to take it down; only drafts can be
 deleted.
 
-The app asks for announcements once when it opens and again when a tab comes
-back after 15 minutes or more. No polling and no Realtime.
+### Changes reach open apps at once
+
+Publishing, scheduling, editing, unpublishing or archiving an announcement,
+changing the notice in the app or the review settings, answering feedback or
+changing its status, and moderating or replying to a review all show up in
+every open app within a couple of seconds. Nobody has to reload.
+
+How: after the change is saved, the server sends one message on a private
+Supabase Realtime channel (`platform-updates`). The message says only which
+areas changed, never what changed or for whom. Each open app then asks the
+database for its own data, as it does when it opens. Only signed-in accounts
+can listen, and only the server can send (the policy is in
+`supabase/migrations/20261205120000_live_updates.sql`). A scheduled
+announcement appears at its start, and an ending one goes, without any
+message: the app times it from the database's clock.
+
+On the free plan (200 Realtime connections at once, 100 messages a second),
+an app holds a connection only while it's on screen: a tab in the background
+lets go after a minute and catches up when it comes back. Each change is one
+message to each open app, and their reloads are spread over two seconds. If
+Realtime can't be reached or the channel is full, the app works as before: it
+loads announcements when it opens, and again when a tab comes back after 15
+minutes or more.
+
+Changes made in the SQL Editor aren't announced; open apps see them the next
+time they load.
 
 ### Changelog
 

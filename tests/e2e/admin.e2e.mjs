@@ -669,11 +669,25 @@ async function browserScenarios(browser, people) {
     check(!links.some((l) => l.includes("Admin Center")), `a student's menu: ${links}`);
     // The app-wide notice the Super Admin switched on, and a new announcement as a banner.
     await page.getByText("NOTICE-E2E: maintenance on Sunday").waitFor();
+    // The open app is listening for the team's changes, and arrives at them without a reload.
+    await waitFor("the app to listen for live updates", async () => {
+      const r = await (await fetch(`${MOCK}/__mock/realtime`)).json();
+      return r.listening.some((l) => l.topic === "realtime:platform-updates" && l.sockets > 0);
+    });
+    const loads = [];
+    page.on("framenavigated", (f) => f === page.mainFrame() && loads.push(f.url()));
     const a = data(await api(owner.token, "POST", "/api/admin/announcements", { title: "BANNER-E2E: Weekly reviews are faster", body: "They open in half the time.", category: "product_update" }));
     await api(owner.token, "POST", `/api/admin/announcements/${a.id}/action`, { action: "publish" });
-    await page.reload();
     const banner = page.getByRole("region", { name: "Announcement from the team" });
-    await banner.getByText("BANNER-E2E: Weekly reviews are faster").waitFor();
+    await banner.getByText("BANNER-E2E: Weekly reviews are faster").waitFor({ timeout: 10_000 });
+    check(loads.length === 0, `the banner needed a page load: ${loads}`);
+    // The notice switched off in Platform settings leaves every open app too.
+    const notice = data(await api(owner.token, "GET", "/api/admin/settings")).values.app_notice;
+    await api(owner.token, "PATCH", "/api/admin/settings", { app_notice: { ...notice, enabled: false } });
+    await page.getByText("NOTICE-E2E: maintenance on Sunday").waitFor({ state: "detached", timeout: 10_000 });
+    await api(owner.token, "PATCH", "/api/admin/settings", { app_notice: notice });
+    await page.getByText("NOTICE-E2E: maintenance on Sunday").waitFor({ timeout: 10_000 });
+    check(loads.length === 0, `the notice needed a page load: ${loads}`);
     await page.screenshot({ path: join(SHOTS, "student-banner.png") });
     await banner.getByRole("button", { name: /^Dismiss/ }).click();
     await banner.waitFor({ state: "detached" });
@@ -681,6 +695,16 @@ async function browserScenarios(browser, people) {
     await page.getByText("NOTICE-E2E: maintenance on Sunday").waitFor();
     await notCrashed(page, "the dashboard with a notice");
     check(!(await page.getByText("BANNER-E2E: Weekly reviews are faster").count()), "a dismissed announcement stays dismissed");
+    // A scheduled one appears at its start, and an unpublished one goes, in the open app.
+    loads.length = 0;
+    const s = data(await api(owner.token, "POST", "/api/admin/announcements", { title: "SCHEDULED-E2E: Mock week starts", body: "Every mock is open.", category: "general" }));
+    await api(owner.token, "POST", `/api/admin/announcements/${s.id}/action`, { action: "publish", startsAt: new Date(Date.now() + 6_000).toISOString() });
+    await page.waitForTimeout(2_000);
+    check(!(await banner.getByText("SCHEDULED-E2E: Mock week starts").count()), "a scheduled announcement showed before its start");
+    await banner.getByText("SCHEDULED-E2E: Mock week starts").waitFor({ timeout: 20_000 });
+    await api(owner.token, "POST", `/api/admin/announcements/${s.id}/action`, { action: "unpublish" });
+    await banner.getByText("SCHEDULED-E2E: Mock week starts").waitFor({ state: "detached", timeout: 10_000 });
+    check(loads.length === 0, `the scheduled announcement needed a page load: ${loads}`);
     // It's still on the Announcements page, with its text.
     await page.goto(`${APP}/announcements`);
     await page.getByRole("heading", { name: "Announcements", level: 1 }).waitFor();
