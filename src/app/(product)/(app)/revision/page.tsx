@@ -27,6 +27,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { useConfirm } from "@/components/ui/confirm-dialog";
+import { useToast } from "@/components/ui/toast";
+import { habitContext, habitsMovedOn, movedSummary } from "@/lib/habit-engine";
 import { Field, Input, Select, RatingPicker } from "@/components/ui/form";
 import { EmptyState, Chip } from "@/components/ui/misc";
 import { Progress } from "@/components/ui/progress";
@@ -71,6 +73,7 @@ export default function RevisionPage() {
   const upsert = useChronicle((s) => s.upsertRevision);
   const remove = useChronicle((s) => s.deleteRevision);
   const confirm = useConfirm();
+  const toast = useToast();
 
   const today = toISODate(new Date());
   const [query, setQuery] = useState("");
@@ -137,21 +140,33 @@ export default function RevisionPage() {
     setEditing(true);
     setOpen(true);
   }
-  async function save() {
-    if (!draft.topic.trim() || !draft.subjectId) return;
-    if (
-      await confirm({
-        title: editing ? "Save changes to this item?" : "Add to the revision queue?",
-        description: editing
-          ? "The item will be updated."
-          : `"${draft.topic.trim()}" will be scheduled for revision.`,
-        tone: "default",
-        confirmLabel: editing ? "Save changes" : "Add item",
-      })
-    ) {
-      upsert({ ...draft, topic: draft.topic.trim() });
-      setOpen(false);
+  /** A pass, with a note of when it comes back and what it did for the habits. */
+  function reviseWithNote(item: RevisionItem, remembered: boolean) {
+    revise(item.id, remembered);
+    const after = useChronicle.getState();
+    const next = after.revisions.find((x) => x.id === item.id);
+    const moved = movedSummary(habitsMovedOn(after.habits, habitContext(after, today), today, ["revision"]));
+    toast({
+      title: remembered ? `“${item.topic}” recalled` : `“${item.topic}” comes back sooner`,
+      description: [next ? `Next due ${formatDate(next.nextDue)}.` : "", moved ?? ""].filter(Boolean).join(" ") || undefined,
+    });
+  }
+
+  function save() {
+    if (!draft.topic.trim() || !draft.subjectId) {
+      toast({
+        title: !draft.subjectId ? "Choose a subject" : "Name the topic",
+        description: "Both are needed to schedule a revision.",
+        tone: "error",
+      });
+      return;
     }
+    upsert({ ...draft, topic: draft.topic.trim() });
+    setOpen(false);
+    toast({
+      title: editing ? "Revision item updated" : `“${draft.topic.trim()}” added to the queue`,
+      description: editing ? undefined : `First due ${formatDate(draft.nextDue)}.`,
+    });
   }
   async function del(item: RevisionItem) {
     if (
@@ -218,13 +233,13 @@ export default function RevisionPage() {
           {tone !== "ahead" && (
             <>
               <button
-                onClick={() => revise(r.id, false)}
+                onClick={() => reviseWithNote(r, false)}
                 className="inline-flex items-center gap-1.5 rounded-full border border-line px-3 py-1.5 text-xs font-medium text-paper/60 transition-colors hover:border-paper/30 hover:text-paper"
               >
                 <X className="h-3.5 w-3.5" /> Forgot
               </button>
               <button
-                onClick={() => revise(r.id, true)}
+                onClick={() => reviseWithNote(r, true)}
                 className="inline-flex items-center gap-1.5 rounded-full bg-paper px-3 py-1.5 text-xs font-medium text-ink transition-opacity hover:opacity-90"
               >
                 <Check className="h-3.5 w-3.5" /> Recalled

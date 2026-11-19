@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Chip, EmptyState } from "@/components/ui/misc";
 import { Modal } from "@/components/ui/modal";
 import { useConfirm } from "@/components/ui/confirm-dialog";
+import { useToast } from "@/components/ui/toast";
 import { Field, Input, Textarea, Select } from "@/components/ui/form";
 import { relativeDay, toISODate, uid, cn, formatDate } from "@/lib/utils";
 
@@ -59,6 +60,7 @@ export default function CurrentAffairsPage() {
   const upsert = useChronicle((s) => s.upsertCurrentAffair);
   const remove = useChronicle((s) => s.deleteCurrentAffair);
   const confirm = useConfirm();
+  const toast = useToast();
 
   const [cat, setCat] = useState<CACategory | "all" | "saved">("all");
   const [query, setQuery] = useState("");
@@ -333,21 +335,11 @@ export default function CurrentAffairsPage() {
               Cancel
             </Button>
             <Button
-              onClick={async () => {
-                if (!draft.title.trim()) return;
-                if (
-                  !(await confirm({
-                    title: isEditing
-                      ? "Save changes to this note?"
-                      : "Add this note to the vault?",
-                    description: isEditing
-                      ? "Your edits to this note will be saved."
-                      : "It will be saved to your current affairs archive.",
-                    tone: "default",
-                    confirmLabel: isEditing ? "Save changes" : "Add note",
-                  }))
-                )
+              onClick={() => {
+                if (!draft.title.trim()) {
+                  toast({ title: "Give the note a title", description: "A headline is enough, e.g. “RBI holds the repo rate”.", tone: "error" });
                   return;
+                }
                 const tags = tagInput
                   .split(",")
                   .map((t) => t.trim())
@@ -355,6 +347,7 @@ export default function CurrentAffairsPage() {
                 upsert({ ...draft, tags });
                 setTagInput("");
                 setOpen(false);
+                toast({ title: isEditing ? "Note updated" : "Note added to the vault" });
               }}
             >
               Save

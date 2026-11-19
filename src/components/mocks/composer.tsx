@@ -6,7 +6,7 @@ import type { MockTest, MockType, MockSection } from "@/lib/types";
 import { useChronicle } from "@/lib/store";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
-import { useConfirm } from "@/components/ui/confirm-dialog";
+import { useToast } from "@/components/ui/toast";
 import { Field, Input, Select } from "@/components/ui/form";
 import { cn, round, sum } from "@/lib/utils";
 
@@ -117,7 +117,7 @@ export function MockComposer({
   initial: MockTest;
 }) {
   const upsert = useChronicle((s) => s.upsertMock);
-  const confirm = useConfirm();
+  const toast = useToast();
   const [draft, setDraft] = useState<MockTest>(initial);
 
   useEffect(() => {
@@ -158,21 +158,18 @@ export function MockComposer({
     });
   }
 
-  async function save() {
-    if (!draft.name.trim()) return;
+  function save() {
+    if (!draft.name.trim()) {
+      toast({ title: "Name the mock", description: "e.g. “Prelims Test 4”, so you can tell it apart later.", tone: "error" });
+      return;
+    }
     const finalSections = hasSections ? norm : undefined;
     const score = totals ? totals.score : draft.score;
     const max = totals ? totals.max : draft.max;
-    if (!max) return;
-    if (
-      !(await confirm({
-        title: "Save this mock test?",
-        description: `"${draft.name.trim()}" will be saved to your mock analytics.`,
-        tone: "default",
-        confirmLabel: "Save mock",
-      }))
-    )
+    if (!max) {
+      toast({ title: "Enter the maximum marks", description: "The score is read against them.", tone: "error" });
       return;
+    }
     upsert({
       ...draft,
       sections: finalSections,
@@ -192,6 +189,7 @@ export function MockComposer({
       category: mains ? "Mains" : draft.type.startsWith("Prelims") ? "Prelims" : "Sectional",
     });
     onClose();
+    toast({ title: "Mock saved", description: `${score} of ${max} marks, now in your mock analytics.` });
   }
 
   return (

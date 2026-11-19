@@ -983,6 +983,13 @@ export function formatAmount(m: MetricDef, value: number, timeFormat: TimeFormat
   }
 }
 
+/** "1 topic revised", "3 planned activities completed". */
+function countWords(m: MetricDef, n: number): string {
+  const v = Math.round(n);
+  const noun = v === 1 ? m.noun.replace(/^topics/, "topic").replace(/activities/, "activity") : m.noun;
+  return `${v} ${noun}`;
+}
+
 /** What completes a day, in words: "6 h of study", "In bed by 11:00 PM", "Checked off". */
 export function describeTarget(h: Habit, timeFormat: TimeFormat = "24h"): string {
   const m = habitMetric(h);
@@ -992,7 +999,7 @@ export function describeTarget(h: Habit, timeFormat: TimeFormat = "24h"): string
   if (m.id === "bedtimeBy") return `In bed by ${formatAmount(m, t, timeFormat)}`;
   if (m.id === "wakeBy") return `Up by ${formatAmount(m, t, timeFormat)}`;
   if (m.id === "screenTimeUnder") return `At most ${formatAmount(m, t)} of screen time`;
-  const amount = m.unit === "count" ? `${t} ${t === 1 ? m.noun.replace(/^topics/, "topic").replace(/activities/, "activity") : m.noun}` : `${formatAmount(m, t)} ${m.noun}`;
+  const amount = m.unit === "count" ? countWords(m, t) : `${formatAmount(m, t)} ${m.noun}`;
   return schedule.kind === "weeklyTotal" ? `${amount} a week` : amount;
 }
 
@@ -1029,6 +1036,8 @@ export function progressText(t: HabitToday, timeFormat: TimeFormat = "24h"): str
   if (m.compare === "check") return t.day.done ? "Done" : "Not yet";
   if (t.day.done && t.day.via === "manual") return "Checked off";
   if (t.day.value === null) return t.done ? "Done" : "Nothing recorded yet";
+  // A count past its target says what it is ("2 topics revised"), not "2 of 1".
+  if (m.compare === "atLeast" && m.unit === "count" && t.day.value >= t.day.target) return countWords(m, t.day.value);
   if (m.compare === "atLeast") return `${formatAmount(m, t.day.value)} of ${formatAmount(m, t.day.target)}`;
   return `${formatAmount(m, t.day.value, timeFormat)}${t.day.done ? "" : `, target ${formatAmount(m, t.day.target, timeFormat)}`}`;
 }
@@ -1126,3 +1135,30 @@ export function habitsOverPeriod(habits: Habit[], ctx: HabitContext, from: ISODa
 export function daysTracked(h: Habit, today: ISODate): number {
   return Math.max(0, daysBetween(habitStart(h), today) + 1);
 }
+
+/* ── After a save ────────────────────────────────────────────── */
+
+/**
+ * The habits a day's records count towards, from the given sources, and
+ * where each stands: for the note after saving a journal day, a night or a
+ * revision ("Daily study kept, Revise every day 50%").
+ */
+export function habitsMovedOn(
+  habits: Habit[],
+  ctx: HabitContext,
+  date: ISODate,
+  sources: HabitSource[],
+): { habit: Habit; day: HabitDay }[] {
+  return habits
+    .filter((h) => isActiveHabit(h) && sources.includes(habitSource(h)))
+    .map((habit) => ({ habit, day: evaluateDay(habit, ctx, date) }))
+    .filter((x) => x.day.events.length > 0 && x.day.status !== "before" && x.day.status !== "paused");
+}
+
+/** "Habits from this day: Daily study kept, Revise every day 50%." */
+export function movedSummary(moved: { habit: Habit; day: HabitDay }[]): string | undefined {
+  if (!moved.length) return undefined;
+  const parts = moved.slice(0, 3).map((x) => `${x.habit.name} ${x.day.done ? "kept" : `${Math.round(x.day.progress * 100)}%`}`);
+  return `Habits from this day: ${parts.join(", ")}${moved.length > 3 ? ` and ${moved.length - 3} more` : ""}.`;
+}
+
