@@ -1,9 +1,10 @@
 import { pageMetadata } from "@/lib/seo/metadata";
 import { PAGES } from "@/lib/seo/pages";
-import { getPublicChangelog } from "@/lib/platform/public-content";
+import { getPublicChangelog, getYouAsked } from "@/lib/platform/public-content";
 import { PageHero } from "@/components/marketing/page-hero";
 import { Band, Container, CtaBanner } from "@/components/marketing/ui";
 import { ChangelogEntryView } from "@/components/platform/changelog-entry";
+import { YouAskedList } from "@/components/platform/you-asked";
 
 const page = PAGES.changelog;
 export const metadata = pageMetadata(page);
@@ -11,7 +12,7 @@ export const metadata = pageMetadata(page);
 export const revalidate = 300;
 
 export default async function ChangelogPage() {
-  const log = await getPublicChangelog(50);
+  const [log, asked] = await Promise.all([getPublicChangelog(50), getYouAsked(6)]);
   return (
     <>
       <PageHero
@@ -20,13 +21,32 @@ export default async function ChangelogPage() {
         title="What's new in DoOrDie"
         intro={
           <p>
-            Every update, newest first: new features, improvements, fixes, and the work on speed and security you don&apos;t see.
-            Where an update came from students&apos; suggestions, it says so.
+            Every update, newest first: new features, improvements, fixes, accessibility, and the work on speed and security you
+            don&apos;t see. Where an update came from students&apos; suggestions, it says so.
           </p>
         }
       />
-      <Band className="pt-0 sm:pt-0">
+      {asked.length > 0 && (
+        <Band className="pt-0 sm:pt-0" labelledBy="you-asked-title">
+          <Container className="max-w-3xl">
+            <h2 id="you-asked-title" className="font-display text-2xl font-bold tracking-tightest text-paper">
+              You asked. We improved.
+            </h2>
+            <p className="mt-2 text-sm leading-relaxed text-paper/65">
+              Themes from students&apos; feedback, in our words, beside the change that answered them. Who asked, and what they
+              wrote, stays private.
+            </p>
+            <div className="mt-6">
+              <YouAskedList items={asked} />
+            </div>
+          </Container>
+        </Band>
+      )}
+      <Band className="pt-0 sm:pt-0" labelledBy="all-updates-title">
         <Container className="max-w-3xl">
+          <h2 id="all-updates-title" className="sr-only">
+            Every update
+          </h2>
           {log.items.length ? (
             <ol className="relative space-y-10 border-l border-line pl-6 sm:pl-8">
               {log.items.map((entry) => (

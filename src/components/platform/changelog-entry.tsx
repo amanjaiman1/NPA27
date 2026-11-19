@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Bug, Gauge, MessageSquareHeart, ShieldCheck, Sparkles, TrendingUp } from "lucide-react";
+import { Accessibility, Bug, Gauge, MessageSquareHeart, ShieldCheck, Sparkles, TrendingUp } from "lucide-react";
 import { CHANGELOG_CATEGORY, featureLabel, type ChangelogCategory } from "@/lib/platform/content";
 import type { ChangelogEntry } from "@/lib/platform/types";
 import { cn } from "@/lib/utils";
@@ -10,6 +10,7 @@ export const CHANGELOG_ICON: Record<ChangelogCategory, React.ElementType> = {
   improvement: TrendingUp,
   bug_fix: Bug,
   performance: Gauge,
+  accessibility: Accessibility,
   security: ShieldCheck,
 };
 
@@ -57,8 +58,29 @@ export function ChangelogEntryView({ entry, full = false, headingLevel = 2, link
       </Heading>
       <p className="mt-2 text-[1.02rem] leading-relaxed text-paper/70">{entry.summary}</p>
       {entry.requests > 0 && (
-        <div className="mt-3">
+        <div className="mt-3 space-y-2">
+          {entry.askedTheme && (
+            <p className="text-sm leading-relaxed text-paper/70">
+              <span className="font-semibold text-paper">You asked:</span> “{entry.askedTheme}”
+            </p>
+          )}
           <RequestsNote count={entry.requests} />
+        </div>
+      )}
+      {full && (entry.whatChanged || entry.whyItMatters) && (
+        <div className="mt-6 grid gap-4 sm:grid-cols-2">
+          {entry.whatChanged && (
+            <section className="rounded-2xl border border-line bg-card p-5 shadow-soft">
+              <h2 className="text-sm font-semibold text-paper">What changed</h2>
+              <RichText text={entry.whatChanged} className="mt-2 text-sm text-paper/75" />
+            </section>
+          )}
+          {entry.whyItMatters && (
+            <section className="rounded-2xl border border-line bg-card p-5 shadow-soft">
+              <h2 className="text-sm font-semibold text-paper">Why it matters</h2>
+              <RichText text={entry.whyItMatters} className="mt-2 text-sm text-paper/75" />
+            </section>
+          )}
         </div>
       )}
       {full && entry.imageUrl && (

@@ -186,13 +186,31 @@ export const PAGES = {
     kind: "legal",
     updated: LAUNCH,
   },
-  testimonials: {
-    path: "/testimonials",
+  reviews: {
+    path: "/reviews",
     label: "Reviews",
-    title: "DoOrDie Reviews from UPSC Aspirants",
+    title: "DoOrDie Reviews: Real Experiences from UPSC Aspirants",
     description:
-      "Reviews of DoOrDie by UPSC aspirants who use it, published as they wrote them after a check for spam and abuse. Newest first, and never filtered by rating.",
+      "Verified reviews of DoOrDie by UPSC aspirants who use it: published as written after a check for spam and abuse, newest first, never filtered by rating.",
     kind: "company",
+    updated: "2026-11-19",
+  },
+  trust: {
+    path: "/trust",
+    label: "Trust Center",
+    title: "Trust Center: How DoOrDie Works and Protects Your Data",
+    description:
+      "How DoOrDie works, who it is for, how each account's data is kept private, what is available today, how reviews are verified, and how to reach the team.",
+    kind: "company",
+    updated: "2026-11-19",
+  },
+  demo: {
+    path: "/demo",
+    label: "Interactive demo",
+    title: "Try the Free UPSC Tracker: Interactive Demo",
+    description:
+      "Explore DoOrDie before signing up: the real app with a made-up sample account. Log a day, plan a week, check revisions and see the Study Coach, with nothing saved.",
+    kind: "overview",
     updated: "2026-11-19",
   },
   changelog: {
