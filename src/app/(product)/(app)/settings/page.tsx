@@ -14,6 +14,7 @@ import { ProfileSettings } from "@/components/settings/profile-settings";
 import { AccountSecurity, DangerZone } from "@/components/settings/account-settings";
 import { DataSettings } from "@/components/settings/data-settings";
 import { FeedbackSettings } from "@/components/settings/feedback-settings";
+import { ReviewSettings } from "@/components/settings/review-settings";
 import { InstallCard } from "@/components/pwa/install-prompt";
 import { Button } from "@/components/ui/button";
 import { useTour } from "@/components/tour/tour-context";
@@ -25,6 +26,7 @@ const JUMPS = [
   { id: "notifications", label: "Notifications" },
   { id: "app", label: "App" },
   { id: "tour", label: "Feature tour" },
+  { id: "review", label: "Review DoOrDie", cloudOnly: true },
   { id: "feedback", label: "Help & feedback" },
   { id: "data", label: "Data" },
   { id: "danger", label: "Delete" },
@@ -106,6 +108,7 @@ export default function SettingsPage() {
         <TourLauncher />
       </SettingsSection>
 
+      <ReviewSettings />
       <FeedbackSettings />
       <DataSettings />
       <DangerZone />

@@ -13,14 +13,19 @@
    only if they chose to include those.
    ════════════════════════════════════════════════════════════════ */
 
+/** The Feedback Center's categories (lib/platform/content.ts has the same five). */
 export const FEEDBACK_TOPICS = [
+  { id: "bug", label: "Bug report" },
+  { id: "feature", label: "Feature request" },
   { id: "suggestion", label: "Suggestion" },
-  { id: "problem", label: "Something isn't working" },
-  { id: "question", label: "Question" },
-  { id: "other", label: "Something else" },
+  { id: "usability", label: "Hard to use" },
+  { id: "general", label: "General feedback" },
 ] as const;
 
 export type FeedbackTopic = (typeof FEEDBACK_TOPICS)[number]["id"];
+
+/** What a tab opened before the categories changed may still send. */
+const LEGACY_TOPICS: Record<string, FeedbackTopic> = { problem: "bug", question: "general", other: "general" };
 
 export type CrashSource = "render" | "root" | "window" | "promise";
 
@@ -119,7 +124,11 @@ export function parseReport(input: unknown): ParseResult {
     return { ok: true, report };
   }
   if (b.kind === "feedback") {
-    const topic = FEEDBACK_TOPICS.some((t) => t.id === b.topic) ? (b.topic as FeedbackTopic) : null;
+    const topic = FEEDBACK_TOPICS.some((t) => t.id === b.topic)
+      ? (b.topic as FeedbackTopic)
+      : typeof b.topic === "string"
+        ? (LEGACY_TOPICS[b.topic] ?? null)
+        : null;
     if (!topic) return { ok: false, error: "Choose what the message is about." };
     const message = cleanText(b.message, LIMITS.message);
     if (message.length < FEEDBACK_MIN_LENGTH) return { ok: false, error: `Write at least ${FEEDBACK_MIN_LENGTH} characters.` };

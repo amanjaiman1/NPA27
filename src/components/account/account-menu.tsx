@@ -4,14 +4,16 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
-import { LogOut, Settings, UserRound } from "lucide-react";
+import { LogOut, Settings, ShieldCheck, UserRound } from "lucide-react";
 import { useChronicle } from "@/lib/store";
 import { useMounted } from "@/lib/hooks";
 import { cn } from "@/lib/utils";
+import { ROLE_LABEL, type PlatformRole } from "@/lib/platform/roles";
 import { Avatar } from "@/components/ui/avatar";
 import type { PopoverPlacement } from "@/components/notifications/centre";
 import { useAccount } from "./account-session";
 import { describeSync } from "./sync-label";
+import { usePlatformRole } from "./use-platform-role";
 
 const TONE_DOT = {
   ok: "bg-positive",
@@ -32,6 +34,7 @@ export function AccountMenu({ placement = "bar" }: { placement?: PopoverPlacemen
   const profileName = useChronicle((s) => s.profile.name);
   const name = profileName || user?.name || "Your account";
   const status = describeSync(sync, mode);
+  const role = usePlatformRole(mode === "cloud" ? user?.id : null);
 
   return (
     <>
@@ -57,7 +60,7 @@ export function AccountMenu({ placement = "bar" }: { placement?: PopoverPlacemen
       {mounted &&
         createPortal(
           <AnimatePresence>
-            {open && <Panel onClose={() => setOpen(false)} name={name} placement={placement} />}
+            {open && <Panel onClose={() => setOpen(false)} name={name} placement={placement} role={role} />}
           </AnimatePresence>,
           document.body,
         )}
@@ -65,7 +68,17 @@ export function AccountMenu({ placement = "bar" }: { placement?: PopoverPlacemen
   );
 }
 
-function Panel({ onClose, name, placement }: { onClose: () => void; name: string; placement: PopoverPlacement }) {
+function Panel({
+  onClose,
+  name,
+  placement,
+  role,
+}: {
+  onClose: () => void;
+  name: string;
+  placement: PopoverPlacement;
+  role: PlatformRole | null;
+}) {
   const { user, mode, sync, syncNow, signOut } = useAccount();
   const status = describeSync(sync, mode);
 
@@ -143,6 +156,16 @@ function Panel({ onClose, name, placement }: { onClose: () => void; name: string
           >
             <Settings className="h-4 w-4 text-paper/45" /> Settings
           </Link>
+          {mode === "cloud" && role && (
+            <Link
+              href="/admin"
+              onClick={onClose}
+              className="flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm text-paper/75 transition-colors hover:bg-paper/[0.05] hover:text-paper"
+            >
+              <ShieldCheck className="h-4 w-4 text-paper/45" /> Admin Center
+              <span className="ml-auto rounded-full bg-accent/[0.12] px-2 py-0.5 text-[0.66rem] font-semibold text-accent">{ROLE_LABEL[role]}</span>
+            </Link>
+          )}
           {mode === "cloud" && (
             <button
               onClick={() => {

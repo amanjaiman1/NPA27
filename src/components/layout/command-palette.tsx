@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { Search, CornerDownLeft, ArrowUp, ArrowDown, Compass, type LucideIcon } from "lucide-react";
 import { searchableNavItems } from "@/lib/nav";
+import { allowedNav, useFeatureAccess } from "@/components/features/feature-access";
 import { cn } from "@/lib/utils";
 import { useTour } from "@/components/tour/tour-context";
 import { beginRouteTransition } from "./route-transition";
@@ -50,11 +51,14 @@ export function CommandPalette({
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  const access = useFeatureAccess();
   const results = useMemo(() => {
+    // Entries without an address (the tour) aren't pages, so they always stay.
+    const items = ITEMS.filter((i) => !i.href || allowedNav([{ href: i.href }], access).length > 0);
     const q = query.trim().toLowerCase();
-    if (!q) return ITEMS;
-    return ITEMS.filter((i) => i.terms.some((t) => t.includes(q)));
-  }, [query]);
+    if (!q) return items;
+    return items.filter((i) => i.terms.some((t) => t.includes(q)));
+  }, [query, access]);
 
   useEffect(() => {
     if (open) {
