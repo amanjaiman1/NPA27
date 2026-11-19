@@ -174,8 +174,8 @@ interface ChronicleState extends ChronicleData {
   applyCloudSnapshot: (snap: Partial<CloudSnapshot>) => void;
   updateProfile: (patch: Partial<ChronicleData["profile"]>) => void;
   /**
-   * Finishes first-run setup: the syllabus, books, habits and selection stages
-   * are built for the answers given, and the profile is marked as set up.
+   * Finishes first-run setup: the syllabus, books and habits are built for
+   * the answers given, and the profile is marked as set up.
    * Anything already logged is left alone.
    */
   completeOnboarding: (setup: AccountSetup) => void;
@@ -633,9 +633,8 @@ export const useChronicle = create<ChronicleState>()(
             habits: s.habits.every((h) => Object.keys(h.log).length === 0)
               ? template.habits
               : s.habits,
-            selection: s.selection.every((st) => st.status === "Locked")
-              ? template.selection
-              : s.selection,
+            // Retired with the Selection Archive: whatever is there stays.
+            selection: s.selection,
             goals: untouched(s.goals) ? template.goals : s.goals,
           };
         }),
