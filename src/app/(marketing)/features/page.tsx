@@ -224,12 +224,13 @@ export default function FeaturesPage() {
     <>
       <PageHero
         crumbs={[{ name: page.label, path: page.path }]}
-        eyebrow="UPSC preparation app"
+        eyebrow="Free UPSC preparation app"
         title="Everything DoOrDie tracks for your UPSC preparation"
         intro={
           <p>
-            DoOrDie is one app for the whole preparation: the daily log, the syllabus, revision, mocks, goals and the
-            parts of life that affect them. Here is every feature, with links to a closer look at the main ones.
+            DoOrDie is one free app for the whole preparation: the daily log, the syllabus, revision, mocks, goals and
+            the parts of life that affect them. Here is every feature, with links to a closer look at the main ones.
+            All of it is free, with no paid plan and no ads.
           </p>
         }
         cta="cta_features"

@@ -72,8 +72,8 @@ export default function SyllabusTrackerPage() {
     <>
       <PageHero
         crumbs={[{ name: page.label, path: page.path }]}
-        eyebrow="UPSC syllabus tracker"
-        title="A UPSC syllabus tracker that shows what is covered and what is slipping"
+        eyebrow="Free UPSC syllabus tracker"
+        title="A free UPSC syllabus tracker that shows what is covered and what is slipping"
         intro={
           <p>
             The Civil Services syllabus is long enough that &ldquo;I have done Polity&rdquo; stops meaning much. DoOrDie

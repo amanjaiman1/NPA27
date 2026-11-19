@@ -89,8 +89,8 @@ export default function RevisionTrackerPage() {
     <>
       <PageHero
         crumbs={[{ name: page.label, path: page.path }]}
-        eyebrow="UPSC revision tracker"
-        title="A UPSC revision tracker built on spaced repetition"
+        eyebrow="Free UPSC revision tracker"
+        title="A free UPSC revision tracker built on spaced repetition"
         intro={
           <p>
             Reading a topic once is the easy part. Keeping it until the exam means revising it at the right intervals,

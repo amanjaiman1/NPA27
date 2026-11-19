@@ -68,6 +68,10 @@ const FEATURE_LIST = [
   "Weekly, monthly and custom performance reviews",
   "Current affairs notes linked to the syllabus",
   "Sleep and wellbeing tracking",
+  "Habits that count themselves from your study log",
+  "Yearly, monthly and weekly Roadmap plans",
+  "A private Personal Diary",
+  "A Study Coach that works from your own records",
   "Works offline and syncs across devices",
 ];
 
@@ -159,7 +163,13 @@ const FAQS: FaqItem[] = [
   },
   {
     q: "Is DoOrDie free?",
-    a: <>Yes. DoOrDie is free to use. There is no paid plan and there are no ads.</>,
+    a: (
+      <>
+        Yes. DoOrDie is a free UPSC tracker, and all of it is free: the syllabus tracker, daily study journal, spaced
+        revision, mock analytics, mistake notebook, goals, habits, Roadmap, reviews, Personal Diary and Study Coach.
+        There is no paid plan, no trial and there are no ads.
+      </>
+    ),
   },
   {
     q: "Do I need to register?",
@@ -199,17 +209,17 @@ export default function HomePage() {
         <div className="pointer-events-none absolute inset-0 bg-grid mask-fade-b opacity-60" aria-hidden />
         <Container className="relative pb-16 pt-16 sm:pt-24">
           <div className="mx-auto max-w-3xl text-center">
-            <Eyebrow>UPSC preparation tracker</Eyebrow>
+            <Eyebrow>Free UPSC tracker</Eyebrow>
             <h1
               id="hero-title"
               className="mt-4 text-balance font-display text-[2.4rem] font-bold leading-[1.06] tracking-tightest text-paper sm:text-[3.6rem]"
             >
-              Your entire UPSC preparation, organised in one place.
+              The free UPSC tracker for your entire preparation.
             </h1>
             <p className="mx-auto mt-6 max-w-2xl text-pretty text-[1.05rem] leading-relaxed text-paper/70 sm:text-lg">
               DoOrDie is a free UPSC preparation tracker for Civil Services aspirants. Log each study day, track the
-              syllabus topic by topic, keep revisions on a spaced schedule and see how your mock tests are trending, all
-              in one private account.
+              syllabus topic by topic, keep revisions on a spaced schedule and follow your progress in mock tests, all in
+              one private account.
             </p>
             <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <ButtonLink href="/signup" arrow track="cta_hero">
@@ -220,7 +230,7 @@ export default function HomePage() {
               </ButtonLink>
             </div>
             <ul className="mt-6 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs font-medium text-paper/60">
-              {["Free to use", "No ads", "Private to your account", "Phone and laptop"].map((t) => (
+              {["Every feature free", "No ads", "Private to your account", "Phone and laptop"].map((t) => (
                 <li key={t} className="flex items-center gap-1.5">
                   <Check className="h-3.5 w-3.5 text-accent" aria-hidden />
                   {t}

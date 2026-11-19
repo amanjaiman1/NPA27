@@ -109,8 +109,8 @@ export default function StudyPlannerPage() {
     <>
       <PageHero
         crumbs={[{ name: page.label, path: page.path }]}
-        eyebrow="UPSC study planner"
-        title="A UPSC study planner that plans from what you have actually done"
+        eyebrow="Free UPSC study planner"
+        title="A free UPSC study planner that plans from what you have actually done"
         intro={
           <p>
             Most study plans are written once, on a good day, and quietly abandoned by the third week. DoOrDie plans the

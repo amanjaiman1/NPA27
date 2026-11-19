@@ -5,7 +5,8 @@ searches it deliberately leaves alone. Check this file before writing a new page
 or guide: every keyword has exactly one destination, so two pages never compete
 for the same search.
 
-Last researched: 17 November 2026.
+Last researched: 17 November 2026. The "free" variants were checked again on
+19 November 2026 (see [Positioning as a free UPSC tracker](#positioning-as-a-free-upsc-tracker)).
 
 ## How this was researched
 
@@ -42,12 +43,12 @@ The primary keyword of every indexable page. The same values are in
 
 | URL | Primary keyword | Secondary keywords |
 | --- | --- | --- |
-| `/` | UPSC preparation tracker | upsc tracker, upsc study tracker, IAS preparation tracker, civil services preparation tracker |
-| `/features` | UPSC preparation app | upsc preparation app free, upsc study tracker app |
+| `/` | free UPSC tracker | UPSC preparation tracker, upsc tracker, upsc tracker app, upsc tracker website, upsc study tracker, IAS preparation tracker, civil services preparation tracker |
+| `/features` | UPSC preparation app | free upsc preparation app, free upsc app, upsc study tracker app |
 | `/upsc-syllabus-tracker` | UPSC syllabus tracker | upsc syllabus tracker app, upsc prelims / mains / cse syllabus tracker, optional syllabus tracker |
 | `/upsc-study-planner` | UPSC study planner | upsc study planner app, upsc planner, upsc planner 2027 |
 | `/upsc-revision-tracker` | UPSC revision tracker | upsc revision planner, upsc revision plan, mistake notebook |
-| `/upsc-progress-tracker` | UPSC preparation progress tracker | upsc progress tracker, upsc mock test tracker, mock analytics |
+| `/upsc-progress-tracker` | UPSC progress tracker | UPSC preparation progress tracker, free upsc progress tracker, upsc mock test tracker, mock analytics |
 | `/daily-study-tracker` | UPSC daily study tracker | upsc study hours log, upsc daily journal, upsc consistency tracker, upsc habit tracker |
 | `/resources` | (hub page, no keyword) | free UPSC tools |
 | `/resources/upsc-prelims-2027-countdown` | days left for UPSC Prelims 2027 | upsc countdown 2027, upsc countdown timer, upsc prelims 2027 date, upsc calendar 2027, upsc timetable 2027 |
@@ -71,6 +72,47 @@ Two pairs sit close together and are kept apart on purpose:
 - **Study-hours guide and daily study tracker.** The guide answers *how many*
   hours. The feature page is for people looking for a tool to *log* them.
 
+## Positioning as a free UPSC tracker
+
+Since 19 November 2026 the site presents DoOrDie as a **free UPSC tracker**:
+the home page's title, H1 and description lead with the phrase, and every
+feature page's title and H1 say "free" (for example "Free UPSC Syllabus
+Tracker with Topic-wise Progress"). It is simply true (there is no paid plan),
+and people searching for a tool add the word: "free upsc app" alone has ten
+suggestions.
+
+What autocomplete showed on 19 November 2026 (India, Google):
+
+| Phrase | Suggestions |
+| --- | --- |
+| free upsc tracker, upsc tracker free, best free upsc tracker | none |
+| free upsc preparation tracker, upsc preparation tracker free | none |
+| free upsc progress tracker, upsc progress tracker free, upsc progress tracker app | none |
+| free upsc study tracker, free upsc syllabus tracker, free upsc study planner | none |
+| upsc progress tracker | the phrase itself, then UPS and Royal Mail parcel tracking |
+| upsc tracker app | the phrase, upsc syllabus tracker app, upsc study tracker app, and another product's app |
+| upsc tracker website | the phrase, and another product's website |
+| free upsc app | 10, including free upsc preparation app and free upsc preparation app in hindi |
+
+No suggestions means a phrase is too rare for autocomplete to show, not that
+nobody types it. The exact "free UPSC tracker" phrases look like low demand
+and low competition: a page that says exactly that has a fair chance of ranking
+for them, and Search Console will show whether anyone searches them. Ranking
+first can't be promised for any phrase; it depends on links from other sites,
+how long the site has been indexed and what competitors publish. See
+[`SEO_SETUP_GUIDE.md`](SEO_SETUP_GUIDE.md) for asking Google to recrawl the
+changed pages.
+
+Not done, on purpose:
+
+- **No separate "free UPSC tracker" page.** It would compete with the home
+  page for the same search.
+- **No invented ratings or user counts** in structured data (against Google's
+  policies), and no FAQ markup (Google stopped showing FAQ results).
+- **No keyword lists in the copy.** The structured data carries a short
+  `keywords` field and an `alternateName`; Google may ignore both, and they
+  do no harm.
+
 ## A. Product searches (looking for a tool)
 
 Autocomplete confirms people look for a UPSC tracker by name, and want it free,
@@ -80,7 +122,10 @@ productivity" is a syllabus topic in ecology and economics.
 
 | Keyword | Intent | Evidence | URL | Priority | Competition | Content needs | Internal links | Status |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| upsc preparation tracker | Tool | exact | `/` | P1 | Medium | What it tracks, real screenshots, honest limits, free | From every feature page, guide and footer | Live |
+| free upsc tracker | Tool | none (see above) | `/` | P1 | Low (estimate) | Says "free UPSC tracker" in the title, H1 and description; what is free, honestly | From every feature page, guide and footer | Live |
+| upsc preparation tracker | Tool | exact | `/` | P1 | Medium | What it tracks, real screenshots, honest limits, free | From every feature page, guide and footer | Secondary |
+| upsc tracker app, upsc tracker website | Tool | exact (each), alongside other products' names | `/` | P2 | Medium | Say plainly it is a web app you can install | | Secondary |
+| free upsc preparation app, free upsc app | Tool | 10 variants | `/features` | P2 | High | Every feature is free; it is a web app, not a store download | | Secondary |
 | upsc tracker | Tool | 10 variants (app, pdf, excel, sheet, website) | `/` | P1 | Medium | As above | Logo and footer link to `/` | Secondary |
 | upsc study tracker | Tool | 5 variants (app, pdf) | `/` | P1 | Medium | As above | | Secondary |
 | ias preparation tracker, civil services preparation tracker | Tool | none (Google suggests "upsc preparation tracker" instead) | `/` | P2 | Low | Mention IAS and Civil Services in the copy where natural | | Secondary |
@@ -151,14 +196,16 @@ dedicated "revision tracker" is a small but exact match.
 
 ## E. Progress, mocks, mistakes and habits
 
-Exact matches exist for "upsc progress tracker" and "upsc habit tracker", but
-"progress tracker" is mixed up with parcel tracking (UPS), so it was given the
-longer "preparation progress tracker". Mock analysis is a real how-to need.
+Exact matches exist for "upsc progress tracker" and "upsc habit tracker".
+"Progress tracker" is mixed up with parcel tracking (UPS), so at first the page
+was given the longer "preparation progress tracker". Since 19 November 2026 it
+targets "UPSC progress tracker" itself, the phrase people type, and keeps the
+longer one as a secondary keyword. Mock analysis is a real how-to need.
 "Mistake notebook" and "mock test tracker" show no suggestions.
 
 | Keyword | Intent | Evidence | URL | Priority | Competition | Content needs | Internal links | Status |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| upsc preparation progress tracker, upsc progress tracker | Tool | exact (mixed with UPS parcel tracking) | `/upsc-progress-tracker` | P1 | Low–Medium | Hours by subject, coverage, mock trends, negative-marking cost, reviews | Home, features, tracking guide, mock guide | Live |
+| upsc progress tracker, upsc preparation progress tracker, free upsc progress tracker | Tool | exact (mixed with UPS parcel tracking) | `/upsc-progress-tracker` | P1 | Low–Medium | Hours by subject, coverage, mock trends, negative-marking cost, reviews | Home, features, tracking guide, mock guide | Live |
 | how to analyse upsc mock test, how to analyse upsc prelims mock test | Info | 4 variants | `/blog/how-to-analyse-upsc-mock-test` | P1 | High | Step-by-step, the real marking scheme (one-third penalty), error types | → progress tracker | Live |
 | mock test analysis sheet upsc | File / Info | variant | `/blog/how-to-analyse-upsc-mock-test` | P2 | Medium | Could add a printable analysis sheet later | | Secondary |
 | upsc mock test tracker | Tool | none | `/upsc-progress-tracker` | P3 | Low | | | Secondary |

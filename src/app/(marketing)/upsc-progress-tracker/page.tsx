@@ -80,8 +80,8 @@ export default function ProgressTrackerPage() {
     <>
       <PageHero
         crumbs={[{ name: page.label, path: page.path }]}
-        eyebrow="UPSC progress tracker"
-        title="Track UPSC preparation progress with numbers you can act on"
+        eyebrow="Free UPSC progress tracker"
+        title="A free UPSC progress tracker with numbers you can act on"
         intro={
           <p>
             Progress is hard to feel from the inside. Some weeks feel productive and are not; some feel stuck and turn
