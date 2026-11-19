@@ -32,6 +32,10 @@ export default function PrivacyPolicyPage() {
               <li>Your preparation data is private to your account. Other users can never see it.</li>
               <li>We use it only to run DoOrDie for you. We do not sell it, advertise with it, or share it for marketing.</li>
               <li>You can download all of it, or delete your account and all of it, from Settings at any time.</li>
+              <li>
+                If a page breaks, the app emails us a crash report with technical details only, never anything you wrote.
+                You can switch that off.
+              </li>
               <li>Analytics, if it is switched on, only runs on the public pages and only if you agree.</li>
             </ul>
 
@@ -39,7 +43,8 @@ export default function PrivacyPolicyPage() {
             <p>
               DoOrDie (&ldquo;we&rdquo;, &ldquo;us&rdquo;) is an independent web app for organising UPSC
               preparation. This policy covers the DoOrDie website and app. You can reach us through the{" "}
-              <Link href={PAGES.contact.path}>contact page</Link>.
+              <Link href={PAGES.contact.path}>contact page</Link>, or from Settings, then Help &amp; feedback, in the
+              app.
             </p>
 
             <h2 id="collect">What we collect</h2>
@@ -51,10 +56,19 @@ export default function PrivacyPolicyPage() {
             <h3>Your preparation data</h3>
             <p>
               Whatever you choose to enter: your profile (target exam, exam date, attempt, optional subject, daily hours
-              target, time zone), journal entries, study hours, syllabus progress, revisions, mock tests, mistakes, goals,
-              reviews, reflections, habits, books, current affairs notes, and life dashboard entries such as sleep,
-              exercise, screen time and weight. It also includes your appearance and notification settings. It is stored
-              as one record that belongs to your account.
+              target, time zone), journal entries and the files you attach to them, study hours, syllabus progress,
+              revisions, mock tests, mistakes, goals, habits and the corrections you make to them, your Roadmap plans,
+              Performance Reviews, your Personal Diary, books, current affairs notes, and life dashboard entries such as
+              sleep, exercise, screen time and weight. It also includes the Study Coach&apos;s history (below) and your
+              appearance, notification and crash report settings. It is stored as one record that belongs to your account;
+              attached files are stored separately, in private storage only your account can open.
+            </p>
+            <h3>The Study Coach</h3>
+            <p>
+              The coach works out its suggestions and answers with fixed rules, from your own records, in your browser. No
+              AI model or other outside service receives your records or what you ask it. What you type in its Talk tab is
+              not saved. The suggestions it made, and what you did with each one, are saved in your account so they follow
+              you across devices.
             </p>
             <h3>Notifications</h3>
             <p>
@@ -68,6 +82,22 @@ export default function PrivacyPolicyPage() {
               The app keeps a copy of your data, your sign-in session and your settings in your browser&apos;s storage,
               so it works offline and loads quickly. When you sign out, the copy on that device is removed once it has
               synced. If there are changes that have not synced yet, you are asked first.
+            </p>
+            <h3>Crash reports</h3>
+            <p>
+              If a page fails, the app sends us a crash report by email: the error message and its technical trace, the
+              page&apos;s address without anything after a question mark, your browser&apos;s name and version, the time,
+              whether you were online and whether you were signed in. It never includes your account, your name, your email
+              address or anything you entered. Reports are on unless you switch them off in Settings, then Help &amp;
+              feedback. On the error screen you can also write a note about what happened; it is sent only if you press
+              Send.
+            </p>
+            <h3>Messages you send us</h3>
+            <p>
+              If you write to us from Settings, then Help &amp; feedback, we receive your message, the topic you picked and
+              your account&apos;s id, so we can look into a problem. Your email address is included only if you leave
+              &ldquo;Include my email&rdquo; on, so we can reply. Your browser, window size and whether the app is
+              installed are included only if you leave &ldquo;Include technical details&rdquo; on.
             </p>
             <h3>Technical logs</h3>
             <p>
@@ -90,6 +120,7 @@ export default function PrivacyPolicyPage() {
               <li>To provide DoOrDie: save your data, sync it across your devices and show you your progress.</li>
               <li>To send account emails, such as confirming your address or resetting your password.</li>
               <li>To send the reminders you have turned on.</li>
+              <li>To find and fix crashes, and to read and answer the messages you send us.</li>
               <li>To keep the service secure and working.</li>
               <li>If you agreed to analytics, to understand which public pages are useful.</li>
             </ul>
@@ -105,7 +136,7 @@ export default function PrivacyPolicyPage() {
                 <strong>Vercel:</strong> hosting for the website and the app&apos;s server functions.
               </li>
               <li>
-                <strong>Resend:</strong> sending account emails.
+                <strong>Resend:</strong> sending account emails, and delivering crash reports and your messages to us.
               </li>
               <li>
                 <strong>Your browser&apos;s push service</strong> (for example Google, Apple, Microsoft or Mozilla):
@@ -121,10 +152,17 @@ export default function PrivacyPolicyPage() {
             <h2 id="access">Who can see your data</h2>
             <p>
               You, through your account. Other users cannot: the database itself only lets each account read its own
-              record. The automated reminder service reads a trimmed copy of your data, without your written notes, to
-              decide which reminders to send. As the operator, we can technically access the database to run the service.
-              We do not look at account data except to fix a problem, to respond to a request from you, or when the law
-              requires it.
+              record. As the operator, we can technically access the database to run the service. We do not look at
+              account data except to fix a problem, to respond to a request from you, or when the law requires it.
+            </p>
+            <p>
+              The automated reminder service reads a trimmed copy of your data to decide which reminders to send. It
+              leaves out your writing: journal reflections, wins, lessons and highlights; the words of your Personal Diary
+              (it sees only the dates of entries); what you wrote in Performance Reviews; the questions, answers and
+              explanations in your mistake notebook; current affairs summaries; goal and life dashboard notes; and habit
+              descriptions. From the Roadmap it receives only each plan&apos;s completed activities (their kind, subject and
+              when they were completed), never titles or notes. It receives nothing from the Study Coach and no details of your attached
+              files. Names such as a habit&apos;s or a goal&apos;s are included, because reminders mention them.
             </p>
 
             <h2 id="rights">Your choices</h2>
@@ -138,10 +176,14 @@ export default function PrivacyPolicyPage() {
               </li>
               <li>
                 <strong>Delete it:</strong> Settings, then Delete account. This permanently deletes your account, your
-                preparation data and your notification subscriptions.
+                preparation data, your attached files and your notification subscriptions.
               </li>
               <li>
                 <strong>Stop notifications:</strong> turn them off in Settings or in your browser.
+              </li>
+              <li>
+                <strong>Stop crash reports:</strong> switch off &ldquo;Send crash reports automatically&rdquo; in Settings,
+                then Help &amp; feedback.
               </li>
               <li>
                 <strong>Withdraw analytics consent:</strong> use the button above, or clear this site&apos;s data in your
@@ -156,8 +198,10 @@ export default function PrivacyPolicyPage() {
             <h2 id="retention">How long we keep it</h2>
             <p>
               Your account and preparation data are kept for as long as your account exists, and deleted when you delete
-              it. Copies on your own devices stay until you sign out or clear your browser&apos;s data. Our providers may
-              keep technical logs and backups for a limited time under their own policies.
+              it. Copies on your own devices stay until you sign out or clear your browser&apos;s data. Crash reports and
+              your messages arrive as emails; we keep them only as long as we need them to fix the problem or answer you,
+              and we delete your messages if you ask. Our providers may keep technical logs and backups for a limited time
+              under their own policies.
             </p>
 
             <h2 id="security">Security</h2>
