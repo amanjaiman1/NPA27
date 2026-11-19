@@ -15,9 +15,11 @@ import { SETTINGS, settingProblem, type SettingDef, type SettingKey } from "@/li
 import type { SettingsResponse } from "@/lib/platform/types";
 
 const GROUPS: { title: string; description: string; keys: SettingKey[] }[] = [
-  { title: "Reviews", description: "Who may send a review. Usage is counted from the dates of an account's records, never from what they wrote.", keys: ["reviews_open", "review_min_days", "review_min_usage_days"] },
-  { title: "Reviews on the website", description: "Where published reviews appear. They're always the newest, never chosen by rating.", keys: ["testimonials_on_home", "testimonials_home_count", "testimonials_on_feature_pages"] },
-  { title: "Moderators", description: "What the Moderator role covers beyond reviews.", keys: ["moderators_handle_feedback"] },
+  { title: "Reviews", description: "Who may send a review. Usage is counted from the dates of an account's records, never from what they wrote.", keys: ["reviews_open", "review_min_days", "review_min_usage_days", "review_invite_enabled"] },
+  { title: "Publishing reviews", description: "What the website shows while an edit waits, and when a review earns its own page.", keys: ["review_edit_policy", "review_story_min_chars"] },
+  { title: "Reviews on the website", description: "Where published reviews appear, and when an average may be shown. Featured ones first, then the newest; never chosen by rating.", keys: ["testimonials_on_home", "testimonials_home_count", "testimonials_on_feature_pages", "review_aggregate_min"] },
+  { title: "Verification badges", description: "What the two earned badges need. The other two follow from the review rule and the records themselves.", keys: ["verified_active_usage_days", "established_member_days"] },
+  { title: "Roles", description: "What Moderators and Admins may do beyond their usual part.", keys: ["moderators_handle_feedback", "moderators_hide_reviews", "admins_read_audit"] },
   { title: "Contact", description: "How the public site tells people to reach the team.", keys: ["support_email"] },
   { title: "Announcements", description: "What a new announcement starts with.", keys: ["announcement_default_days", "announcement_default_category"] },
   { title: "Notice in the app", description: "A single line at the top of every page of the app, for everyone, while it's on.", keys: ["app_notice"] },
