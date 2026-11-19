@@ -5,6 +5,15 @@ const nextConfig = {
     // supports it, WebP otherwise.
     formats: ["image/avif", "image/webp"],
   },
+  async redirects() {
+    return [
+      // The Selection Archive is retired. Its stages stay in the account,
+      // untouched; an old bookmark lands on the Command Center.
+      { source: "/archive", destination: "/dashboard", permanent: false },
+      // Reflections became the Personal Diary: same entries, new home.
+      { source: "/reflections", destination: "/diary", permanent: true },
+    ];
+  },
   async headers() {
     return [
       {

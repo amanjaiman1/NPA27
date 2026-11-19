@@ -11,11 +11,12 @@
                            milestones collapse into this one shape, so
                            the UI never cares where a memory came from.
    2. MILESTONE AUTOMATION deriveAutoEvents() scans hours, mocks, books,
-                           subjects, revision and the selection journey
-                           and emits events the user never had to log:
-                           Day 1, first mock, first 10-hour day, book &
-                           subject completions, revision milestones,
-                           Prelims / Mains / Interview / Final Result.
+                           subjects and revision and emits events the
+                           user never had to log: Day 1, first mock,
+                           first 10-hour day, book & subject completions,
+                           revision milestones. (The retired Selection
+                           Archive's stages are no longer drawn here; they
+                           stay in the account untouched.)
    3. MEMORY GENERATION    Every auto event is given documentary prose —
                            grounded in the real numbers — so the line
                            reads like narration, not a database row.
@@ -26,11 +27,10 @@
    Pure functions only: (ChronicleData) → values.
    ════════════════════════════════════════════════════════════════ */
 
-import type { ChronicleData, ISODate, Profile, SelectionStage } from "./types";
+import type { ChronicleData, ISODate, Profile } from "./types";
 import { subjectMastery, mockSeries } from "./selectors";
 import {
   toISODate,
-  fromISODate,
   daysBetween,
   formatDate,
   round,
@@ -62,7 +62,7 @@ export interface TimelineEvent {
   title: string; // the documentary headline
   narrative: string; // memory-generated prose
   detail?: string; // a factual sub-line (score, pages, hours…)
-  source: "auto" | "manual" | "selection";
+  source: "auto" | "manual";
   importance: number; // 1 (minor) … 5 (defining moment)
   future?: boolean; // the road ahead
   pinned?: boolean;
@@ -143,7 +143,7 @@ export function deriveAutoEvents(
   data: ChronicleData,
   today: ISODate = toISODate(new Date()),
 ): TimelineEvent[] {
-  const { profile, journal, mocks, books, subjects, selection } = data;
+  const { profile, journal, mocks, books, subjects } = data;
   const start = profile.startDate;
   const dayOf = (d: ISODate) => Math.max(0, daysBetween(start, d));
   const out: TimelineEvent[] = [];
@@ -334,93 +334,7 @@ export function deriveAutoEvents(
     }
   }
 
-  /* ── The selection journey: Prelims → Mains → Interview → Result ── */
-  for (const stage of selection) {
-    out.push(selectionToEvent(stage, dayOf, today));
-  }
-
   return out;
-}
-
-const STAGE_ICON: Record<string, string> = {
-  Prelims: "FileCheck2",
-  Mains: "PenLine",
-  Interview: "Mic",
-  "Final Result": "Award",
-};
-
-function selectionToEvent(
-  stage: SelectionStage,
-  dayOf: (d: ISODate) => number,
-  today: ISODate,
-): TimelineEvent {
-  const isResult = stage.name === "Final Result";
-  const cleared = stage.status === "Cleared";
-  const failed = stage.status === "Not Cleared";
-  const awaiting = stage.status === "Awaiting Result";
-  const locked = stage.status === "Locked" || !stage.date;
-
-  // future / locked stages get a synthesised ordering date ("the road ahead")
-  const horizon: Record<string, number> = {
-    Mains: 30,
-    Interview: 75,
-    "Final Result": 150,
-    Prelims: 20,
-  };
-  const date =
-    stage.date ??
-    toISODate(
-      (() => {
-        const d = fromISODate(today);
-        d.setDate(d.getDate() + (horizon[stage.name] ?? 90));
-        return d;
-      })(),
-    );
-
-  const category: EventCategory = isResult
-    ? "Result"
-    : failed
-      ? "Setback"
-      : "Exam";
-
-  let narrative: string;
-  if (locked) {
-    narrative = isResult
-      ? `The final page, still unwritten: a name in the list, a service allotted, a uniform earned. This is the moment the whole story has been pointing toward.`
-      : `Ahead on the road — ${stage.name} (${stage.attempt}). ${stage.notes ?? "Preparation continues."}`;
-  } else if (cleared) {
-    narrative = `${stage.name} ${stage.attempt}: cleared${stage.score && stage.score !== "—" ? ` with ${stage.score}` : ""}. ${stage.notes ?? "A gate that stops most, crossed."}`;
-  } else if (failed) {
-    narrative = `${stage.name} ${stage.attempt}: ${stage.score && stage.score !== "—" ? `${stage.score}, ` : ""}short of the line. ${stage.notes ?? "It stung — and it sharpened everything that came after."}`;
-  } else if (awaiting) {
-    narrative = `${stage.name} ${stage.attempt}: written, submitted, and now the hardest part — the wait. ${stage.notes ?? ""}`.trim();
-  } else {
-    narrative = `${stage.name} ${stage.attempt}. ${stage.notes ?? ""}`.trim();
-  }
-
-  return {
-    id: `auto-stage-${stage.id}`,
-    date,
-    dayNumber: dayOf(date),
-    category,
-    icon: STAGE_ICON[stage.name] ?? "Flag",
-    title: locked
-      ? `${stage.name} — ${stage.attempt}`
-      : `${stage.name} ${stage.attempt} — ${stage.status}`,
-    detail:
-      stage.score && stage.score !== "—"
-        ? `${stage.score}${stage.date ? ` · ${formatDate(stage.date)}` : ""}`
-        : locked
-          ? "The road ahead"
-          : stage.date
-            ? formatDate(stage.date)
-            : undefined,
-    source: "selection",
-    importance: isResult ? 5 : cleared || failed ? 5 : 4,
-    future: locked || date > today,
-    pinned: isResult || cleared,
-    narrative,
-  };
 }
 
 /* ════════════════════════════════════════════════════════════════
@@ -500,7 +414,7 @@ export function buildLegacyStats(
   events: TimelineEvent[],
   today: ISODate = toISODate(new Date()),
 ): LegacyStats {
-  const { profile, journal, mocks, books, subjects, selection } = data;
+  const { profile, journal, mocks, books, subjects } = data;
   const series = mockSeries(mocks);
   const fullLengthPct = mocks
     .filter((m) => (m.max ?? 0) >= 150)
@@ -516,16 +430,10 @@ export function buildLegacyStats(
   );
   const totalTopics = subjects.reduce((n, s) => n + s.topics.length, 0);
 
-  // current stage = most recent dated stage, or the next locked gate
-  const dated = selection
-    .filter((s) => s.date)
-    .sort((a, b) => (b.date as string).localeCompare(a.date as string));
-  const nextLocked = selection.find((s) => s.status === "Locked");
-  const currentStage = dated[0]
-    ? `${dated[0].name} · ${dated[0].status}`
-    : nextLocked
-      ? `${nextLocked.name} · upcoming`
-      : "In preparation";
+  // The attempt in progress, from the profile.
+  const attempt = Math.max(1, profile.attemptNumber || 1);
+  const examYear = profile.examDate ? profile.examDate.slice(0, 4) : "";
+  const currentStage = `Attempt ${attempt} · ${[profile.targetExam || "UPSC CSE", examYear].filter(Boolean).join(" ")}`;
 
   return {
     journeyDays: Math.max(0, daysBetween(profile.startDate, today)),
@@ -536,7 +444,7 @@ export function buildLegacyStats(
     bestMockPct,
     topicsMastered,
     totalTopics,
-    attempts: selection.filter((s) => s.name === "Prelims").length || profile.attemptNumber,
+    attempts: profile.attemptNumber,
     currentStage,
     recorded: events.length,
     autoRecorded: events.filter((e) => e.source !== "manual").length,

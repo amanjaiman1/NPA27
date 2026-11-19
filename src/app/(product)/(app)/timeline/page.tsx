@@ -75,7 +75,6 @@ const ICONS: Record<string, LucideIcon> = {
 
 const SOURCE_LABEL: Record<TimelineEvent["source"], string> = {
   auto: "auto-recorded",
-  selection: "selection journey",
   manual: "your note",
 };
 
@@ -298,7 +297,7 @@ export default function TimelinePage() {
                     event={e}
                     index={ci === 0 ? i : 0}
                     /* Only memories you wrote can be opened, edited or deleted.
-                       Auto-recorded and selection events are derivations of your
+                       Auto-recorded events are derivations of your
                        journal, mocks and books — there is no record behind them
                        to change, so they stay read-only. `refId` is exactly that
                        distinction. */
@@ -367,7 +366,7 @@ function LegacyHero({
     { label: "Mocks", value: `${stats.mocksTaken}`, hint: stats.bestMockPct != null ? `best ${stats.bestMockPct}%` : "—" },
     { label: "Books closed", value: `${stats.booksCompleted}`, hint: "standard texts" },
     { label: "Topics mastered", value: `${stats.topicsMastered}`, hint: `of ${stats.totalTopics}` },
-    { label: "Current stage", value: stats.currentStage.split(" · ")[0], hint: stats.currentStage.split(" · ")[1] ?? "" },
+    { label: "This attempt", value: stats.currentStage.split(" · ")[0], hint: stats.currentStage.split(" · ")[1] ?? "" },
   ];
   return (
     <div className="overflow-hidden rounded-2xl border border-line bg-gradient-to-br from-accent/[0.08] via-paper/[0.02] to-transparent">

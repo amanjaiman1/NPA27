@@ -36,7 +36,7 @@ const GOAL_MEASURES = [
   "Mastery of one subject",
   "Books finished",
   "Current affairs logged",
-  "Reflections written",
+  "Diary entries written",
   "Mistakes mastered",
 ];
 
