@@ -90,9 +90,27 @@ is recorded in the audit log as done in the SQL Editor.
 
 ### 4. Open it
 
-Reload the app (or sign out and back in). Your account menu now has an
-**Admin Center** link, and `/admin` opens it. The link can take up to five
+Sign in on the ordinary sign-in page (`/login`) with that email and
+password. A Super Admin account goes straight to the Admin Center: there is
+nothing to type after the address.
+
+A Super Admin account runs the platform and has no student app. Opening the
+site, the installed app or any page of the student app while signed in with
+it also opens the Admin Center, so it never goes through student setup or
+sees the dashboard. Sign out from the bottom of the Admin Center's menu (on a
+phone, open the menu first).
+
+Admins and Moderators are student accounts with extra access. They still
+land in the app when they sign in, and reach the Admin Center from the
+**Admin Center** link in the account menu. That link can take up to five
 minutes to appear in a tab that was already open; `/admin` works at once.
+From the Admin Center they can go **Back to the app** or **Sign out**.
+
+The browser remembers the account's role (under
+`upsc-chronicle-platform-role:<user id>`) only to know where to go. It is
+asked fresh at every sign-in and checked again every few minutes, and
+signing out removes it. What anyone may do is still checked on the server
+for every page and request.
 
 ## Day to day
 
@@ -273,6 +291,7 @@ the audit log end to end, in the browser on a laptop and a phone.
 | "Not set up yet" on `/admin` | The platform migration hasn't been run |
 | "The Admin Center needs Supabase and its service-role key" | `SUPABASE_SERVICE_ROLE_KEY` isn't set on the server |
 | "No access" | The account has no role, or it's suspended |
+| A Super Admin lands on the student dashboard or setup | The membership row is missing, or says another role: run the step 3 SQL again with the account's UID, then sign in again |
 | A page "isn't part of your role" | That role doesn't include the page (Moderators see Reviews, and Feedback only if the setting is on) |
 | No Admin Center link in the account menu | Reload the tab; the menu checks at most every five minutes |
 | Reviews don't appear on the site | The author didn't allow public display, it isn't published yet, or the display settings are off |

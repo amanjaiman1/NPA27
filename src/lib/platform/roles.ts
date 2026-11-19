@@ -84,3 +84,18 @@ export interface Actor {
 export function can(actor: Pick<Actor, "permissions"> | null | undefined, permission: Permission): boolean {
   return Boolean(actor?.permissions.includes(permission));
 }
+
+/**
+ * Whether an account with this role is for running the platform rather than
+ * for preparing. Signing in with it, opening the site or the installed app,
+ * or opening any page of the student app takes it to the Admin Center, so it
+ * never goes through student setup or sees the student dashboard.
+ *
+ * Only Super Admin: Admins and Moderators are granted to existing student
+ * accounts (see docs/ADMIN_SETUP.md), so they keep their app and reach the
+ * Admin Center from the account menu. This only decides where to go; what
+ * anyone may do is checked on the server.
+ */
+export function opensAdminCenter(role: PlatformRole | null | undefined): boolean {
+  return role === "super_admin";
+}

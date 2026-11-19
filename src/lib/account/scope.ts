@@ -27,6 +27,8 @@ export const ACCOUNT_KEY_PREFIXES = [
   "upsc-chronicle-file-sweep",
   "upsc-chronicle-theme",
   "upsc-chronicle-transparency",
+  // The account's Admin Center role, as last answered (lib/platform/my-role.ts).
+  "upsc-chronicle-platform-role",
   // Written by older versions, for looks since retired (five surfaces, colour
   // palettes, Liquid Glass, wallpapers). Nothing reads them now; sign-out
   // still removes them.

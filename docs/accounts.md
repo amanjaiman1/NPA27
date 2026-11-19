@@ -49,6 +49,7 @@ upsc-chronicle-store:<account id>          the persisted Zustand store
 upsc-chronicle-theme|transparency:<id>     appearance, read by the pre-paint script
 upsc-chronicle-ready:<id>                  this browser has completed a sync
 upsc-chronicle-conflicts:<id>              edits that clashed between devices
+upsc-chronicle-platform-role:<id>          the Admin Center role, to route a Super Admin there
 IndexedDB upsc-chronicle-sync / <id>       the last-synced copy, for merging
 ```
 

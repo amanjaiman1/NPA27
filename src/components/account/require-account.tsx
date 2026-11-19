@@ -7,6 +7,7 @@ import { LOCAL_ACCOUNT_ID } from "@/lib/account/scope";
 import { initialAuthRedirect } from "@/lib/supabase";
 import { AccountSession } from "./account-session";
 import { BootScreen } from "./boot-screen";
+import { useAccountKind } from "./use-platform-role";
 
 /**
  * The gate in front of every page of the app.
@@ -18,6 +19,9 @@ import { BootScreen } from "./boot-screen";
  * - Session still resolving, and none saved here: a boot screen, never the
  *   previous person's data.
  * - Signed out: off to the welcome or sign-in screen.
+ * - A Super Admin: off to the Admin Center. That account runs the platform,
+ *   so it never loads a chronicle, goes through student setup or sees the
+ *   dashboard (see `useAccountKind`).
  * - Signed in: the account's session, keyed by its id so a different account
  *   remounts everything from scratch.
  */
@@ -60,6 +64,13 @@ export function RequireAccount({ children }: { children: React.ReactNode }) {
     else router.replace(next ? `/login?${next}` : "/welcome");
   }, [signedOut, auth.endedReason, pathname, router]);
 
+  const user = !auth.cloudEnabled ? null : auth.status === "signedIn" ? auth.user : auth.status === "loading" ? saved : null;
+  const kind = useAccountKind(user?.id ?? null);
+
+  useEffect(() => {
+    if (kind === "admin") router.replace("/admin");
+  }, [kind, router]);
+
   if (!auth.cloudEnabled) {
     return (
       <AccountSession accountId={LOCAL_ACCOUNT_ID} mode="local" user={null}>
@@ -67,8 +78,8 @@ export function RequireAccount({ children }: { children: React.ReactNode }) {
       </AccountSession>
     );
   }
-  const user = auth.status === "signedIn" ? auth.user : auth.status === "loading" ? saved : null;
-  if (!user) return <BootScreen />;
+  if (!user || kind === "checking") return <BootScreen />;
+  if (kind === "admin") return <BootScreen label="Opening the Admin Center…" />;
   // The same key once the session is confirmed, so nothing remounts.
   return (
     <AccountSession key={user.id} accountId={user.id} mode="cloud" user={user}>

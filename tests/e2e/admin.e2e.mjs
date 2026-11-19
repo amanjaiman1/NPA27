@@ -698,11 +698,13 @@ async function browserScenarios(browser, people) {
     await page.close();
   });
 
-  await scenario("14. A Super Admin gets the link, and every Admin Center page renders its own data", async () => {
+  await scenario("14. A Super Admin signs in on the ordinary sign-in page, lands in the Admin Center, and every page renders its own data", async () => {
     const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
     const page = await ctx.newPage();
-    await signInUi(page, owner.email, "/admin");
+    // Nothing typed after /login: the account's role decides.
+    await signInUi(page, owner.email);
     await page.getByRole("heading", { name: "Overview", level: 1 }).waitFor();
+    check(new URL(page.url()).pathname === "/admin", `a Super Admin's sign-in landed on ${page.url()}`);
     const nav = page.getByRole("navigation", { name: "Admin Center" });
     for (const [link, title] of ADMIN_PAGES) {
       await nav.getByRole("link", { name: link, exact: true }).click();
@@ -723,10 +725,14 @@ async function browserScenarios(browser, people) {
     await open.click();
     await page.getByRole("button", { name: "Save changes" }).first().click();
     await waitFor("reviews open again", async () => data(await api(owner.token, "GET", "/api/admin/settings")).values.reviews_open === true);
-    // The link in the account menu.
-    await intoApp(page, owner);
-    const links = await accountMenuLinks(page);
-    check(links.some((l) => l.includes("Admin Center") && l.includes("Super Admin")), `the owner's menu: ${links}`);
+    // The student app sends a Super Admin to the Admin Center: no setup, no dashboard, no way back into it.
+    for (const path of ["/dashboard", "/dashboard?source=pwa", "/journal", "/"]) {
+      await page.goto(`${APP}${path}`);
+      await page.getByRole("heading", { name: "Overview", level: 1 }).waitFor();
+      check(new URL(page.url()).pathname === "/admin", `a Super Admin opening ${path} ended on ${page.url()}`);
+      check(!(await page.getByLabel("What should we call you?").count()), `${path} showed student setup`);
+    }
+    check(!(await page.getByRole("link", { name: "Back to the app" }).count()), "a Super Admin is offered the student app");
 
     // All three themes.
     for (const [mode, surface] of [["lavender", "lavender"], ["light", "white"], ["dark", "black"]]) {
@@ -737,6 +743,15 @@ async function browserScenarios(browser, people) {
       await page.waitForLoadState("networkidle");
       await page.screenshot({ path: join(SHOTS, `theme-${mode}.png`) });
     }
+
+    // Signing out from the Admin Center ends the session here and goes to the sign-in screen.
+    await page.getByRole("button", { name: "Sign out" }).click();
+    await page.getByRole("button", { name: "Sign in" }).waitFor();
+    check(new URL(page.url()).pathname === "/login", `signing out of the Admin Center went to ${page.url()}`);
+    check(!(await page.evaluate(() => localStorage.getItem("upsc-chronicle-auth"))), "the session is still saved after signing out");
+    check(!(await page.evaluate((id) => localStorage.getItem(`upsc-chronicle-platform-role:${id}`), owner.id)), "the remembered role outlived the sign-out");
+    await page.goto(`${APP}/admin`);
+    await page.getByRole("button", { name: "Sign in" }).waitFor();
     await ctx.close();
   });
 
