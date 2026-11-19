@@ -141,8 +141,15 @@ anything done.
   an entry to another date moves them. A week's or month's page shows
   **Planned and recorded**: the planned activities by subject next to the
   hours the journal recorded on those dates, side by side and never combined.
-- **Reviews.** The Reviews page shows "Planned: …" beside a weekly, monthly or
-  yearly review when a plan covers that period, and links to it.
+- **Reviews.** Performance Review shows the plan beside a weekly, monthly or
+  yearly review when a plan covers that period, and links to it. Its figures
+  count the period's planned activities: completed, deferred or carried, and
+  still open.
+- **Habits.** A habit connected to the Roadmap counts activities on the day
+  they are marked completed; planned or open activities never count.
+- **Study Coach.** It can suggest carrying last week's open activities into
+  this week, or adding a neglected subject to this week's plan, and does
+  either only after you confirm.
 - **Dashboard.** "This week's plan" appears when you have plans that aren't
   archived, and shows nothing otherwise.
 - **Subjects.** Deleting a subject keeps the activities that used it; they

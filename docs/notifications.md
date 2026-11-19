@@ -115,13 +115,13 @@ anything, so a notification and the page it links to can never disagree.
 | `mistakes-due` | Mistakes are due for recall review | normal | `dueForReview` | `/mistakes` |
 | `journal-unlogged` | No entry for today, after your reminder hour | high | `journal` | `/journal?new=1` |
 | `journal-streak-risk` | A streak of ≥3 days dies at midnight | critical | `currentStreak` | `/journal?new=1` |
-| `habits-pending` | Daily habits unticked, after your reminder hour | normal | `habits` | `/habits` |
+| `habits-pending` | Habits due today and not yet met (by your records or a check-in), after the habit's reminder time or your reminder hour; weekly and Roadmap habits aren't chased | normal | `habits` · `lib/habit-engine.ts` | `/habits` |
 | `goal-deadline` | An active goal's deadline is ≤3 days out | high · critical on the day and the day before | `computeGoalProgress` | `/goals` |
 | `goal-at-risk` | Pace says the goal will miss its target | normal | `computeGoalProgress` | `/goals` |
 | `goal-ready` | A goal has *met* its target and can be closed | normal | `computeGoalProgress` | `/goals` |
 | `mock-drought` | No mock attempted in 14 days | high | `mocks` | `/mocks` |
 | `review-unwritten` | A week or month ended with no review written | normal | `reviewPeriods` · `findReviewFor` | `/reviews` |
-| `reflection-gap` | No reflection in 7 days | low | `reflections` | `/reflections` |
+| `reflection-gap` | Nothing in the Personal Diary for 7 days (dates only; no entry is read) | low | `reflections` (dates) | `/diary` |
 | `subject-stale-topics` | Topics untouched for 45+ days | low | `staleTopics` | `/subjects` |
 | `book-stalled` | A *Reading* book has seen no pages in 14 days | low | `journal.booksStudied` | `/books` |
 | `ca-gap` | No current affairs logged in 3 days | low | `currentAffairs` | `/current-affairs` |
