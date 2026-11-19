@@ -65,7 +65,7 @@ const FEATURE_LIST = [
   "Mock test analytics with negative marking",
   "Mistake notebook with scheduled reviews",
   "Goals measured from your own data",
-  "Weekly, monthly and yearly reviews",
+  "Weekly, monthly and custom performance reviews",
   "Current affairs notes linked to the syllabus",
   "Sleep and wellbeing tracking",
   "Works offline and syncs across devices",
@@ -139,8 +139,8 @@ const FAQS: FaqItem[] = [
     a: (
       <>
         Yes. The dashboard and study heatmap show hours, streaks and consistency. Mock analytics show score and accuracy
-        trends. Goals track themselves from your data, and weekly, monthly and yearly reviews are measured for you, so
-        you only add what the numbers meant. See the{" "}
+        trends. Goals and habits track themselves from your data, and weekly, monthly and custom reviews are measured for
+        you, so you only add what the numbers meant. See the{" "}
         <Link href={PAGES.progress.path} className="font-semibold text-accent hover:underline">
           progress tracker
         </Link>

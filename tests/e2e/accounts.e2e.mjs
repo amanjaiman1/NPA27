@@ -225,9 +225,9 @@ const storedFor = (userId) => mock(`/__mock/storage?user=${userId}`);
 
 async function addHabit(page, name, { navigate = true } = {}) {
   if (navigate) await page.goto(`${APP}/habits`);
-  await page.getByPlaceholder("Add a new daily discipline…").fill(name);
-  await page.getByRole("button", { name: "Add habit" }).first().click();
-  await page.getByRole("button", { name: "Add habit" }).last().click(); // the confirmation
+  await page.getByRole("button", { name: "Create a habit" }).click();
+  await page.getByLabel("Habit name").fill(name);
+  await page.getByRole("button", { name: "Create habit", exact: true }).click();
   await page.getByRole("heading", { name }).waitFor();
 }
 

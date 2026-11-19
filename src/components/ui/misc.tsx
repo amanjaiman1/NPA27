@@ -1,6 +1,9 @@
 "use client";
 
 import * as React from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /** A small, quiet label above a heading or a figure, in sentence case. */
@@ -119,44 +122,149 @@ export function Skeleton({ className }: { className?: string }) {
   );
 }
 
-/** Segmented control / tabs. */
+const useIsoLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
+
+/**
+ * Segmented control / tabs. The selected option's pill slides across to the
+ * one you pick, so the change reads as a move rather than a flash.
+ *
+ * The pill is one element moved with a CSS transition to the chosen button's
+ * measured place, not a shared-layout animation: a `layoutId` pill inside a
+ * dialog kept the dialog from finishing its exit. Reduced motion snaps it.
+ */
 export function Segmented<T extends string>({
   options,
   value,
   onChange,
   className,
   compact,
+  label,
 }: {
-  options: { label: string; value: T }[];
+  options: { label: string; value: T; hint?: string }[];
   value: T;
   onChange: (v: T) => void;
   className?: string;
   /** Tighter on phones, so five or so options fit across one. */
   compact?: boolean;
+  /** What the choice is, for screen readers: "Review period". */
+  label?: string;
 }) {
+  const track = useRef<HTMLDivElement>(null);
+  const [pill, setPill] = useState<{ left: number; width: number } | null>(null);
+  const [glide, setGlide] = useState(false);
+
+  useIsoLayoutEffect(() => {
+    const root = track.current;
+    const active = root?.querySelector<HTMLElement>('[aria-pressed="true"]');
+    if (!root || !active) {
+      setPill(null);
+      return;
+    }
+    const measure = () => setPill({ left: active.offsetLeft, width: active.offsetWidth });
+    measure();
+    if (typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(measure);
+    ro.observe(root);
+    ro.observe(active);
+    return () => ro.disconnect();
+  }, [value, options.length]);
+
+  // Placed without a slide the first time, so it doesn't fly in from the left.
+  useEffect(() => {
+    if (!pill || glide) return;
+    const id = requestAnimationFrame(() => setGlide(true));
+    return () => cancelAnimationFrame(id);
+  }, [pill, glide]);
+
   return (
     <div
+      ref={track}
+      role="group"
+      aria-label={label}
       className={cn(
-        "lg-track no-scrollbar flex max-w-full items-center gap-0.5 overflow-x-auto rounded-full border border-line p-1",
+        "lg-track no-scrollbar relative flex max-w-full items-center gap-0.5 overflow-x-auto rounded-full border border-line p-1",
         className,
       )}
     >
-      {options.map((o) => (
-        <button
-          key={o.value}
-          onClick={() => onChange(o.value)}
-          aria-pressed={value === o.value}
+      {pill && (
+        <span
+          aria-hidden
           className={cn(
-            "shrink-0 rounded-full py-1.5 text-xs font-semibold transition-all duration-200",
-            compact ? "px-2.5 sm:px-3.5" : "px-3.5",
-            value === o.value
-              ? "bg-accent text-accent-fg shadow-accent"
-              : "text-paper/60 hover:bg-[var(--nav-hover)] hover:text-paper",
+            "pointer-events-none absolute bottom-1 left-0 top-1 rounded-full bg-accent shadow-accent",
+            glide && "transition-[transform,width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
           )}
-        >
-          {o.label}
-        </button>
-      ))}
+          style={{ width: pill.width, transform: `translateX(${pill.left}px)` }}
+        />
+      )}
+      {options.map((o) => {
+        const on = value === o.value;
+        return (
+          <button
+            key={o.value}
+            type="button"
+            onClick={() => onChange(o.value)}
+            aria-pressed={on}
+            title={o.hint}
+            className={cn(
+              "relative shrink-0 rounded-full py-1.5 text-xs font-semibold transition-colors duration-200",
+              compact ? "px-2.5 sm:px-3.5" : "px-3.5",
+              on ? "text-accent-fg" : "text-paper/60 hover:bg-[var(--nav-hover)] hover:text-paper",
+              // Until the pill is measured, the chosen option carries the colour itself.
+              on && !pill && "bg-accent shadow-accent",
+            )}
+          >
+            <span className="relative">{o.label}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/**
+ * A section that opens and closes in place, with its height eased rather than
+ * snapped: "Advanced settings", "Show the records behind this".
+ */
+export function Disclosure({
+  summary,
+  children,
+  defaultOpen = false,
+  className,
+}: {
+  summary: React.ReactNode;
+  children: React.ReactNode;
+  defaultOpen?: boolean;
+  className?: string;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  const id = useId();
+  return (
+    <div className={className}>
+      <button
+        type="button"
+        aria-expanded={open}
+        aria-controls={id}
+        onClick={() => setOpen((o) => !o)}
+        className="group flex w-full items-center justify-between gap-3 rounded-xl py-2 text-left text-[0.82rem] font-semibold text-paper/80 transition-colors hover:text-paper focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/45"
+      >
+        <span className="min-w-0">{summary}</span>
+        <ChevronDown className={cn("h-4 w-4 shrink-0 transition-transform duration-300", open && "rotate-180")} aria-hidden />
+      </button>
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            id={id}
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+            // A little wider than the content, so a focused field's ring isn't clipped.
+            className="-mx-1 overflow-hidden px-1"
+          >
+            <div className="pb-1 pt-1">{children}</div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

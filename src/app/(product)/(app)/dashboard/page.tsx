@@ -10,7 +10,6 @@ import {
   FocusPanel,
   GoalsPanel,
   MetricGrid,
-  MilestonesPanel,
   MockPanel,
   RevisionPanel,
   TodayPanel,
@@ -18,6 +17,7 @@ import {
   WelcomePanel,
 } from "@/components/dashboard/widgets";
 import { RoadmapWeekCard } from "@/components/roadmap/dashboard-card";
+import { HabitsPanel } from "@/components/habits/habits-panel";
 
 /**
  * The Command Center. One twelve-column grid whose proportions follow what
@@ -52,7 +52,7 @@ export default function CommandCenter() {
           <RoadmapWeekCard />
         </div>
       )}
-      <MilestonesPanel className={cn("h-full md:order-11 md:col-span-6", hasPlans ? "wide:col-span-4" : "wide:col-span-6")} />
+      <HabitsPanel className={cn("h-full md:order-11 md:col-span-6", hasPlans ? "wide:col-span-4" : "wide:col-span-6")} />
       <CoachNudge className={cn("h-full md:order-12", hasPlans ? "md:col-span-12 wide:col-span-4" : "md:col-span-6 wide:col-span-6")} />
     </div>
   );

@@ -57,9 +57,10 @@ const FAQS: FaqItem[] = [
     q: "What goes into a weekly review?",
     a: (
       <>
-        The measurable part is filled in for you from your journal and mocks: hours, active days, mocks taken,
-        consistency and hours by subject. You add a rating, the week&apos;s wins, struggles and lessons, and what to
-        focus on next. Monthly and yearly reviews work the same way.
+        The measurable part is gathered for you: hours and active days, topics finished, revision, habits kept,
+        goals, the plan, mocks and sleep, each compared with the week before. You answer six short questions: what
+        went well, what was hard, which subject needs attention, what is unfinished, what to change and what comes
+        next. Monthly reviews, and reviews of any dates you choose, work the same way.
       </>
     ),
   },
@@ -112,7 +113,8 @@ export default function ProgressTrackerPage() {
               Each active goal with its progress and whether it is on pace for its deadline.
             </FeatureCard>
             <FeatureCard icon={CalendarCheck} title="Reviews, mostly written">
-              Weekly, monthly and yearly reviews arrive already measured from your journal and mocks.
+              Weekly, monthly and custom-period reviews arrive already measured from your journal, revision, habits,
+              goals and mocks.
             </FeatureCard>
             <FeatureCard icon={HeartPulse} title="Life dashboard">
               Sleep, exercise, water, screen time and deep work next to your study hours, with reports over any period
@@ -172,9 +174,9 @@ export default function ProgressTrackerPage() {
               <CheckList
                 className="mt-6"
                 items={[
-                  "Hours, active days, mocks and consistency for the week, month or year, compared with the one before.",
+                  "Hours, topics, revision, habits and mocks for the week, the month or any dates you choose, compared with the period before.",
                   "Hours split by subject, so a neglected paper is obvious.",
-                  "You add a rating, the wins, struggles and lessons, and next week's focus.",
+                  "You answer six short questions, and the review is kept as a record of that period.",
                   "A reminder when a week or month ends without a review, if you want one.",
                 ]}
               />

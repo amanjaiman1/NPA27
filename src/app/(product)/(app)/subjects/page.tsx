@@ -29,6 +29,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { useConfirm } from "@/components/ui/confirm-dialog";
+import { useToast } from "@/components/ui/toast";
 import { Field, Input, Select } from "@/components/ui/form";
 import { EmptyState, Segmented, Chip } from "@/components/ui/misc";
 import { RadialProgress, Progress } from "@/components/ui/progress";
@@ -595,6 +596,7 @@ export default function SubjectsPage() {
   const upsertSubject = useChronicle((s) => s.upsertSubject);
   const upsertRevision = useChronicle((s) => s.upsertRevision);
   const confirm = useConfirm();
+  const toast = useToast();
 
   const today = toISODate(new Date());
   const [paper, setPaper] = useState<"all" | PaperCode>("all");
@@ -666,7 +668,10 @@ export default function SubjectsPage() {
   }
   async function saveSubject() {
     const name = draft.name.trim();
-    if (!name) return;
+    if (!name) {
+      toast({ title: "Name the subject", description: "e.g. “International Relations”.", tone: "error" });
+      return;
+    }
     /* A new subject needs a stable slug id, since revisions, mistakes, journal
        blocks and goals all reference subjects by it. */
     const id = editing
@@ -682,19 +687,9 @@ export default function SubjectsPage() {
       });
       return;
     }
-    if (
-      await confirm({
-        title: editing ? "Save changes to this subject?" : "Add this subject?",
-        description: editing
-          ? "The subject will be updated."
-          : `"${name}" will be added to your syllabus.`,
-        tone: "default",
-        confirmLabel: editing ? "Save changes" : "Add subject",
-      })
-    ) {
-      upsertSubject({ ...draft, id, name });
-      setOpen(false);
-    }
+    upsertSubject({ ...draft, id, name });
+    setOpen(false);
+    toast({ title: editing ? "Subject updated" : `“${name}” added to your syllabus` });
   }
 
   const groups = PAPER_ORDER.filter((p) => visible.some((s) => s.paper === p));

@@ -32,7 +32,7 @@ a page being chosen, a bubble beside the button says it can be found there.
 | Remember | Revision, Mistake Tracker, Current Affairs |
 | Progress | Subject Progress, Study Heatmap, Mock Analytics, Knowledge Graph |
 | Plan | Goals, Roadmap, Milestone Timeline |
-| Reflect | Reviews, Reflections, Study Coach, Selection Archive |
+| Review | Performance Review, Personal Diary, Study Coach |
 | Yours | Search, Notifications, Themes (a real theme switch), Install & sync |
 | Where to start | Write today's entry, set a goal, plan this week, check the syllabus, log a mock test, or look around first |
 

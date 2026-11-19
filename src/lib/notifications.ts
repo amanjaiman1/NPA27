@@ -14,7 +14,8 @@ import { computeGoalProgress, type GoalData } from "./goals";
 import { staleTopics } from "./subjects";
 import { reviewPeriods, findReviewFor } from "./review-builder";
 import { currentStreak, hoursByDate } from "./selectors";
-import { countedSleepHours } from "./sleep";
+import { clockMinutes, countedSleepHours } from "./sleep";
+import { habitContext, habitSource, todayHabits } from "./habit-engine";
 
 /* ── shape ───────────────────────────────────────────────────── */
 
@@ -144,7 +145,7 @@ export const RULES: RuleMeta[] = [
     id: "habits-pending",
     category: "habits",
     label: "Habits pending",
-    description: "Daily habits still unticked late in the day.",
+    description: "Habits due today that aren't kept yet, after the reminder time (or each habit's own).",
   },
   {
     id: "goal-deadline",
@@ -179,8 +180,8 @@ export const RULES: RuleMeta[] = [
   {
     id: "reflection-gap",
     category: "review",
-    label: "No reflections",
-    description: "Nothing written in the reflection journal for a week.",
+    label: "Diary gap",
+    description: "A gentle note when your Personal Diary has been quiet for a week.",
   },
   {
     id: "subject-stale-topics",
@@ -403,10 +404,17 @@ export function evaluate(
 
   /* ── habits ───────────────────────────────────────────────── */
 
-  const pendingHabits = (data.habits ?? []).filter(
-    (h) => !h.archived && h.cadence === "daily" && h.log?.[today] !== true,
-  );
-  if (pendingHabits.length > 0 && hour >= cfg.reminderHour) {
+  // Read through the Habit Engine, so a habit that fills in from the journal
+  // or the Life Dashboard is pending only while its records fall short, and
+  // rest days and paused habits never nag. Weekly habits aren't chased daily,
+  // and Roadmap habits are left out: the server's copy has no plans, so it
+  // couldn't tell. A habit's own reminder time replaces the general one.
+  const nowMinutes = hour * 60 + now.getMinutes();
+  const pendingHabits = todayHabits(data.habits ?? [], habitContext(data, today))
+    .filter((t) => !t.done && !t.week && habitSource(t.habit) !== "roadmap")
+    .filter((t) => nowMinutes >= (clockMinutes(t.habit.remindAt) ?? cfg.reminderHour * 60))
+    .map((t) => t.habit);
+  if (pendingHabits.length > 0) {
     push({
       id: `habits-pending:${today}`,
       ruleId: "habits-pending",
@@ -421,7 +429,7 @@ export function evaluate(
               .map((h) => h.name)
               .join(", ")} and ${pendingHabits.length - 3} more.`,
       href: "/habits",
-      cta: "Tick them off",
+      cta: "See today's habits",
       count: pendingHabits.length,
       dedupeKey: "habits-pending",
     });
@@ -657,11 +665,11 @@ export function evaluate(
         priority: "low",
         title:
           reflections.length > 0
-            ? `No reflection in ${plural(gap, "day")}`
-            : "No reflections yet",
-        body: "The emotional record is what makes the numbers mean something later.",
-        href: "/reflections",
-        cta: "Write one",
+            ? `Your diary has been quiet for ${plural(gap, "day")}`
+            : "Your diary is still empty",
+        body: "A few lines whenever you like. It stays private: nothing else in the app reads it.",
+        href: "/diary",
+        cta: "Write in your diary",
         count: gap,
         dedupeKey: "reflection-gap",
       });

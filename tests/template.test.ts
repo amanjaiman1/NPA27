@@ -24,7 +24,8 @@ test("the optional chosen at setup shapes the syllabus and books", () => {
   assert.ok(law.subjects.some((s) => s.id === "optional-law" && s.paper === "Optional"));
   assert.ok(!law.subjects.some((s) => s.id === "sociology"));
   assert.ok(!law.books.some((b) => b.subjectId === "sociology"));
-  assert.equal(law.selection[0].attempt, "CSE 2028");
+  // The Selection Archive is retired: a new account keeps no stages.
+  assert.deepEqual(law.selection, []);
 
   const ids = new Set(law.subjects.flatMap((s) => s.topics.map((t) => t.id)));
   assert.ok(law.topicLinks.length > 0);

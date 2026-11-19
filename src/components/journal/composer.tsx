@@ -16,6 +16,8 @@ import { useChronicle } from "@/lib/store";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { useConfirm } from "@/components/ui/confirm-dialog";
+import { useToast } from "@/components/ui/toast";
+import { habitContext, habitsMovedOn, movedSummary } from "@/lib/habit-engine";
 import { Field, Input, Textarea, Select, ListEditor } from "@/components/ui/form";
 import { RevisionPicker } from "./revision-picker";
 import { TopicPicker } from "./topic-picker";
@@ -121,6 +123,7 @@ export function JournalComposer({
   const saveJournalEntry = useChronicle((s) => s.saveJournalEntry);
   const markAccomplished = useChronicle((s) => s.markAccomplished);
   const confirm = useConfirm();
+  const toast = useToast();
 
   const [draft, setDraft] = useState<JournalEntry>(() => toDraft(initial));
   const [sessionFiles, setSessionFiles] = useState<SessionFile[]>([]);
@@ -301,6 +304,13 @@ export function JournalComposer({
         total: marked.length,
       });
     }
+
+    // What the day did for the habits that read the journal and revision.
+    const after = useChronicle.getState();
+    toast({
+      title: isEdit ? "Entry updated" : `${formatDate(entry.date)} saved`,
+      description: movedSummary(habitsMovedOn(after.habits, habitContext(after, todayISO), entry.date, ["journal", "revision"])),
+    });
 
     onSaved?.(entry);
     onClose();

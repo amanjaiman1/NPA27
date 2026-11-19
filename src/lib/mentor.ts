@@ -1334,7 +1334,7 @@ export function mentorBriefing(ctx: MentorContext): string {
   if (ctx.study.streak >= 7)
     parts.push(`${name}, ${ctx.study.streak} days unbroken — this is exactly the rhythm that clears this exam.`);
   else if (ctx.study.streak > 0)
-    parts.push(`${name}, you're ${ctx.study.streak} days into a streak at ${ctx.study.last7PerDay}h/day.`);
+    parts.push(`${name}, you're ${ctx.study.streak} ${ctx.study.streak === 1 ? "day" : "days"} into a streak at ${ctx.study.last7PerDay}h/day.`);
   else
     parts.push(`${name}, the streak's broken — but you're one honest 2-hour block from being back in it.`);
 

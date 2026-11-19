@@ -256,7 +256,7 @@ const TASKS: Task[] = [
   build("desktop", "light", "L-sleep-build", "/wellbeing/sleep", { frames: 95 }),
   build("desktop", "light", "L-running-build", "/wellbeing/running", { frames: 90 }),
   build("desktop", "light", "L-screen-build", "/wellbeing/screen", { frames: 90 }),
-  build("desktop", "light", "L-reflections-build", "/reflections", { frames: 90 }),
+  build("desktop", "light", "L-reflections-build", "/diary", { frames: 90 }),
   build("desktop", "light", "L-mistakes-build", "/mistakes", { frames: 95 }),
   { name: "V-theme-cycle", theme: "lavender", device: "desktop", run: themeCycleShot },
   build("desktop", "dark", "D-heatmap-build", "/heatmap", { frames: 105 }),

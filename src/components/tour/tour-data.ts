@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { useChronicle } from "@/lib/store";
 import { dateFormat, daysBetween, toISODate } from "@/lib/utils";
 import { formatClock, timeFormatOf } from "@/lib/sleep";
+import { SOURCE_LABEL, habitSchedule, habitSource } from "@/lib/habit-engine";
 
 /**
  * What the tour's illustrations are drawn with: this account's own syllabus,
@@ -19,7 +20,8 @@ export interface TourData {
   shortSubjects: string[];
   /** A topic from each of the first subjects. */
   topics: string[];
-  habits: string[];
+  /** A few habits, each with where it fills in from. */
+  habits: { name: string; from: string }[];
   books: { title: string; pages: number }[];
   daysLeft: number;
   journeyDay: number;
@@ -37,7 +39,11 @@ export interface TourData {
 const PREFERRED = ["polity", "economy", "modern-history", "geography", "environment", "ethics"];
 
 const FALLBACK_SUBJECTS = ["Polity & Governance", "Economy", "Modern History", "Geography", "Environment & Ecology", "Ethics (GS4)"];
-const FALLBACK_HABITS = ["Read the newspaper", "Answer writing", "Revise old notes"];
+const FALLBACK_HABITS = [
+  { name: "Daily study", from: "Daily Journal" },
+  { name: "Revise every day", from: "Revision" },
+  { name: "Read the newspaper", from: "Your check-in" },
+];
 const FALLBACK_BOOKS = [
   { title: "Indian Polity", pages: 900 },
   { title: "Indian Economy", pages: 760 },
@@ -74,7 +80,9 @@ export function useTourData(): TourData {
       .slice(0, 4)
       .map((s) => s.topics[0]?.name)
       .filter((t): t is string => Boolean(t));
-    const liveHabits = habits.filter((h) => !h.archived && h.cadence === "daily").map((h) => h.name);
+    const liveHabits = habits
+      .filter((h) => !h.archived && habitSchedule(h).kind === "daily")
+      .map((h) => ({ name: h.name, from: SOURCE_LABEL[habitSource(h)] }));
     const format = timeFormatOf(profile);
     const exam = profile.targetExam || "UPSC CSE";
     const examYear = /\d{4}/.exec(profile.examDate ?? "")?.[0] ?? "";

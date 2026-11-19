@@ -56,7 +56,10 @@ import {
   type ChatTurn,
 } from "@/lib/mentor";
 import type { ChronicleData } from "@/lib/types";
-import { cn, formatDate } from "@/lib/utils";
+import { buildAnalysis, buildBriefing, buildRecommendations, coachDataOf, visibleRecommendations } from "@/lib/coach";
+import { AnalysisPanel, BriefingPanel, HistoryPanel, RecommendationsPanel } from "@/components/coach/coach-views";
+import { cn, formatDate, toISODate } from "@/lib/utils";
+import { useNow } from "@/lib/hooks";
 
 /* ── icon + severity maps ─────────────────────────────────────── */
 
@@ -92,22 +95,55 @@ const SEV: Record<
   watch: { bar: "bg-info/70", badge: "accent", label: "Watch" },
 };
 
-type Tab = "briefing" | "plan" | "reports" | "talk";
+type Tab = "briefing" | "suggestions" | "analysis" | "plan" | "reports" | "talk" | "history";
 
-const TABS: { label: string; value: Tab }[] = [
-  { label: "Briefing", value: "briefing" },
+const TABS: { label: string; value: Tab; hint?: string }[] = [
+  { label: "Briefing", value: "briefing", hint: "Today's priorities and where things stand" },
+  { label: "Suggestions", value: "suggestions", hint: "What to do next, with the records behind it" },
+  { label: "Analysis", value: "analysis", hint: "Your preparation, area by area, with evidence" },
   { label: "Today's plan", value: "plan" },
   { label: "Reports", value: "reports" },
   { label: "Talk to mentor", value: "talk" },
+  { label: "History", value: "history", hint: "Past briefings and what you decided" },
 ];
 
 export default function CoachPage() {
   const hydrated = useHasHydrated();
-  const data = useChronicle((s) => s);
+  const state = useChronicle((s) => s);
+  const recordBriefing = useChronicle((s) => s.recordCoachBriefing);
   const [tab, setTab] = useState<Tab>("briefing");
+  const today = toISODate(useNow(60_000));
 
+  // The coach reads the study record only: the Personal Diary is left out
+  // here, so nothing below can read it.
+  const coachData = useMemo(() => coachDataOf(state), [state]);
+  const data = useMemo<ChronicleData>(() => ({ ...coachData, reflections: [] }), [coachData]);
   const ctx = useMemo(() => buildMentorContext(data), [data]);
   const briefing = useMemo(() => mentorBriefing(ctx), [ctx]);
+  const recs = useMemo(() => buildRecommendations(coachData, today), [coachData, today]);
+  const visible = useMemo(() => visibleRecommendations(recs, state.coach), [recs, state.coach]);
+  const daily = useMemo(() => buildBriefing(coachData, visible.shown, today), [coachData, visible.shown, today]);
+  const analysis = useMemo(() => buildAnalysis(coachData, today), [coachData, today]);
+
+  // ?tab=suggestions (from the dashboard) opens that view.
+  useEffect(() => {
+    const wanted = new URLSearchParams(window.location.search).get("tab");
+    if (wanted && TABS.some((t) => t.value === wanted)) {
+      setTab(wanted as Tab);
+      window.history.replaceState({}, "", "/coach");
+    }
+  }, []);
+
+  // Today's briefing joins the history once a day, and again only if its priorities change.
+  const headlines = daily.priorities.map((p) => p.text);
+  const headlineKey = headlines.join("|");
+  useEffect(() => {
+    if (!hydrated) return;
+    const saved = state.coach?.briefings?.find((b) => b.date === today);
+    if (saved && saved.headlines.join("|") === headlineKey) return;
+    recordBriefing({ date: today, headlines: headlineKey ? headlineKey.split("|") : [] });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hydrated, today, headlineKey]);
 
   if (!hydrated) return <Loading />;
 
@@ -116,7 +152,7 @@ export default function CoachPage() {
       <PageHeader
         eyebrow="UPSC Study Coach"
         title="A mentor who has read every page of your journal."
-        description="Not a chatbot — a mentor. It reads your hours, mocks, coverage, revision, mistakes and mood, then tells you the truth and what to do next."
+        description="It reads your hours, plan, revision, habits, goals, mocks and sleep, shows the records behind every suggestion, and changes nothing until you confirm. Fixed rules, no AI model. Your Personal Diary is never read."
       />
 
       {/* Mentor briefing */}
@@ -149,12 +185,20 @@ export default function CoachPage() {
         <SignalRow ctx={ctx} />
       </Card>
 
-      <Segmented value={tab} onChange={(v) => setTab(v as Tab)} options={TABS} />
+      <Segmented label="Coach views" compact value={tab} onChange={(v) => setTab(v as Tab)} options={TABS} />
 
-      {tab === "briefing" && <BriefingView ctx={ctx} />}
+      {tab === "briefing" && <BriefingPanel briefing={daily} />}
+      {tab === "suggestions" && <RecommendationsPanel shown={visible.shown} settled={visible.settled} />}
+      {tab === "analysis" && (
+        <div className="space-y-8">
+          <AnalysisPanel sections={analysis} />
+          <BriefingView ctx={ctx} />
+        </div>
+      )}
       {tab === "plan" && <PlanView ctx={ctx} data={data} />}
       {tab === "reports" && <ReportsView ctx={ctx} data={data} />}
       {tab === "talk" && <TalkView ctx={ctx} data={data} />}
+      {tab === "history" && <HistoryPanel log={state.coach} />}
     </div>
   );
 }

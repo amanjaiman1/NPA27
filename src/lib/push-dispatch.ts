@@ -178,6 +178,7 @@ export function decideForUser(
     files: [],
     // No rule reads plans, and the dispatcher's reader leaves them out.
     plans: [],
+    coach: { decisions: [], briefings: [] },
   };
   if (!data.profile) return { send: false, reason: "Snapshot has no profile." };
 

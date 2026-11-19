@@ -20,15 +20,13 @@ import {
   Flower2,
   Footprints,
   Link2,
+  Lock,
   Moon,
-  Quote,
   Repeat,
   Search,
   Snowflake,
-  Star,
   Sun,
   TrendingUp,
-  Trophy,
   WifiOff,
   X,
 } from "lucide-react";
@@ -69,9 +67,8 @@ export type DemoId =
   | "roadmap"
   | "timeline"
   | "reviews"
-  | "reflections"
+  | "diary"
   | "coach"
-  | "archive"
   | "search"
   | "notify"
   | "themes"
@@ -284,7 +281,7 @@ function HabitsDemo({ data, t0 }: DemoProps) {
           const at = t0 + 0.35 + i * 0.38;
           return (
             <motion.li
-              key={habit}
+              key={habit.name}
               {...rise(t0 + i * 0.07, 6)}
               className="flex min-w-0 items-center gap-2.5 rounded-xl bg-paper/[0.04] px-2.5 py-2"
             >
@@ -298,7 +295,8 @@ function HabitsDemo({ data, t0 }: DemoProps) {
                 />
                 <DrawnCheck delay={at + 0.1} className="relative h-3 w-3 text-card" />
               </span>
-              <span className="min-w-0 truncate text-[0.68rem] font-medium text-paper/85">{habit}</span>
+              <span className="min-w-0 flex-1 truncate text-[0.68rem] font-medium text-paper/85">{habit.name}</span>
+              <span className="tour-hide-short shrink-0 truncate text-[0.52rem] text-paper/50">{habit.from}</span>
             </motion.li>
           );
         })}
@@ -1027,13 +1025,12 @@ function ReviewsDemo({ t0 }: DemoProps) {
         <Figure unit=" h" caption="this week, 7 active days">
           <CountUp to={38.5} delay={t0 + 0.3} duration={1.2} format={(n) => n.toFixed(1)} />
         </Figure>
-        <div className="flex shrink-0 gap-0.5 pt-0.5">
-          {[0, 1, 2, 3, 4].map((i) => (
-            <motion.span key={i} {...pop(t0 + 1.1 + i * 0.1)}>
-              <Star className={cn("h-3 w-3", i < 4 ? "fill-current text-warning" : "text-paper/25")} />
-            </motion.span>
-          ))}
-        </div>
+        <motion.span {...pop(t0 + 1.2)} className="flex shrink-0">
+          <Chip className="bg-positive/10 text-positive">
+            <TrendingUp className="h-2.5 w-2.5" />
+            4.5 h on last week
+          </Chip>
+        </motion.span>
       </div>
       <div className="flex min-h-0 flex-1 items-stretch gap-1.5">
         {hours.map((h, i) => (
@@ -1057,41 +1054,33 @@ function ReviewsDemo({ t0 }: DemoProps) {
   );
 }
 
-function ReflectionsDemo({ t0 }: DemoProps) {
+function DiaryDemo({ t0 }: DemoProps) {
   return (
     <div className="flex h-full min-h-0 flex-col gap-2">
-      <motion.span {...rise(t0, 4)} className="flex self-start">
-        <Chip className="bg-accent/10 text-accent">
-          <Quote className="h-2.5 w-2.5" />
-          What felt hard today?
-        </Chip>
-      </motion.span>
-      <p className="text-[0.68rem] leading-snug text-paper/85">
-        <Typewriter text="Economy was slow going, but I kept at it. Tomorrow starts with revision." delay={t0 + 0.4} speed={22} />
-      </p>
-      <div className="tour-hide-short mt-auto flex items-end justify-between gap-3">
-        <div className="min-w-0">
-          <svg viewBox="0 0 96 28" className="h-7 w-24 overflow-visible" aria-hidden>
-            <motion.path
-              d="M2 22 L18 19 L34 23 L50 15 L66 16 L82 9 L94 6"
-              fill="none"
-              className="stroke-accent"
-              strokeWidth="2.2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              initial={{ pathLength: 0 }}
-              animate={{ pathLength: 1 }}
-              transition={{ delay: t0 + 0.6, duration: 1.4, ease: "easeInOut" }}
-            />
-          </svg>
-          <p className="mt-0.5 text-[0.55rem] text-paper/55">Mood, last two weeks</p>
-        </div>
-        <motion.span {...pop(t0 + 1.8)} className="flex">
-          <Chip className="bg-danger/10 text-danger">
-            <Flower2 className="h-2.5 w-2.5" />
-            Grateful
+      <div className="flex items-center justify-between gap-2">
+        <motion.span {...rise(t0, 4)} className="flex">
+          <Chip className="bg-accent/10 text-accent">
+            <Lock className="h-2.5 w-2.5" />
+            Only you
           </Chip>
         </motion.span>
+        <motion.span {...pop(t0 + 2.6)} className="flex items-center gap-1 text-[0.55rem] font-semibold text-positive">
+          <Check className="h-2.5 w-2.5" />
+          Saved
+        </motion.span>
+      </div>
+      <p className="text-[0.74rem] font-semibold text-paper">
+        <Typewriter text="A slow Tuesday" delay={t0 + 0.3} speed={18} />
+      </p>
+      <p className="text-[0.66rem] leading-snug text-paper/80">
+        <Typewriter text="Economy was slow going, but I kept at it. Tomorrow starts with revision." delay={t0 + 0.9} speed={24} />
+      </p>
+      <div className="tour-hide-short mt-auto flex flex-wrap gap-1">
+        {["Reflection", "economy"].map((t, i) => (
+          <motion.span key={t} {...pop(t0 + 2.3 + i * 0.15)} className="flex">
+            <Chip>{i ? `#${t}` : t}</Chip>
+          </motion.span>
+        ))}
       </div>
     </div>
   );
@@ -1120,47 +1109,6 @@ function CoachDemo({ data, t0 }: DemoProps) {
           <p className="min-w-0 text-[0.62rem] leading-snug text-paper/85">{tip.text}</p>
         </motion.div>
       ))}
-    </div>
-  );
-}
-
-function ArchiveDemo({ data, t0 }: DemoProps) {
-  const stages = ["Prelims", "Mains", "Interview", "Final result"];
-  return (
-    <div className="flex h-full min-h-0 flex-col justify-center gap-4">
-      <div className="flex items-center justify-between gap-2">
-        <Chip>
-          Attempt {data.attempt}
-          {data.examYear && ` · ${data.examYear}`}
-        </Chip>
-        <motion.span {...pop(t0 + 1.4)} className="text-warning">
-          <Trophy className="tour-float h-4 w-4" />
-        </motion.span>
-      </div>
-      <div className="relative">
-        <span className="absolute left-[12.5%] right-[12.5%] top-[0.6rem] h-px bg-paper/15" />
-        {/* The journey, travelling from the first stage to the last. */}
-        <span className="absolute left-[12.5%] right-[12.5%] top-[0.6rem] h-px overflow-hidden">
-          <span className="tour-comet absolute inset-y-0 left-0 w-1/3" />
-        </span>
-        <ol className="relative grid grid-cols-4">
-          {stages.map((s, i) => (
-            <li key={s} className="flex min-w-0 flex-col items-center gap-1.5 text-center">
-              <motion.span
-                {...pop(t0 + 0.3 + i * 0.25)}
-                className={cn(
-                  "grid h-5 w-5 place-items-center rounded-full border-2 bg-card",
-                  i === 0 ? "border-accent" : "border-paper/20",
-                )}
-              >
-                {i === 0 && <span className="tour-ping block h-2 w-2 rounded-full bg-accent" />}
-              </motion.span>
-              <span className="w-full truncate text-[0.56rem] font-medium text-paper/75">{s}</span>
-            </li>
-          ))}
-        </ol>
-      </div>
-      <p className="tour-hide-short text-center text-[0.58rem] text-paper/55">Every stage, attempt by attempt</p>
     </div>
   );
 }
@@ -1436,9 +1384,8 @@ export const DEMOS: Record<DemoId, (props: DemoProps) => JSX.Element> = {
   roadmap: RoadmapDemo,
   timeline: TimelineDemo,
   reviews: ReviewsDemo,
-  reflections: ReflectionsDemo,
+  diary: DiaryDemo,
   coach: CoachDemo,
-  archive: ArchiveDemo,
   search: SearchDemo,
   notify: NotifyDemo,
   themes: ThemesDemo,

@@ -13,7 +13,7 @@
  * the capture ends. No real account or production data is touched.
  */
 
-import { buildBooks, buildHabits, buildSelection, buildSyllabus, buildTopicLinks } from "../../../src/lib/seed";
+import { buildBooks, buildHabits, buildSyllabus, buildTopicLinks } from "../../../src/lib/seed";
 import { sleepDayKey, toISODate } from "../../../src/lib/utils";
 import { SR_INTERVALS } from "../../../src/lib/revision";
 import type {
@@ -513,7 +513,7 @@ export function demoData(themeMode: ThemeMode = "light", opts: { withToday?: boo
     reflections,
     reviews,
     topicLinks: buildTopicLinks(subjects, daysAgo(START)),
-    selection: buildSelection("UPSC CSE 2027"),
+    selection: [],
     files: [],
     plans: roadmap(),
     themeMode,

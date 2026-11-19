@@ -19,7 +19,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium, type Browser, type Page } from "playwright";
-import { buildBooks, buildHabits, buildSelection, buildSyllabus, buildTopicLinks } from "../src/lib/seed";
+import { buildBooks, buildHabits, buildSyllabus, buildTopicLinks } from "../src/lib/seed";
 import { sleepDayKey, toISODate } from "../src/lib/utils";
 import { SR_INTERVALS } from "../src/lib/revision";
 import type {
@@ -479,9 +479,10 @@ function sampleData(): ChronicleData & Record<string, unknown> {
     reflections,
     reviews,
     topicLinks: buildTopicLinks(subjects, daysAgo(START)),
-    selection: buildSelection("UPSC CSE 2027"),
+    selection: [],
     files: [],
     plans: [],
+    coach: { decisions: [], briefings: [] },
     // The default theme, so the public site shows what a new account sees.
     themeMode: "lavender",
     lastSleepPrompt: sleepDayKey(new Date()),

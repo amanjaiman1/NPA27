@@ -65,46 +65,77 @@ export const Select = React.forwardRef<
 Select.displayName = "Select";
 
 /**
- * Label + control + hint.
+ * Label + control + guidance.
  *
  * The label is *associated* with the control rather than merely sitting above
  * it: the field mints an id, points `htmlFor` at it, and passes it to the child
  * unless the child brought its own. Without that a screen reader announces an
  * unlabelled textbox, and clicking the label does nothing.
+ *
+ * What the field asks for is said under it: `hint` (what to enter, and what
+ * happens with it), `example` (a real value in the expected format) and
+ * `error` (what is wrong, and how to fix it), all read out as the control's
+ * description. An error also marks the control invalid.
  */
 export function Field({
   label,
   children,
   className,
   hint,
+  example,
+  error,
+  optional,
 }: {
   label?: string;
   children: React.ReactNode;
   className?: string;
-  hint?: string;
+  hint?: React.ReactNode;
+  /** A real value in the expected format: "2.5 for two and a half hours". */
+  example?: string;
+  error?: string | null;
+  /** Says "Optional" beside the label. */
+  optional?: boolean;
 }) {
   const generatedId = useId();
-  const hintId = hint ? `${generatedId}-hint` : undefined;
+  const hintId = hint || example ? `${generatedId}-hint` : undefined;
+  const errorId = error ? `${generatedId}-error` : undefined;
 
   // Only a single element child can be wired up; anything else is left alone.
   let control = children;
   let controlId: string | undefined;
   if (React.isValidElement(children)) {
-    const props = children.props as { id?: string };
+    const props = children.props as { id?: string; "aria-describedby"?: string };
     controlId = props.id ?? generatedId;
-    control = React.cloneElement(children as React.ReactElement<{ id?: string; "aria-describedby"?: string }>, {
-      id: controlId,
-      "aria-describedby": hintId,
-    });
+    const describedBy = [props["aria-describedby"], hintId, errorId].filter(Boolean).join(" ") || undefined;
+    control = React.cloneElement(
+      children as React.ReactElement<{ id?: string; "aria-describedby"?: string; "aria-invalid"?: boolean }>,
+      {
+        id: controlId,
+        "aria-describedby": describedBy,
+        ...(error ? { "aria-invalid": true } : {}),
+      },
+    );
   }
 
   return (
     <div className={className}>
-      {label && <Label htmlFor={controlId}>{label}</Label>}
+      {label && (
+        <Label htmlFor={controlId}>
+          {label}
+          {optional && <span className="ml-1.5 font-normal text-paper/45">Optional</span>}
+        </Label>
+      )}
       {control}
-      {hint && (
-        <p id={hintId} className="mt-1 text-[0.7rem] text-paper/35">
+      {(hint || example) && (
+        <p id={hintId} className="mt-1 text-[0.72rem] leading-relaxed text-paper/55">
           {hint}
+          {hint && example ? " " : null}
+          {example && <span className="text-paper/45">e.g. {example}</span>}
+        </p>
+      )}
+      {error && (
+        <p id={errorId} role="alert" className="field-error mt-1 text-[0.72rem] font-medium text-danger">
+          {error}
         </p>
       )}
     </div>

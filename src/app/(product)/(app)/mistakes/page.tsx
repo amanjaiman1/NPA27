@@ -24,6 +24,7 @@ import { Button } from "@/components/ui/button";
 import { Chip, EmptyState } from "@/components/ui/misc";
 import { Modal } from "@/components/ui/modal";
 import { useConfirm } from "@/components/ui/confirm-dialog";
+import { useToast } from "@/components/ui/toast";
 import { Field, Input, Textarea, Select } from "@/components/ui/form";
 import { Heatmap } from "@/components/charts/heatmap";
 import { MatrixHeatmap } from "@/components/charts/matrix";
@@ -190,6 +191,7 @@ export default function MistakesPage() {
   const setStatus = useChronicle((s) => s.setMistakeStatus);
   const remove = useChronicle((s) => s.deleteMistake);
   const confirm = useConfirm();
+  const toast = useToast();
 
   const [catFilter, setCatFilter] = useState<MistakeCategory | "all">("all");
   const [subjFilter, setSubjFilter] = useState("all");
@@ -646,20 +648,18 @@ export default function MistakesPage() {
               Cancel
             </Button>
             <Button
-              onClick={async () => {
-                if (!draft.topic.trim() && !draft.question?.trim()) return;
-                if (
-                  await confirm({
-                    title: "Save this mistake?",
-                    description:
-                      "It will be logged as a learning asset and scheduled for review.",
-                    tone: "default",
-                    confirmLabel: "Save mistake",
-                  })
-                ) {
-                  upsert(draft);
-                  setOpen(false);
+              onClick={() => {
+                if (!draft.topic.trim() && !draft.question?.trim()) {
+                  toast({ title: "Add the topic or the question", description: "Either is enough to find it again and review it.", tone: "error" });
+                  return;
                 }
+                const added = !mistakes.some((m) => m.id === draft.id);
+                upsert(draft);
+                setOpen(false);
+                toast({
+                  title: added ? "Mistake logged" : "Mistake updated",
+                  description: added ? "It comes back for review on a schedule, so the correction sticks." : undefined,
+                });
               }}
             >
               Save mistake

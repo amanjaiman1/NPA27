@@ -117,15 +117,19 @@ export function FilePicker({
   const journal = useChronicle((s) => s.journal);
   const goals = useChronicle((s) => s.goals);
   const lifeLog = useChronicle((s) => s.lifeLog);
+  const reflections = useChronicle((s) => s.reflections);
   const [query, setQuery] = useState("");
   const [kind, setKind] = useState<KindFilter>("all");
   const [chosen, setChosen] = useState<Set<string>>(new Set());
 
   const groups = useMemo(() => {
-    const refs = buildFileRefs({ journal, goals, lifeLog });
+    const refs = buildFileRefs({ journal, goals, lifeLog, reflections });
     const q = query.trim().toLowerCase();
     const byDay = new Map<ISODate, FileRecord[]>();
     for (const f of files) {
+      // A file attached only in the Personal Diary stays in the diary.
+      const owners = refs.get(f.id);
+      if (owners && owners.diary.length && !owners.journal.length) continue;
       if (q && !f.name.toLowerCase().includes(q)) continue;
       const k = fileKind(f.type);
       if (kind === "image" && k !== "image") continue;
@@ -139,7 +143,7 @@ export function FilePicker({
     return [...byDay.entries()]
       .sort(([a], [b]) => (a === suggestDate ? -1 : b === suggestDate ? 1 : b.localeCompare(a)))
       .map(([day, list]) => ({ day, list: list.sort((a, b) => b.addedAt.localeCompare(a.addedAt)) }));
-  }, [files, journal, goals, lifeLog, query, kind, suggestDate]);
+  }, [files, journal, goals, lifeLog, reflections, query, kind, suggestDate]);
 
   function toggle(id: string) {
     setChosen((prev) => {

@@ -56,6 +56,10 @@ const SET_PATHS = new Set([
   // are both kept, and so are journal days linked to an activity.
   "plans.goalIds",
   "plans.items.journalDates",
+  // Revision days and diary files and tags from two devices are all kept.
+  "revisions.passes",
+  "reflections.fileIds",
+  "reflections.tags",
 ]);
 
 /**
@@ -63,7 +67,7 @@ const SET_PATHS = new Set([
  * editing different parts of one plan both move it; that isn't a clash, so
  * the later time is kept and nothing is reported.
  */
-const LATEST_PATHS = new Set(["plans.updatedAt"]);
+const LATEST_PATHS = new Set(["plans.updatedAt", "reflections.updatedAt", "reviews.updatedAt"]);
 
 function latestOf(path: string, a: unknown, b: unknown): string | null {
   if (!LATEST_PATHS.has(policyPath(path)) || typeof a !== "string" || typeof b !== "string") return null;

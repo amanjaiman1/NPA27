@@ -19,6 +19,8 @@ import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select } from "@/components/ui/form";
 import { useConfirm } from "@/components/ui/confirm-dialog";
+import { useToast } from "@/components/ui/toast";
+import { habitContext, habitsMovedOn, movedSummary } from "@/lib/habit-engine";
 import { FileLinker } from "@/components/attachments/file-linker";
 import { cn, formatDate, toISODate } from "@/lib/utils";
 import { timeFormatOf } from "@/lib/sleep";
@@ -75,6 +77,7 @@ export function LifeForm({
   const upsertLifeEntry = useChronicle((s) => s.upsertLifeEntry);
   const deleteLifeEntry = useChronicle((s) => s.deleteLifeEntry);
   const confirm = useConfirm();
+  const toast = useToast();
   const today = toISODate(new Date());
 
   const [draft, setDraft] = useState<LifeDraft>(() => draftFromEntry(date));
@@ -130,10 +133,18 @@ export function LifeForm({
 
   function save() {
     setTouched(true);
-    if (!valid) return;
+    if (!valid) {
+      toast({ title: "Some readings need fixing", description: "They're marked in the form.", tone: "error" });
+      return;
+    }
     if (entry) upsertLifeEntry(entry);
     else if (saved) deleteLifeEntry(saved.date);
     onClose();
+    const after = useChronicle.getState();
+    toast({
+      title: entry ? `${formatDate(draft.date)} saved` : `${formatDate(draft.date)} cleared`,
+      description: entry ? movedSummary(habitsMovedOn(after.habits, habitContext(after, today), draft.date, ["life"])) : undefined,
+    });
   }
 
   function setNumber(key: LifeNumberKey, value: string) {

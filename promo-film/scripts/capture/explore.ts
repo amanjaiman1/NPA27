@@ -33,9 +33,8 @@ const PAGES: [string, string][] = [
   ["mocks", "/mocks"],
   ["knowledge-graph", "/knowledge-graph"],
   ["reviews", "/reviews"],
-  ["reflections", "/reflections"],
+  ["diary", "/diary"],
   ["coach", "/coach"],
-  ["archive", "/archive"],
 ];
 
 async function main() {

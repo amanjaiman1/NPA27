@@ -11,12 +11,11 @@ import {
   BarChart3,
   Network,
   CalendarCheck,
-  Quote,
+  BookLock,
   ListChecks,
   Target,
   BookOpen,
   Sparkles,
-  Trophy,
   HeartPulse,
   Moon,
   Footprints,
@@ -67,6 +66,7 @@ export const navGroups: NavGroup[] = [
       { label: "Command Center", href: "/dashboard", icon: LayoutDashboard, short: "Dashboard overview" },
       { label: "Roadmap", href: "/roadmap", icon: Route, short: "Your yearly, monthly and weekly plans" },
       { label: "Milestone Timeline", href: "/timeline", icon: Milestone, short: "The journey so far" },
+      { label: "Study Coach", href: "/coach", icon: Sparkles, short: "Today's briefing, evidence & plan changes" },
     ],
   },
   {
@@ -74,7 +74,7 @@ export const navGroups: NavGroup[] = [
     items: [
       { label: "Current Affairs", href: "/current-affairs", icon: Newspaper, short: "News vault" },
       { label: "Mistake Tracker", href: "/mistakes", icon: TriangleAlert, short: "Learn from errors" },
-      { label: "Habits", href: "/habits", icon: ListChecks, short: "Daily disciplines" },
+      { label: "Habits", href: "/habits", icon: ListChecks, short: "Habits that fill in from your records" },
       { label: "Library", href: "/books", icon: BookOpen, short: "Book progress" },
     ],
   },
@@ -88,17 +88,16 @@ export const navGroups: NavGroup[] = [
     ],
   },
   {
-    label: "Reflect & Review",
+    label: "Review & Personal Diary",
     items: [
-      { label: "Reviews", href: "/reviews", icon: CalendarCheck, short: "Weekly · Monthly · Yearly" },
-      { label: "Reflections", href: "/reflections", icon: Quote, short: "Emotional journal" },
-    ],
-  },
-  {
-    label: "Endgame",
-    items: [
-      { label: "Study Coach", href: "/coach", icon: Sparkles, short: "Insights & guidance" },
-      { label: "Selection Archive", href: "/archive", icon: Trophy, short: "The result journey" },
+      {
+        label: "Performance Review",
+        href: "/reviews",
+        icon: CalendarCheck,
+        short: "Weekly, monthly or any period, gathered from your records",
+        tab: "Review",
+      },
+      { label: "Personal Diary", href: "/diary", icon: BookLock, short: "Private writing, only for you", tab: "Diary" },
     ],
   },
   {

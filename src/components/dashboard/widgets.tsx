@@ -10,7 +10,6 @@ import {
   Clock,
   Flame,
   LineChart as LineChartIcon,
-  Milestone as MilestoneIcon,
   NotebookPen,
   PieChart,
   Plus,
@@ -38,6 +37,7 @@ import { daysBetween, formatDate, formatHours, relativeDay, toISODate, weekday }
 import { useMounted } from "@/lib/hooks";
 import { activePlans, planName } from "@/lib/roadmap";
 import { byUrgency, computeGoalProgress, type GoalData } from "@/lib/goals";
+import { buildRecommendations, visibleRecommendations } from "@/lib/coach";
 import { Card } from "@/components/ui/card";
 import { Panel, PanelLink, MetricCard } from "@/components/ui/panel";
 import { Avatar } from "@/components/ui/avatar";
@@ -683,49 +683,31 @@ export function GoalsPanel({ className }: { className?: string }) {
   );
 }
 
-/* ── Milestones ───────────────────────────────────────────────── */
-
-export function MilestonesPanel({ className }: { className?: string }) {
-  const milestones = useChronicle((s) => s.milestones);
-  const today = toISODate(new Date());
-  const recent = milestones
-    .filter((m) => m.date <= today)
-    .sort((a, b) => b.date.localeCompare(a.date))
-    .slice(0, 3);
-
-  return (
-    <Panel className={className} eyebrow="Milestones" title="Along the way" icon={MilestoneIcon} action={<PanelLink href="/timeline">Timeline</PanelLink>}>
-      {recent.length === 0 ? (
-        <p className="text-[0.82rem] leading-relaxed text-paper/65">Milestones you reach are recorded on your timeline.</p>
-      ) : (
-        <ol className="relative space-y-4 border-l border-line pl-4">
-          {recent.map((m) => (
-            <li key={m.id} className="relative">
-              <span className="absolute -left-[1.3rem] top-1.5 h-2 w-2 rounded-full bg-accent ring-4 ring-accent/15" />
-              <p className="text-[0.84rem] font-medium leading-snug text-paper">{m.title}</p>
-              <p className="text-[0.7rem] text-paper/60">{relativeDay(m.date, today)}</p>
-            </li>
-          ))}
-        </ol>
-      )}
-    </Panel>
-  );
-}
-
 /* ── Coach ────────────────────────────────────────────────────── */
 
+/**
+ * The coach's first suggestion, with the figure behind it. The same engine
+ * as the Study Coach (lib/coach.ts): a suggestion you dismissed there stays
+ * away here too. It never reads the Personal Diary.
+ */
 export function CoachNudge({ className }: { className?: string }) {
+  const profile = useChronicle((s) => s.profile);
   const journal = useChronicle((s) => s.journal);
   const subjects = useChronicle((s) => s.subjects);
-  const bySub = hoursBySubject(journal, subjects, 14);
-  const neglected = [...bySub].reverse().find((s) => s.hours < 1);
-  const top = bySub[0];
-
-  const insight = neglected
-    ? `${neglected.name} hasn't seen much time in the last two weeks. A short revision block could keep it warm.`
-    : top
-      ? `${top.name} is your anchor subject lately. Consider rotating in a weaker area to balance the syllabus.`
-      : "Log a few days to unlock personalised coaching insights.";
+  const revisions = useChronicle((s) => s.revisions);
+  const plans = useChronicle((s) => s.plans);
+  const habits = useChronicle((s) => s.habits);
+  const goals = useChronicle((s) => s.goals);
+  const mocks = useChronicle((s) => s.mocks);
+  const lifeLog = useChronicle((s) => s.lifeLog);
+  const books = useChronicle((s) => s.books);
+  const currentAffairs = useChronicle((s) => s.currentAffairs);
+  const mistakes = useChronicle((s) => s.mistakes);
+  const log = useChronicle((s) => s.coach);
+  const top = useMemo(() => {
+    const recs = buildRecommendations({ profile, journal, subjects, revisions, plans, habits, goals, mocks, lifeLog, books, currentAffairs, mistakes });
+    return visibleRecommendations(recs, log).shown[0] ?? null;
+  }, [profile, journal, subjects, revisions, plans, habits, goals, mocks, lifeLog, books, currentAffairs, mistakes, log]);
 
   return (
     <Card className={cn("relative overflow-hidden p-5 sm:p-6", className)}>
@@ -737,13 +719,33 @@ export function CoachNudge({ className }: { className?: string }) {
           </span>
           <p className="eyebrow">Coach&apos;s read</p>
         </div>
-        <p className="mt-4 text-[0.9rem] leading-relaxed text-paper/80">{insight}</p>
-        <div className="mt-auto pt-5">
+        {top ? (
+          <>
+            <p className="mt-4 text-[0.92rem] font-semibold leading-snug text-paper">{top.title}</p>
+            <p className="mt-1 text-[0.82rem] leading-relaxed text-paper/70">{top.why}</p>
+            {top.evidence[0] && <p className="mt-2 text-[0.74rem] leading-relaxed text-paper/55">{top.evidence[0].text}</p>}
+          </>
+        ) : (
+          <p className="mt-4 text-[0.9rem] leading-relaxed text-paper/80">
+            {journal.length
+              ? "Nothing pressing in your records today. The plan, the revision queue and your habits are in hand."
+              : "Log a few days and the coach starts suggesting what to do next, with the records behind each suggestion."}
+          </p>
+        )}
+        <div className="mt-auto flex flex-wrap gap-2 pt-5">
+          {top && (
+            <Link
+              href={top.action.href}
+              className="inline-flex items-center gap-1.5 rounded-full bg-accent px-4 py-2 text-[0.8rem] font-semibold text-accent-fg shadow-accent transition-[filter] hover:brightness-[1.06]"
+            >
+              {top.action.label}
+            </Link>
+          )}
           <Link
-            href="/coach"
+            href="/coach?tab=suggestions"
             className="glass-ghost inline-flex items-center gap-1.5 rounded-full border border-line px-4 py-2 text-[0.8rem] font-semibold text-paper transition-colors hover:border-paper/25"
           >
-            Talk to your coach <ArrowUpRight className="h-3.5 w-3.5 text-paper/60" />
+            {top ? "All suggestions" : "Open the coach"} <ArrowUpRight className="h-3.5 w-3.5 text-paper/60" />
           </Link>
         </div>
       </div>

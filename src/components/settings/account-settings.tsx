@@ -191,9 +191,9 @@ function DeleteAccountDialog({ open, onClose }: { open: boolean; onClose: () => 
     >
       <div className="space-y-4">
         <p className="text-sm leading-relaxed text-paper/60">
-          Your journal, study hours, syllabus progress, mocks, mistakes, goals, reflections,
-          reviews, settings and notification devices are deleted from the cloud and from this
-          browser. Other devices lose access the next time they sync. Download your data from
+          Your journal, study hours, syllabus progress, mocks, mistakes, goals, habits, roadmap,
+          Personal Diary, performance reviews, the coach&apos;s history, attached files, settings and
+          notification devices are deleted from the cloud and from this browser. Other devices lose access the next time they sync. Download your data from
           Settings → Data first if you want a copy.
         </p>
         <Field label="Type DELETE to confirm">

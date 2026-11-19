@@ -2,7 +2,9 @@
 
 A personal operating system for UPSC preparation: daily journal, study hours,
 syllabus progress, revision, mocks, mistakes, goals, a roadmap of your own
-yearly, monthly and weekly plans, wellbeing, reflections and reviews. Each person who signs up gets their own private chronicle, synced across
+yearly, monthly and weekly plans, habits that keep themselves from those
+records, wellbeing, performance reviews, a private diary and a study coach.
+Each person who signs up gets their own private chronicle, synced across
 their devices through Supabase and kept within Supabase's free plan.
 
 - **Stack:** Next.js 14 (App Router), React 18, TypeScript, Tailwind, Zustand,
@@ -17,6 +19,12 @@ their devices through Supabase and kept within Supabase's free plan.
   [design system](docs/design-system.md).
 - **The Roadmap** (your own yearly, monthly and weekly plans):
   [`docs/roadmap.md`](docs/roadmap.md).
+- **How the modules connect** (who owns which record, and the shared activity
+  layer): [`docs/connected-ecosystem.md`](docs/connected-ecosystem.md), with
+  [the Habit Engine](docs/habit-engine.md),
+  [Performance Review](docs/performance-review.md),
+  [the Personal Diary](docs/personal-diary.md) and
+  [the Study Coach](docs/study-coach.md).
 - **The feature tour** (a walk through every page, opened once for a new
   account and from the Tour button any time):
   [`docs/feature-tour.md`](docs/feature-tour.md).
@@ -123,6 +131,13 @@ In the Supabase SQL Editor, run these files in order:
      dispatcher's reader leaves plans out, since no notification uses them.
      The app works without it, but run it before you start planning. See
      [`docs/roadmap.md`](docs/roadmap.md).
+   - `20261202120000_diary_coach_privacy.sql`: a device still running an
+     earlier version can no longer erase the Study Coach's history when it
+     saves, and the dispatcher's reader receives Personal Diary entries as
+     dates only, Performance Reviews without what you wrote or their kept
+     figures, habits without descriptions, and no coach history. No table or
+     policy changes. The app works without it; run it before relying on the
+     coach history across devices. See [`docs/personal-diary.md`](docs/personal-diary.md).
 
 All of them are additive and safe to re-run: nothing is dropped or rewritten, and
 existing data keeps working. A SQL file in the repo does nothing until you run it.
@@ -163,7 +178,10 @@ Vercel → Project → Settings → Environment Variables.
    migration everything works except attaching files, which shows an error.
    Without the Roadmap migration everything works, but a device still running
    the previous version can take plans out of the cloud copy until a device on
-   the new version puts them back.
+   the new version puts them back. Without the diary and coach migration
+   everything works, but an older device can drop the coach's history, and
+   the dispatcher's copy still includes diary text (it is never sent anywhere,
+   but the migration keeps it out of that copy too).
 2. Set the environment variables above, then deploy (`git push` to the
    production branch, or **Redeploy** in Vercel).
 3. Add the production URLs to Supabase's Redirect URLs (see the table above).

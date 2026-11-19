@@ -48,6 +48,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Modal } from "@/components/ui/modal";
 import { useConfirm } from "@/components/ui/confirm-dialog";
+import { useToast } from "@/components/ui/toast";
 import { Field, Input, Textarea, Select } from "@/components/ui/form";
 import { Chip } from "@/components/ui/misc";
 import { toISODate, formatDate, uid, cn } from "@/lib/utils";
@@ -75,7 +76,6 @@ const ICONS: Record<string, LucideIcon> = {
 
 const SOURCE_LABEL: Record<TimelineEvent["source"], string> = {
   auto: "auto-recorded",
-  selection: "selection journey",
   manual: "your note",
 };
 
@@ -105,6 +105,7 @@ export default function TimelinePage() {
   const upsert = useChronicle((s) => s.upsertMilestone);
   const remove = useChronicle((s) => s.deleteMilestone);
   const confirm = useConfirm();
+  const toast = useToast();
 
   const today = toISODate(new Date());
   const [open, setOpen] = useState(false);
@@ -206,22 +207,15 @@ export default function TimelinePage() {
     setOpen(true);
   }
 
-  async function saveDraft() {
-    if (!draft.title.trim()) return;
-    const isEdit = editingId !== null;
-    if (
-      await confirm({
-        title: isEdit ? "Save changes to this memory?" : "Add this memory?",
-        description: isEdit
-          ? "Your timeline will be updated."
-          : "It will be added to your timeline.",
-        tone: "default",
-        confirmLabel: isEdit ? "Save changes" : "Add to timeline",
-      })
-    ) {
-      upsert(draft);
-      setOpen(false);
+  function saveDraft() {
+    if (!draft.title.trim()) {
+      toast({ title: "Give the memory a title", description: "e.g. “First full-length mock”.", tone: "error" });
+      return;
     }
+    const isEdit = editingId !== null;
+    upsert(draft);
+    setOpen(false);
+    toast({ title: isEdit ? "Memory updated" : "Added to your timeline" });
   }
 
   async function deleteMemory(id: string) {
@@ -298,7 +292,7 @@ export default function TimelinePage() {
                     event={e}
                     index={ci === 0 ? i : 0}
                     /* Only memories you wrote can be opened, edited or deleted.
-                       Auto-recorded and selection events are derivations of your
+                       Auto-recorded events are derivations of your
                        journal, mocks and books — there is no record behind them
                        to change, so they stay read-only. `refId` is exactly that
                        distinction. */
@@ -367,7 +361,7 @@ function LegacyHero({
     { label: "Mocks", value: `${stats.mocksTaken}`, hint: stats.bestMockPct != null ? `best ${stats.bestMockPct}%` : "—" },
     { label: "Books closed", value: `${stats.booksCompleted}`, hint: "standard texts" },
     { label: "Topics mastered", value: `${stats.topicsMastered}`, hint: `of ${stats.totalTopics}` },
-    { label: "Current stage", value: stats.currentStage.split(" · ")[0], hint: stats.currentStage.split(" · ")[1] ?? "" },
+    { label: "This attempt", value: stats.currentStage.split(" · ")[0], hint: stats.currentStage.split(" · ")[1] ?? "" },
   ];
   return (
     <div className="overflow-hidden rounded-2xl border border-line bg-gradient-to-br from-accent/[0.08] via-paper/[0.02] to-transparent">

@@ -70,12 +70,64 @@ import type {
   TopicStatus,
   TopicLink,
   Habit,
+  HabitOverride,
+  CoachDecision,
+  CoachBriefingRecord,
   LifeEntry,
   PlanItem,
   PlanItemStatus,
   PlanReview,
   RoadmapPlan,
 } from "./types";
+
+/** What a new or edited habit can be given. */
+export type HabitInput = Partial<Omit<Habit, "id" | "createdOn" | "log" | "cadence" | "targetPerWeek">> & { name: string };
+
+/** How many coach decisions and briefings an account keeps. */
+const COACH_DECISIONS_KEPT = 300;
+const COACH_BRIEFINGS_KEPT = 60;
+
+function isCoachLog(v: unknown): v is ChronicleData["coach"] {
+  const c = v as ChronicleData["coach"] | undefined;
+  return Boolean(c && Array.isArray(c.decisions) && Array.isArray(c.briefings));
+}
+
+/** Only the fields a habit is configured with, trimmed. */
+function cleanHabitInput(input: Partial<HabitInput>): Partial<Habit> {
+  const out: Partial<Habit> = {};
+  const keys = [
+    "description",
+    "category",
+    "icon",
+    "schedule",
+    "source",
+    "metric",
+    "target",
+    "subjectId",
+    "allowManual",
+    "countFrom",
+    "remindAt",
+    "archived",
+    "overrides",
+    "pauses",
+  ] as const;
+  for (const k of keys) {
+    const v = input[k];
+    if (v === undefined || v === null || v === "") continue;
+    (out as Record<string, unknown>)[k] = typeof v === "string" ? v.trim() : v;
+  }
+  return out;
+}
+
+/**
+ * Keeps the older `cadence` and `targetPerWeek` in step with the schedule, so
+ * a device still running an earlier version reads the habit sensibly.
+ */
+function withLegacyCadence(h: Habit): Habit {
+  const s = h.schedule;
+  if (s?.kind === "weekly") return { ...h, cadence: "weekly", targetPerWeek: s.timesPerWeek };
+  return { ...h, cadence: "daily", targetPerWeek: 7 };
+}
 
 /** What a journal save did, for the composer to report. */
 export interface JournalSaveResult {
@@ -122,8 +174,8 @@ interface ChronicleState extends ChronicleData {
   applyCloudSnapshot: (snap: Partial<CloudSnapshot>) => void;
   updateProfile: (patch: Partial<ChronicleData["profile"]>) => void;
   /**
-   * Finishes first-run setup: the syllabus, books, habits and selection stages
-   * are built for the answers given, and the profile is marked as set up.
+   * Finishes first-run setup: the syllabus, books and habits are built for
+   * the answers given, and the profile is marked as set up.
    * Anything already logged is left alone.
    */
   completeOnboarding: (setup: AccountSetup) => void;
@@ -224,8 +276,16 @@ interface ChronicleState extends ChronicleData {
   upsertMilestone: (m: Milestone) => void;
   deleteMilestone: (id: string) => void;
 
-  /* reflections */
+  /* personal diary (stored as `reflections`, the name it always had) */
   upsertReflection: (r: Reflection) => void;
+  /**
+   * Saves a diary entry with any files just uploaded for it. Files already
+   * stored (same content) are reused, never copied; files no entry or journal
+   * day holds any more are let go. Stamps `createdAt` and `updatedAt`.
+   */
+  saveDiaryEntry: (input: { entry: Reflection; newFiles?: FileRecord[] }) => Reflection;
+  /** Pin an entry to the top, or mark it important. */
+  setDiaryFlag: (id: string, flag: "pinned" | "important", on: boolean) => void;
   deleteReflection: (id: string) => void;
 
   /* books */
@@ -252,9 +312,25 @@ interface ChronicleState extends ChronicleData {
   upsertReview: (r: Review) => void;
   deleteReview: (id: string) => void;
 
-  /* habits */
+  /* habits (see lib/habit-engine.ts) */
+  /** A manual check-in for a day: ticks it, or unticks it if ticked. */
   toggleHabit: (habitId: string, date: string) => void;
-  addHabit: (name: string) => void;
+  /** Creates a habit; a bare name makes a daily habit you check off. Returns its id. */
+  addHabit: (input: string | HabitInput) => string;
+  updateHabit: (id: string, patch: Partial<HabitInput>) => void;
+  /** Retires a habit (hidden, history kept) or brings it back. */
+  setHabitArchived: (id: string, archived: boolean) => void;
+  /** Pauses from today, or resumes. Paused days are neither kept nor missed. */
+  setHabitPaused: (id: string, paused: boolean) => void;
+  /** A hand correction for a day, which always wins over the source. `null` clears it. */
+  setHabitOverride: (id: string, date: ISODate, override: Omit<HabitOverride, "at"> | null) => void;
+  deleteHabit: (id: string) => void;
+
+  /* study coach history */
+  /** Records what you did with a recommendation. */
+  recordCoachDecision: (d: Omit<CoachDecision, "id" | "at">) => void;
+  /** Keeps today's briefing headlines, once a day. */
+  recordCoachBriefing: (b: Omit<CoachBriefingRecord, "id">) => void;
 
   /* roadmap
      Plans are this person's own; nothing here creates one for them. A plan
@@ -402,6 +478,8 @@ export const SNAPSHOT_KEYS = [
   "files",
   // The Roadmap: this person's own yearly, monthly and weekly plans.
   "plans",
+  // What the Study Coach suggested and what you did with it.
+  "coach",
   "themeMode",
   "reduceTransparency",
   // Remembering that today's sleep prompt was answered must follow the user
@@ -555,9 +633,8 @@ export const useChronicle = create<ChronicleState>()(
             habits: s.habits.every((h) => Object.keys(h.log).length === 0)
               ? template.habits
               : s.habits,
-            selection: s.selection.every((st) => st.status === "Locked")
-              ? template.selection
-              : s.selection,
+            // Retired with the Selection Archive: whatever is there stays.
+            selection: s.selection,
             goals: untouched(s.goals) ? template.goals : s.goals,
           };
         }),
@@ -734,7 +811,7 @@ export const useChronicle = create<ChronicleState>()(
         }
 
         /* ── files no day holds any more go, with their links ──── */
-        const pruned = pruneFiles({ files, journal, goals, lifeLog });
+        const pruned = pruneFiles({ files, journal, goals, lifeLog, reflections: s.reflections });
         files = pruned.files;
         goals = pruned.goals;
         lifeLog = pruned.lifeLog;
@@ -768,7 +845,7 @@ export const useChronicle = create<ChronicleState>()(
             if (!next.journalDates?.length) delete next.journalDates;
             return next;
           });
-          const pruned = pruneFiles({ files: s.files, journal, goals, lifeLog: s.lifeLog });
+          const pruned = pruneFiles({ files: s.files, journal, goals, lifeLog: s.lifeLog, reflections: s.reflections });
           // Activities linked to the day keep everything but the link.
           const plans = retargetJournalDate(s.plans, date, null);
           return {
@@ -1184,15 +1261,18 @@ export const useChronicle = create<ChronicleState>()(
 
       removeFileEverywhere: (fileId) =>
         set((s) => {
-          const journal = s.journal.map((e) => {
+          const without = <T extends { fileIds?: string[] }>(e: T): T => {
             if (!e.fileIds?.includes(fileId)) return e;
-            const next: JournalEntry = { ...e, fileIds: e.fileIds.filter((id) => id !== fileId) };
+            const next: T = { ...e, fileIds: e.fileIds.filter((id) => id !== fileId) };
             if (!next.fileIds?.length) delete next.fileIds;
             return next;
-          });
-          const pruned = pruneFiles({ files: s.files, journal, goals: s.goals, lifeLog: s.lifeLog });
+          };
+          const journal = s.journal.map(without);
+          const reflections = s.reflections.map(without);
+          const pruned = pruneFiles({ files: s.files, journal, goals: s.goals, lifeLog: s.lifeLog, reflections });
           return {
             journal,
+            reflections,
             files: pruned.files,
             goals: pruned.goals,
             lifeLog: pruned.lifeLog,
@@ -1231,10 +1311,66 @@ export const useChronicle = create<ChronicleState>()(
           else reflections.unshift(r);
           return { reflections };
         }),
-      deleteReflection: (id) =>
+      saveDiaryEntry: ({ entry, newFiles = [] }) => {
+        const s = get();
+        const now = new Date().toISOString();
+        // The same bytes are one file, wherever they were attached.
+        const bySha = new Map(s.files.map((f) => [f.sha256, f]));
+        const remap = new Map<string, string>();
+        const added: FileRecord[] = [];
+        for (const f of newFiles) {
+          const known = bySha.get(f.sha256);
+          if (known) {
+            if (known.id !== f.id) remap.set(f.id, known.id);
+          } else {
+            bySha.set(f.sha256, f);
+            added.push(f);
+          }
+        }
+        const fileIds = [...new Set((entry.fileIds ?? []).map((id) => remap.get(id) ?? id))];
+        const existing = s.reflections.find((r) => r.id === entry.id);
+        const saved: Reflection = {
+          ...entry,
+          createdAt: existing?.createdAt ?? entry.createdAt ?? now,
+          updatedAt: now,
+        };
+        if (fileIds.length) saved.fileIds = fileIds;
+        else delete saved.fileIds;
+        const reflections = existing
+          ? s.reflections.map((r) => (r.id === entry.id ? saved : r))
+          : [saved, ...s.reflections];
+        const pruned = pruneFiles({ files: [...s.files, ...added], journal: s.journal, goals: s.goals, lifeLog: s.lifeLog, reflections });
+        set({
+          reflections,
+          files: pruned.files,
+          goals: pruned.goals,
+          lifeLog: pruned.lifeLog,
+          ...(pruned.unusedPaths.length ? { fileTrash: [...new Set([...s.fileTrash, ...pruned.unusedPaths])] } : {}),
+        });
+        return saved;
+      },
+      setDiaryFlag: (id, flag, on) =>
         set((s) => ({
-          reflections: s.reflections.filter((r) => r.id !== id),
+          reflections: s.reflections.map((r) => {
+            if (r.id !== id) return r;
+            const next = { ...r, updatedAt: new Date().toISOString() };
+            if (on) next[flag] = true;
+            else delete next[flag];
+            return next;
+          }),
         })),
+      deleteReflection: (id) =>
+        set((s) => {
+          const reflections = s.reflections.filter((r) => r.id !== id);
+          const pruned = pruneFiles({ files: s.files, journal: s.journal, goals: s.goals, lifeLog: s.lifeLog, reflections });
+          return {
+            reflections,
+            files: pruned.files,
+            goals: pruned.goals,
+            lifeLog: pruned.lifeLog,
+            ...(pruned.unusedPaths.length ? { fileTrash: [...new Set([...s.fileTrash, ...pruned.unusedPaths])] } : {}),
+          };
+        }),
 
       upsertBook: (b) =>
         set((s) => {
@@ -1354,10 +1490,11 @@ export const useChronicle = create<ChronicleState>()(
 
       upsertReview: (r) =>
         set((s) => {
+          const now = new Date().toISOString();
           const idx = s.reviews.findIndex((x) => x.id === r.id);
           const reviews = [...s.reviews];
-          if (idx >= 0) reviews[idx] = r;
-          else reviews.unshift(r);
+          if (idx >= 0) reviews[idx] = { ...r, updatedAt: now };
+          else reviews.unshift({ ...r, createdAt: r.createdAt ?? now, updatedAt: now });
           return { reviews };
         }),
 
@@ -1366,26 +1503,101 @@ export const useChronicle = create<ChronicleState>()(
 
       toggleHabit: (habitId, date) =>
         set((s) => ({
-          habits: s.habits.map((h) =>
-            h.id !== habitId
-              ? h
-              : { ...h, log: { ...h.log, [date]: !h.log[date] } },
-          ),
+          habits: s.habits.map((h) => {
+            if (h.id !== habitId) return h;
+            const log = { ...(h.log ?? {}) };
+            // Unticking removes the day rather than writing `false`.
+            if (log[date] === true) delete log[date];
+            else log[date] = true;
+            return { ...h, log };
+          }),
         })),
-      addHabit: (name) =>
+      addHabit: (input) => {
+        const fields = typeof input === "string" ? { name: input } : input;
+        const habit = withLegacyCadence({
+          ...cleanHabitInput(fields),
+          id: uid("habit"),
+          name: fields.name.trim(),
+          createdOn: toISODate(new Date()),
+          log: {},
+          cadence: "daily",
+        });
+        set((s) => ({ habits: [...s.habits, habit] }));
+        return habit.id;
+      },
+      updateHabit: (id, patch) =>
         set((s) => ({
-          habits: [
-            ...s.habits,
-            {
-              id: uid("habit"),
-              name,
-              cadence: "daily",
-              createdOn: toISODate(new Date()),
-              targetPerWeek: 7,
-              log: {},
-            } as Habit,
-          ],
+          habits: s.habits.map((h) => {
+            if (h.id !== id) return h;
+            const next: Habit = { ...h, ...cleanHabitInput({ name: h.name, ...patch }) };
+            // A field set to undefined in the patch is cleared.
+            for (const [k, v] of Object.entries(patch)) if (v === undefined) delete (next as unknown as Record<string, unknown>)[k];
+            if (patch.name !== undefined) next.name = patch.name.trim() || h.name;
+            return withLegacyCadence(next);
+          }),
         })),
+      setHabitArchived: (id, archived) =>
+        set((s) => ({
+          habits: s.habits.map((h) => {
+            if (h.id !== id) return h;
+            const next = { ...h };
+            if (archived) next.archived = true;
+            else delete next.archived;
+            return next;
+          }),
+        })),
+      setHabitPaused: (id, paused) =>
+        set((s) => {
+          const today = toISODate(new Date());
+          return {
+            habits: s.habits.map((h) => {
+              if (h.id !== id) return h;
+              const pauses = [...(h.pauses ?? [])];
+              const open = pauses.length && !pauses[pauses.length - 1].to ? pauses[pauses.length - 1] : null;
+              if (paused) {
+                if (open) return h;
+                pauses.push({ from: today });
+              } else {
+                if (!open) return h;
+                // Paused and resumed on the same day: as if it never was.
+                if (open.from >= today) pauses.pop();
+                else pauses[pauses.length - 1] = { ...open, to: today };
+              }
+              const next: Habit = { ...h, pauses };
+              if (!pauses.length) delete next.pauses;
+              return next;
+            }),
+          };
+        }),
+      setHabitOverride: (id, date, override) =>
+        set((s) => ({
+          habits: s.habits.map((h) => {
+            if (h.id !== id) return h;
+            const overrides = { ...(h.overrides ?? {}) };
+            if (override) overrides[date] = { ...override, at: new Date().toISOString() };
+            else delete overrides[date];
+            const next: Habit = { ...h, overrides };
+            if (!Object.keys(overrides).length) delete next.overrides;
+            return next;
+          }),
+        })),
+      deleteHabit: (id) => set((s) => ({ habits: s.habits.filter((h) => h.id !== id) })),
+
+      recordCoachDecision: (d) =>
+        set((s) => ({
+          coach: {
+            ...s.coach,
+            decisions: [...(s.coach?.decisions ?? []), { ...d, id: uid("cd"), at: new Date().toISOString() }].slice(-COACH_DECISIONS_KEPT),
+          },
+        })),
+      recordCoachBriefing: (b) =>
+        set((s) => {
+          const id = `briefing:${b.date}`;
+          const briefings = (s.coach?.briefings ?? []).filter((x) => x.id !== id);
+          briefings.push({ ...b, id });
+          briefings.sort((x, y) => x.date.localeCompare(y.date));
+          return { coach: { decisions: s.coach?.decisions ?? [], briefings: briefings.slice(-COACH_BRIEFINGS_KEPT) } };
+        }),
 
       /* ── roadmap ──────────────────────────────────────────────── */
 
@@ -1723,7 +1935,7 @@ export const useChronicle = create<ChronicleState>()(
     }),
     {
       name: STORE_KEY,
-      version: 16,
+      version: 17,
       /**
        * Scoped to the signed-in account: `upsc-chronicle-store:<user id>`.
        * Nothing is read or written until an account is activated, which is why
@@ -1803,6 +2015,12 @@ export const useChronicle = create<ChronicleState>()(
           delete state.palette;
           delete state.material;
         }
+
+        // v16 -> v17: the Study Coach keeps a history. Habits gained sources,
+        // schedules and corrections, diary entries titles and files, reviews
+        // drafts and snapshots: all optional fields, so the records
+        // themselves are untouched and read as they always did.
+        if (version < 17 && !isCoachLog(state.coach)) state.coach = { decisions: [], briefings: [] };
 
         return state as ChronicleState;
       },
