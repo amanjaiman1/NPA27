@@ -689,6 +689,13 @@ export interface Profile {
   timeFormat?: TimeFormat;
   /** Set when first-run setup is finished. Absent means setup is still due. */
   onboardedAt?: ISODate;
+  /**
+   * The day the feature tour was first closed, whether finished or skipped.
+   * Absent means it has never been seen: a new account is shown it on its
+   * first visit to the dashboard, and the tour button carries a dot. Synced,
+   * so finishing it on the phone means the laptop doesn't show it again.
+   */
+  tourSeenAt?: ISODate;
 }
 
 /* ── Root state ──────────────────────────────────────────────── */

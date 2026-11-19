@@ -493,6 +493,8 @@ export function demoData(themeMode: ThemeMode = "light", opts: { withToday?: boo
       lifeFields: ["sleep", "exercise", "walk", "run", "water", "meditation", "screen", "weight", "deepWork"],
       sleepTarget: { bedtime: "23:00", wakeTime: "06:00" },
       onboardedAt: daysAgo(START),
+      // Long past its first week: the tour has been seen, so its button carries no dot.
+      tourSeenAt: daysAgo(START),
     },
     accomplished: opts.withToday ? [...accomplished, daysAgo(0)] : accomplished,
     subjects,

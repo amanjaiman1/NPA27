@@ -729,6 +729,447 @@
   }
 }
 
+/* ── The feature tour ─────────────────────────────────────────────────
+   A full-screen layer over the app (components/tour/). It stands on the
+   theme's own backdrop, lit by three soft glows in the theme's colours that
+   drift to new places from chapter to chapter: violet, peach and mint on
+   Lavender, sky blues on Light, and on Dark a faint white, never a colour.
+   The glows are plain radial gradients that only ever move, so nothing is
+   blurred, and the tour's buttons skip the glass blur for the same reason.
+
+   Everything that loops here (the orbits, the light round the picture in
+   focus, the bell, the caret) is CSS on transform, opacity or one custom
+   property, and the reduced-motion rule at the end of this file stills it.
+   ─────────────────────────────────────────────────────────────────── */
+
+.tour-root {
+  --lg-blur: none;
+  --tour-glow-1: 186 160 255;
+  --tour-glow-2: 255 186 160;
+  --tour-glow-3: 130 226 212;
+  --tour-glow-a: 0.42;
+  --tour-glare: 0.5;
+  --tour-shine-a: 0.42;
+  background-color: rgb(var(--ink));
+  background-image: var(--backdrop);
+  color: rgb(var(--paper));
+  isolation: isolate;
+}
+[data-surface="white"] .tour-root {
+  --tour-glow-1: 100 188 235;
+  --tour-glow-2: 140 206 246;
+  --tour-glow-3: 168 226 250;
+  --tour-glow-a: 0.38;
+  --tour-glare: 0.55;
+}
+[data-surface="black"] .tour-root {
+  --tour-glow-1: 255 255 255;
+  --tour-glow-2: 255 255 255;
+  --tour-glow-3: 255 255 255;
+  --tour-glow-a: 0.055;
+  --tour-glare: 0.06;
+  --tour-shine-a: 0;
+}
+
+.tour-glow {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 76vmax;
+  height: 76vmax;
+  margin: -38vmax 0 0 -38vmax;
+  border-radius: 9999px;
+  background: radial-gradient(closest-side, rgb(var(--tour-glow) / var(--tour-glow-a)), rgb(var(--tour-glow) / 0));
+  will-change: transform;
+}
+.tour-glow-1 {
+  --tour-glow: var(--tour-glow-1);
+}
+.tour-glow-2 {
+  --tour-glow: var(--tour-glow-2);
+}
+.tour-glow-3 {
+  --tour-glow: var(--tour-glow-3);
+}
+/* Settles the edges, so the light never competes with the words. */
+.tour-vignette {
+  background: radial-gradient(120% 95% at 50% 45%, rgb(var(--ink) / 0) 58%, rgb(var(--ink) / 0.55) 100%);
+}
+
+/* The panel the pictures sit in: glass a step lighter than a card. */
+.tour-stage {
+  background-color: rgb(var(--glass-tint) / 0.3);
+  border: 1px solid rgb(var(--glass-edge) / var(--glass-edge-a));
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / var(--glass-rim-a)),
+    var(--glass-drop-lift);
+}
+[data-surface="black"] .tour-stage {
+  background-color: rgb(255 255 255 / 0.025);
+}
+/* On a computer the stage tips towards the pointer (TiltStage in kit.tsx sets
+   the angle), and a soft glare follows it. */
+.tour-tilt {
+  transform-style: preserve-3d;
+  transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+.tour-glare {
+  background: radial-gradient(38rem circle at var(--tour-gx, 50%) var(--tour-gy, 30%), rgb(255 255 255 / var(--tour-glare)), rgb(255 255 255 / 0) 46%);
+}
+[data-transparency="reduced"] .tour-stage {
+  background-color: rgb(var(--card-2));
+}
+@media (prefers-reduced-transparency: reduce) {
+  .tour-stage {
+    background-color: rgb(var(--card-2));
+  }
+}
+
+/* A picture. Its contents drop their extras when it's small, and a tall one
+   shows more, by its own size rather than the window's. The sizes are of the
+   tile's content box: a picture on a computer has about 12rem of height. */
+.tour-tile {
+  container-type: size;
+  transition:
+    box-shadow 0.4s cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 0.4s ease;
+}
+@container (max-width: 15rem) {
+  .tour-hide-narrow {
+    display: none !important;
+  }
+}
+@container (max-height: 11.75rem) {
+  .tour-hide-short {
+    display: none !important;
+  }
+}
+@container (max-height: 14.99rem) {
+  .tour-only-roomy {
+    display: none !important;
+  }
+}
+@container (max-height: 19.99rem) {
+  .tour-only-tall {
+    display: none !important;
+  }
+}
+@container (min-height: 20rem) {
+  .tour-hide-tall {
+    display: none !important;
+  }
+}
+/* The picture in focus is lit from beneath in the accent; Dark keeps to a
+   brighter edge, since nothing glows on black. */
+.tour-tile.is-on {
+  border-color: rgb(var(--accent) / 0.35);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / var(--glass-rim-a)),
+    0 0 0 1px rgb(var(--accent) / 0.12),
+    0 18px 40px -22px rgb(var(--accent) / 0.55);
+}
+[data-surface="black"] .tour-tile.is-on {
+  border-color: rgb(255 255 255 / 0.22);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.08),
+    0 0 0 1px rgb(255 255 255 / 0.06);
+}
+
+/* Light running round the edge of the picture in focus: a conic gradient
+   turned by a custom property, masked down to a ring. */
+@property --tour-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+.tour-sweep {
+  position: absolute;
+  inset: -1px;
+  z-index: 1;
+  border-radius: inherit;
+  padding: 1.5px;
+  pointer-events: none;
+  background: conic-gradient(
+    from var(--tour-angle),
+    rgb(var(--accent) / 0) 0deg,
+    rgb(var(--accent) / 0.85) 50deg,
+    rgb(var(--accent) / 0) 115deg,
+    rgb(var(--accent) / 0) 360deg
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  animation: tour-sweep 3.4s linear infinite;
+}
+@keyframes tour-sweep {
+  to {
+    --tour-angle: 360deg;
+  }
+}
+
+/* The bar under the feature in focus, counting down to the next. */
+.tour-autoplay {
+  position: absolute;
+  left: 0.9rem;
+  right: 0.9rem;
+  bottom: 0.3rem;
+  height: 2px;
+  border-radius: 2px;
+  background: rgb(var(--accent) / 0.6);
+  transform-origin: 0 50%;
+  pointer-events: none;
+  animation-name: tour-autoplay;
+  animation-timing-function: linear;
+  animation-fill-mode: both;
+}
+.tour-autoplay[data-paused] {
+  animation-play-state: paused;
+}
+button > .tour-autoplay {
+  bottom: 0.2rem;
+  height: 1.5px;
+}
+@keyframes tour-autoplay {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* The welcome: two orbits that turn opposite ways, their icons kept
+   upright, round a softly breathing light. */
+@keyframes tour-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.tour-orbit {
+  animation: tour-spin 90s linear infinite;
+}
+.tour-counter {
+  animation: tour-spin 90s linear infinite reverse;
+}
+.tour-orbit-rev {
+  animation: tour-spin 70s linear infinite reverse;
+}
+.tour-counter-rev {
+  animation: tour-spin 70s linear infinite;
+}
+.tour-halo {
+  background: radial-gradient(closest-side, rgb(var(--accent) / 0.26), rgb(var(--accent) / 0));
+  animation: tour-breathe 5s ease-in-out infinite;
+}
+[data-surface="black"] .tour-halo {
+  background: radial-gradient(closest-side, rgb(255 255 255 / 0.1), rgb(255 255 255 / 0));
+}
+@keyframes tour-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.85;
+  }
+  50% {
+    transform: scale(1.12);
+    opacity: 1;
+  }
+}
+
+/* A glint that crosses the first button now and then. */
+.tour-shine::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(110deg, rgb(255 255 255 / 0) 30%, rgb(255 255 255 / var(--tour-shine-a)) 50%, rgb(255 255 255 / 0) 70%);
+  transform: translateX(-120%);
+  animation: tour-shine 4.2s ease-in-out 1.8s infinite;
+}
+@keyframes tour-shine {
+  0% {
+    transform: translateX(-120%);
+  }
+  32%,
+  100% {
+    transform: translateX(120%);
+  }
+}
+
+/* The pictures' small motions. */
+.tour-heat {
+  background-color: rgb(var(--paper) / 0.07);
+}
+.tour-heat[data-level="1"] {
+  background-color: rgb(var(--accent) / 0.25);
+}
+.tour-heat[data-level="2"] {
+  background-color: rgb(var(--accent) / 0.45);
+}
+.tour-heat[data-level="3"] {
+  background-color: rgb(var(--accent) / 0.7);
+}
+.tour-heat[data-level="4"] {
+  background-color: rgb(var(--accent));
+}
+.tour-pop-in {
+  animation: tour-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+@keyframes tour-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+}
+
+/* Inline rather than a box, so it never wraps onto a line of its own. */
+.tour-caret {
+  margin-left: 1px;
+  border-left: 1.5px solid rgb(var(--accent));
+  animation: tour-blink 1.05s steps(1, end) infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .tour-caret {
+    display: none;
+  }
+}
+@keyframes tour-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+.tour-bell {
+  transform-origin: 50% 10%;
+  animation: tour-bell 1.6s ease-in-out 2 both;
+}
+@keyframes tour-bell {
+  0%,
+  60%,
+  100% {
+    transform: rotate(0deg);
+  }
+  10% {
+    transform: rotate(16deg);
+  }
+  20% {
+    transform: rotate(-13deg);
+  }
+  30% {
+    transform: rotate(9deg);
+  }
+  40% {
+    transform: rotate(-6deg);
+  }
+  50% {
+    transform: rotate(3deg);
+  }
+}
+
+.tour-float {
+  animation: tour-float 2.6s ease-in-out infinite;
+}
+@keyframes tour-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+/* A ring of the accent going out from a dot: something waiting for you. */
+.tour-ping {
+  position: relative;
+}
+.tour-ping::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: 0 0 0 0 rgb(var(--accent) / 0.5);
+  animation: tour-ping 1.8s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+@keyframes tour-ping {
+  to {
+    box-shadow: 0 0 0 7px rgb(var(--accent) / 0);
+  }
+}
+
+/* The journey from Prelims to the final list. */
+.tour-comet {
+  background: linear-gradient(90deg, rgb(var(--accent) / 0), rgb(var(--accent)));
+  animation: tour-comet 2.8s ease-in-out infinite;
+}
+@keyframes tour-comet {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(300%);
+  }
+}
+
+/* Data travelling between a laptop and a phone. */
+.tour-dash {
+  background-image: linear-gradient(90deg, rgb(var(--paper) / 0.3) 50%, rgb(var(--paper) / 0) 0);
+  background-size: 6px 1px;
+  background-repeat: repeat-x;
+}
+.tour-travel {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 5px;
+  height: 5px;
+  margin-top: -2.5px;
+  border-radius: 999px;
+  background: rgb(var(--accent));
+  animation: tour-travel 1.5s ease-in-out infinite both;
+}
+@keyframes tour-travel {
+  0% {
+    transform: translateX(0);
+    opacity: 0;
+  }
+  20%,
+  80% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(2.2rem);
+    opacity: 0;
+  }
+}
+
+/* The Tour button's dot, for an account that hasn't seen the tour: a few
+   pulses when the page opens, then it rests. */
+.tour-new {
+  animation: tour-new 1.4s cubic-bezier(0, 0, 0.2, 1) 5 forwards;
+}
+@keyframes tour-new {
+  75%,
+  100% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+}
+
+/* The Tour button's compass swings round when you point at it. */
+.tour-compass {
+  transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+:is(button:hover, button:focus-visible) > .tour-compass {
+  transform: rotate(-40deg);
+}
+
 /* ── Base ─────────────────────────────────────────────────────────── */
 
 * {

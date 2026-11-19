@@ -459,6 +459,8 @@ function sampleData(): ChronicleData & Record<string, unknown> {
       dailyHourTarget: 8,
       timezone: "Asia/Kolkata",
       onboardedAt: daysAgo(START),
+      // Long past its first week: the tour has been seen, so its button carries no dot.
+      tourSeenAt: daysAgo(START),
     },
     accomplished,
     subjects,
