@@ -21,10 +21,7 @@ import {
   Moon,
   CalendarDays,
   Gauge,
-  FileText,
   ChevronRight,
-  ClipboardList,
-  Brain,
   type LucideIcon,
 } from "lucide-react";
 import { useChronicle, useHasHydrated } from "@/lib/store";
@@ -34,7 +31,6 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Segmented } from "@/components/ui/misc";
-import { Modal } from "@/components/ui/modal";
 import { Sparkline } from "@/components/charts/sparkline";
 import {
   buildMentorContext,
@@ -44,15 +40,12 @@ import {
   buildWeeklyReport,
   buildMonthlyReport,
   mentorReply,
-  composeMentorPrompt,
-  MENTOR_SYSTEM_PROMPT,
   type MentorContext,
   type Risk,
   type RiskSeverity,
   type ScheduleBlock,
   type RevisionPlan,
   type MentorReport,
-  type ComposedPrompt,
   type ChatTurn,
 } from "@/lib/mentor";
 import type { ChronicleData } from "@/lib/types";
@@ -638,18 +631,14 @@ function TalkView({
   const [messages, setMessages] = useState<ChatTurn[]>([]);
   const [input, setInput] = useState("");
   const [typing, setTyping] = useState(false);
-  const [promptOpen, setPromptOpen] = useState(false);
-  const [lastPrompt, setLastPrompt] = useState<ComposedPrompt | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   function send(prompt: string) {
     const text = prompt.trim();
     if (!text || typing) return;
-    const history = messages;
     setMessages((m) => [...m, { role: "user", text }]);
     setInput("");
     setTyping(true);
-    setLastPrompt(composeMentorPrompt(ctx, text, history));
     const answer = mentorReply(ctx, data, text);
     setTimeout(() => {
       setMessages((m) => [...m, { role: "coach", text: answer }]);
@@ -664,23 +653,14 @@ function TalkView({
     });
   }, [messages, typing]);
 
-  const previewPrompt = lastPrompt ?? composeMentorPrompt(ctx, input || "How am I doing?", messages);
-
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <SectionTitle
           icon={Sparkles}
           title="Talk to your mentor"
-          sub="Every answer is computed from your live Chronicle data"
+          sub="Answers worked out by fixed rules from your own records. No AI model."
         />
-        <button
-          onClick={() => setPromptOpen(true)}
-          className="inline-flex items-center gap-1.5 rounded-full border border-line px-3 py-1.5 text-xs text-paper/60 transition-colors hover:border-paper/25 hover:text-paper"
-        >
-          <FileText className="h-3.5 w-3.5" />
-          View the prompt
-        </button>
       </div>
 
       <Card className="flex h-[520px] flex-col overflow-hidden">
@@ -776,80 +756,6 @@ function TalkView({
           </button>
         </div>
       </Card>
-
-      <PromptModal
-        open={promptOpen}
-        onClose={() => setPromptOpen(false)}
-        prompt={previewPrompt}
-      />
-    </div>
-  );
-}
-
-/* ── prompt architecture viewer ───────────────────────────────── */
-
-function PromptModal({
-  open,
-  onClose,
-  prompt,
-}: {
-  open: boolean;
-  onClose: () => void;
-  prompt: ComposedPrompt;
-}) {
-  return (
-    <Modal
-      open={open}
-      onClose={onClose}
-      title="Prompt architecture"
-      description="Exactly what would be sent to the language model"
-      className="sm:max-w-2xl"
-    >
-      <div className="space-y-5">
-        <PromptBlock
-          icon={Brain}
-          label="System — the mentor persona"
-          body={MENTOR_SYSTEM_PROMPT}
-        />
-        <PromptBlock
-          icon={ClipboardList}
-          label="Context — live Chronicle snapshot"
-          body={prompt.context}
-        />
-        <PromptBlock
-          icon={Sparkles}
-          label="Aspirant message"
-          body={prompt.user}
-        />
-        <p className="text-[0.72rem] leading-relaxed text-paper/45">
-          The deterministic engine answers locally from this same snapshot, so
-          swapping in a real model changes the voice — not the substance.
-        </p>
-      </div>
-    </Modal>
-  );
-}
-
-function PromptBlock({
-  icon: Icon,
-  label,
-  body,
-}: {
-  icon: LucideIcon;
-  label: string;
-  body: string;
-}) {
-  return (
-    <div>
-      <div className="mb-2 flex items-center gap-2 text-paper/55">
-        <Icon className="h-3.5 w-3.5" />
-        <span className="text-xs font-medium">
-          {label}
-        </span>
-      </div>
-      <pre className="no-scrollbar overflow-x-auto whitespace-pre-wrap tabular rounded-xl border border-line bg-paper/[0.03] p-4 text-[0.72rem] leading-relaxed text-paper/70">
-        {body}
-      </pre>
     </div>
   );
 }
