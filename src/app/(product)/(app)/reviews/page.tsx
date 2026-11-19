@@ -33,6 +33,8 @@ import { Modal } from "@/components/ui/modal";
 import { BarChart } from "@/components/charts/bar-chart";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { useToast } from "@/components/ui/toast";
+import { useConfirmedDownload } from "@/components/ui/confirm-download";
+import { fileSafe } from "@/lib/download";
 import { ReviewEditor, TYPE_WORD, usePerformanceData } from "@/components/reviews/review-editor";
 import { cn, daysBetween, formatDate, toISODate } from "@/lib/utils";
 import { useNow } from "@/lib/hooks";
@@ -50,19 +52,6 @@ type StatusFilter = "all" | "draft" | "completed";
 
 const STATUS_LABEL = { draft: "Draft", completed: "Completed" } as const;
 
-function download(name: string, text: string) {
-  const url = URL.createObjectURL(new Blob([text], { type: "text/markdown;charset=utf-8" }));
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = name;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
-
-const fileSafe = (s: string) => s.replace(/[^\w-]+/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "").toLowerCase();
-
 export default function ReviewsPage() {
   const hydrated = useHasHydrated();
   const reviews = useChronicle((s) => s.reviews);
@@ -71,6 +60,7 @@ export default function ReviewsPage() {
   const data = usePerformanceData();
   const confirm = useConfirm();
   const toast = useToast();
+  const download = useConfirmedDownload();
   const today = toISODate(useNow(60_000));
 
   const [type, setType] = useState<ReviewType>("Weekly");
@@ -129,16 +119,33 @@ export default function ReviewsPage() {
     toast({ title: "Review deleted" });
   }
 
-  function exportOne(r: Review) {
-    const f = figures.get(r.id) ?? figuresFor(r, data, today);
-    download(`review-${fileSafe(r.type)}-${fileSafe(r.periodLabel)}.md`, reviewMarkdown(r, f.snapshot));
-    toast({ title: "Review exported", description: "Saved as a Markdown file." });
+  async function exportOne(r: Review) {
+    const fileName = `review-${fileSafe(r.type)}-${fileSafe(r.periodLabel)}.md`;
+    const done = await download({
+      title: `Download the review of ${r.periodLabel}?`,
+      description: "Its figures and everything you wrote in it, as a Markdown file.",
+      fileName,
+      content: () => reviewMarkdown(r, (figures.get(r.id) ?? figuresFor(r, data, today)).snapshot),
+      type: "text/markdown;charset=utf-8",
+    });
+    if (done) toast({ title: "Review downloaded", description: fileName });
   }
 
-  function exportShown() {
-    const text = history.map((r) => reviewMarkdown(r, (figures.get(r.id) ?? figuresFor(r, data, today)).snapshot)).join("\n\n---\n\n");
-    download(`reviews-${today}.md`, text);
-    toast({ title: `${history.length} ${history.length === 1 ? "review" : "reviews"} exported`, description: "Saved as one Markdown file." });
+  async function exportShown() {
+    const n = history.length;
+    const filtering = Boolean(query.trim()) || typeFilter !== "All" || statusFilter !== "all";
+    const fileName = `reviews-${today}.md`;
+    const done = await download({
+      title: n === 1 ? "Download this review?" : filtering ? `Download these ${n} reviews?` : `Download all ${n} reviews?`,
+      description:
+        n === 1
+          ? `${filtering ? "The review shown below" : "Your only review"}, with its figures and what you wrote, as a Markdown file.`
+          : `${filtering ? `The ${n} reviews shown below` : `All ${n} of your reviews`}, with their figures and what you wrote, as one Markdown file.`,
+      fileName,
+      content: () => history.map((r) => reviewMarkdown(r, (figures.get(r.id) ?? figuresFor(r, data, today)).snapshot)).join("\n\n---\n\n"),
+      type: "text/markdown;charset=utf-8",
+    });
+    if (done) toast({ title: n === 1 ? "Review downloaded" : `${n} reviews downloaded`, description: fileName });
   }
 
   const togglePick = (id: string) =>
@@ -288,7 +295,7 @@ export default function ReviewsPage() {
             <Button size="sm" variant="ghost" disabled={picked.length !== 2} onClick={() => setComparing(true)} hint="Pick two reviews below, then compare their figures side by side.">
               <GitCompareArrows className="h-3.5 w-3.5" aria-hidden /> Compare{picked.length ? ` (${picked.length}/2)` : ""}
             </Button>
-            <Button size="sm" variant="ghost" disabled={!history.length} onClick={exportShown} hint="Every review shown below, as one Markdown file.">
+            <Button size="sm" variant="ghost" disabled={!history.length} onClick={() => void exportShown()} hint="Every review shown below, as one Markdown file. It asks first.">
               <Download className="h-3.5 w-3.5" aria-hidden /> Export
             </Button>
           </div>
@@ -419,7 +426,7 @@ export default function ReviewsPage() {
                         <IconButton label={`Open ${r.periodLabel}`} size="sm" onClick={() => openReview(r)}>
                           <PencilLine className="h-3.5 w-3.5" aria-hidden />
                         </IconButton>
-                        <IconButton label={`Export ${r.periodLabel}`} hint="As a Markdown file." size="sm" onClick={() => exportOne(r)}>
+                        <IconButton label={`Export ${r.periodLabel}`} hint="As a Markdown file. It asks first." size="sm" onClick={() => void exportOne(r)}>
                           <Download className="h-3.5 w-3.5" aria-hidden />
                         </IconButton>
                         <IconButton label={`Delete ${r.periodLabel}`} size="sm" onClick={() => void del(r)}>

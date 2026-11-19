@@ -42,6 +42,7 @@ import { Disclosure, Segmented } from "@/components/ui/misc";
 import { Tooltip } from "@/components/ui/tooltip";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { useToast } from "@/components/ui/toast";
+import { useConfirmedDownload } from "@/components/ui/confirm-download";
 import { cn, formatDate, toISODate } from "@/lib/utils";
 import { DiaryText } from "./diary-text";
 
@@ -83,17 +84,6 @@ function tidy(r: Reflection): Reflection {
   return out;
 }
 
-function download(name: string, text: string) {
-  const url = URL.createObjectURL(new Blob([text], { type: "text/markdown;charset=utf-8" }));
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = name;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
-
 export function DiaryEditor({
   entry,
   isNew,
@@ -115,6 +105,7 @@ export function DiaryEditor({
   const files = useChronicle((s) => s.files);
   const confirm = useConfirm();
   const toast = useToast();
+  const download = useConfirmedDownload();
   const today = toISODate(new Date());
   const ids = useId();
 
@@ -226,11 +217,18 @@ export function DiaryEditor({
     onClose();
   }
 
-  function exportEntry() {
+  async function exportEntry() {
     flush();
-    const names = new Map(files.map((f) => [f.id, f.name]));
-    download(`diary-${draft.date}-${draft.id.slice(-6)}.md`, entryMarkdown(tidy(draftRef.current), names));
-    toast({ title: "Entry exported", description: "Saved as a Markdown file on this device." });
+    const entry = tidy(draftRef.current);
+    const fileName = `diary-${entry.date}-${entry.id.slice(-6)}.md`;
+    const done = await download({
+      title: `Download “${entryTitle(entry)}”?`,
+      description: "This diary entry, with everything you wrote, its tags and the names of attached files, as a Markdown file.",
+      fileName,
+      content: () => entryMarkdown(entry, new Map(files.map((f) => [f.id, f.name]))),
+      type: "text/markdown;charset=utf-8",
+    });
+    if (done) toast({ title: "Entry downloaded", description: fileName });
   }
 
   const words = wordCount(draft.content);
@@ -293,7 +291,7 @@ export function DiaryEditor({
           <IconButton label={focus ? "Leave focus mode" : "Focus mode"} hint={focus ? undefined : "Hide everything but the page."} size="sm" onClick={() => onFocusChange(!focus)} className="hidden lg:grid">
             {focus ? <Minimize2 className="h-3.5 w-3.5" aria-hidden /> : <Maximize2 className="h-3.5 w-3.5" aria-hidden />}
           </IconButton>
-          <IconButton label="Export this entry" hint="As a Markdown file." size="sm" onClick={exportEntry} disabled={!hasContent(draft)}>
+          <IconButton label="Export this entry" hint="As a Markdown file. It asks first." size="sm" onClick={() => void exportEntry()} disabled={!hasContent(draft)}>
             <Download className="h-3.5 w-3.5" aria-hidden />
           </IconButton>
           <IconButton label={savedOnce.current ? "Delete this entry" : "Discard this entry"} size="sm" onClick={() => void remove()}>

@@ -30,6 +30,8 @@ export interface ConfirmOptions {
    * "This can't be undone." Destructive prompts say that by default.
    */
   consequence?: string;
+  /** In place of the tone's own icon (a bin for danger, a warning sign otherwise). */
+  icon?: React.ElementType;
 }
 
 type ConfirmFn = (options: ConfirmOptions) => Promise<boolean>;
@@ -71,6 +73,7 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
 
   const tone: ConfirmTone = state.tone ?? "danger";
   const danger = tone === "danger";
+  const Icon = state.icon ?? (danger ? Trash2 : AlertTriangle);
 
   return (
     <ConfirmContext.Provider value={confirm}>
@@ -101,11 +104,7 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
               danger ? "bg-danger/15 text-danger" : "bg-accent/15 text-accent",
             )}
           >
-            {danger ? (
-              <Trash2 className="h-5 w-5" />
-            ) : (
-              <AlertTriangle className="h-5 w-5" />
-            )}
+            <Icon className="h-5 w-5" aria-hidden />
           </span>
           <div className="min-w-0 pt-0.5">
             <h2 className="text-base font-semibold tracking-snugg text-paper">
