@@ -7,6 +7,7 @@ import { AuthFrame, queryParam } from "@/components/auth/auth-ui";
 import { landingAfterSignIn } from "@/components/auth/landing";
 import { BootScreen } from "@/components/account/boot-screen";
 import { Analytics } from "@/components/marketing/analytics";
+import { leaveDemo } from "@/lib/demo/mode";
 
 /** Pages that must stay reachable while a session exists. */
 const SIGNED_IN_OK = new Set(["/reset-password", "/auth/callback"]);
@@ -23,6 +24,10 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
   const allowSignedIn = SIGNED_IN_OK.has(pathname);
   const leave = !auth.cloudEnabled || (auth.status === "signedIn" && !allowSignedIn);
   const userId = auth.status === "signedIn" ? (auth.user?.id ?? null) : null;
+
+  // Signing in or up ends the interactive demo in this tab, so the account
+  // opens afterwards instead of the sample.
+  useEffect(() => leaveDemo(), []);
 
   useEffect(() => {
     if (!auth.cloudEnabled) {

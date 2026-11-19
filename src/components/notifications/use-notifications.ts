@@ -99,11 +99,11 @@ function useNotificationsSource(): NotificationsValue {
 
   /**
    * Settled once a sync has completed this visit, or once it is clear none can
-   * (offline, an error, a local-only account). Read-state and settings acknowledged
+   * (offline, an error, a local-only or demo account). Read-state and settings acknowledged
    * on another device arrive with that first sync.
    */
   const synced =
-    mode === "local" ||
+    mode !== "cloud" ||
     sync.lastSyncedAt !== null ||
     sync.status === "offline" ||
     sync.status === "error";

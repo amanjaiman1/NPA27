@@ -18,6 +18,7 @@ import { useAccount } from "@/components/account/account-session";
 import { FeatureAccessScope, FeatureGate } from "@/components/features/feature-access";
 import { PlatformInbox } from "@/components/platform/inbox";
 import { TeamBanner } from "@/components/platform/team-notices";
+import { DemoBar, DemoChrome, DemoGuide, DemoGuideSpace } from "@/components/demo/demo-chrome";
 import { useMatchMedia } from "@/lib/hooks";
 
 /** "1" when the person hid the sidebar on a wide screen. Same key as before. */
@@ -48,6 +49,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [appearanceOpen, setAppearanceOpen] = useState(false);
   const pathname = usePathname();
   const { accountId, mode, user } = useAccount();
+  const demo = mode === "demo";
 
   const docked = desktop && wide && !collapsed;
   const sidebarShowing = docked || (desktop && !wide && flyoutOpen);
@@ -119,6 +121,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     // account may open (lib/features.ts) and what the team has sent it.
     <FeatureAccessScope accountId={accountId}>
     <PlatformInbox userId={mode === "cloud" ? (user?.id ?? null) : null}>
+    <DemoChrome>
     <NotificationsProvider>
       <MotionConfig reducedMotion="user">
         <TourProvider>
@@ -233,16 +236,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <main className="app-stage no-scrollbar relative min-h-0 flex-1 overflow-y-auto">
                 {/* Bottom padding clears the phone's dock. */}
                 <div className="mx-auto w-full max-w-[1480px] px-4 pb-[calc(var(--bottom-nav-h,0px)+1.5rem)] pt-3 sm:px-6 lg:px-8 lg:pb-10 lg:pt-8 2xl:px-10">
+                  {demo && <DemoBar />}
                   <TeamBanner />
                   <PageTransition>
                     <FeatureGate>{children}</FeatureGate>
                   </PageTransition>
+                  {demo && <DemoGuideSpace />}
                 </div>
               </main>
             </div>
 
             <BottomNav onOpenMenu={() => setDrawerOpen(true)} />
-            <FileJanitor />
+            {demo ? <DemoGuide /> : <FileJanitor />}
 
             <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
             <AppearanceModal open={appearanceOpen} onClose={() => setAppearanceOpen(false)} />
@@ -250,6 +255,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </TourProvider>
       </MotionConfig>
     </NotificationsProvider>
+    </DemoChrome>
     </PlatformInbox>
     </FeatureAccessScope>
   );

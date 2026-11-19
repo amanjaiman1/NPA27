@@ -5,6 +5,8 @@ import { usePathname, useRouter } from "next/navigation";
 import { readStoredSessionUser, useAuth, type AccountUser } from "@/components/auth/auth-provider";
 import { LOCAL_ACCOUNT_ID } from "@/lib/account/scope";
 import { initialAuthRedirect } from "@/lib/supabase";
+import { isDemo } from "@/lib/demo/mode";
+import { DemoSession } from "@/components/demo/demo-session";
 import { AccountSession } from "./account-session";
 import { BootScreen } from "./boot-screen";
 import { useAccountKind } from "./use-platform-role";
@@ -24,6 +26,8 @@ import { useAccountKind } from "./use-platform-role";
  *   dashboard (see `useAccountKind`).
  * - Signed in: the account's session, keyed by its id so a different account
  *   remounts everything from scratch.
+ * - The interactive demo, in this tab: the sample account, whoever is or isn't
+ *   signed in here, with nothing loaded from or saved to any account.
  */
 export function RequireAccount({ children }: { children: React.ReactNode }) {
   const auth = useAuth();
@@ -50,27 +54,40 @@ export function RequireAccount({ children }: { children: React.ReactNode }) {
    * someone else, and must be read first.
    */
   const [saved, setSaved] = useState<AccountUser | null>(null);
+  // The demo flag lives in this tab's sessionStorage, which the server can't
+  // see: read after mounting, so the first render matches the server's.
+  const [demo, setDemo] = useState<boolean | null>(null);
   useEffect(() => {
     if (auth.cloudEnabled && !initialAuthRedirect) setSaved(readStoredSessionUser());
+    setDemo(isDemo());
     // Read once: from here on, the auth state decides.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
-    if (!signedOut) return;
+    // A visitor in the demo has no account, and that's fine.
+    if (!signedOut || demo !== false) return;
     const next = pathname && pathname !== "/dashboard" ? `next=${encodeURIComponent(pathname)}` : "";
     if (auth.endedReason === "signedOut") router.replace("/welcome");
     else if (auth.endedReason === "ended") router.replace(`/login?ended=1${next ? `&${next}` : ""}`);
     else router.replace(next ? `/login?${next}` : "/welcome");
-  }, [signedOut, auth.endedReason, pathname, router]);
+  }, [signedOut, demo, auth.endedReason, pathname, router]);
 
   const user = !auth.cloudEnabled ? null : auth.status === "signedIn" ? auth.user : auth.status === "loading" ? saved : null;
-  const kind = useAccountKind(user?.id ?? null);
+  // Not asked in the demo: it would use the session of whoever is signed in here.
+  const kind = useAccountKind(demo === false ? (user?.id ?? null) : null);
 
   useEffect(() => {
-    if (kind === "admin") router.replace("/admin");
-  }, [kind, router]);
+    if (kind === "admin" && demo === false) router.replace("/admin");
+  }, [kind, demo, router]);
 
+  if (demo === null) return <BootScreen />;
+  if (demo) {
+    // Leaving goes back to the person's own account if they have one here
+    // (for a Super Admin, the Admin Center, through the redirect above).
+    const own = !auth.cloudEnabled || user !== null;
+    return <DemoSession exitTo={own ? "/dashboard" : "/demo?left=1"}>{children}</DemoSession>;
+  }
   if (!auth.cloudEnabled) {
     return (
       <AccountSession accountId={LOCAL_ACCOUNT_ID} mode="local" user={null}>

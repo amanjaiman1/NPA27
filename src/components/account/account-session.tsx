@@ -35,6 +35,7 @@ import {
   storeKeyFor,
   type AccountMode,
   type ConflictRecord,
+  type StoredAccountMode,
 } from "@/lib/account/session";
 import { BootScreen, StatusScreen } from "./boot-screen";
 
@@ -50,7 +51,7 @@ export interface SyncView extends SyncState {
   role: SyncRole | "local";
 }
 
-interface AccountContextValue {
+export interface AccountContextValue {
   accountId: string;
   mode: AccountMode;
   user: AccountUser | null;
@@ -68,7 +69,7 @@ interface AccountContextValue {
 
 const AccountContext = createContext<AccountContextValue | null>(null);
 
-const IDLE: SyncView = {
+export const IDLE: SyncView = {
   status: "idle",
   pending: false,
   lastSyncedAt: null,
@@ -88,7 +89,7 @@ export function AccountSession({
   children,
 }: {
   accountId: string;
-  mode: AccountMode;
+  mode: StoredAccountMode;
   user: AccountUser | null;
   children: React.ReactNode;
 }) {
@@ -287,4 +288,13 @@ export function useAccount(): AccountContextValue {
   const ctx = useContext(AccountContext);
   if (!ctx) throw new Error("useAccount must be used within an AccountSession");
   return ctx;
+}
+
+/**
+ * An account context with no account behind it, for the interactive demo
+ * (components/demo/demo-session.tsx): the pages read it exactly as they read
+ * a real one, and nothing in it can sync, save or sign anyone out.
+ */
+export function StaticAccountProvider({ value, children }: { value: AccountContextValue; children: React.ReactNode }) {
+  return <AccountContext.Provider value={value}>{children}</AccountContext.Provider>;
 }

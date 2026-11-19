@@ -1,4 +1,5 @@
-import { Check, CloudOff, HardDrive, RefreshCw, TriangleAlert, type LucideIcon } from "lucide-react";
+import { Check, CloudOff, FlaskConical, HardDrive, RefreshCw, TriangleAlert, type LucideIcon } from "lucide-react";
+import type { AccountMode } from "@/lib/account/session";
 import type { SyncView } from "./account-session";
 
 export interface SyncLabel {
@@ -19,7 +20,15 @@ function ago(iso: string | null): string {
 }
 
 /** One phrasing of the sync state, shared by the menu and the settings page. */
-export function describeSync(sync: SyncView, mode: "cloud" | "local"): SyncLabel {
+export function describeSync(sync: SyncView, mode: AccountMode): SyncLabel {
+  if (mode === "demo") {
+    return {
+      label: "Demo",
+      detail: "A sample account with made-up data. Nothing you change is saved, and it resets when you leave.",
+      icon: FlaskConical,
+      tone: "muted",
+    };
+  }
   if (mode === "local") {
     return {
       label: "On this device",

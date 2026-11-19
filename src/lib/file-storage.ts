@@ -1,6 +1,7 @@
 "use client";
 
 import { supabase } from "./supabase";
+import { isDemo } from "./demo/mode";
 import {
   FILE_BUCKET,
   MAX_FILE_BYTES,
@@ -148,7 +149,10 @@ export async function prepareFile(file: File, def: FileTypeDef): Promise<Prepare
 
 /* ── uploading ─────────────────────────────────────────────────── */
 
+const DEMO_FILES = "The demo saves nothing, so it has no files. Create a free account to attach them.";
+
 async function accessToken(): Promise<string> {
+  if (isDemo()) throw new FileError(DEMO_FILES, "server");
   if (!supabase) throw new FileError("Attachments need cloud sync, which isn't set up in this build.", "server");
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;
@@ -248,6 +252,7 @@ const links = new Map<string, { url: string; expires: number }>();
  * for new links (or download the images again) on every render.
  */
 export async function fileLink(path: string, download?: string): Promise<string> {
+  if (isDemo()) throw new FileError(DEMO_FILES, "server");
   if (!supabase) throw new FileError("Attachments need cloud sync.", "server");
   const key = download ? `${path}|${download}` : path;
   const cached = links.get(key);
@@ -280,6 +285,8 @@ export async function fileText(path: string, maxBytes = 200_000): Promise<{ text
 
 /** Deletes objects from the account's own folder. Missing objects count as deleted. */
 export async function removeStoredPaths(paths: string[]): Promise<boolean> {
+  // Never on someone's real storage from the demo: report "not done", so nothing is forgotten either.
+  if (isDemo()) return false;
   if (!supabase || !paths.length) return true;
   for (const p of paths) {
     links.delete(p);
@@ -291,7 +298,7 @@ export async function removeStoredPaths(paths: string[]): Promise<boolean> {
 
 /** Objects in the account's folder, oldest pages first, for the occasional sweep. */
 export async function listStoredObjects(userId: string): Promise<{ path: string; createdAt: string | null }[]> {
-  if (!supabase) return [];
+  if (!supabase || isDemo()) return [];
   const out: { path: string; createdAt: string | null }[] = [];
   for (let offset = 0; offset < 5000; offset += 1000) {
     const { data, error } = await supabase.storage

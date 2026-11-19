@@ -20,6 +20,7 @@ import { useEffect, useRef } from "react";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import { LIVE_AREAS, LIVE_EVENT, LIVE_TOPIC, liveAreasOf, type LiveArea } from "@/lib/platform/live";
+import { isDemo } from "@/lib/demo/mode";
 
 const HIDDEN_LET_GO_MS = 60_000;
 const GIVE_UP_AFTER_ERRORS = 3;
@@ -50,7 +51,8 @@ function emit(areas: readonly LiveArea[]) {
 
 async function connect() {
   const client = supabase;
-  if (!client || channel || !listeners.size || Date.now() < pausedUntil) return;
+  // The demo joins nothing with the session of whoever is signed in here (lib/demo/mode.ts).
+  if (!client || channel || !listeners.size || Date.now() < pausedUntil || isDemo()) return;
   const ch = client.channel(LIVE_TOPIC, { config: { private: true } });
   channel = ch;
   ch.on("broadcast", { event: LIVE_EVENT }, (message) => emit(liveAreasOf(message.payload)));

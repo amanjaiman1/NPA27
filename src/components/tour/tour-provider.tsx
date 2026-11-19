@@ -48,7 +48,7 @@ export function TourProvider({ children }: { children: React.ReactNode }) {
    * opening it before then would show it a second time.
    */
   const synced =
-    mode === "local" ||
+    mode !== "cloud" ||
     sync.lastSyncedAt !== null ||
     sync.status === "offline" ||
     sync.status === "error";

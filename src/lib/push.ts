@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { supabase, isCloudConfigured } from "./supabase";
+import { isDemo } from "./demo/mode";
 
 /* ════════════════════════════════════════════════════════════════
    BACKGROUND PUSH — the browser half
@@ -120,6 +121,8 @@ export type PushFailure =
 export async function subscribeToPush(): Promise<
   { ok: true } | { ok: false; reason: PushFailure; detail?: string }
 > {
+  // The demo has no account to send to, and must not register this browser for a real one.
+  if (isDemo()) return { ok: false, reason: "not-signed-in" };
   if (!isPushSupported()) return { ok: false, reason: "unsupported" };
   if (!VAPID_PUBLIC_KEY) return { ok: false, reason: "unconfigured" };
   if (!isCloudConfigured) return { ok: false, reason: "no-cloud" };
@@ -185,6 +188,7 @@ export async function subscribeToPush(): Promise<
 export async function sendTestPush(): Promise<
   { ok: true; sent: number; devices: number } | { ok: false; error: string }
 > {
+  if (isDemo()) return { ok: false, error: "The demo doesn't send notifications." };
   const token = await accessToken();
   if (!token) return { ok: false, error: "Sign in first." };
 
@@ -208,6 +212,8 @@ export async function sendTestPush(): Promise<
 
 /** Unsubscribe this device and forget it server-side. */
 export async function unsubscribeFromPush(): Promise<boolean> {
+  // This browser's subscription may belong to a real account signed in here: the demo leaves it alone.
+  if (isDemo()) return false;
   const reg = await serviceWorkerReady();
   const sub = await reg?.pushManager.getSubscription();
   if (!sub) return true;

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { KeyRound, LogOut, ShieldAlert, Trash2 } from "lucide-react";
+import { KeyRound, LogOut, RotateCcw, ShieldAlert, Trash2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { passwordProblem } from "@/lib/auth-errors";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,8 @@ import { AuthMessage, PasswordInput } from "@/components/auth/auth-ui";
 import { useAccount } from "@/components/account/account-session";
 import { eraseAccountFromDevice } from "@/lib/account/session";
 import { useChronicle } from "@/lib/store";
+import { isDemo } from "@/lib/demo/mode";
+import { loadSampleAccount } from "@/lib/demo/load";
 import { SaveNote, SettingsSection } from "./section";
 
 /** Email, password and signing out. Cloud accounts only. */
@@ -85,12 +87,30 @@ export function AccountSecurity() {
   );
 }
 
-/** Deleting the account (cloud) or wiping this browser (local-only builds). */
+/** Deleting the account (cloud), wiping this browser (local-only builds), or starting the demo over. */
 export function DangerZone() {
   const { mode, accountId } = useAccount();
   const resetData = useChronicle((s) => s.resetData);
   const confirm = useConfirm();
   const [open, setOpen] = useState(false);
+
+  if (mode === "demo") {
+    return (
+      <SettingsSection
+        id="danger"
+        icon={RotateCcw}
+        title="Start the demo over"
+        description="In your own account, this is where you'd delete it, with everything in it, whenever you like."
+      >
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm leading-relaxed text-paper/65">Puts the sample account back as it was. Nothing here is saved anyway.</p>
+          <Button variant="ghost" className="shrink-0" onClick={() => void loadSampleAccount()}>
+            <RotateCcw className="h-4 w-4" /> Reset the sample
+          </Button>
+        </div>
+      </SettingsSection>
+    );
+  }
 
   if (mode === "local") {
     return (
@@ -155,6 +175,11 @@ function DeleteAccountDialog({ open, onClose }: { open: boolean; onClose: () => 
     if (verified.error) {
       setBusy(false);
       return setError(verified.error);
+    }
+    // Never from the demo, whoever is signed in here (lib/demo/mode.ts).
+    if (isDemo()) {
+      setBusy(false);
+      return setError("Accounts can't be deleted from the demo.");
     }
     const token = (await supabase?.auth.getSession())?.data.session?.access_token;
     const res = await fetch("/api/account/delete", {

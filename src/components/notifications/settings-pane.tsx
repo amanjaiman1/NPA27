@@ -16,6 +16,7 @@ import {
   type PermissionState,
 } from "./use-notifications";
 import { usePushSubscription, sendTestPush } from "@/lib/push";
+import { useAccount } from "@/components/account/account-session";
 import { Switch } from "@/components/ui/switch";
 
 function Row({
@@ -152,6 +153,19 @@ function PermissionBlock({
  * up believing notifications are on when nothing can ever arrive.
  */
 function BackgroundPushRow() {
+  const { mode } = useAccount();
+  if (mode === "demo") {
+    return (
+      <Note>
+        In your own account, reminders can arrive even when the app is closed. The demo doesn&apos;t send any, and leaves this
+        browser&apos;s notification settings as they are.
+      </Note>
+    );
+  }
+  return <BackgroundPushControls />;
+}
+
+function BackgroundPushControls() {
   const {
     subscribed,
     busy,

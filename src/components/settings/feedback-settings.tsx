@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { ImagePlus, LifeBuoy, Send, X } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useChronicle } from "@/lib/store";
 import { isStandalone } from "@/lib/pwa";
 import { FEEDBACK_MIN_LENGTH, FEEDBACK_TOPICS, LIMITS, type FeedbackReport, type FeedbackTopic } from "@/lib/report";
 import { apiCall, ApiError } from "@/lib/platform/client";
+import { DemoBlockedError, isDemo } from "@/lib/demo/mode";
 import { prepareScreenshot, type Screenshot } from "@/lib/platform/screenshot";
 import type { MyFeedback } from "@/lib/platform/types";
 import { useAccount } from "@/components/account/account-session";
@@ -56,9 +58,29 @@ type Sent = MyFeedback & { screenshot: "stored" | "failed" | null; emailed: bool
  * Bug reports, feature requests, suggestions and anything else, and the
  * switch for automatic crash reports. With an account, a message goes to the
  * Feedback Center: the team answers it there, and the answer and its status
- * appear under "Your messages". On this device only, it goes by email.
+ * appear under "Your messages". On this device only, it goes by email. In the
+ * demo nothing is sent: there's no account to send it from or answer it in.
  */
 export function FeedbackSettings() {
+  const { mode } = useAccount();
+  if (mode === "demo") {
+    return (
+      <SettingsSection id="feedback" icon={LifeBuoy} title="Help & feedback" description="Bugs, ideas and questions, straight to the team.">
+        <p className="text-sm leading-relaxed text-paper/65">
+          In your own account, this sends a message to the team, with a screenshot if it helps, and their answer appears here. The
+          demo doesn&apos;t send anything. To reach the team now, use the{" "}
+          <Link href="/contact" className="font-semibold text-accent hover:underline">
+            contact page
+          </Link>
+          .
+        </p>
+      </SettingsSection>
+    );
+  }
+  return <FeedbackForm />;
+}
+
+function FeedbackForm() {
   const { user, mode } = useAccount();
   const inbox = useInbox();
   const crashReports = useChronicle((s) => s.profile.crashReports !== false);
@@ -144,6 +166,7 @@ export function FeedbackSettings() {
 
   /** By email, the way it worked before the Feedback Center: no screenshot, no history. */
   async function byEmail(): Promise<string> {
+    if (isDemo()) throw new DemoBlockedError("Sending a message");
     const report: FeedbackReport = {
       kind: "feedback",
       topic,

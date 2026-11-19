@@ -230,7 +230,9 @@ export function AttachmentTray({
     return (
       <p className="flex items-center gap-2 rounded-xl border border-dashed border-paper/15 px-4 py-3 text-[0.8rem] text-paper/55">
         <CloudOff className="h-4 w-4 shrink-0" />
-        Attachments are stored in your account&apos;s cloud space, which this build doesn&apos;t have.
+        {mode === "demo"
+          ? "In your own account you can attach notes, photos and PDFs here. The demo saves nothing, so it has no files."
+          : "Attachments are stored in your account's cloud space, which this build doesn't have."}
       </p>
     );
   }

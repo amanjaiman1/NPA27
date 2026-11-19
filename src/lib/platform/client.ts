@@ -9,6 +9,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { DemoBlockedError, isDemo } from "@/lib/demo/mode";
 
 export class ApiError extends Error {
   constructor(
@@ -26,6 +27,8 @@ async function token(): Promise<string | null> {
 
 /** A JSON call with the session's token. Resolves to `data`; throws ApiError otherwise. */
 export async function apiCall<T = unknown>(path: string, init: { method?: string; body?: unknown } = {}): Promise<T> {
+  // The demo never speaks for anyone, even when someone is signed in in this browser.
+  if (isDemo()) throw new ApiError(403, "demo", new DemoBlockedError().message);
   const t = await token();
   if (!t) throw new ApiError(401, "unauthorized", "Sign in to continue.");
   let res: Response;
