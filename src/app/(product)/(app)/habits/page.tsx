@@ -110,7 +110,7 @@ export default function HabitsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Habits"
+        eyebrow="My Habits"
         title="You don't rise to your goals. You fall to your systems."
         description="Connect a habit to the Daily Journal, Life Dashboard, Revision or Roadmap and it keeps itself from what you record there. The rest you tick off here."
         actions={

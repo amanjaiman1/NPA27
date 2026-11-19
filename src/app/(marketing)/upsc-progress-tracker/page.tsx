@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CalendarCheck, Flag, Gauge, HeartPulse, LayoutDashboard, Target } from "lucide-react";
+import { CalendarCheck, Gauge, HeartPulse, LayoutDashboard, ListChecks, Target } from "lucide-react";
 import { pageMetadata } from "@/lib/seo/metadata";
 import { PAGES } from "@/lib/seo/pages";
 import { PageHero } from "@/components/marketing/page-hero";
@@ -120,8 +120,9 @@ export default function ProgressTrackerPage() {
               Sleep, exercise, water, screen time and deep work next to your study hours, with reports over any period
               you choose.
             </FeatureCard>
-            <FeatureCard icon={Flag} title="Timeline and milestones">
-              The milestones of your preparation and each exam stage, from Prelims to the final list, attempt by attempt.
+            <FeatureCard icon={ListChecks} title="Today's habits">
+              The habits due today, how far each has got and where the figure came from: your journal, sleep, revision
+              or a tick.
             </FeatureCard>
           </div>
         </Container>

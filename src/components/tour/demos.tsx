@@ -4,7 +4,6 @@ import { useId, useMemo, useRef } from "react";
 import { motion } from "framer-motion";
 import {
   ArrowRight,
-  BarChart3,
   Bell,
   BookOpen,
   Bookmark,
@@ -15,7 +14,6 @@ import {
   Command,
   CornerDownLeft,
   Droplets,
-  Flag,
   Flame,
   Flower2,
   Footprints,
@@ -65,7 +63,6 @@ export type DemoId =
   | "graph"
   | "goals"
   | "roadmap"
-  | "timeline"
   | "reviews"
   | "diary"
   | "coach"
@@ -972,48 +969,6 @@ function RoadmapDemo({ data, t0 }: DemoProps) {
   );
 }
 
-function TimelineDemo({ t0 }: DemoProps) {
-  const items = [
-    { icon: Flag, title: "Started the preparation", meta: "Day 1" },
-    { icon: Clock, title: "First 100 hours", meta: "Recorded for you" },
-    { icon: BarChart3, title: "First full-length mock", meta: "Recorded for you" },
-  ];
-  return (
-    <div className="relative flex h-full min-h-0 flex-col justify-center">
-      <ul className="relative space-y-3">
-        <motion.span
-          className="absolute bottom-3 left-[0.94rem] top-3 w-px origin-top bg-paper/15"
-          initial={{ scaleY: 0 }}
-          animate={{ scaleY: 1 }}
-          transition={{ delay: t0 + 0.2, duration: 1.2, ease: EASE_OUT }}
-        />
-        {items.map((it, i) => (
-          <motion.li
-            key={it.title}
-            className="relative flex min-w-0 items-center gap-3"
-            initial={{ opacity: 0, x: -12 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: t0 + 0.35 + i * 0.3, duration: 0.55, ease: EASE_OUT }}
-          >
-            <span
-              className={cn(
-                "relative grid h-[1.9rem] w-[1.9rem] shrink-0 place-items-center rounded-full border",
-                i === items.length - 1 ? "border-accent/40 bg-accent/10 text-accent" : "border-line bg-card text-paper/70",
-              )}
-            >
-              <it.icon className="h-3.5 w-3.5" />
-            </span>
-            <div className="min-w-0">
-              <p className="truncate text-[0.68rem] font-semibold text-paper">{it.title}</p>
-              <p className="truncate text-[0.56rem] text-paper/55">{it.meta}</p>
-            </div>
-          </motion.li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
 /* ── 5. Look back ────────────────────────────────────────────── */
 
 function ReviewsDemo({ t0 }: DemoProps) {
@@ -1382,7 +1337,6 @@ export const DEMOS: Record<DemoId, (props: DemoProps) => JSX.Element> = {
   graph: GraphDemo,
   goals: GoalsDemo,
   roadmap: RoadmapDemo,
-  timeline: TimelineDemo,
   reviews: ReviewsDemo,
   diary: DiaryDemo,
   coach: CoachDemo,

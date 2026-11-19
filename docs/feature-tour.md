@@ -28,10 +28,10 @@ a page being chosen, a bubble beside the button says it can be found there.
 | Step | Pages |
 | --- | --- |
 | Welcome | The DoOrDie mark drawing itself in two orbits of every page's icon, the day of preparation and the days to the exam |
-| Every day | Daily Journal, Habits, Life Dashboard, Library |
+| Every day | Daily Journal, My Habits, Life Dashboard, Library |
 | Remember | Revision, Mistake Tracker, Current Affairs |
 | Progress | Subject Progress, Study Heatmap, Mock Analytics, Knowledge Graph |
-| Plan | Goals, Roadmap, Milestone Timeline |
+| Plan | Goals, Roadmap |
 | Review | Performance Review, Personal Diary, Study Coach |
 | Yours | Search, Notifications, Themes (a real theme switch), Install & sync |
 | Where to start | Write today's entry, set a goal, plan this week, check the syllabus, log a mock test, or look around first |

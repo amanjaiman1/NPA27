@@ -8,7 +8,6 @@ import {
   Layers,
   LayoutDashboard,
   ListChecks,
-  Milestone,
   Network,
   Newspaper,
   NotebookPen,
@@ -95,7 +94,7 @@ export const CHAPTERS: Chapter[] = [
       },
       {
         id: "habits",
-        name: "Habits",
+        name: "My Habits",
         icon: ListChecks,
         short: "Habits that keep themselves",
         detail:
@@ -227,7 +226,7 @@ export const CHAPTERS: Chapter[] = [
     label: "Plan",
     icon: Target,
     title: "Aim high, and plan the way.",
-    lead: "Goals that measure themselves, plans you write yourself, and the milestones along the way.",
+    lead: "Goals that measure themselves, and plans you write yourself for the year, the month and the week.",
     cols: 2,
     rows: 2,
     glow: [
@@ -254,16 +253,7 @@ export const CHAPTERS: Chapter[] = [
         detail:
           "Write yearly, monthly and weekly plans. Weeks hold activities with dates and priorities, and progress counts only what you finish.",
         href: "/roadmap",
-        area: { col: "2 / 3", row: "1 / 2" },
-      },
-      {
-        id: "timeline",
-        name: "Milestone Timeline",
-        icon: Milestone,
-        short: "The journey so far",
-        detail: "The moments that matter in your preparation, many of them recorded for you as you go.",
-        href: "/timeline",
-        area: { col: "2 / 3", row: "2 / 3" },
+        area: { col: "2 / 3", row: "1 / 3" },
       },
     ],
   },
@@ -423,7 +413,6 @@ export const ORBIT_OUTER: LucideIcon[] = [
   Network,
   Target,
   Route,
-  Milestone,
   CalendarCheck,
   BookLock,
   Sparkles,

@@ -23,7 +23,6 @@ const PAGES: [string, string][] = [
   ["screen", "/wellbeing/screen"],
   ["revision", "/revision"],
   ["roadmap", "/roadmap"],
-  ["timeline", "/timeline"],
   ["current-affairs", "/current-affairs"],
   ["mistakes", "/mistakes"],
   ["habits", "/habits"],

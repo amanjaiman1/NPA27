@@ -2,7 +2,7 @@
    THE UPSC CHRONICLE — UNIFIED DOMAIN MODEL
    A single typed graph that connects every feature: a day in the
    journal links to subjects, mocks, mistakes, current affairs, the
-   knowledge graph, habits, reflections and milestones.
+   knowledge graph, habits and goals.
    ════════════════════════════════════════════════════════════════ */
 
 export type ISODate = string; // "yyyy-mm-dd"
@@ -680,7 +680,14 @@ export interface Book {
   isStandard?: boolean; // a "standard" UPSC reference book
 }
 
-/* ── Milestones / Timeline ───────────────────────────────────── */
+/* ── Milestone Timeline (retired) ───────────────────────────── */
+
+/**
+ * The Milestone Timeline page is retired. Milestones written there stay in
+ * the account, as they were, so nothing anyone recorded is lost, and older
+ * devices that still show the page keep working; nothing in this version
+ * reads or writes them.
+ */
 
 export type MilestoneType =
   | "Start"
@@ -927,6 +934,7 @@ export interface ChronicleData {
   lifeLog: LifeEntry[];
   goals: Goal[];
   books: Book[];
+  /** Retired with the Milestone Timeline; kept as it was. */
   milestones: Milestone[];
   reflections: Reflection[];
   reviews: Review[];

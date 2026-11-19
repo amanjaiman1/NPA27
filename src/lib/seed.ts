@@ -170,7 +170,7 @@ export interface HabitTemplate {
 /**
  * The habits first-run setup offers. Those that can be read from records kept
  * elsewhere fill in by themselves (lib/habit-engine.ts); the rest are ticked
- * off on the Habits page.
+ * off on My Habits.
  */
 export const HABIT_TEMPLATES: HabitTemplate[] = [
   { id: "study", name: "Daily study", icon: "book", config: { category: "Study", source: "journal", metric: "studyHours" }, hint: "Fills in from your journal hours" },

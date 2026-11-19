@@ -23,7 +23,6 @@ import type {
   Goal,
   JournalEntry,
   LifeEntry,
-  Milestone,
   Mistake,
   MistakeCategory,
   MockSection,
@@ -403,7 +402,7 @@ export function demoData(themeMode: ThemeMode = "light", opts: { withToday?: boo
     });
   }
 
-  /* goals, books, reviews, reflections, current affairs, milestones */
+  /* goals, books, reviews, reflections, current affairs */
   const goals: Goal[] = [
     { id: "g1", title: "Study 50 hours this week", horizon: "Weekly", metric: "studyHours", target: 50, unit: "h", status: "Active", createdOn: daysAgo(20) },
     { id: "g2", title: "Take four Prelims mocks this month", horizon: "Monthly", metric: "mocksTaken", target: 4, unit: "mocks", status: "Active", createdOn: daysAgo(15) },
@@ -474,11 +473,6 @@ export function demoData(themeMode: ThemeMode = "light", opts: { withToday?: boo
     mainsRelevant: i % 3 !== 1,
     bookmarked: i < 2,
   }));
-  const milestones: Milestone[] = [
-    { id: "ms-1", date: daysAgo(START), title: "Started preparation", type: "Start" },
-    { id: "ms-2", date: daysAgo(96), title: "First full-length Prelims mock", type: "Achievement" },
-    { id: "ms-3", date: daysAgo(40), title: "Finished the first reading of Laxmikanth", type: "Achievement" },
-  ];
 
   return {
     profile: {
@@ -509,7 +503,8 @@ export function demoData(themeMode: ThemeMode = "light", opts: { withToday?: boo
     lifeLog,
     goals,
     books,
-    milestones,
+    milestones: [],
+    coach: { decisions: [], briefings: [] },
     reflections,
     reviews,
     topicLinks: buildTopicLinks(subjects, daysAgo(START)),

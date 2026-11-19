@@ -202,7 +202,7 @@ attachments(id, entry_id, kind, name, url, caption, size)
    motivation, focus) → Wins/Failures/Lessons → Highlight + Reflection → Tags →
    Photos. Lists use chip/row editors; images are auto-compressed on drop.
 3. **Save** — `totalHours` is derived from blocks; the entry is **upserted by
-   date** (editing today simply updates it). The timeline, heatmap, streak and
+   date** (editing today simply updates it). The heatmap, streak, habits and
    dashboard update instantly.
 4. **Relive** — clicking any row opens `/journal/[date]`, a full diary view with
    ‹ / › navigation to the adjacent day (you can browse straight through the

@@ -196,7 +196,7 @@ export function TodayRow({
   item: HabitToday;
   compact?: boolean;
   onOpen?: (h: Habit) => void;
-  /** The name opens the habit on the Habits page. */
+  /** The name opens the habit on My Habits. */
   linked?: boolean;
 }) {
   const toggle = useChronicle((s) => s.toggleHabit);
