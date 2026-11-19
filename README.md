@@ -69,8 +69,9 @@ people. Delete `.env.local` when you're done, and never deploy with it.
 
 | Command | What it checks |
 | --- | --- |
-| `npm test` | Unit tests: the three-way merge, the sync engine with two simulated devices (offline edits, clashes, stale devices), per-account browser storage, the one-time move of pre-account data, the new-account template, attached-file rules, completed topics, Life Dashboard reports and form, goals, the clean-up of data older versions wrote, saving a journal day, sleep times and durations, the three themes (synced, painted before load, and what a theme, palette or Liquid Glass saved by an older version becomes), Reduce transparency as a setting of its own, and the Roadmap (periods across month and year ends, leap years and time zones, progress from activities only, carry forward, duplicate, archive, goal and journal links that change neither, two accounts, two devices). |
-| `npm run test:db` | Applies `supabase/schema.sql` and every migration (twice, to prove they re-run safely) to a throwaway Postgres with Supabase's roles, then runs `supabase/tests/rls_isolation.sql`. |
+| `npm test` | Unit tests: the three-way merge, the sync engine with two simulated devices (offline edits, clashes, stale devices), per-account browser storage, the one-time move of pre-account data, the new-account template, attached-file rules, completed topics, Life Dashboard reports and form, goals, the clean-up of data older versions wrote, saving a journal day, sleep times and durations, the three themes (synced, painted before load, and what a theme, palette or Liquid Glass saved by an older version becomes), Reduce transparency as a setting of its own, and the Roadmap (periods across month and year ends, leap years and time zones, progress from activities only, carry forward, duplicate, archive, goal and journal links that change neither, two accounts, two devices), and the Admin Center's roles and permissions, the checks on everything it accepts, its API dispatcher with fake dependencies (every address needs the permission the design gives it, 401s, 403s, cross-site refusals, a failed suspension record lifting the ban again, rate limits), and feature access (everything open, no payment code). |
+| `npm run test:db` | Applies `supabase/schema.sql` and every migration (twice, to prove they re-run safely) to a throwaway Postgres with Supabase's roles, then runs `supabase/tests/rls_isolation.sql` and `supabase/tests/platform_admin.sql` (every Admin Center rule the database enforces: who may call what, roles, the last Super Admin, review eligibility and consent, feedback privacy, announcements, the changelog, settings and the append-only audit log). |
+| `npm run test:e2e:admin` | 16 scenarios against the mock: the first Super Admin from the setup guide's SQL, the same permissions in TypeScript and the database, roles (never to oneself, never Super Admin from the app, never through a profile or a direct database call), each role's reach, a review from real use to the website and back down, feedback with a screenshot and private notes, announcements and read state, changelog drafts as 404s, suspension blocking sign-in, settings reaching the public site, the audit log (complete, append-only, no private words), the last Super Admin's account, then the Admin Center in a browser for a student, a Super Admin and a Moderator, on a phone and in all three themes. Builds against the mock like `test:e2e`. |
 | `npm run test:e2e` | 20 browser scenarios against the mock: two accounts in one browser, the theme following an account with no light flash, a second device, simultaneous edits, direct database access with another account's token, attached files (stored once, linked to a goal without a copy, unreadable by another account, deleted with the last day that holds them), recording, editing and deleting a night's sleep, Reduce transparency (on any theme, painted before load, on a second device, never on another account), Light and Dark frosted and Lavender crisp (synced, painted before load, on a second device), an older device's Blue Glass opening as Light, the Roadmap (empty at first; a year, its months and a week planned by hand; deleting one month; a goal and a journal day linked without changing either; edits from two devices at once; archiving; another account seeing none of it), sign-out, the owner's existing data, a fresh account, account deletion (including its files) and password reset. Needs `npx playwright install chromium` once. It builds the app against the mock, so run `npm run build` again afterwards. |
 | `npm run lint`, `npx tsc --noEmit`, `npm run check:classes` | Lint, types, and the Tailwind opacity guard. |
 
@@ -146,6 +147,14 @@ In the Supabase SQL Editor, run these files in order:
      unfinished, so habits that count Roadmap work get background reminders
      too. No table or policy changes. Until it runs, those habits are simply
      left out of background reminders. See [`docs/notifications.md`](docs/notifications.md).
+   - `20261204120000_platform_admin.sql`: the Admin Center. Roles, platform
+     settings, an append-only audit log, reviews, feedback (with a private
+     `platform-feedback` bucket for screenshots), announcements with each
+     account's read state, and the changelog. Every new table has row-level
+     security on with no direct access; the app reaches them only through
+     database functions that check the caller. Nothing existing changes.
+     Until it runs, the Admin Center says it isn't set up, and feedback is
+     emailed as before. See [`docs/ADMIN_SETUP.md`](docs/ADMIN_SETUP.md).
 
 All of them are additive and safe to re-run: nothing is dropped or rewritten, and
 existing data keeps working. A SQL file in the repo does nothing until you run it.
@@ -173,7 +182,7 @@ Vercel → Project → Settings → Environment Variables.
 | --- | --- | --- |
 | `NEXT_PUBLIC_SUPABASE_URL` | browser + server | Accounts and sync |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | browser + server | Accounts and sync (public; data is protected by RLS) |
-| `SUPABASE_SERVICE_ROLE_KEY` | **server only** | Account deletion, and background push. Never prefix it with `NEXT_PUBLIC_`. |
+| `SUPABASE_SERVICE_ROLE_KEY` | **server only** | Account deletion, background push, and the Admin Center's server routes. Never prefix it with `NEXT_PUBLIC_`. |
 | `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`, `CRON_SECRET` | see `docs/notifications.md` | Background push (optional) |
 | `NEXT_PUBLIC_SITE_URL` | browser + server | The public site's main address for canonical links, the sitemap and social previews (strongly recommended) |
 | `NEXT_PUBLIC_CONTACT_EMAIL`, `NEXT_PUBLIC_GA_MEASUREMENT_ID`, `NEXT_PUBLIC_BING_SITE_VERIFICATION` | see `docs/SEO_SETUP_GUIDE.md` | Contact address, opt-in analytics, Bing verification (optional) |
@@ -187,15 +196,19 @@ page's path (never the query), the browser and the time. It never includes
 the account, a name, or anything written in the app. People can switch these
 off in Settings → Help & feedback, and add a note on the error screen.
 
-The same section has a form for suggestions, problems and questions. A
+The same section has a form for bug reports, feature requests, suggestions,
+usability problems and general feedback, with an optional screenshot. A
 message carries the sender's account id, their email only if they leave
 "Include my email" on (it becomes the reply-to address), and their browser
-and window size only if they leave "Include technical details" on.
+and window size only if they leave "Include technical details" on. Once the
+Admin Center migration has run, messages are stored in its Feedback Center
+(`POST /api/feedback`), where the team answers them and the sender sees the
+answer and its status; the email to the team is a notification on top.
 
-Both go through `POST /api/report` (`src/lib/report-server.ts`), which only
-accepts requests from the site's own pages, caps sizes, and limits how many
-it sends per address, per account and per hour. Resend's free plan allows
-3,000 emails a month and 100 a day.
+Crash reports, and feedback before that migration, go through `POST /api/report`
+(`src/lib/report-server.ts`), which only accepts requests from the site's own
+pages, caps sizes, and limits how many it sends per address, per account and
+per hour. Resend's free plan allows 3,000 emails a month and 100 a day.
 
 To set it up: create a Resend account, make an API key with "Sending access",
 and set `RESEND_API_KEY` and `REPORTS_TO_EMAIL` (where reports go; several
@@ -205,6 +218,32 @@ to any address, verify a domain in Resend and set `REPORTS_FROM_EMAIL`, for
 example `DoOrDie <reports@your-domain>`. Redeploy after changing them. The
 address in `REPORTS_TO_EMAIL` stays on the server; it is never sent to the
 browser or shown on the site.
+
+## Admin Center
+
+`/admin` is where the people who run DoOrDie manage it: accounts and
+suspensions, review moderation, the Feedback Center, announcements inside
+the app, the public changelog (`/changelog`), platform settings, who has
+access, and an append-only audit log. Three roles, Super Admin, Admin and
+Moderator; everyone else has none and sees "No access". Nobody can sign up
+for a role or give themselves one: the first Super Admin is created by the
+owner in the Supabase SQL Editor, and Admins and Moderators are granted by a
+Super Admin. Every page checks the role on the server, and every database
+function checks it again. Administrators see account metadata (email, dates,
+status, role), never what anyone wrote in DoOrDie.
+
+Published reviews, with their authors' consent, appear on `/testimonials` and,
+if the settings say so, on the home page and the five feature pages: the
+newest first, never chosen by rating.
+
+Setup, the bootstrap SQL and how each part works: [`docs/ADMIN_SETUP.md`](docs/ADMIN_SETUP.md).
+The design and its reasons: [`docs/admin-architecture-audit.md`](docs/admin-architecture-audit.md).
+Feature access for the future, which today opens everything to everyone:
+[`docs/feature-access.md`](docs/feature-access.md).
+
+To try it locally, run the mock (see "Try multiple accounts locally"), sign up,
+and make that account a Super Admin through the mock's SQL endpoint as
+`docs/ADMIN_SETUP.md` shows.
 
 ## Deploy to Vercel
 
@@ -275,6 +314,13 @@ matters, and it is driven by how often whole snapshots are downloaded:
   resized before upload, and the app holds each account to 100 MB of the free
   1 GB. See [`docs/attachments.md`](docs/attachments.md).
 
+- The Admin Center and the app's announcements cost little: one small database
+  call when the app opens (announcements, the in-app notice and unread answers to
+  feedback together) and again only when a tab comes back after 15 minutes, with
+  no polling or Realtime. Public pages read published reviews and the changelog
+  at most once every five minutes each. Feedback screenshots are at most 2 MB,
+  usually far less after the device shrinks them.
+
 **To watch usage:** Dashboard → Organization → **Usage** shows egress, database
 size and monthly active users against the plan. `supabase/usage.sql` (read-only)
 shows the database size, the size of each table, and how large accounts'
@@ -292,6 +338,9 @@ Usage page stays comfortably inside the plan.
       (diary and coach privacy in the dispatcher's copy).
 - [ ] Run `supabase/migrations/20261203120000_dispatch_completed_activities.sql` in the
       SQL Editor (background reminders for habits that count Roadmap work).
+- [ ] Run `supabase/migrations/20261204120000_platform_admin.sql` in the SQL Editor
+      (the Admin Center), then make your own account the first Super Admin with the
+      SQL in [`docs/ADMIN_SETUP.md`](docs/ADMIN_SETUP.md), and open `/admin`.
 - [ ] Set `RESEND_API_KEY` and `REPORTS_TO_EMAIL` in Vercel for crash reports and
       feedback (see [Crash reports and feedback](#crash-reports-and-feedback)).
 - [ ] Run `supabase/tests/rls_isolation.sql` and confirm `All isolation checks passed`.
