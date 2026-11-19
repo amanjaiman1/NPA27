@@ -47,13 +47,28 @@ export function nextSchedule(
   };
 }
 
-/** An item advanced by one review. */
+/** The most passes an item keeps in its history. */
+const MAX_PASSES = 200;
+
+/**
+ * An item's revision days with one more: oldest first, one entry per day. The
+ * last pass of an item revised before history was kept joins the history
+ * first, so it isn't lost.
+ */
+export function withPass(item: Pick<RevisionItem, "passes" | "lastRevised">, date: ISODate): ISODate[] {
+  const days = new Set(item.passes ?? (item.lastRevised ? [item.lastRevised] : []));
+  days.add(date);
+  return [...days].sort().slice(-MAX_PASSES);
+}
+
+/** An item advanced by one review, with the day added to its history. */
 export function applyRevision(
   item: RevisionItem,
   remembered: boolean,
   today: Date = new Date(),
 ): RevisionItem {
-  return { ...item, ...nextSchedule(item, remembered, today) };
+  const next = nextSchedule(item, remembered, today);
+  return { ...item, ...next, passes: withPass(item, toISODate(today)) };
 }
 
 /** A fresh item, due immediately — you add something because you want to revise it. */

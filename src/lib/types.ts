@@ -293,6 +293,13 @@ export interface RevisionItem {
   intervalDays: number;
   repetitions: number;
   confidence: number; // 1-5
+  /**
+   * Every day it was revised, oldest first, one entry per day. Written by the
+   * Revision page and by journal days that log a pass against this item. Items
+   * revised before this was kept have only `lastRevised`, which counts as one
+   * pass on that day.
+   */
+  passes?: ISODate[];
 }
 
 /* ── Current Affairs Vault ───────────────────────────────────── */
@@ -361,15 +368,120 @@ export interface Mistake {
 
 /* ── Habits / Sleep / Exercise ───────────────────────────────── */
 
+/**
+ * Where a habit's progress comes from. `manual` is a check-in on the Habits
+ * page; every other source is read from records kept elsewhere, so the same
+ * activity is never entered twice. See `lib/habit-engine.ts`.
+ */
+export type HabitSource = "manual" | "journal" | "life" | "revision" | "roadmap";
+
+/**
+ * What a habit measures from its source, and so the unit of its target.
+ * Each source offers its own (see `HABIT_METRICS` in `lib/habit-engine.ts`).
+ */
+export type HabitMetric =
+  | "check" // manual: done or not
+  | "studyHours"
+  | "subjectHours"
+  | "topicsCompleted"
+  | "sleepHours"
+  | "bedtimeBy"
+  | "wakeBy"
+  | "exerciseMinutes"
+  | "walkKm"
+  | "runKm"
+  | "meditationMinutes"
+  | "waterLiters"
+  | "screenTimeUnder"
+  | "revisionPasses"
+  | "revisionMinutes"
+  | "roadmapActivities";
+
+/**
+ * When a habit is due. `daily`: every day. `weekdays`: the listed days (0 is
+ * Sunday). `weekly`: a number of qualifying days in each week, on any days.
+ */
+export type HabitSchedule =
+  | { kind: "daily" }
+  | { kind: "weekdays"; days: number[] }
+  | { kind: "weekly"; timesPerWeek: number }
+  /** The week's total must reach the target: "five planned activities a week". */
+  | { kind: "weeklyTotal" };
+
+export type HabitCategory = "Study" | "Revision" | "Sleep" | "Health" | "Mind" | "Planning" | "Other";
+
+/**
+ * A hand correction for one day, which always wins over what the source says:
+ * `done` and `missed` settle the day, `value` replaces the measured amount.
+ * Kept per day, so the next record that comes in never undoes it.
+ */
+export interface HabitOverride {
+  kind: "done" | "missed" | "value";
+  value?: number;
+  /** ISO timestamp of the correction. */
+  at: string;
+}
+
+/** A stretch the habit was paused for, so those days are not counted. */
+export interface HabitPause {
+  from: ISODate;
+  /** Absent while it is still paused. */
+  to?: ISODate;
+}
+
 export interface Habit {
   id: string;
   name: string;
+  /**
+   * @deprecated The schedule before `schedule` existed. Read through
+   * `habitSchedule` (lib/habit-engine.ts); kept so older devices still load.
+   */
   cadence: "daily" | "weekly";
   icon?: string;
+  /** The day it was created. Nothing before it ever counts. */
   createdOn: ISODate;
+  /** @deprecated Read through `habitSchedule`. */
   targetPerWeek?: number;
+  /** Retired: hidden everywhere, history kept. */
   archived?: boolean;
+  /**
+   * Manual check-ins, by day. `false` is an untick written by older versions
+   * and reads as not done.
+   */
   log: Record<ISODate, boolean>;
+  description?: string;
+  category?: HabitCategory;
+  /** Absent means daily (or, for an old weekly habit, its weekly count). */
+  schedule?: HabitSchedule;
+  /** Absent means `manual`. */
+  source?: HabitSource;
+  /** Absent means `check`. */
+  metric?: HabitMetric;
+  /**
+   * The amount that completes a day: hours, minutes, km, litres, passes,
+   * activities; a time ("HH:MM") is stored as minutes after midnight. Absent
+   * for a plain check.
+   */
+  target?: number;
+  /** `subjectHours`: the subject, by id. */
+  subjectId?: string;
+  /**
+   * Automatic habits only: let a manual check-in complete a day the source
+   * says nothing about (a hybrid habit).
+   */
+  allowManual?: boolean;
+  /**
+   * The first day records from the source count. A new automatic habit starts
+   * today; choosing an earlier day counts history from then, and it can be
+   * moved at any time without changing a single source record.
+   */
+  countFrom?: ISODate;
+  /** Hand corrections, by day. Always win over the source. */
+  overrides?: Record<ISODate, HabitOverride>;
+  /** Pauses, oldest first. Paused days are neither kept nor missed. */
+  pauses?: HabitPause[];
+  /** A reminder in the inbox if the habit is still open by this time ("HH:MM"). */
+  remindAt?: string;
 }
 
 export interface SleepLog {
@@ -588,21 +700,58 @@ export interface Milestone {
   pinned?: boolean;
 }
 
-/* ── Emotional Reflection Journal ────────────────────────────── */
+/* ── Personal Diary ──────────────────────────────────────────── */
 
+/**
+ * One Personal Diary entry: private writing, kept apart from the study record.
+ * Nothing in the app reads its words: not reviews, not the coach, not the
+ * habits, and the notification dispatcher on the server never receives them.
+ *
+ * The type keeps its old name, `Reflection`, and the store key `reflections`,
+ * so every entry written before the diary existed is a diary entry as it is.
+ * Those older entries have a prompt, a 1-5 mood and gratitude notes; new ones
+ * need only the words.
+ */
 export interface Reflection {
   id: string;
   date: ISODate;
+  /** The writing prompt it answers, if one was chosen. */
   prompt?: string;
+  /** The entry itself. Light formatting is kept as Markdown (`lib/diary.ts`). */
   content: string;
-  mood: number; // 1-5
+  /**
+   * @deprecated The 1-5 mood older reflections asked for. Shown on those
+   * entries; new entries don't ask. Absent or 0 means not given.
+   */
+  mood?: number;
+  /** @deprecated Gratitude notes from older reflections. Shown on those entries. */
   gratitude?: string[];
+  title?: string;
+  tags?: string[];
+  /** One of `DIARY_CATEGORIES` (lib/diary.ts), or a word of your own. */
+  category?: string;
+  pinned?: boolean;
+  /** Marked as important: easy to find again. */
+  important?: boolean;
+  /** Files attached to the entry: ids into `ChronicleData.files`. */
+  fileIds?: string[];
+  /** ISO timestamps. Absent on entries written before the diary. */
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 /* ── Reviews (weekly / monthly / yearly) ─────────────────────── */
 
-export type ReviewType = "Weekly" | "Monthly" | "Yearly";
+/** `Custom` is any range of days you choose; the rest are calendar periods. */
+export type ReviewType = "Weekly" | "Monthly" | "Yearly" | "Custom";
 
+/**
+ * A Performance Review. The figures are measured from the records of the
+ * period (`lib/performance.ts`); what you write is yours. While a review is a
+ * draft its figures stay live. Completing it freezes them in `snapshot`, so a
+ * later edit to the journal or the plans never rewrites a finished review;
+ * "Refresh figures" updates the snapshot on purpose.
+ */
 export interface Review {
   id: string;
   type: ReviewType;
@@ -616,6 +765,63 @@ export interface Review {
   struggles?: string[];
   lessons?: string[];
   nextFocus?: string[];
+  /** Absent on reviews written before drafts existed: those read as completed. */
+  status?: "draft" | "completed";
+  /** The questions the review asks you, by key (`REVIEW_QUESTIONS`). */
+  answers?: Partial<Record<ReviewQuestionKey, string>>;
+  /** The measured figures as they stood when the review was completed. */
+  snapshot?: PerformanceSnapshot;
+  /** ISO timestamps. */
+  createdAt?: string;
+  updatedAt?: string;
+  completedAt?: string;
+}
+
+export type ReviewQuestionKey = "wentWell" | "struggled" | "attention" | "unfinished" | "change" | "priorities";
+
+/**
+ * A finished review's figures. Plain numbers and labels, copied from the
+ * period's records when it was completed, so it reads the same forever.
+ */
+export interface PerformanceSnapshot {
+  /** ISO timestamp the figures were taken. */
+  takenAt: string;
+  days: number;
+  daysLogged: number;
+  activeDays: number;
+  studyHours: number;
+  hoursTarget: number;
+  sessions: number;
+  topicsCompleted: number;
+  subjects: { id: string; name: string; hours: number; share: number }[];
+  roadmap: { planned: number; completed: number; deferred: number; open: number };
+  revision: { passes: number; dueNow: number; overdue: number };
+  habits: { scheduled: number; kept: number; rate: number | null };
+  goals: { active: number; completed: number; milestonesDone: number };
+  mocks: { taken: number; avgPct: number | null };
+  sleep: { nights: number; avgHours: number | null };
+  exercise: { days: number; minutes: number };
+  /** The day with the most hours. */
+  bestDay?: { date: ISODate; hours: number } | null;
+  /** Each habit's record in the period. */
+  habitRows?: { id: string; name: string; due: number; kept: number }[];
+  /** Planned activities still open at the end of the period (up to eight). */
+  unfinished?: { title: string; href: string }[];
+  /** The period before, measured at the same moment, for the comparison. */
+  previous?: PerformanceTotals;
+}
+
+/** The headline figures of a period, for comparing one with another. */
+export interface PerformanceTotals {
+  studyHours: number;
+  activeDays: number;
+  topicsCompleted: number;
+  revisionPasses: number;
+  habitRate: number | null;
+  roadmapCompleted: number;
+  roadmapPlanned: number;
+  mocksTaken: number;
+  sleepAvg: number | null;
 }
 
 /* ── Knowledge Graph ─────────────────────────────────────────── */
@@ -635,8 +841,13 @@ export interface TopicLink {
   createdOn?: ISODate;
 }
 
-/* ── Selection Journey Archive ───────────────────────────────── */
+/* ── Selection Journey Archive (retired) ─────────────────────── */
 
+/**
+ * The Selection Archive page is retired. Its stages stay in the account, as
+ * they were, so nothing anyone recorded is lost, and older devices that still
+ * show the page keep working; nothing in this version reads or writes them.
+ */
 export type StageStatus =
   | "Locked"
   | "In Progress"
@@ -720,11 +931,50 @@ export interface ChronicleData {
   reflections: Reflection[];
   reviews: Review[];
   topicLinks: TopicLink[];
+  /** Retired with the Selection Archive; kept as it was. */
   selection: SelectionStage[];
-  /** Every file attached in the journal. See `FileRecord`. */
+  /** Every file attached in the journal or the diary. See `FileRecord`. */
   files: FileRecord[];
   /** The Roadmap: this person's own yearly, monthly and weekly plans. */
   plans: RoadmapPlan[];
+  /** What the Study Coach suggested and what you did with it. See `CoachLog`. */
+  coach: CoachLog;
+}
+
+/* ── Study Coach history ─────────────────────────────────────── */
+
+/**
+ * What happened to a recommendation. `fingerprint` is the evidence it was
+ * shown with: a dismissed recommendation stays away until its evidence
+ * changes, and an applied one records exactly what was changed.
+ */
+export interface CoachDecision {
+  /** This record. Unique, so two devices' histories merge. */
+  id: string;
+  /** The recommendation it is about: stable, e.g. `neglected:economy`. */
+  recId: string;
+  status: "accepted" | "dismissed" | "applied" | "done";
+  /** The recommendation's title when it was decided. */
+  title: string;
+  fingerprint: string;
+  /** ISO timestamp. */
+  at: string;
+  /** What applying it changed, in words, one line per change. */
+  changes?: string[];
+}
+
+/** One day's briefing, as a line of history. */
+export interface CoachBriefingRecord {
+  /** `briefing:<date>`: one per day. */
+  id: string;
+  date: ISODate;
+  /** The recommendation titles that day, most important first. */
+  headlines: string[];
+}
+
+export interface CoachLog {
+  decisions: CoachDecision[];
+  briefings: CoachBriefingRecord[];
 }
 
 /* ── Roadmap ─────────────────────────────────────────────────── */

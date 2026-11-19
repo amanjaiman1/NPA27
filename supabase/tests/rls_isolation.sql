@@ -31,7 +31,7 @@ do $$
 declare r record;
 begin
   select * into r from public.save_chronicle_state(
-    '{"profile":{"name":"A"},"journal":[{"date":"2026-11-01","totalHours":6,"reflection":"private A","fileIds":["f1"]}],"files":[{"id":"f1","name":"private notes.pdf"}],"plans":[{"id":"wk_a","level":"week","start":"2026-11-02","end":"2026-11-08","items":[{"id":"pa_a","kind":"activity","title":"private A plan","status":"notStarted"}]}]}'::jsonb, 0);
+    '{"profile":{"name":"A"},"journal":[{"date":"2026-11-01","totalHours":6,"reflection":"private A","fileIds":["f1"]}],"files":[{"id":"f1","name":"private notes.pdf"}],"plans":[{"id":"wk_a","level":"week","start":"2026-11-02","end":"2026-11-08","items":[{"id":"pa_a","kind":"activity","title":"private A plan","status":"notStarted"}]}],"reflections":[{"id":"d1","date":"2026-11-01","title":"private A diary title","content":"private A diary","tags":["private"],"fileIds":["f1"]}],"reviews":[{"id":"rv1","type":"Weekly","startDate":"2026-10-26","endDate":"2026-11-01","answers":{"wentWell":"private A review"},"snapshot":{"studyHours":6}}],"habits":[{"id":"h1","name":"Daily study","description":"private A habit note","source":"journal","metric":"studyHours","target":6,"log":{}}],"coach":{"decisions":[{"id":"cd1","recId":"neglected:economy","status":"dismissed","title":"private A coach","fingerprint":"f","at":"2026-11-01T00:00:00Z"}],"briefings":[]}}'::jsonb, 0);
   if not r.saved or r.version <> 1 then
     raise exception 'FAIL: first save for A should create version 1, got saved=% version=%', r.saved, r.version;
   end if;
@@ -280,6 +280,18 @@ begin
     array['a0000000-0000-4000-8000-00000000000a']::uuid[]);
   if j ? 'files' then raise exception 'FAIL: dispatcher snapshot carries file descriptions'; end if;
   if j ? 'plans' then raise exception 'FAIL: dispatcher snapshot carries roadmap plans'; end if;
+  if j ? 'coach' then raise exception 'FAIL: dispatcher snapshot carries the study coach history'; end if;
+  if (j -> 'reflections' -> 0) ?| array['content', 'title', 'tags', 'fileIds'] then
+    raise exception 'FAIL: dispatcher snapshot carries personal diary writing';
+  end if;
+  if (j -> 'reflections' -> 0 ->> 'date') is distinct from '2026-11-01' then
+    raise exception 'FAIL: dispatcher snapshot lost the diary dates the reminder needs';
+  end if;
+  if (j -> 'reviews' -> 0) ?| array['answers', 'snapshot'] then
+    raise exception 'FAIL: dispatcher snapshot carries what was written in a review';
+  end if;
+  if (j -> 'habits' -> 0) ? 'description' then raise exception 'FAIL: dispatcher snapshot carries habit notes'; end if;
+  if (j -> 'habits' -> 0 ->> 'target')::numeric <> 6 then raise exception 'FAIL: dispatcher snapshot lost the habit settings reminders need'; end if;
 
   -- A write that bypasses the save function still moves the version on, so a
   -- device holding the old version can never silently overwrite it.
@@ -307,6 +319,9 @@ begin
   end if;
   if (select data -> 'plans' -> 0 -> 'items' -> 0 ->> 'title' from public.chronicle_state) is distinct from 'private A plan' then
     raise exception 'FAIL: a save from a device that does not know plans erased them';
+  end if;
+  if (select data -> 'coach' -> 'decisions' -> 0 ->> 'recId' from public.chronicle_state) is distinct from 'neglected:economy' then
+    raise exception 'FAIL: a save from a device that does not know the coach history erased it';
   end if;
 
   -- A current version removing every plan sends an empty list, which is kept as sent.

@@ -170,6 +170,7 @@ type SnapshotLike = {
   lifeLog?: LifeEntry[];
   subjects?: Subject[];
   plans?: unknown;
+  coach?: unknown;
 };
 
 /**
@@ -213,5 +214,12 @@ export function normalizeSnapshot<T extends SnapshotLike>(snapshot: T): T {
   }
   // Plans from another device, an older version or a backup, made consistent.
   if (next.plans !== undefined) next = { ...next, plans: normalizePlans(next.plans) };
+  // The coach's history: a malformed one is set aside rather than trusted.
+  if (next.coach !== undefined) {
+    const c = next.coach as { decisions?: unknown; briefings?: unknown } | null;
+    if (!c || typeof c !== "object" || !Array.isArray(c.decisions) || !Array.isArray(c.briefings)) {
+      next = { ...next, coach: { decisions: [], briefings: [] } };
+    }
+  }
   return next;
 }

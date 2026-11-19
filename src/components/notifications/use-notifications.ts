@@ -168,6 +168,7 @@ function useNotificationsSource(): NotificationsValue {
       selection: [],
       files: [],
       plans: [],
+      coach: { decisions: [], briefings: [] },
     };
   }, [
     hydrated,

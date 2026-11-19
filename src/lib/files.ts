@@ -1,4 +1,4 @@
-import type { ChronicleData, FileKind, FileRecord, Goal, ISODate, JournalEntry, LifeEntry } from "./types";
+import type { ChronicleData, FileKind, FileRecord, Goal, ISODate, JournalEntry, LifeEntry, Reflection } from "./types";
 
 /* ════════════════════════════════════════════════════════════════
    ATTACHED FILES — the rules, as pure functions.
@@ -6,15 +6,16 @@ import type { ChronicleData, FileKind, FileRecord, Goal, ISODate, JournalEntry, 
    Bytes live in Supabase Storage (lib/file-storage.ts does the network
    part); only `FileRecord`s travel in the synced snapshot. Three rules:
 
-   1. A file belongs to the journal. It exists while at least one journal
-      day lists it. Goals and Life Dashboard days only point at it.
+   1. A file belongs to the journal day or the diary entry it was attached
+      to. It exists while at least one of them lists it. Goals and Life
+      Dashboard days only point at it.
    2. One file, one copy. Records are unique by content hash and stored at
       `<user id>/<sha256>`, so attaching the same file twice, on any day
       or any device, never uploads or stores it again.
    3. Nothing is deleted while something still uses it. Removing a file
       from a goal or a life day only drops the link; removing it from the
-      last journal day that holds it is what deletes it, and the UI says
-      which goals and days will lose it before that happens.
+      last journal day or diary entry that holds it is what deletes it, and
+      the UI says which goals and days will lose it before that happens.
    ════════════════════════════════════════════════════════════════ */
 
 /** The private Storage bucket. Created by supabase/migrations/…_attachments.sql. */
@@ -178,12 +179,15 @@ export interface FileRefs {
   goals: { id: string; title: string }[];
   /** Life Dashboard days pointing at it. */
   life: ISODate[];
+  /** Personal Diary entries holding it. */
+  diary: { id: string; date: ISODate; title?: string }[];
 }
 
 type RefData = {
   journal: Pick<JournalEntry, "date" | "fileIds">[];
   goals: Pick<Goal, "id" | "title" | "fileIds">[];
   lifeLog: Pick<LifeEntry, "date" | "fileIds">[];
+  reflections?: Pick<Reflection, "id" | "date" | "title" | "fileIds">[];
 };
 
 /** Every file's users, in one pass. */
@@ -192,7 +196,7 @@ export function buildFileRefs(data: RefData): Map<string, FileRefs> {
   const at = (id: string) => {
     let r = out.get(id);
     if (!r) {
-      r = { journal: [], goals: [], life: [] };
+      r = { journal: [], goals: [], life: [], diary: [] };
       out.set(id, r);
     }
     return r;
@@ -200,6 +204,7 @@ export function buildFileRefs(data: RefData): Map<string, FileRefs> {
   for (const e of data.journal) for (const id of e.fileIds ?? []) at(id).journal.push(e.date);
   for (const g of data.goals) for (const id of g.fileIds ?? []) at(id).goals.push({ id: g.id, title: g.title });
   for (const l of data.lifeLog) for (const id of l.fileIds ?? []) at(id).life.push(l.date);
+  for (const d of data.reflections ?? []) for (const id of d.fileIds ?? []) at(id).diary.push({ id: d.id, date: d.date, title: d.title });
   for (const r of out.values()) {
     r.journal.sort();
     r.life.sort();
@@ -208,7 +213,7 @@ export function buildFileRefs(data: RefData): Map<string, FileRefs> {
 }
 
 export function fileRefs(data: RefData, fileId: string): FileRefs {
-  return buildFileRefs(data).get(fileId) ?? { journal: [], goals: [], life: [] };
+  return buildFileRefs(data).get(fileId) ?? { journal: [], goals: [], life: [], diary: [] };
 }
 
 /** "Goal ‘Finish Polity’ and 2 Life Dashboard days" — for a confirmation. */
@@ -238,10 +243,14 @@ export interface PruneResult {
  * doesn't wake every subscriber.
  */
 export function pruneFiles(
-  data: Pick<ChronicleData, "files" | "journal" | "goals" | "lifeLog">,
+  data: Pick<ChronicleData, "files" | "journal" | "goals" | "lifeLog"> & {
+    reflections?: Pick<Reflection, "fileIds">[];
+  },
 ): PruneResult {
   const held = new Set<string>();
   for (const e of data.journal) for (const id of e.fileIds ?? []) held.add(id);
+  // Diary entries own their files too.
+  for (const d of data.reflections ?? []) for (const id of d.fileIds ?? []) held.add(id);
   const removed = data.files.filter((f) => !held.has(f.id));
   if (!removed.length) {
     return { files: data.files, goals: data.goals, lifeLog: data.lifeLog, removed, unusedPaths: [] };
@@ -275,6 +284,7 @@ export function dropForeignFiles<
     journal?: JournalEntry[];
     goals?: Goal[];
     lifeLog?: LifeEntry[];
+    reflections?: Reflection[];
   },
 >(data: T, userId: string): T {
   if (!data.files?.length) return data;
@@ -293,6 +303,7 @@ export function dropForeignFiles<
     ...(data.journal ? { journal: data.journal.map(strip) } : {}),
     ...(data.goals ? { goals: data.goals.map(strip) } : {}),
     ...(data.lifeLog ? { lifeLog: data.lifeLog.map(strip) } : {}),
+    ...(data.reflections ? { reflections: data.reflections.map(strip) } : {}),
   };
 }
 

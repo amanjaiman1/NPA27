@@ -4,7 +4,6 @@ import type {
   Habit,
   Book,
   TopicLink,
-  SelectionStage,
   Profile,
   PaperCode,
 } from "./types";
@@ -162,29 +161,45 @@ export interface HabitTemplate {
   id: string;
   name: string;
   icon: string;
+  /** Where it fills in from, and what completes a day. Absent: you check it off. */
+  config?: Pick<Habit, "category" | "source" | "metric" | "target">;
+  /** Shown under the name in setup. */
+  hint: string;
 }
 
+/**
+ * The habits first-run setup offers. Those that can be read from records kept
+ * elsewhere fill in by themselves (lib/habit-engine.ts); the rest are ticked
+ * off on the Habits page.
+ */
 export const HABIT_TEMPLATES: HabitTemplate[] = [
-  { id: "news", name: "Read the newspaper", icon: "newspaper" },
-  { id: "answer", name: "Answer writing", icon: "pen" },
-  { id: "revise", name: "Revise old notes", icon: "repeat" },
-  { id: "wake", name: "Wake up early", icon: "sunrise" },
-  { id: "nosocial", name: "No social media", icon: "shield" },
-  { id: "meditate", name: "Meditate 10 min", icon: "lotus" },
+  { id: "study", name: "Daily study", icon: "book", config: { category: "Study", source: "journal", metric: "studyHours" }, hint: "Fills in from your journal hours" },
+  { id: "news", name: "Read the newspaper", icon: "newspaper", config: { category: "Study" }, hint: "You tick it off" },
+  { id: "answer", name: "Answer writing", icon: "pen", config: { category: "Study" }, hint: "You tick it off" },
+  { id: "revise", name: "Revise every day", icon: "repeat", config: { category: "Revision", source: "revision", metric: "revisionPasses", target: 1 }, hint: "Fills in from Revision" },
+  { id: "wake", name: "Wake up early", icon: "sunrise", config: { category: "Sleep", source: "life", metric: "wakeBy", target: 6 * 60 + 30 }, hint: "Up by 6:30, from the Life Dashboard" },
+  { id: "nosocial", name: "No social media", icon: "shield", config: { category: "Mind" }, hint: "You tick it off" },
+  { id: "meditate", name: "Meditate 10 min", icon: "lotus", config: { category: "Mind", source: "life", metric: "meditationMinutes", target: 10 }, hint: "Fills in from the Life Dashboard" },
 ];
 
-export const DEFAULT_HABIT_IDS = ["news", "answer", "revise"];
+export const DEFAULT_HABIT_IDS = ["study", "news", "revise"];
 
-export function buildHabits(ids: string[], today: string): Habit[] {
-  return HABIT_TEMPLATES.filter((h) => ids.includes(h.id)).map((h) => ({
-    id: h.id,
-    name: h.name,
-    icon: h.icon,
-    cadence: "daily" as const,
-    createdOn: today,
-    targetPerWeek: 7,
-    log: {},
-  }));
+export function buildHabits(ids: string[], today: string, dailyHourTarget = 6): Habit[] {
+  return HABIT_TEMPLATES.filter((h) => ids.includes(h.id)).map((h) => {
+    const habit: Habit = {
+      id: h.id,
+      name: h.name,
+      icon: h.icon,
+      cadence: "daily" as const,
+      createdOn: today,
+      targetPerWeek: 7,
+      log: {},
+      schedule: { kind: "daily" },
+      ...h.config,
+    };
+    if (h.config?.metric === "studyHours") habit.target = Math.min(16, Math.max(1, dailyHourTarget || 6));
+    return habit;
+  });
 }
 
 /* ── Knowledge graph: curated links between syllabus topics ──── */
@@ -294,23 +309,6 @@ export function buildTopicLinks(subjects: Subject[], today: string): TopicLink[]
   return links;
 }
 
-/* ── The selection journey for one attempt ───────────────────── */
-
-/** "UPSC CSE 2027" → "CSE 2027"; anything unrecognised is used as written. */
-function attemptLabel(targetExam: string): string {
-  return targetExam.replace(/^UPSC\s+/i, "").trim() || targetExam;
-}
-
-export function buildSelection(targetExam: string): SelectionStage[] {
-  const attempt = attemptLabel(targetExam);
-  return [
-    { id: "s1", name: "Prelims", attempt, status: "Locked", notes: "The first gate." },
-    { id: "s2", name: "Mains", attempt, status: "Locked", notes: "Nine papers that decide the rank." },
-    { id: "s3", name: "Interview", attempt, status: "Locked", notes: "The final 275 marks." },
-    { id: "s4", name: "Final Result", attempt, status: "Locked", notes: "The name in the list." },
-  ];
-}
-
 /* ── Profiles ────────────────────────────────────────────────── */
 
 let zone: string | null = null;
@@ -410,7 +408,7 @@ export function createAccountTemplate(setup: AccountSetup, today = new Date()): 
     revisions: [],
     currentAffairs: [],
     mistakes: [],
-    habits: buildHabits(setup.habits, todayISO),
+    habits: buildHabits(setup.habits, todayISO, setup.dailyHourTarget),
     sleep: [],
     exercise: [],
     lifeLog: [],
@@ -420,10 +418,12 @@ export function createAccountTemplate(setup: AccountSetup, today = new Date()): 
     reflections: [],
     reviews: [],
     topicLinks: buildTopicLinks(subjects, todayISO),
-    selection: buildSelection(setup.targetExam),
+    // The Selection Archive is retired: a new account keeps no stages.
+    selection: [],
     files: [],
     // The Roadmap starts empty: no plan is written for anyone.
     plans: [],
+    coach: { decisions: [], briefings: [] },
   };
 }
 

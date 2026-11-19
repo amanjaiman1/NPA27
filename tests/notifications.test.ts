@@ -58,6 +58,7 @@ function data(over: Partial<ChronicleData> = {}): ChronicleData {
     selection: [],
     files: [],
     plans: [],
+    coach: { decisions: [], briefings: [] },
     ...over,
   };
 }
