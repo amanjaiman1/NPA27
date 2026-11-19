@@ -17,6 +17,9 @@ their devices through Supabase and kept within Supabase's free plan.
   [design system](docs/design-system.md).
 - **The Roadmap** (your own yearly, monthly and weekly plans):
   [`docs/roadmap.md`](docs/roadmap.md).
+- **The feature tour** (a walk through every page, opened once for a new
+  account and from the Tour button any time):
+  [`docs/feature-tour.md`](docs/feature-tour.md).
 - **The public site and SEO:** [below](#public-site-and-seo), and the setup steps
   in [`docs/SEO_SETUP_GUIDE.md`](docs/SEO_SETUP_GUIDE.md).
 - **The promo film** (58 seconds in 4K, plus a 30-second and a vertical cut),

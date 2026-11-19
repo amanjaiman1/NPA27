@@ -380,6 +380,27 @@ figures. It counts days only: hours and minutes would be noise months out.
 Screen readers hear one sentence ("186 days to UPSC CSE 2027, on 24 May 2027"),
 and the tooltip adds how much of the preparation time has passed.
 
+## The feature tour
+
+A full-screen walk through every page, opened by itself on a new account's first
+visit to the dashboard and from the **Tour** button in the top bar at any time.
+The full description, including when it opens and how to add a page to it, is in
+[`feature-tour.md`](feature-tour.md). For the look:
+
+- **It stands on the theme's own backdrop**, lit by three soft glows that drift
+  to new places from chapter to chapter: violet, peach and mint on Lavender, sky
+  blues on Light, and a faint white on Dark, which has no colour anywhere.
+- **Every picture is drawn from tokens**: the accent, the chart palette and the
+  status colours, so each theme dresses it the same way it dresses the pages.
+  Choosing a theme inside the tour changes the real setting, and the tour with it.
+- **Motion is transform and opacity**, plus one animated custom property for the
+  light that runs round the picture in focus. Nothing in it blurs. With Reduce
+  motion every picture shows its finished state and nothing moves on by itself;
+  with Reduce transparency the stage behind the pictures turns solid.
+- **Pictures adapt to their own size**, not the window's: each tile is a size
+  container, and `.tour-hide-narrow`, `.tour-hide-short`, `.tour-only-roomy` and
+  `.tour-only-tall` decide what a small or a tall tile shows.
+
 ## Text over media
 
 A region sitting on a photo or another busy image gets the `.on-media` class.
