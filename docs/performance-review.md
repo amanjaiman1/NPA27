@@ -43,7 +43,10 @@ the priorities for next time. A suggestion worked out from the figures can be
 inserted into an answer with one tap; it is never written in for you. An
 overall 1 to 5 rating is optional.
 
-- **Save draft:** kept with live figures that follow your records.
+- **Save draft:** kept with live figures that follow your records. A draft
+  doesn't count as written: once its week or month has ended, the "review not
+  written" reminder says it is still a draft and links straight to it
+  (`/reviews?open=Weekly:2026-11-09`).
 - **Complete review:** the figures are frozen into the review (`snapshot`),
   with the period before, so a later edit to the journal or the plan never
   rewrites a finished review. Completing a period that hasn't ended asks first.

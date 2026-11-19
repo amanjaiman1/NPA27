@@ -62,7 +62,9 @@ security limits to that owner; the browser keeps the signed-in account's copy
 under keys scoped to that account (`src/lib/account/scope.ts`). There is no
 cross-account processing anywhere. The server-side reminder dispatcher reads a
 trimmed snapshot that has no diary text, no review writing and no coach history
-(`supabase/migrations/20261202120000_diary_coach_privacy.sql`).
+(`supabase/migrations/20261202120000_diary_coach_privacy.sql`). From the Roadmap
+it receives only each plan's completed activities, without titles or notes
+(`supabase/migrations/20261203120000_dispatch_completed_activities.sql`).
 
 See also [the Habit Engine](habit-engine.md), [Performance Review](performance-review.md),
 [the Personal Diary](personal-diary.md) and [the Study Coach](study-coach.md).

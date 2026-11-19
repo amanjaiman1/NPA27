@@ -128,7 +128,9 @@ In the Supabase SQL Editor, run these files in order:
      snapshot that leaves file details out. See [`docs/attachments.md`](docs/attachments.md).
    - `20261125120000_roadmap_plans.sql`: a device still running the previous
      version can no longer erase Roadmap plans when it saves, and the
-     dispatcher's reader leaves plans out, since no notification uses them.
+     dispatcher's reader leaves plans out (the later
+     `20261203120000_dispatch_completed_activities.sql` gives it completed
+     activities only).
      The app works without it, but run it before you start planning. See
      [`docs/roadmap.md`](docs/roadmap.md).
    - `20261202120000_diary_coach_privacy.sql`: a device still running an
@@ -138,6 +140,12 @@ In the Supabase SQL Editor, run these files in order:
      figures, habits without descriptions, and no coach history. No table or
      policy changes. The app works without it; run it before relying on the
      coach history across devices. See [`docs/personal-diary.md`](docs/personal-diary.md).
+   - `20261203120000_dispatch_completed_activities.sql`: the dispatcher's reader
+     receives each Roadmap plan's id and its completed activities (id, kind,
+     status, completion time, subject), with no titles, notes or anything
+     unfinished, so habits that count Roadmap work get background reminders
+     too. No table or policy changes. Until it runs, those habits are simply
+     left out of background reminders. See [`docs/notifications.md`](docs/notifications.md).
 
 All of them are additive and safe to re-run: nothing is dropped or rewritten, and
 existing data keeps working. A SQL file in the repo does nothing until you run it.
@@ -232,8 +240,8 @@ matters, and it is driven by how often whole snapshots are downloaded:
 - Opening the app or coming back to it asks only for the version number (a few
   bytes) and downloads the data only when another device changed it.
 - Saves upload the snapshot and receive only the new version back.
-- The push dispatcher reads a trimmed copy without long text, and (with the
-  Roadmap migration) without plans.
+- The push dispatcher reads a trimmed copy without long text, and from the
+  Roadmap only each plan's completed activities.
 - Attached files go to Storage, never into the synced data: each costs about
   200 bytes of sync whatever its size. Each file is stored once, photos are
   resized before upload, and the app holds each account to 100 MB of the free
@@ -252,6 +260,10 @@ Usage page stays comfortably inside the plan.
       (journal attachments).
 - [ ] Run `supabase/migrations/20261125120000_roadmap_plans.sql` in the SQL Editor
       (Roadmap: keeps plans safe from devices still on the previous version).
+- [ ] Run `supabase/migrations/20261202120000_diary_coach_privacy.sql` in the SQL Editor
+      (diary and coach privacy in the dispatcher's copy).
+- [ ] Run `supabase/migrations/20261203120000_dispatch_completed_activities.sql` in the
+      SQL Editor (background reminders for habits that count Roadmap work).
 - [ ] Run `supabase/tests/rls_isolation.sql` and confirm `All isolation checks passed`.
 - [ ] Set Site URL and the two Redirect URLs in Authentication → URL Configuration.
 - [ ] Configure custom SMTP, or decide to run with "Confirm email" off.

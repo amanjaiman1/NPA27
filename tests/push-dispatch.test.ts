@@ -228,3 +228,37 @@ test("the server's log is folded like the browser's and stays bounded", () => {
   assert.deepEqual(Object.keys(log.lastSentOn), ["a"]);
   assert.deepEqual(Object.keys(log.lastSentAt), ["a"]);
 });
+
+test("habits that count Roadmap work are reminded about only when the reader carries the plans", () => {
+  const roadmapHabit = {
+    id: "h1",
+    name: "A planned activity",
+    cadence: "daily" as const,
+    createdOn: "2026-11-01",
+    log: {},
+    source: "roadmap" as const,
+    metric: "roadmapActivities" as const,
+    target: 1,
+    countFrom: "2026-11-01",
+  };
+  const settings = { deliver: true, digest: false };
+  // 13:30 UTC is 19:00 in India: after the reminder hour, before quiet hours.
+  const at = utc("2026-11-16T13:30:00Z");
+  // Today is logged, so the habit is the only thing left to mention.
+  const journal = [{ id: "j", date: "2026-11-16", blocks: [{ subjectId: "polity", hours: 3 }], totalHours: 3, mood: 3, energy: 3, motivation: 3, focus: 3 }];
+  const decide = (over: Partial<Snapshot>) =>
+    decideForUser(snapshot({ revisions: [], journal, notify: settings, habits: [roadmapHabit], ...over }), [device()], null, at);
+
+  // An older reader: no plans at all, so the habit can't be judged and is left out.
+  assert.deepEqual(decide({}), { send: false, reason: "Nothing to deliver." });
+
+  // The new reader, nothing completed today: still open.
+  const open = decide({ plans: [] });
+  assert.equal(open.send, true);
+  if (open.send) assert.equal(open.notices[0].ruleId, "habits-pending");
+
+  // Completed at 01:00 on the 16th in India, which is still the 15th in UTC.
+  // It counts for the user's day, so there's nothing to remind about.
+  const done = [{ id: "p1", items: [{ id: "a1", kind: "activity", status: "completed", completedAt: "2026-11-15T19:30:00.000Z" }] }] as unknown as Snapshot["plans"];
+  assert.deepEqual(decide({ plans: done }), { send: false, reason: "Nothing to deliver." });
+});
