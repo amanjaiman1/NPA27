@@ -45,6 +45,30 @@ function readAuthRedirect(): AuthRedirect | null {
 
 export const initialAuthRedirect: AuthRedirect | null = readAuthRedirect();
 
+/** The site's main address, worked out at build time (next.config.mjs, `emailLinkOrigin`). Empty without one. */
+const MAIN_ORIGIN = process.env.NEXT_PUBLIC_EMAIL_LINK_ORIGIN || null;
+
+const isLocalHost = (host: string) => host === "localhost" || host === "127.0.0.1" || host === "[::1]" || host.endsWith(".localhost");
+
+/**
+ * Where a link in an account email (confirming the email, resetting the
+ * password) takes people: the site's main address, whichever address they
+ * were on when they asked for it.
+ *
+ * Supabase only follows a link back to an address in its Redirect URLs list;
+ * anything else goes to its Site URL instead. Built from the visitor's own
+ * address, a link asked for on a second address of the same site (`www.`, or
+ * a vercel.app one, which Vercel keeps behind its login) ended up there.
+ *
+ * On this machine (localhost) links come back to this machine. Without a
+ * main address (a preview, say) they come back to the address in use.
+ */
+export function authRedirectUrl(path: string): string {
+  const here = typeof window === "undefined" ? null : window.location;
+  const base = here && (isLocalHost(here.hostname) || !MAIN_ORIGIN) ? here.origin : (MAIN_ORIGIN ?? "");
+  return `${base}${path}`;
+}
+
 export const supabase: SupabaseClient | null = isCloudConfigured
   ? createClient(url as string, anonKey as string, {
       auth: {

@@ -170,8 +170,8 @@ existing data keeps working. A SQL file in the repo does nothing until you run i
 | Setting | Value |
 | --- | --- |
 | **Sign In / Providers → Email** | Enabled. "Confirm email" on is recommended; it needs working email (below). |
-| **URL Configuration → Site URL** | Your production URL, e.g. `https://your-app.vercel.app` |
-| **URL Configuration → Redirect URLs** | `https://your-app.vercel.app/auth/callback`, `https://your-app.vercel.app/reset-password`, and the same two on `http://localhost:3000` for local work |
+| **URL Configuration → Site URL** | The site's main address: your own domain if you have one (e.g. `https://example.com`), otherwise the `….vercel.app` production address. Supabase sends any email link it can't follow here, so it must not be a vercel.app address once you have a domain: Vercel keeps those behind its own login. |
+| **URL Configuration → Redirect URLs** | `https://example.com/auth/callback` and `https://example.com/reset-password` on the main address, and the same two on `http://localhost:3000` for local work. The app always asks for the main address in email links (`NEXT_PUBLIC_SITE_URL`, or Vercel's production domain), whichever address someone signed up on. |
 | **Emails → SMTP Settings** | A custom SMTP provider. **Required** for confirmation and password-reset emails to reach anyone: Supabase's built-in sender only delivers to members of your Supabase organisation, and at most 2 emails an hour. |
 | **Sign In / Providers → Allow new users to sign up** | On to let people register. Turn it off to stop new sign-ups, and add people under Authentication → Users → Add user instead. |
 | **Password strength** (optional) | Minimum 8 characters, letters and digits — the same rule the app checks. |

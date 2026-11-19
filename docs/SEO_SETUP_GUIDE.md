@@ -64,6 +64,13 @@ nothing new to add. If an email link ever lands on the home page instead (this
 happens when its address isn't in the Redirect URLs list), the home page now
 passes it on to the right screen.
 
+Email links always ask to come back to the main address (`NEXT_PUBLIC_SITE_URL`,
+or Vercel's production domain when it isn't set), even for someone who signed
+up on `www.` or on a vercel.app address. Supabase sends a link it can't follow
+to the **Site URL**, so when you add your own domain, change the Site URL to
+it as well: Vercel keeps vercel.app addresses behind its own login, and people
+sent there see a Vercel sign-in page instead of DoOrDie.
+
 ## 4. Google Search Console
 
 The site already carries your Google verification tag (added in PR #40), so the

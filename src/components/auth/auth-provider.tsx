@@ -10,7 +10,7 @@ import {
   useState,
 } from "react";
 import type { User } from "@supabase/supabase-js";
-import { supabase, isCloudConfigured, AUTH_STORAGE_KEY } from "@/lib/supabase";
+import { supabase, isCloudConfigured, AUTH_STORAGE_KEY, authRedirectUrl } from "@/lib/supabase";
 import { authErrorCode, describeAuthError } from "@/lib/auth-errors";
 
 /** The signed-in person, as the app needs them. */
@@ -95,8 +95,6 @@ function dropStoredSession() {
   }
 }
 
-const origin = () => (typeof window === "undefined" ? "" : window.location.origin);
-
 /**
  * Whether this page started with a session saved on the device. Read as the
  * module loads, before the auth client has had a chance to check it: when the
@@ -177,7 +175,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       password,
       options: {
         data: { full_name: name.trim() },
-        emailRedirectTo: `${origin()}/auth/callback`,
+        emailRedirectTo: authRedirectUrl("/auth/callback"),
       },
     });
     if (error) return { error: describeAuthError(error), code: authErrorCode(error) };
@@ -194,7 +192,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { error } = await supabase.auth.resend({
       type: "signup",
       email: email.trim(),
-      options: { emailRedirectTo: `${origin()}/auth/callback` },
+      options: { emailRedirectTo: authRedirectUrl("/auth/callback") },
     });
     return error ? { error: describeAuthError(error), code: authErrorCode(error) } : {};
   }, []);
@@ -202,7 +200,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const requestPasswordReset = useCallback(async (email: string): Promise<AuthResult> => {
     if (!supabase) return { error: "Accounts aren't configured in this build." };
     const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-      redirectTo: `${origin()}/reset-password`,
+      redirectTo: authRedirectUrl("/reset-password"),
     });
     return error ? { error: describeAuthError(error), code: authErrorCode(error) } : {};
   }, []);
