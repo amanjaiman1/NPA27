@@ -199,12 +199,17 @@ export const ADMIN_ROUTES: AdminRoute[] = [
     live: ["reviews"],
     run: async (ctx) => {
       const m = take(parseModeration(ctx.body));
+      // Hiding and restoring need more than moderation: the database checks this again.
+      if ((m.action === "hide" || m.action === "restore") && !ctx.actor.permissions.includes("reviews.hide")) {
+        throw new PlatformError(403, "forbidden", "Your role doesn't include hiding or restoring reviews.");
+      }
       const out = await ctx.deps.rpc("platform_admin_moderate_review", {
         ...actorArgs(ctx),
         p_id: ctx.params.id,
         p_action: m.action,
         p_reason: m.reason,
         p_seen: m.seen,
+        p_code: m.code,
       });
       ctx.deps.revalidate([PUBLIC_TAGS.testimonials]);
       return out;

@@ -4,10 +4,13 @@ import type { PlatformRole } from "./roles";
 import type {
   AnnouncementCategory,
   AnnouncementState,
+  AspirantType,
   ChangelogCategory,
+  DisplayPreference,
   FeedbackCategory,
   FeedbackPriority,
   FeedbackStatus,
+  ModerationCode,
   ReviewStage,
   ReviewStatus,
 } from "./content";
@@ -61,23 +64,58 @@ export interface Eligibility extends ReviewUsage {
   eligible: boolean;
 }
 
+/** Worked out by the database from the usage it measured. Never set by anyone. */
+export interface ReviewBadges {
+  verifiedUser: boolean;
+  activeUser: boolean;
+  /** The chosen features the account has records in. */
+  features: string[];
+  established: boolean;
+}
+
+/** Exactly what the website shows of a review, frozen when it was published. */
+export interface PublicReviewVersion {
+  rating: number;
+  headline: string | null;
+  body: string | null;
+  useful: string | null;
+  problemBefore: string | null;
+  changeNote: string | null;
+  features: string[];
+  stage: ReviewStage | null;
+  aspirantType: AspirantType | null;
+  /** Already as the author chose: their name, initials, or none. */
+  displayName: string;
+  badges: ReviewBadges;
+}
+
 export interface AuthorReview {
   id: string;
   rating: number;
   headline: string | null;
-  body: string;
+  /** What they'd tell another aspirant. Needed, at 30+ characters, only for a public testimonial. */
+  body: string | null;
   useful: string | null;
   suggestions: string | null;
+  problemBefore: string | null;
+  changeNote: string | null;
   features: string[];
   stage: ReviewStage | null;
+  aspirantType: AspirantType | null;
   displayName: string;
+  displayPreference: DisplayPreference;
+  showTenure: boolean;
+  publicName: string;
   feedbackConsent: boolean;
   feedbackConsentAt: string | null;
   publicConsent: boolean;
   publicConsentAt: string | null;
+  consentVersion: string | null;
   status: ReviewStatus;
   usage: ReviewUsage;
+  source: "settings" | "invitation";
   moderationReason: string | null;
+  moderationCode: ModerationCode | null;
   moderatedAt: string | null;
   response: string | null;
   responseAt: string | null;
@@ -85,30 +123,54 @@ export interface AuthorReview {
   submittedAt: string;
   updatedAt: string;
   withdrawnAt: string | null;
+  slug: string | null;
+  featuredAt: string | null;
+  /** On the website now, possibly as an earlier version while an edit waits. */
+  live: boolean;
+  publicVersion: PublicReviewVersion | null;
+  badges: ReviewBadges;
+}
+
+export interface ConsentEvent {
+  kind: "feedback_granted" | "public_granted" | "public_withdrawn" | "review_withdrawn";
+  version: string | null;
+  at: string;
+}
+
+export interface ReviewRevision {
+  id: number;
+  content: Record<string, unknown>;
+  status: ReviewStatus;
+  at: string;
 }
 
 export interface AdminReview extends AuthorReview {
   userId: string;
   account: { emailConfirmed: boolean; createdAt: string } | null;
   history?: HistoryEntry[];
+  consentHistory?: ConsentEvent[];
+  revisions?: ReviewRevision[];
+  verification?: { minDays: number; minUsageDays: number; activeDays: number; establishedDays: number };
 }
 
 export interface ReviewList extends Page<AdminReview> {
-  counts: Partial<Record<ReviewStatus, number>>;
+  counts: Partial<Record<ReviewStatus | "live" | "featured", number>>;
+  stats: {
+    liveAverage: number | null;
+    bySource: Partial<Record<"settings" | "invitation", number>>;
+    weekly: Series[];
+    activity: { id: number; action: string; targetId: string; createdAt: string; reason: string | null; metadata: Record<string, unknown>; actorEmail: string | null }[];
+  };
 }
 
-export interface PublicReview {
-  id: string;
-  rating: number;
-  headline: string | null;
-  body: string;
-  useful: string | null;
-  features: string[];
-  stage: ReviewStage | null;
-  displayName: string;
+export interface PublicReview extends PublicReviewVersion {
+  slug: string;
   publishedAt: string;
   response: string | null;
   responseAt: string | null;
+  featured: boolean;
+  /** Long enough for a page of its own. */
+  story: boolean;
 }
 
 export interface MyReview {
@@ -204,6 +266,8 @@ export interface MyAnnouncements {
   notice: { message: string; tone: "info" | "warning" } | null;
   /** The team's answers to the person's feedback that they haven't opened yet. */
   unseenResponses: number;
+  /** Whether to show the invitation to review: eligible, no review yet, not postponed or dismissed. */
+  reviewInvite: boolean;
   items: MyAnnouncement[];
   /**
    * The next scheduled start or end of a published announcement (ISO), and
@@ -227,6 +291,22 @@ export interface ChangelogEntry {
   seoTitle: string | null;
   seoDescription: string | null;
   publishedAt: string | null;
+  requests: number;
+  whatChanged: string | null;
+  whyItMatters: string | null;
+  /** The feedback theme it answers. Public only while real feedback is linked. */
+  askedTheme: string | null;
+}
+
+/** "You asked. We improved.": a shipped change and the feedback theme behind it. */
+export interface YouAskedItem {
+  slug: string;
+  title: string;
+  askedTheme: string;
+  summary: string;
+  featureKey: string | null;
+  category: ChangelogCategory;
+  publishedAt: string;
   requests: number;
 }
 

@@ -19,6 +19,8 @@ export const PERMISSIONS = [
   "users.read",
   "users.suspend",
   "reviews.moderate",
+  /** Hiding a published review, and restoring a hidden one. */
+  "reviews.hide",
   "feedback.manage",
   "announcements.manage",
   "changelog.manage",
@@ -36,12 +38,23 @@ const MATRIX: Record<PlatformRole, readonly Permission[]> = {
     "users.read",
     "users.suspend",
     "reviews.moderate",
+    "reviews.hide",
     "feedback.manage",
     "announcements.manage",
     "changelog.manage",
   ],
   moderator: ["admin.access", "reviews.moderate"],
 };
+
+/** The platform settings that widen a role. Defaults are the settings' own defaults. */
+export interface PermissionSwitches {
+  /** Moderators also handle the Feedback Center. Off by default. */
+  moderatorsHandleFeedback?: boolean;
+  /** Moderators may hide and restore published reviews. On by default. */
+  moderatorsHideReviews?: boolean;
+  /** Admins may read the audit log. Off by default. */
+  adminsReadAudit?: boolean;
+}
 
 export const ROLE_LABEL: Record<PlatformRole, string> = {
   super_admin: "Super Admin",
@@ -51,8 +64,8 @@ export const ROLE_LABEL: Record<PlatformRole, string> = {
 
 export const ROLE_SUMMARY: Record<PlatformRole, string> = {
   super_admin: "Everything, including settings, access and the audit log.",
-  admin: "Users, reviews, feedback, announcements, changelog and figures.",
-  moderator: "Reviews, and feedback if the setting allows it.",
+  admin: "Users, reviews, feedback, announcements, changelog and figures; the audit log if the setting allows it.",
+  moderator: "Reviews (hiding them if the setting allows it), and feedback if the setting allows it.",
 };
 
 /** Roles a Super Admin may grant in the app. Super Admin itself is only granted in the SQL Editor. */
@@ -67,10 +80,12 @@ export function isGrantableRole(value: unknown): value is GrantableRole {
   return typeof value === "string" && (GRANTABLE_ROLES as readonly string[]).includes(value);
 }
 
-/** What a role may do. Moderators handle feedback only when the platform setting says so. */
-export function permissionsFor(role: PlatformRole, options: { moderatorsHandleFeedback?: boolean } = {}): Permission[] {
-  const base = [...MATRIX[role]];
+/** What a role may do, given the platform settings that widen roles. */
+export function permissionsFor(role: PlatformRole, options: PermissionSwitches = {}): Permission[] {
+  const base: Permission[] = [...MATRIX[role]];
+  if (role === "moderator" && options.moderatorsHideReviews !== false) base.push("reviews.hide");
   if (role === "moderator" && options.moderatorsHandleFeedback) base.push("feedback.manage");
+  if (role === "admin" && options.adminsReadAudit) base.push("audit.read");
   return PERMISSIONS.filter((p) => base.includes(p));
 }
 
