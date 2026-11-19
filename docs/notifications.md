@@ -120,7 +120,7 @@ anything, so a notification and the page it links to can never disagree.
 | `goal-at-risk` | Pace says the goal will miss its target | normal | `computeGoalProgress` | `/goals` |
 | `goal-ready` | A goal has *met* its target and can be closed | normal | `computeGoalProgress` | `/goals` |
 | `mock-drought` | No mock attempted in 14 days | high | `mocks` | `/mocks` |
-| `review-unwritten` | A week or month ended with no finished review: none written, or only a draft | normal | `reviewPeriods` · `findReviewFor` | `/reviews?open=<period>` |
+| `review-unwritten` | A week or month ended with no finished review: none written, or only a draft | normal | `reviewPeriods` · `findReviewFor` | `/performance-review?open=<period>` |
 | `reflection-gap` | Nothing in the Personal Diary for 7 days (dates only; no entry is read) | low | `reflections` (dates) | `/diary` |
 | `subject-stale-topics` | Topics untouched for 45+ days | low | `staleTopics` | `/subjects` |
 | `book-stalled` | A *Reading* book has seen no pages in 14 days | low | `journal.booksStudied` | `/books` |

@@ -1,9 +1,15 @@
 # Performance Review
 
-The Reviews page (`/reviews`) is now Performance Review: a look back at a
-week, a month, a year or any dates you choose, with the figures gathered for
-you and six questions for you to answer. Code: `src/lib/performance.ts`, the
-page and `src/components/reviews/`.
+Performance Review (`/performance-review`) is a look back at a week, a month,
+a year or any dates you choose, with the figures gathered for you and six
+questions for you to answer. Code: `src/lib/performance.ts`, the page and
+`src/components/reviews/`.
+
+It lived at `/reviews` until that address became the public page of student
+reviews of DoOrDie. Links already sent in reminders and notifications
+(`/reviews?open=…`) still open the right review: `next.config.mjs` redirects
+any `/reviews` address that carries `open` to `/performance-review`, keeping
+the query.
 
 ## The figures
 
@@ -46,7 +52,7 @@ overall 1 to 5 rating is optional.
 - **Save draft:** kept with live figures that follow your records. A draft
   doesn't count as written: once its week or month has ended, the "review not
   written" reminder says it is still a draft and links straight to it
-  (`/reviews?open=Weekly:2026-11-09`).
+  (`/performance-review?open=Weekly:2026-11-09`).
 - **Complete review:** the figures are frozen into the review (`snapshot`),
   with the period before, so a later edit to the journal or the plan never
   rewrites a finished review. Completing a period that hasn't ended asks first.

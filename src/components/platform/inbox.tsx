@@ -2,8 +2,8 @@
 
 /* ════════════════════════════════════════════════════════════════
    FROM THE TEAM
-   Announcements, the app-wide notice and "the team answered your
-   feedback", for the signed-in account. One database call when the app
+   Announcements, the app-wide notice, "the team answered your
+   feedback" and whether to invite a review, for the signed-in account. One database call when the app
    opens, then again:
    - the moment the team changes any of them in the Admin Center (a live
      update, see live-updates.ts);
@@ -40,6 +40,10 @@ export interface InboxValue {
   markAllRead: () => void;
   /** The feedback list has shown the answers. */
   responsesSeen: () => void;
+  /** The database says this account may be invited to review (see platform_review_invite_due). */
+  reviewInvite: boolean;
+  /** "Later" or "No thanks" on the invitation, or a review sent: stop showing it now. */
+  answerInvite: (action: "postpone" | "dismiss" | "done") => void;
 }
 
 const InboxContext = createContext<InboxValue | null>(null);
@@ -47,7 +51,7 @@ const InboxContext = createContext<InboxValue | null>(null);
 /** Null without an account (this device only, or no Supabase). */
 export const useInbox = () => useContext(InboxContext);
 
-const EMPTY: MyAnnouncements = { notice: null, unseenResponses: 0, items: [] };
+const EMPTY: MyAnnouncements = { notice: null, unseenResponses: 0, reviewInvite: false, items: [] };
 
 export function PlatformInbox({ userId, children }: { userId: string | null; children: React.ReactNode }) {
   const [state, setState] = useState<MyAnnouncements>(EMPTY);
@@ -68,7 +72,12 @@ export function PlatformInbox({ userId, children }: { userId: string | null; chi
     // Not set up yet, or offline: show nothing rather than an error, and ask again later.
     if (error || !data || call !== seq.current || !alive.current) return;
     const d = data as Partial<MyAnnouncements>;
-    setState({ notice: d.notice ?? null, unseenResponses: Number(d.unseenResponses ?? 0), items: Array.isArray(d.items) ? d.items : [] });
+    setState({
+      notice: d.notice ?? null,
+      unseenResponses: Number(d.unseenResponses ?? 0),
+      reviewInvite: d.reviewInvite === true,
+      items: Array.isArray(d.items) ? d.items : [],
+    });
 
     // Timed from the database's clock, so a phone set a few minutes wrong still gets it on time.
     if (changeTimer.current) clearTimeout(changeTimer.current);
@@ -105,8 +114,9 @@ export function PlatformInbox({ userId, children }: { userId: string | null; chi
     };
   }, [userId, load]);
 
-  // The team changed an announcement, the notice or an answer to feedback: show it now.
-  usePlatformUpdates(["announcements", "notice", "feedback"], () => void load(), Boolean(userId));
+  // The team changed an announcement, the notice or an answer to feedback, or the review
+  // settings (which decide the invitation to review): show it now.
+  usePlatformUpdates(["announcements", "notice", "feedback", "reviews"], () => void load(), Boolean(userId));
 
   const patch = useCallback((ids: string[] | "all", fields: Partial<MyAnnouncement>) => {
     setState((s) => ({ ...s, items: s.items.map((a) => (ids === "all" || ids.includes(a.id) ? { ...a, ...fields } : a)) }));
@@ -141,6 +151,11 @@ export function PlatformInbox({ userId, children }: { userId: string | null; chi
         call("platform_mark_announcements_read");
       },
       responsesSeen: () => setState((s) => (s.unseenResponses ? { ...s, unseenResponses: 0 } : s)),
+      answerInvite: (action) => {
+        setState((s) => ({ ...s, reviewInvite: false }));
+        // A review sent needs no call: the database stops inviting once a review exists.
+        if (action !== "done") call("platform_review_invite", { p_action: action });
+      },
     };
   }, [state, patch]);
 

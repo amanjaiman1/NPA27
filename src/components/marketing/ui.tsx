@@ -88,7 +88,7 @@ export function SectionHeading({
       {eyebrow && <Eyebrow className="mb-3">{eyebrow}</Eyebrow>}
       <h2
         id={id}
-        className="text-balance font-display text-[1.75rem] font-bold leading-[1.15] tracking-tightest text-paper sm:text-[2.25rem]"
+        className="scroll-mt-24 text-balance font-display text-[1.75rem] font-bold leading-[1.15] tracking-tightest text-paper sm:text-[2.25rem]"
       >
         {title}
       </h2>
@@ -254,10 +254,13 @@ export function CtaBanner({
   title = "Start organising your UPSC preparation",
   body = "Create a free account and log your first day in a few minutes. Your data stays private to your account, and you can export or delete it whenever you like.",
   track = "cta_footer",
+  secondary = { href: "/features", label: "See every feature" },
 }: {
   title?: string;
   body?: string;
   track?: string;
+  /** The quieter second button. */
+  secondary?: { href: string; label: string; track?: string };
 }) {
   return (
     <section aria-labelledby="cta-title" className="py-16 sm:py-20">
@@ -273,8 +276,8 @@ export function CtaBanner({
               <ButtonLink href="/signup" arrow track={track}>
                 Create your free account
               </ButtonLink>
-              <ButtonLink href="/features" variant="ghost">
-                See every feature
+              <ButtonLink href={secondary.href} variant="ghost" track={secondary.track}>
+                {secondary.label}
               </ButtonLink>
             </div>
           </div>

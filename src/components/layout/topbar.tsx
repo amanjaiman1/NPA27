@@ -4,6 +4,7 @@ import Link from "next/link";
 import { CalendarClock, Command, Menu, Plus, Search } from "lucide-react";
 import { Logo } from "./logo";
 import { AccountMenu } from "@/components/account/account-menu";
+import { useAccount } from "@/components/account/account-session";
 import { NotificationCentre } from "@/components/notifications/centre";
 import { Notifier } from "@/components/notifications/notifier";
 import { TourButton } from "@/components/tour/tour-button";
@@ -31,6 +32,7 @@ export function Topbar({
   desktop: boolean;
 }) {
   const profile = useChronicle((s) => s.profile);
+  const { mode } = useAccount();
   const mounted = useMounted();
   const daysLeft = mounted ? daysBetween(toISODate(new Date()), profile.examDate) : null;
 
@@ -95,8 +97,9 @@ export function Topbar({
         )}
 
         {/* Mounted once, inside the authenticated shell, where notification
-            delivery belongs. It renders nothing. */}
-        <Notifier />
+            delivery belongs. It renders nothing. Not in the demo: the sample
+            account's reminders must never reach the device. */}
+        {mode !== "demo" && <Notifier />}
 
         <Link
           href="/journal?new=1"

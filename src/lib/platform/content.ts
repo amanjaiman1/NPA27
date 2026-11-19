@@ -35,6 +35,7 @@ export type ReviewStage = (typeof REVIEW_STAGE.ids)[number];
 
 /** The features a review can say it used. The same list the database accepts. */
 export const REVIEW_FEATURES: FeatureKey[] = [
+  "dashboard",
   "journal",
   "subjects",
   "revision",
@@ -54,7 +55,93 @@ export const REVIEW_FEATURES: FeatureKey[] = [
 ];
 export const featureLabel = (key: string): string => (FEATURES as Record<string, { label: string }>)[key]?.label ?? key;
 
-export const REVIEW_LIMITS = { body: [30, 1500], headline: [3, 80], useful: 600, suggestions: 1000, name: [2, 40] } as const;
+/** `body` (what they'd tell another aspirant) is optional, but a public testimonial needs `body[0]` characters. */
+export const REVIEW_LIMITS = {
+  body: [30, 1500],
+  headline: [3, 80],
+  useful: 600,
+  suggestions: 1000,
+  problemBefore: 600,
+  changeNote: 800,
+  name: [2, 40],
+} as const;
+
+/** The name shown with a public review. The same rule as platform_review_public_name in SQL. */
+export function publicReviewName(name: string, preference: DisplayPreference): string {
+  if (preference === "anonymous") return "A DoOrDie aspirant";
+  if (preference === "initials") {
+    const initials = name
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((w) => `${w[0].toUpperCase()}.`)
+      .join(" ");
+    return initials || "A DoOrDie aspirant";
+  }
+  return name.trim();
+}
+
+/** The 1–5 scale, in words. Nothing is preselected. */
+export const RATING_LABEL: Record<1 | 2 | 3 | 4 | 5, string> = {
+  1: "Poor",
+  2: "Below expectations",
+  3: "Average",
+  4: "Good",
+  5: "Excellent",
+};
+
+export const ASPIRANT_TYPE = labelled([
+  ["full_time", "Preparing full time"],
+  ["working", "Preparing while working"],
+] as const);
+export type AspirantType = (typeof ASPIRANT_TYPE.ids)[number];
+
+export const DISPLAY_PREFERENCE = labelled([
+  ["name", "The name I give"],
+  ["initials", "My initials only"],
+  ["anonymous", "No name"],
+] as const);
+export type DisplayPreference = (typeof DISPLAY_PREFERENCE.ids)[number];
+
+/**
+ * The version of the consent wording a student agreed to. Change it whenever
+ * the words in the review form's last step change; each grant and withdrawal
+ * records the version it was given under.
+ */
+export const REVIEW_CONSENT_VERSION = "2026-11-19";
+
+/** Why a moderator rejects or hides a review. Being critical is not among them. */
+export const MODERATION_CODE = labelled([
+  ["spam", "Spam or advertising"],
+  ["abuse", "Abusive or hateful"],
+  ["personal_info", "Personal details of someone"],
+  ["impersonation", "Impersonating someone"],
+  ["fraud", "Fraudulent or not a real experience"],
+  ["unrelated", "Not about DoOrDie"],
+  ["illegal", "Illegal content"],
+  ["policy", "Another policy breach"],
+] as const);
+export type ModerationCode = (typeof MODERATION_CODE.ids)[number];
+
+/** What each badge on a public review means. The public page shows these words. */
+export const BADGE_MEANING = {
+  verifiedUser: {
+    label: "Verified DoOrDie user",
+    meaning: "Sent from a signed-in DoOrDie account that met the rule for reviewing: enough days since its first record, and records on enough different days.",
+  },
+  activeUser: {
+    label: "Verified active user",
+    meaning: "The account has study or life records on many different days, more than the minimum for reviewing.",
+  },
+  features: {
+    label: "Verified feature use",
+    meaning: "The account has records in the features marked. Features that leave no dated records, such as the diary or the Study Coach, aren't verified.",
+  },
+  established: {
+    label: "Established member",
+    meaning: "The account has existed for a few months, and its owner chose to show that.",
+  },
+} as const;
 
 export const FEEDBACK_CATEGORY = labelled([
   ["bug", "Bug report"],
@@ -106,6 +193,7 @@ export const CHANGELOG_CATEGORY = labelled([
   ["improvement", "Improvement"],
   ["bug_fix", "Bug fix"],
   ["performance", "Performance"],
+  ["accessibility", "Accessibility"],
   ["security", "Security"],
 ] as const);
 export type ChangelogCategory = (typeof CHANGELOG_CATEGORY.ids)[number];
@@ -121,6 +209,9 @@ export const AUDIT_ACTION_LABEL: Record<string, string> = {
   "review.approved": "Review approved privately",
   "review.rejected": "Review rejected",
   "review.hidden": "Review taken off the website",
+  "review.restored": "Hidden review restored",
+  "review.featured": "Review featured",
+  "review.unfeatured": "Review no longer featured",
   "review.response_set": "Public response added",
   "review.response_removed": "Public response removed",
   "feedback.updated": "Feedback updated",

@@ -8,6 +8,13 @@ change is noted at the end.
 Setup steps for the owner are in [`ADMIN_SETUP.md`](ADMIN_SETUP.md). The
 feature-access layer is described in [`feature-access.md`](feature-access.md).
 
+> **Since then.** The Trust & Review system
+> ([`trust-review-architecture-audit.md`](trust-review-architecture-audit.md))
+> moved the Performance Review to `/performance-review` and made `/reviews`
+> the public reviews page; `/testimonials` redirects there. The reviews page
+> now carries review markup where it's eligible (never on the organisation).
+> The notes below describe the Admin Center as it was first built.
+
 ## 1. The existing application
 
 ### Route groups
@@ -292,7 +299,7 @@ not stored in it.
 | `/api/admin/*` | One catch-all route | Route table in `src/lib/platform/server/admin-api.ts` |
 | `/api/reviews`, `/api/feedback` | Student routes | Run the user's own database functions with the user's token |
 | `/announcements` | In-app | Every published announcement |
-| `/testimonials` | Public | `/reviews` is taken by the Performance Review |
+| `/testimonials` | Public | `/reviews` was taken by the Performance Review (since moved: `/testimonials` now redirects to `/reviews`) |
 | `/changelog`, `/changelog/[slug]` | Public | Published entries only |
 
 ## 10. Feature access, for later

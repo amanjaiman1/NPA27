@@ -90,7 +90,7 @@ export const navGroups: NavGroup[] = [
     items: [
       {
         label: "Performance Review",
-        href: "/reviews",
+        href: "/performance-review",
         icon: CalendarCheck,
         short: "Weekly, monthly or any period, gathered from your records",
         tab: "Review",

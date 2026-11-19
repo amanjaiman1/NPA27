@@ -50,8 +50,12 @@ export default function AdminUsersPage() {
   const [open, setOpen] = useState<string | null>(null);
 
   useEffect(() => {
-    const f = new URLSearchParams(window.location.search).get("filter");
+    const params = new URLSearchParams(window.location.search);
+    const f = params.get("filter");
     if (f && FILTERS.some((x) => x.value === f)) setFilter(f as Filter);
+    // "?id=…" opens one account, for links from Reviews and Feedback.
+    const id = params.get("id");
+    if (id && /^[0-9a-f-]{36}$/i.test(id)) setOpen(id.toLowerCase());
   }, []);
 
   const path = useMemo(() => {

@@ -38,9 +38,10 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
-  const body = (await request.json().catch(() => null)) as { publicConsent?: unknown } | null;
+  const body = (await request.json().catch(() => null)) as { publicConsent?: unknown; consentVersion?: unknown } | null;
   if (typeof body?.publicConsent !== "boolean") return json({ error: "Say whether it may be public.", code: "invalid" }, 400);
-  return run(request, "platform_set_review_consent", { p_public: body.publicConsent }, true);
+  const version = typeof body.consentVersion === "string" ? body.consentVersion.slice(0, 20) : null;
+  return run(request, "platform_set_review_consent", { p_public: body.publicConsent, p_version: version }, true);
 }
 
 export async function DELETE(request: Request) {

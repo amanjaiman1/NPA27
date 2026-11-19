@@ -14,8 +14,10 @@ import {
   FEEDBACK_CATEGORY,
   FEEDBACK_PRIORITY,
   FEEDBACK_STATUS,
+  MODERATION_CODE,
   type AnnouncementCategory,
   type ChangelogCategory,
+  type ModerationCode,
 } from "./content";
 import { FEATURE_KEYS } from "@/lib/features";
 
@@ -89,21 +91,26 @@ export function parseRestore(input: unknown): Parsed<{ reason: string | null }> 
   return ok({ reason });
 }
 
-const REVIEW_ACTIONS = ["publish", "approve", "reject", "hide"] as const;
+export const REVIEW_ACTIONS = ["publish", "approve", "reject", "hide", "restore", "feature", "unfeature"] as const;
 export type ReviewAction = (typeof REVIEW_ACTIONS)[number];
-export function parseModeration(input: unknown): Parsed<{ action: ReviewAction; reason: string | null; seen: string | null }> {
+/** Actions that take a review off the site, and need a listed reason (and optionally a note the author sees). */
+export const REASONED_ACTIONS: readonly ReviewAction[] = ["reject", "hide"];
+
+export function parseModeration(
+  input: unknown,
+): Parsed<{ action: ReviewAction; reason: string | null; code: ModerationCode | null; seen: string | null }> {
   const b = asBody(input);
   if (!b) return bad("Expected JSON.");
   if (!(REVIEW_ACTIONS as readonly unknown[]).includes(b.action)) return bad("Unknown action.");
   const action = b.action as ReviewAction;
+  const reasoned = REASONED_ACTIONS.includes(action);
+  const code = (MODERATION_CODE.ids as unknown[]).includes(b.code) ? (b.code as ModerationCode) : null;
+  if (reasoned && !code) return bad("Choose the reason. Being critical of DoOrDie is never one.");
   const reason = text(b.reason, 500);
-  if ((action === "reject" || action === "hide") && (!reason || reason.length < 5)) {
-    return bad("Give a reason of at least 5 characters. The author will see it.");
-  }
-  if (reason && reason.length > 500) return bad("Keep the reason under 500 characters.");
+  if (reason && reason.length > 500) return bad("Keep the note under 500 characters.");
   const seen = time(b.seen);
   if (seen === undefined) return bad("Unreadable time.");
-  return ok({ action, reason: action === "reject" || action === "hide" ? reason : null, seen });
+  return ok({ action, reason: reasoned ? reason : null, code: reasoned ? code : null, seen });
 }
 
 /** A reply shown to the author or under a review. Empty removes it. */
@@ -207,6 +214,10 @@ export interface ChangelogFields {
   seoTitle: string | null;
   seoDescription: string | null;
   publishedAt: string | null;
+  whatChanged: string | null;
+  whyItMatters: string | null;
+  /** The feedback theme in the team's words; public only while real feedback is linked. */
+  askedTheme: string | null;
 }
 
 export const slugify = (v: string) =>
@@ -240,7 +251,28 @@ export function parseChangelog(input: unknown): Parsed<ChangelogFields> {
   if (seoDescription && seoDescription.length > 170) return bad("Keep the search description under 170 characters.");
   const publishedAt = time(b.publishedAt);
   if (publishedAt === undefined) return bad("Unreadable date.");
-  return ok({ title, slug, summary, body, category, featureKey, imageUrl, imageAlt: imageUrl ? imageAlt : null, seoTitle, seoDescription, publishedAt });
+  const whatChanged = text(b.whatChanged, 2000);
+  if (whatChanged && whatChanged.length > 2000) return bad("Keep \"What changed\" under 2,000 characters.");
+  const whyItMatters = text(b.whyItMatters, 1000);
+  if (whyItMatters && whyItMatters.length > 1000) return bad("Keep \"Why it matters\" under 1,000 characters.");
+  const askedTheme = text(b.askedTheme, 200);
+  if (askedTheme && (askedTheme.length < 5 || askedTheme.length > 200)) return bad("Write the feedback theme in 5 to 200 characters.");
+  return ok({
+    title,
+    slug,
+    summary,
+    body,
+    category,
+    featureKey,
+    imageUrl,
+    imageAlt: imageUrl ? imageAlt : null,
+    seoTitle,
+    seoDescription,
+    publishedAt,
+    whatChanged,
+    whyItMatters,
+    askedTheme,
+  });
 }
 
 export function parseChangelogAction(input: unknown): Parsed<{ action: "publish" | "unpublish"; publishedAt: string | null }> {
@@ -298,6 +330,54 @@ export const SETTINGS = {
   reviews_open: { kind: "boolean", label: "Accept new reviews", help: "When off, nobody can send a new review. Existing reviews can still be edited or withdrawn." },
   review_min_days: { kind: "integer", label: "Days since first use", help: "A review can be sent once this many days have passed since the account's first record.", min: 0, max: 365, unit: "days" },
   review_min_usage_days: { kind: "integer", label: "Days with records", help: "And once the account has records on at least this many different days.", min: 1, max: 365, unit: "days" },
+  review_invite_enabled: {
+    kind: "boolean",
+    label: "Invite eligible students",
+    help: "A quiet card on the dashboard only, for everyone who qualifies, with Later and No thanks. It stops after No thanks or the third Later.",
+  },
+  review_edit_policy: {
+    kind: "choice",
+    label: "When a published review is edited",
+    help: "Edits always go back to a moderator. This decides what the website shows meanwhile.",
+    options: [
+      { id: "keep_previous", label: "Keep the approved version up" },
+      { id: "remove_until_approved", label: "Take it down until approved" },
+    ],
+  },
+  review_aggregate_min: {
+    kind: "integer",
+    label: "Reviews before an average",
+    help: "The average rating and the breakdowns appear on the website only once this many reviews are published.",
+    min: 1,
+    max: 50,
+    unit: "reviews",
+  },
+  review_story_min_chars: {
+    kind: "integer",
+    label: "Length of a story",
+    help: "Reviews with at least this many characters of answers get a page of their own; shorter ones don't, so there are no thin pages.",
+    min: 200,
+    max: 3000,
+    unit: "characters",
+  },
+  verified_active_usage_days: {
+    kind: "integer",
+    label: "Days for \"Verified active user\"",
+    help: "The badge needs records on at least this many different days.",
+    min: 1,
+    max: 365,
+    unit: "days",
+  },
+  established_member_days: {
+    kind: "integer",
+    label: "Days for \"Established member\"",
+    help: "The badge needs an account at least this old, and the author's choice to show it.",
+    min: 30,
+    max: 1095,
+    unit: "days",
+  },
+  moderators_hide_reviews: { kind: "boolean", label: "Moderators can hide reviews", help: "Lets Moderators take a published review down, and restore a hidden one." },
+  admins_read_audit: { kind: "boolean", label: "Admins can read the audit log", help: "Lets Admins open the audit log. Super Admins always can." },
   testimonials_on_home: { kind: "boolean", label: "Reviews on the home page", help: "Show the newest published reviews on the home page." },
   testimonials_home_count: { kind: "integer", label: "How many on the home page", help: "The newest published reviews, never picked by rating.", min: 1, max: 6, unit: "reviews" },
   testimonials_on_feature_pages: { kind: "boolean", label: "Reviews on feature pages", help: "Show a few published reviews on the five feature pages." },
@@ -360,18 +440,26 @@ export function parseReviewFields(input: unknown): Parsed<Record<string, unknown
   if (!b) return bad("Expected JSON.");
   if (typeof b.rating !== "number" || !Number.isInteger(b.rating) || b.rating < 1 || b.rating > 5) return bad("Choose a rating from 1 to 5 stars.");
   const str = (v: unknown, max: number) => (typeof v === "string" ? v.slice(0, max + 1) : null);
-  const features = Array.isArray(b.features) ? b.features.filter((f): f is string => typeof f === "string").slice(0, 16) : [];
+  const features = Array.isArray(b.features) ? b.features.filter((f): f is string => typeof f === "string").slice(0, 20) : [];
+  const choice = (v: unknown, allowed: readonly string[]) => (typeof v === "string" && allowed.includes(v) ? v : null);
   return ok({
     rating: b.rating,
     headline: str(b.headline, 80),
     body: str(b.body, 1500),
     useful: str(b.useful, 600),
     suggestions: str(b.suggestions, 1000),
+    problemBefore: str(b.problemBefore, 600),
+    changeNote: str(b.changeNote, 800),
     features,
     stage: typeof b.stage === "string" && b.stage ? b.stage : null,
+    aspirantType: choice(b.aspirantType, ["full_time", "working"]),
     displayName: str(b.displayName, 40),
+    displayPreference: choice(b.displayPreference, ["name", "initials", "anonymous"]) ?? "name",
+    showTenure: b.showTenure === true,
     feedbackConsent: b.feedbackConsent === true,
     publicConsent: b.publicConsent === true,
+    consentVersion: str(b.consentVersion, 20),
+    source: b.source === "invitation" ? "invitation" : "settings",
   });
 }
 

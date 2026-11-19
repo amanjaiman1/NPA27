@@ -31,7 +31,7 @@ export const FEATURES = {
   subjects: { label: "Subject Progress", routes: ["/subjects"] },
   mocks: { label: "Mock Analytics", routes: ["/mocks"] },
   knowledgeGraph: { label: "Knowledge Graph", routes: ["/knowledge-graph"] },
-  performanceReview: { label: "Performance Review", routes: ["/reviews"] },
+  performanceReview: { label: "Performance Review", routes: ["/performance-review"] },
   diary: { label: "Personal Diary", routes: ["/diary"] },
   announcements: { label: "Announcements", routes: ["/announcements"] },
   settings: { label: "Settings", routes: ["/settings"] },

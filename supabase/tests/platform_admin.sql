@@ -102,7 +102,7 @@ begin
     user_fn := f.proname in ('platform_my_role', 'platform_my_review', 'platform_submit_review', 'platform_set_review_consent',
       'platform_withdraw_review', 'platform_delete_my_review', 'platform_submit_feedback', 'platform_attach_feedback_screenshot',
       'platform_my_feedback', 'platform_mark_feedback_seen', 'platform_my_announcements', 'platform_mark_announcement',
-      'platform_mark_announcements_read');
+      'platform_mark_announcements_read', 'platform_review_invite');
     if has_function_privilege('anon', f.oid, 'execute') <> public_fn then
       raise exception 'FAIL: anon execute on % is wrong', f.proname;
     end if;
@@ -139,11 +139,12 @@ declare
   modr uuid := '0c000000-0000-4000-8000-000000000003';
   student uuid := '0d000000-0000-4000-8000-000000000004';
 begin
-  if cardinality(public.platform_permissions('super_admin')) <> 11
+  -- With the default switches (supabase/tests/platform_trust.sql tries the others).
+  if cardinality(public.platform_permissions('super_admin')) <> 12
      or 'settings.manage' = any (public.platform_permissions('admin'))
      or 'access.manage' = any (public.platform_permissions('admin'))
      or 'audit.read' = any (public.platform_permissions('admin'))
-     or public.platform_permissions('moderator') <> array['admin.access', 'reviews.moderate']
+     or public.platform_permissions('moderator') <> array['admin.access', 'reviews.moderate', 'reviews.hide']
      or not ('feedback.manage' = any (public.platform_permissions('moderator', true)))
      or cardinality(public.platform_permissions('student')) <> 0 then
     raise exception 'FAIL: the permission table is not what the roles promise';
@@ -283,7 +284,8 @@ begin
   end if;
   perform public.test_expect_error($q$select public.platform_submit_review('{"rating":5,"body":"Thirty characters of genuine praise here.","displayName":"Student"}')$q$,
     'platform:invalid%');
-  perform public.test_expect_error($q$select public.platform_submit_review('{"rating":5,"body":"Too short","displayName":"Student","feedbackConsent":true}')$q$,
+  -- A private review may be short; a public one needs 30 characters.
+  perform public.test_expect_error($q$select public.platform_submit_review('{"rating":5,"body":"Too short","displayName":"Student","feedbackConsent":true,"publicConsent":true}')$q$,
     'platform:invalid%');
   perform public.test_expect_error($q$select public.platform_submit_review('{"rating":9,"body":"Thirty characters of genuine praise here.","displayName":"Student","feedbackConsent":true}')$q$,
     'platform:invalid%');
@@ -328,11 +330,13 @@ begin
     raise exception 'FAIL: publishing went wrong: %', r;
   end if;
   pub := public.platform_public_reviews();
-  if (pub ->> 'total')::int <> 1 or (pub ->> 'averageRating')::numeric <> 4 then
-    raise exception 'FAIL: the published review isn''t public: %', pub;
+  -- One review is fewer than the minimum for an average: none is given.
+  if (pub ->> 'total')::int <> 1 or pub ->> 'averageRating' is not null then
+    raise exception 'FAIL: the published review isn''t public, or an average was shown for one review: %', pub;
   end if;
   if pub::text like '%PRIVATE-SUGGESTION%' or pub -> 'items' -> 0 ? 'userId' or pub -> 'items' -> 0 ? 'suggestions'
-     or pub -> 'items' -> 0 ? 'usage' or pub -> 'items' -> 0 ->> 'displayName' <> 'Asha V.' then
+     or pub -> 'items' -> 0 ? 'usage' or pub -> 'items' -> 0 ? 'id' or pub::text like '%0d000000%'
+     or pub -> 'items' -> 0 ->> 'displayName' <> 'Asha V.' then
     raise exception 'FAIL: the public shape leaks or lacks something: %', pub;
   end if;
   perform public.platform_admin_respond_review(modr, rid, 'Thank you. A Hindi option is on the list.');
@@ -350,18 +354,22 @@ begin
 end $$;
 reset role;
 
--- The author edits what the public sees: back to moderation, off the site.
+-- The author edits what the public sees: back to moderation. Under the default
+-- policy the approved version stays on the site until the edit is checked
+-- (platform_trust.sql tries the other policy).
 set local role authenticated;
 select set_config('request.jwt.claims', '{"sub":"0d000000-0000-4000-8000-000000000004","role":"authenticated"}', true);
 do $$
-declare r jsonb;
+declare r jsonb; pub jsonb;
 begin
   r := public.platform_submit_review('{"rating":3,"headline":"Keeps me honest","body":"The revision queue keeps my week on track, mostly.","useful":"The heatmap.","features":["revision"],"stage":"prelims","displayName":"Asha V.","feedbackConsent":true,"publicConsent":true}');
-  if r ->> 'status' <> 'pending' or r ->> 'publishedAt' is not null then
-    raise exception 'FAIL: an edited published review stayed published: %', r;
+  if r ->> 'status' <> 'pending' then
+    raise exception 'FAIL: an edited published review didn''t go back to a moderator: %', r;
   end if;
-  if (public.platform_public_reviews() ->> 'total')::int <> 0 then
-    raise exception 'FAIL: an edited review is still public before moderation';
+  pub := public.platform_public_reviews();
+  if (pub ->> 'total')::int <> 1 or pub -> 'items' -> 0 ->> 'body' <> 'The revision queue and habits keep my week on track.'
+     or (pub -> 'items' -> 0 ->> 'rating')::int <> 4 then
+    raise exception 'FAIL: the site didn''t keep the approved version while the edit waits: %', pub;
   end if;
 end $$;
 reset role;
@@ -421,9 +429,10 @@ declare
   rid uuid := (select id from public.platform_reviews where user_id = '0d000000-0000-4000-8000-000000000004');
 begin
   perform public.platform_admin_moderate_review(adm, rid, 'publish');
+  -- Hiding needs one of the listed reasons.
   perform public.test_expect_error(format('select public.platform_admin_moderate_review(%L, %L, %L, %L)', adm, rid, 'hide', 'no'),
     'platform:invalid%');
-  perform public.platform_admin_moderate_review(adm, rid, 'hide', 'Mentions another student by name.');
+  perform public.platform_admin_moderate_review(adm, rid, 'hide', 'Mentions another student by name.', null, 'personal_info');
 end $$;
 reset role;
 

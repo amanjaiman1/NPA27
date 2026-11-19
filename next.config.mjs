@@ -14,6 +14,12 @@ const nextConfig = {
       { source: "/timeline", destination: "/dashboard", permanent: false },
       // Reflections became the Personal Diary: same entries, new home.
       { source: "/reflections", destination: "/diary", permanent: true },
+      // The Performance Review moved to /performance-review when /reviews became
+      // the public reviews page. Reminders and pushes already sent link to
+      // /reviews?open=…; they still open the right review (the query is kept).
+      { source: "/reviews", has: [{ type: "query", key: "open" }], destination: "/performance-review", permanent: false },
+      // Public reviews lived at /testimonials for a short while.
+      { source: "/testimonials", destination: "/reviews", permanent: true },
     ];
   },
   async headers() {

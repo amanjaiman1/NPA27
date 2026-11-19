@@ -13,6 +13,7 @@ export function PageHero({
   title,
   intro,
   cta,
+  actions,
   shot,
   shotCaption,
 }: {
@@ -22,6 +23,8 @@ export function PageHero({
   intro: React.ReactNode;
   /** Analytics name for the primary button; omit to show no buttons. */
   cta?: string;
+  /** Buttons of the page's own, instead of the standard pair. */
+  actions?: React.ReactNode;
   shot?: Shot;
   shotCaption?: React.ReactNode;
 }) {
@@ -39,7 +42,8 @@ export function PageHero({
             {title}
           </h1>
           <div className="mt-5 space-y-3 text-pretty text-[1.05rem] leading-relaxed text-paper/70 sm:text-lg">{intro}</div>
-          {cta && (
+          {actions && <div className="mt-8">{actions}</div>}
+          {cta && !actions && (
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <ButtonLink href="/signup" arrow track={cta}>
                 Start free

@@ -10,6 +10,7 @@ import { apiCall, ApiError } from "@/lib/platform/client";
 import { forgetRole, rememberRole } from "@/lib/platform/my-role";
 import { unsubscribeFromPush } from "@/lib/push";
 import { can, type Actor } from "@/lib/platform/roles";
+import { leaveDemo } from "@/lib/demo/mode";
 import { AdminContext, type AdminContextValue } from "./admin-context";
 import { AdminShell } from "./admin-shell";
 
@@ -41,6 +42,10 @@ export function AdminRoot({ children }: { children: React.ReactNode }) {
   const [leaving, setLeaving] = useState(false);
   const leavingRef = useRef(false);
   const userId = auth.status === "signedIn" ? auth.user?.id : null;
+
+  // An administrator acts as themselves: opening the Admin Center ends the
+  // interactive demo in this tab. First, before anything below asks the API.
+  useEffect(() => leaveDemo(), []);
 
   useEffect(() => {
     if (!auth.cloudEnabled) return;

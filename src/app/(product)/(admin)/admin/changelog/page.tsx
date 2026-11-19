@@ -33,9 +33,12 @@ interface Draft {
   seoTitle: string;
   seoDescription: string;
   publishedAt: string;
+  whatChanged: string;
+  whyItMatters: string;
+  askedTheme: string;
 }
 
-const empty: Draft = { title: "", slug: "", summary: "", body: "", category: "improvement", featureKey: "", imageUrl: "", imageAlt: "", seoTitle: "", seoDescription: "", publishedAt: "" };
+const empty: Draft = { title: "", slug: "", summary: "", body: "", category: "improvement", featureKey: "", imageUrl: "", imageAlt: "", seoTitle: "", seoDescription: "", publishedAt: "", whatChanged: "", whyItMatters: "", askedTheme: "" };
 
 const toDraft = (e: AdminChangelogEntry | null): Draft =>
   e
@@ -51,6 +54,9 @@ const toDraft = (e: AdminChangelogEntry | null): Draft =>
         seoTitle: e.seoTitle ?? "",
         seoDescription: e.seoDescription ?? "",
         publishedAt: toLocalInput(e.publishedAt),
+        whatChanged: e.whatChanged ?? "",
+        whyItMatters: e.whyItMatters ?? "",
+        askedTheme: e.askedTheme ?? "",
       }
     : empty;
 
@@ -201,6 +207,9 @@ function Editor({ open, entry, onClose, onSaved }: { open: boolean; entry: Admin
         imageAlt: d.imageAlt || null,
         seoTitle: d.seoTitle || null,
         seoDescription: d.seoDescription || null,
+        whatChanged: d.whatChanged || null,
+        whyItMatters: d.whyItMatters || null,
+        askedTheme: d.askedTheme || null,
         publishedAt: entry?.status === "published" ? fromLocalInput(d.publishedAt) : null,
       };
       const saved = entry
@@ -215,7 +224,7 @@ function Editor({ open, entry, onClose, onSaved }: { open: boolean; entry: Admin
     }
   }
 
-  const preview = { id: "preview", ...d, slug: d.slug || slugify(d.title), featureKey: d.featureKey || null, imageUrl: d.imageUrl || null, imageAlt: d.imageAlt || null, seoTitle: null, seoDescription: null, publishedAt: entry?.publishedAt ?? new Date().toISOString(), requests: entry?.requests ?? 0 };
+  const preview = { id: "preview", ...d, slug: d.slug || slugify(d.title), featureKey: d.featureKey || null, imageUrl: d.imageUrl || null, imageAlt: d.imageAlt || null, seoTitle: null, seoDescription: null, publishedAt: entry?.publishedAt ?? new Date().toISOString(), requests: entry?.requests ?? 0, whatChanged: d.whatChanged || null, whyItMatters: d.whyItMatters || null, askedTheme: d.askedTheme || null };
 
   return (
     <Modal
@@ -324,6 +333,19 @@ function EditorFields({
       </div>
       <Field label="Summary" hint="One or two sentences, shown in the list and in search results.">
         <Textarea value={d.summary} onChange={(e) => set({ summary: e.target.value })} maxLength={300} className="min-h-[72px]" />
+      </Field>
+      <Field label="What changed" optional hint="Plainly, for students: what's different now. Shown under its own heading.">
+        <Textarea value={d.whatChanged} onChange={(e) => set({ whatChanged: e.target.value })} maxLength={2000} className="min-h-[72px]" />
+      </Field>
+      <Field label="Why it matters" optional hint="What it means for someone preparing.">
+        <Textarea value={d.whyItMatters} onChange={(e) => set({ whyItMatters: e.target.value })} maxLength={1000} className="min-h-[64px]" />
+      </Field>
+      <Field
+        label="Feedback theme it answers"
+        optional
+        hint="In the team's words, never a student's message: “Study I log shouldn't have to be entered again in Habits”. It appears under “You asked. We improved.” only once real feedback is linked to this entry in the Feedback Center."
+      >
+        <Input value={d.askedTheme} onChange={(e) => set({ askedTheme: e.target.value })} maxLength={200} />
       </Field>
       <Field label="Details" optional hint="**bold**, *italic*, lines starting with - for a list.">
         <Textarea value={d.body} onChange={(e) => set({ body: e.target.value })} maxLength={8000} className="min-h-[160px]" />

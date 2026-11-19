@@ -30,7 +30,14 @@ import {
 } from "./scope";
 import { claimLegacyData, eraseLegacyMarker, type LegacyClaim } from "./legacy";
 
-export type AccountMode = "cloud" | "local";
+/**
+ * cloud: a signed-in account that syncs. local: this browser only, in builds
+ * without accounts. demo: the sample account of the interactive demo, which
+ * is never written anywhere (lib/demo/mode.ts).
+ */
+export type AccountMode = "cloud" | "local" | "demo";
+/** The modes with a real account behind them, which can be activated. */
+export type StoredAccountMode = Exclude<AccountMode, "demo">;
 
 export interface Activation {
   accountId: string;
@@ -47,7 +54,7 @@ const readyKey = (id: string) => `upsc-chronicle-ready:${id}`;
 const conflictsKey = (id: string) => `upsc-chronicle-conflicts:${id}`;
 const MAX_CONFLICTS = 30;
 
-export async function activateAccount(accountId: string, mode: AccountMode): Promise<Activation> {
+export async function activateAccount(accountId: string, mode: StoredAccountMode): Promise<Activation> {
   deactivateAccount();
 
   const legacy = claimLegacyData(accountId, mode);

@@ -28,17 +28,32 @@ test("an Admin runs the platform but can't touch settings, access or the audit l
   }
 });
 
-test("a Moderator moderates reviews, and feedback only when the setting allows it", () => {
-  assert.deepEqual(permissionsFor("moderator"), ["admin.access", "reviews.moderate"]);
-  assert.deepEqual(permissionsFor("moderator", { moderatorsHandleFeedback: true }), ["admin.access", "reviews.moderate", "feedback.manage"]);
-  // The setting is about Moderators only.
-  assert.deepEqual(permissionsFor("admin", { moderatorsHandleFeedback: true }), permissionsFor("admin"));
+test("a Moderator moderates reviews, hides them unless switched off, and handles feedback only when switched on", () => {
+  assert.deepEqual(permissionsFor("moderator"), ["admin.access", "reviews.moderate", "reviews.hide"]);
+  assert.deepEqual(permissionsFor("moderator", { moderatorsHideReviews: false }), ["admin.access", "reviews.moderate"]);
+  assert.deepEqual(permissionsFor("moderator", { moderatorsHandleFeedback: true }), [
+    "admin.access",
+    "reviews.moderate",
+    "reviews.hide",
+    "feedback.manage",
+  ]);
+  // The Moderator switches are about Moderators only.
+  assert.deepEqual(permissionsFor("admin", { moderatorsHandleFeedback: true, moderatorsHideReviews: false }), permissionsFor("admin"));
 });
 
-test("permissions come out in one fixed order, whatever the role", () => {
+test("Admins read the audit log only when switched on, and never settings or access", () => {
+  const p = permissionsFor("admin", { adminsReadAudit: true });
+  assert.ok(p.includes("audit.read") && p.includes("reviews.hide"));
+  assert.ok(!p.includes("settings.manage") && !p.includes("access.manage"));
+  assert.deepEqual(permissionsFor("moderator", { adminsReadAudit: true }), permissionsFor("moderator"));
+});
+
+test("permissions come out in one fixed order, whatever the role and switches", () => {
   for (const role of PLATFORM_ROLES) {
-    const p = permissionsFor(role, { moderatorsHandleFeedback: true });
-    assert.deepEqual(p, PERMISSIONS.filter((x) => p.includes(x)));
+    for (const switches of [{}, { moderatorsHandleFeedback: true, adminsReadAudit: true }, { moderatorsHideReviews: false }]) {
+      const p = permissionsFor(role, switches);
+      assert.deepEqual(p, PERMISSIONS.filter((x) => p.includes(x)));
+    }
   }
 });
 

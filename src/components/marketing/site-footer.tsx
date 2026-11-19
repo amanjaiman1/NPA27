@@ -15,6 +15,7 @@ const COLUMNS: { title: string; links: FooterLink[] }[] = [
     title: "Product",
     links: [
       { href: PAGES.features.path, label: "All features" },
+      { href: PAGES.demo.path, label: PAGES.demo.label },
       ...FEATURE_PAGES.map((p) => ({ href: p.path, label: p.label })),
     ],
   },
@@ -34,7 +35,7 @@ const COLUMNS: { title: string; links: FooterLink[] }[] = [
   },
   {
     title: "DoOrDie",
-    links: [PAGES.about, PAGES.testimonials, PAGES.changelog, PAGES.contact, PAGES.privacy, PAGES.terms, PAGES.disclaimer].map((p) => ({
+    links: [PAGES.about, PAGES.trust, PAGES.reviews, PAGES.changelog, PAGES.contact, PAGES.privacy, PAGES.terms, PAGES.disclaimer].map((p) => ({
       href: p.path,
       label: p.label,
     })),

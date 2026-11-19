@@ -661,7 +661,7 @@ export function evaluate(
       body: written
         ? `${last.periodLabel}: complete it to keep its figures as the record of that ${span}.`
         : `${last.periodLabel} closed without one. The figures are already gathered from your records.`,
-      href: `/reviews?open=${encodeURIComponent(last.key)}`,
+      href: `/performance-review?open=${encodeURIComponent(last.key)}`,
       cta: written ? "Finish it" : "Write it",
       dedupeKey: `review-unwritten:${type}`,
     });

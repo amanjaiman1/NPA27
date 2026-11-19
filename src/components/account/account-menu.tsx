@@ -115,7 +115,7 @@ function Panel({
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold text-paper">{name}</p>
             <p className="truncate text-xs text-paper/50">
-              {mode === "cloud" ? user?.email : "Saved on this device"}
+              {mode === "cloud" ? user?.email : mode === "demo" ? "Demo: a made-up sample account" : "Saved on this device"}
             </p>
           </div>
         </div>
@@ -165,6 +165,17 @@ function Panel({
               <ShieldCheck className="h-4 w-4 text-paper/45" /> Admin Center
               <span className="ml-auto rounded-full bg-accent/[0.12] px-2 py-0.5 text-[0.66rem] font-semibold text-accent">{ROLE_LABEL[role]}</span>
             </Link>
+          )}
+          {mode === "demo" && (
+            <button
+              onClick={() => {
+                onClose();
+                void signOut();
+              }}
+              className="flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left text-sm text-paper/75 transition-colors hover:bg-paper/[0.05] hover:text-paper"
+            >
+              <LogOut className="h-4 w-4 text-paper/45" /> Exit demo
+            </button>
           )}
           {mode === "cloud" && (
             <button

@@ -2,10 +2,14 @@
    STRUCTURED DATA (JSON-LD)
    Builders for the schema.org types that genuinely describe this site.
 
+   Ratings and reviews appear only on the reviews pages (reviewedApplication,
+   reviewMarkup), only from reviews published there and visible on the page,
+   and an aggregate only once enough are published (the same minimum the page
+   uses before showing an average). Never on the Organization: Google treats
+   a business's ratings of itself as self-serving.
+
    Deliberately absent:
-   • ratings, reviews and user counts — there are none to report, and
-     invented ones are against Google's policies. (Without a rating Google
-     shows no software rich result; the markup still names the product.)
+   • user counts and any rating not worked out from published reviews.
    • FAQPage — Google stopped showing FAQ rich results in May 2026. The
      FAQs stay on the pages for readers; they need no markup.
 
@@ -70,6 +74,63 @@ export function softwareApplication(featureList: string[]): Json {
     inLanguage: SITE.language,
     screenshot: absoluteUrl("/product/dashboard.webp"),
     publisher: { "@id": ORGANIZATION_ID },
+  };
+}
+
+export interface MarkedReview {
+  name: string;
+  date: string;
+  headline: string | null;
+  body: string;
+  rating: number;
+  url?: string;
+}
+
+const reviewNode = (r: MarkedReview): Json => ({
+  "@type": "Review",
+  author: { "@type": "Person", name: r.name },
+  datePublished: r.date.slice(0, 10),
+  ...(r.headline ? { name: r.headline } : {}),
+  reviewBody: r.body,
+  reviewRating: { "@type": "Rating", ratingValue: r.rating, bestRating: 5, worstRating: 1 },
+  ...(r.url ? { url: absoluteUrl(r.url) } : {}),
+});
+
+/**
+ * The product with what its users wrote, for the reviews page. Pass the
+ * aggregate only when the page shows one; the reviews must be the ones on
+ * the page.
+ */
+export function reviewedApplication(aggregate: { average: number; count: number } | null, reviews: MarkedReview[]): Json {
+  return {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "@id": APP_ID,
+    name: SITE.name,
+    url: absoluteUrl("/"),
+    applicationCategory: "EducationalApplication",
+    operatingSystem: "Any device with a modern web browser",
+    offers: { "@type": "Offer", price: "0", priceCurrency: "INR" },
+    ...(aggregate
+      ? { aggregateRating: { "@type": "AggregateRating", ratingValue: aggregate.average, reviewCount: aggregate.count, bestRating: 5, worstRating: 1 } }
+      : {}),
+    ...(reviews.length ? { review: reviews.map(reviewNode) } : {}),
+  };
+}
+
+/** One review on its own page, of the product. */
+export function reviewMarkup(r: MarkedReview): Json {
+  return {
+    "@context": "https://schema.org",
+    ...reviewNode(r),
+    itemReviewed: {
+      "@type": "WebApplication",
+      "@id": APP_ID,
+      name: SITE.name,
+      applicationCategory: "EducationalApplication",
+      operatingSystem: "Any device with a modern web browser",
+      offers: { "@type": "Offer", price: "0", priceCurrency: "INR" },
+    },
   };
 }
 

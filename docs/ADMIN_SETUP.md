@@ -16,8 +16,8 @@ access, and what each part does.
 | Role | What it covers | How it's granted |
 | --- | --- | --- |
 | Super Admin | Everything, including platform settings, admin access and the audit log | Only by running SQL in the Supabase SQL Editor |
-| Admin | Users (including suspensions), reviews, feedback, announcements, changelog, figures | By a Super Admin, in Admin access |
-| Moderator | Reviews; feedback too when the "Moderators can handle feedback" setting is on | By a Super Admin, in Admin access |
+| Admin | Users (including suspensions), reviews, feedback, announcements, changelog, figures; the audit log too when "Admins can read the audit log" is on | By a Super Admin, in Admin access |
+| Moderator | Reviews, including hiding and restoring them unless "Moderators can hide reviews" is off; feedback too when "Moderators can handle feedback" is on | By a Super Admin, in Admin access |
 
 Everyone else has no row in `public.platform_admin_memberships` and no access.
 A role is never a product entitlement: what a student can use in the app is
@@ -50,13 +50,19 @@ They are all safe to run again.
 6. `supabase/migrations/20261203120000_dispatch_completed_activities.sql`
 7. `supabase/migrations/20261204120000_platform_admin.sql` (the Admin Center)
 8. `supabase/migrations/20261205120000_live_updates.sql` (changes reach open apps at once)
+9. `supabase/migrations/20261210120000_trust_reviews.sql` (the five-step review
+   form, verification badges, the dashboard invitation, edit history, consent
+   history, the public reviews pages and the changelog's new fields)
 
 If you use the Supabase CLI, `supabase db push` runs the same migrations.
 
-The last one creates the platform tables (all with row-level security on and
-no direct access for anyone), the private `platform-feedback` storage bucket
-for feedback screenshots (2 MB, PNG, JPEG or WebP), and the database
-functions the Admin Center and the app call.
+The Admin Center migration creates the platform tables (all with row-level
+security on and no direct access for anyone), the private `platform-feedback`
+storage bucket for feedback screenshots (2 MB, PNG, JPEG or WebP), and the
+database functions the Admin Center and the app call. The trust migration only
+adds to it: new columns and tables for reviews, new settings with their
+defaults, and new versions of the review functions. Reviews already published
+stay published.
 
 ### 2. Check the server's environment
 
@@ -154,41 +160,93 @@ They show recent sign-in activity, not how much anyone uses the app.
 
 ### Reviews
 
-Students write a review in Settings → Review DoOrDie, once their account has
-been in use long enough. By default that's 14 days since its first record
-and records on at least 5 different days, counted in the database from the
-dates of their records (journal days, life entries, revisions, habit
-check-ins, mocks and roadmap work), never from what those records say, and
-never from the account's creation date alone. Both numbers are in Platform
-settings.
+**Who can write one.** Students write a review in Settings → Review DoOrDie,
+once their account has been in use long enough. By default that's 14 days
+since its first record and records on at least 5 different days, counted in
+the database from the dates of their records (journal days, life entries,
+revisions, habit check-ins, mocks and roadmap work), never from what those
+records say, and never from the account's creation date alone. Both numbers
+are in Platform settings.
 
-Each review carries two separate permissions, each with the time it was
-given: that the team may read it (needed to send it), and that it may appear
-on the website (optional). A review is published only if its author allowed
-that, and a moderator has checked it.
+**The invitation.** Once a student qualifies and hasn't written a review, a
+quiet card on their dashboard asks for one, with **Write a review**, **Later**
+and **No thanks**. Later asks again in 14 days; No thanks, or a third Later,
+stops it for good. It never pops up and never appears anywhere else. Switch it
+off with "Invite eligible students".
+
+**The form** has five steps: a rating from 1 (Poor) to 5 (Excellent), with
+nothing chosen in advance; six questions, every one optional (what problem
+they had before, what's been most helpful, how it changed the way they
+organise their preparation, what to improve, which is never published, and
+what they'd tell another aspirant); the features they used; optional context
+(their stage, full time or working, a headline, how their name is shown:
+their name, initials, or none, and whether to show they're an established
+member); and two separate permissions:
+
+- **Private product feedback:** the team may read it. Needed to send it.
+- **Public student testimonial:** it may appear on the website after a
+  moderator's check. Off unless they tick it, with a preview of exactly how
+  it would look. It needs at least 30 characters in "What would you tell
+  another aspirant?".
+
+Each permission is stored with its time and the version of the wording they
+agreed to, and every change to them is kept in the review's consent history.
 
 | Status | Meaning |
 | --- | --- |
 | Pending | Waiting for a moderator |
-| Published | On the website (`/testimonials`, and the home and feature pages if the settings say so) |
-| Approved | Checked, but not public: the author didn't allow it, or a moderator held it back |
+| Published | On the website (`/reviews`, and the home and feature pages if the settings say so) |
+| Approved | Checked, but not public: the author didn't allow it |
 | Rejected | Not published, with a reason the author sees |
 | Hidden | Taken off the website, with a reason the author sees |
 | Withdrawn | The author took it back |
 
-Moderators reject or hide for spam, abuse, personal details or content
-unrelated to DoOrDie. **Never because a review is negative**, and reviews are
-never edited: the moderation screen has no way to change what someone wrote.
-A moderator can add one public reply, shown under the review.
+**Moderating.** The Reviews page has the figures (how many in each state, the
+average of what's on the website, where reviews came from, twelve weeks of
+volume, the latest moderation actions) and the queue. Opening a review shows
+its account's safe facts (when it joined, whether its email is confirmed),
+its history, its consent history and its earlier versions. Never anything
+from the student's records.
 
-If the author changes anything shown publicly (rating, headline, text, what
-was useful, features, stage or name), the review goes back to Pending and off
-the website until a moderator looks again. If they turn off public display,
-withdraw it or delete it, it leaves the website at once: the public pages are
-rebuilt on the spot, and are never more than five minutes old in any case.
+Rejecting or hiding needs one of these reasons, and an optional note the
+author sees: spam, abuse or harassment, personal details, impersonation,
+fraud or manipulation, unrelated to DoOrDie, illegal content, or another
+policy. **Being negative is never a reason**, and reviews are never edited:
+the moderation screen has no way to change what someone wrote. A moderator can
+add one public reply, shown under the review, and can **feature** a review on
+`/reviews` for being detailed and useful, never for its rating.
 
-The website shows the newest published reviews first, whatever their rating,
-and the average on `/testimonials` counts every published review.
+**Edits.** If the author changes anything shown publicly, the earlier version
+is kept in the review's history and the review goes back to Pending. What the
+website shows meanwhile is the "When a published review is edited" setting:
+the version a moderator approved (the default), or nothing until a moderator
+approves the edit. An edit also takes the review out of Featured until a
+moderator features it again. Changes only to "What should we improve?" don't
+need a moderator again. If the author turns off public display, withdraws the review
+or deletes it, it leaves the website at once: the public pages are rebuilt on
+the spot, and are never more than five minutes old in any case.
+
+**Badges** are worked out by the database from the author's records when a
+review is published. Nobody can give one to themselves, and moderators can't
+add or remove them:
+
+| Badge | Needs |
+| --- | --- |
+| Verified DoOrDie user | The account met the rule for reviewing |
+| Verified active user | Records on at least 15 different days ("Days for Verified active user") |
+| Verified feature use | Records in the features the author ticked. Features that leave no dated records, such as the diary or the Study Coach, aren't verified |
+| Established member | An account at least 90 days old ("Days for Established member"), and the author's choice to show it |
+
+The website shows the badges, never the counts behind them.
+
+**On the website.** `/reviews` lists every published review, newest first,
+whatever its rating, with filters by rating, feature and stage. Reviews with
+at least 600 characters of answers ("Length of a story") also get a page of
+their own at `/reviews/<address>`, listed in the sitemap; shorter ones don't,
+so there are no thin pages. The average rating and the breakdowns appear only
+once 5 reviews are published ("Reviews before an average"), and count every
+published review. With none published, the site says so plainly: there are no
+placeholder or sample reviews anywhere.
 
 ### Feedback
 
@@ -247,10 +305,14 @@ time they load.
 Entries are drafts until published. Publish now or on a date; a draft or a
 future entry doesn't exist on the public site (its address is a 404). Each
 entry has a category (New feature, Improvement, Bug fix, Performance,
-Security), a summary, full text, an optional image and search title and
-description, and lives at `/changelog/<slug>`. Linking feedback to an entry
-shows "You asked, we improved" with the number of requests, never who sent
-them. Published entries are listed in the sitemap.
+Security, Accessibility), a summary, what changed, why it matters, the feature
+it's about, full text, an optional image and search title and description, and
+lives at `/changelog/<slug>`. Linking feedback to an entry shows "You asked, we
+improved" with the number of requests, never who sent them. Give the entry a
+feedback theme ("Faster mocks on phones", in your words) and it also appears
+under "You asked. We improved." on `/changelog`, the home page and `/trust`,
+but only while real feedback is linked to it. Published entries are listed in
+the sitemap.
 
 ### Platform settings (Super Admin)
 
@@ -259,9 +321,17 @@ them. Published entries are listed in the sitemap.
 | Accept new reviews | On |
 | Days since first use before a review | 14 |
 | Days with records before a review | 5 |
+| Invite eligible students (the dashboard card) | On |
+| When a published review is edited | Keep the approved version up |
+| Reviews before an average | 5 |
+| Length of a story (its own page) | 600 characters |
+| Days for "Verified active user" | 15 |
+| Days for "Established member" | 90 |
 | Reviews on the home page, and how many | On, 3 |
 | Reviews on the five feature pages | On |
 | Moderators can handle feedback | Off |
+| Moderators can hide reviews | On |
+| Admins can read the audit log | Off |
 | Support email on the contact page | Empty (falls back to `NEXT_PUBLIC_CONTACT_EMAIL`) |
 | Announcement length and category | 14 days, General |
 | Notice in the app (one line on every app page, info or warning) | Off |
@@ -306,8 +376,10 @@ curl -s localhost:54321/__mock/sql -H 'content-type: application/json' \
 ```
 
 `npm run test:e2e:admin` builds against the mock and checks roles,
-permissions, reviews, feedback, announcements, the changelog, suspension and
-the audit log end to end, in the browser on a laptop and a phone.
+permissions, reviews (badges, story pages, edits, the invitation and the
+five-step form), feedback, announcements, the changelog, suspension, the audit
+log, the Trust Center and the interactive demo end to end, in the browser on a
+laptop and a phone.
 
 ## When something's wrong
 
@@ -320,3 +392,6 @@ the audit log end to end, in the browser on a laptop and a phone.
 | A page "isn't part of your role" | That role doesn't include the page (Moderators see Reviews, and Feedback only if the setting is on) |
 | No Admin Center link in the account menu | Reload the tab; the menu checks at most every five minutes |
 | Reviews don't appear on the site | The author didn't allow public display, it isn't published yet, or the display settings are off |
+| No average rating on `/reviews` | Fewer reviews are published than "Reviews before an average" |
+| A student isn't invited to review | They don't meet the rule yet, already wrote one, said Later in the last 14 days or No thanks, or invitations are off |
+| A badge is missing from a review | The author's records don't support it: badges are worked out when a moderator publishes the review |
