@@ -7,6 +7,7 @@ import { Band, Container, CtaBanner, Faq, FeatureCard, Limits, RelatedLinks, Sec
 import { Prose } from "@/components/marketing/prose";
 import { SAMPLE_NOTE, SHOTS } from "@/components/marketing/shots";
 import { postPath } from "@/content/blog";
+import { TestimonialStrip } from "@/components/marketing/testimonials";
 
 const page = PAGES.syllabus;
 export const metadata = pageMetadata(page);
@@ -194,6 +195,8 @@ export default function SyllabusTrackerPage() {
           />
         </Container>
       </Band>
+
+      <TestimonialStrip placement="feature" feature="subjects" />
 
       <CtaBanner track="cta_syllabus_footer" />
     </>

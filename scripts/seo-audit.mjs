@@ -34,7 +34,7 @@ const args = process.argv.slice(2);
 const outIndex = args.indexOf("--out");
 const outFile = outIndex >= 0 ? args[outIndex + 1] : null;
 
-const PRIVATE = ["/dashboard", "/journal", "/subjects", "/revision", "/mocks", "/settings", "/welcome", "/login", "/signup", "/forgot-password", "/reset-password", "/auth/callback"];
+const PRIVATE = ["/dashboard", "/journal", "/subjects", "/revision", "/mocks", "/settings", "/announcements", "/welcome", "/login", "/signup", "/forgot-password", "/reset-password", "/auth/callback", "/admin", "/admin/users", "/admin/audit"];
 
 const mockEnv = Object.fromEntries(
   execFileSync("node", ["scripts/mock-supabase.mjs", "--print-env"], { cwd: root, encoding: "utf8" })
@@ -234,6 +234,9 @@ async function main() {
   // API responses say noindex
   const api = await get("/api/push/dispatch");
   if (!/noindex/i.test(api.res.headers.get("x-robots-tag") ?? "")) fail("API responses lack X-Robots-Tag: noindex");
+  const adminApi = await get("/api/admin/me");
+  if (adminApi.res.status !== 401) fail(`/api/admin/me without a session returned ${adminApi.res.status}, expected 401`);
+  if (!/noindex/i.test(adminApi.res.headers.get("x-robots-tag") ?? "")) fail("the Admin API lacks X-Robots-Tag: noindex");
 
   /* ── report ── */
   const lines = [];

@@ -3,14 +3,16 @@ import { LifeBuoy, Mail, UserCog } from "lucide-react";
 import { pageMetadata } from "@/lib/seo/metadata";
 import { PAGES } from "@/lib/seo/pages";
 import { SITE } from "@/lib/seo/config";
+import { getPublicSite } from "@/lib/platform/public-content";
 import { PageHero } from "@/components/marketing/page-hero";
 import { Band, Container, FeatureCard } from "@/components/marketing/ui";
 
 const page = PAGES.contact;
 export const metadata = pageMetadata(page);
 
-export default function ContactPage() {
-  const email = SITE.contactEmail;
+export default async function ContactPage() {
+  // The support address set in the Admin Center, else the one set in the deployment.
+  const email = (await getPublicSite()).supportEmail ?? SITE.contactEmail;
   return (
     <>
       <PageHero
@@ -38,8 +40,9 @@ export default function ContactPage() {
               </FeatureCard>
             )}
             <FeatureCard icon={LifeBuoy} title="From inside the app">
-              Signed in? Settings, then Help &amp; feedback, sends a suggestion, a problem or a question straight to the
-              team. Your email goes with it only if you choose.
+              Signed in? Settings, then Help &amp; feedback, sends a bug report, an idea or a question straight to the
+              team, with a screenshot if it helps. Their answer appears there too. Your email goes with it only if you
+              choose.
             </FeatureCard>
             <FeatureCard icon={UserCog} title="Your account and data">
               You can download your data or delete your account yourself, any time, in Settings. If you can&apos;t sign

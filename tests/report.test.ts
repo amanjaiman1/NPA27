@@ -51,7 +51,8 @@ test("a message needs a topic and enough words, and keeps details only when aske
 
   const without = parseReport({ kind: "feedback", topic: "problem", message: "Saving a mock fails", includeDetails: false, userAgent: "Firefox", screen: "390×844" });
   assert.ok(without.ok);
-  if (without.ok) assert.deepEqual(without.report, { kind: "feedback", topic: "problem", message: "Saving a mock fails", includeEmail: false, includeDetails: false });
+  // "problem" is a category from before the Feedback Center; it reads as a bug report.
+  if (without.ok) assert.deepEqual(without.report, { kind: "feedback", topic: "bug", message: "Saving a mock fails", includeEmail: false, includeDetails: false });
 
   const withDetails = parseReport({ kind: "feedback", topic: "problem", message: "Saving a mock fails", includeDetails: true, userAgent: "Firefox", screen: "<b>", installed: true });
   assert.ok(withDetails.ok);
@@ -124,7 +125,7 @@ const post = (body: unknown, headers: Record<string, string> = {}) =>
   });
 
 const crash = (message = "TypeError: x is undefined", extra: Record<string, unknown> = {}) => ({ kind: "crash", message, source: "render", page: "/mocks", ...extra });
-const feedback = (extra: Record<string, unknown> = {}) => ({ kind: "feedback", topic: "problem", message: "Saving a mock fails", ...extra });
+const feedback = (extra: Record<string, unknown> = {}) => ({ kind: "feedback", topic: "bug", message: "Saving a mock fails", ...extra });
 
 beforeEach(() => resetReportLimits());
 

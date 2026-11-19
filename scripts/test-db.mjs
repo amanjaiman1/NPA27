@@ -28,10 +28,14 @@ const SUPABASE_SHIM = `
   create role service_role nologin bypassrls;
 
   create schema auth;
+  -- The columns of Supabase's auth.users that the migrations read.
   create table auth.users (
     id uuid primary key,
     email text unique,
-    created_at timestamptz not null default now()
+    created_at timestamptz not null default now(),
+    email_confirmed_at timestamptz default now(),
+    last_sign_in_at timestamptz,
+    banned_until timestamptz
   );
   create function auth.uid() returns uuid language sql stable as $$
     select coalesce(
@@ -65,13 +69,21 @@ async function main() {
     console.log(`✓ schema + ${migrations.length} migration(s) applied (pass ${pass})`);
   }
 
-  const results = await db.exec(read("supabase/tests/rls_isolation.sql"));
-  const last = results[results.length - 1];
-  const verdict = last?.rows?.[0]?.result;
-  if (verdict !== "All isolation checks passed") {
-    throw new Error(`Unexpected result: ${JSON.stringify(last?.rows)}`);
+  // Each check file runs in one transaction, rolls back, and ends with a
+  // single row naming what passed.
+  const checks = [
+    ["supabase/tests/rls_isolation.sql", "All isolation checks passed"],
+    ["supabase/tests/platform_admin.sql", "All platform checks passed"],
+  ];
+  for (const [file, expected] of checks) {
+    const results = await db.exec(read(file));
+    const last = results[results.length - 1];
+    const verdict = last?.rows?.[0]?.result;
+    if (verdict !== expected) {
+      throw new Error(`${file}: unexpected result ${JSON.stringify(last?.rows)}`);
+    }
+    console.log(`✓ ${verdict}`);
   }
-  console.log(`✓ ${verdict}`);
   await db.close();
 }
 

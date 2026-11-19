@@ -22,6 +22,8 @@ import {
   type NoticeView,
   type Priority,
 } from "@/lib/notifications";
+import { useInbox } from "@/components/platform/inbox";
+import { TeamSection, useTeamUnreadCount } from "@/components/platform/team-notices";
 import { useNotifications } from "./use-notifications";
 import { SettingsPane } from "./settings-pane";
 
@@ -162,6 +164,8 @@ export type PopoverPlacement = "bar" | "rail";
 function Panel({ onClose, placement }: { onClose: () => void; placement: PopoverPlacement }) {
   const { inbox, settings, today } = useNotifications();
   const markMany = useChronicle((s) => s.markNoticesRead);
+  const team = useInbox();
+  const teamUnread = useTeamUnreadCount();
   const [tab, setTab] = useState<"inbox" | "settings">("inbox");
   const dialog = useRef<HTMLDivElement>(null);
 
@@ -219,9 +223,12 @@ function Panel({ onClose, placement }: { onClose: () => void; placement: Popover
           </h2>
           <span className="flex-1" />
 
-          {tab === "inbox" && inbox.unread > 0 && (
+          {tab === "inbox" && (inbox.unread > 0 || (team?.unread.length ?? 0) > 0) && (
             <button
-              onClick={() => markMany(inbox.items.map((i) => i.id))}
+              onClick={() => {
+                markMany(inbox.items.map((i) => i.id));
+                team?.markAllRead();
+              }}
               title="Mark all as read"
               aria-label="Mark all as read"
               className="lg-clear grid h-8 w-8 place-items-center rounded-full text-paper/60 transition-all hover:text-paper"
@@ -252,7 +259,7 @@ function Panel({ onClose, placement }: { onClose: () => void; placement: Popover
         <div className="no-scrollbar flex-1 overflow-y-auto px-4 py-4">
           {tab === "settings" ? (
             <SettingsPane settings={settings} />
-          ) : inbox.items.length === 0 ? (
+          ) : inbox.items.length === 0 && teamUnread === 0 ? (
             <div className="flex flex-col items-center justify-center px-4 py-12 text-center">
               <div className="mb-4 grid h-12 w-12 place-items-center rounded-full bg-paper/[0.06] text-accent">
                 <Sparkles className="h-5 w-5" />
@@ -266,6 +273,7 @@ function Panel({ onClose, placement }: { onClose: () => void; placement: Popover
             </div>
           ) : (
             <div className="space-y-5">
+              <TeamSection onNavigate={onClose} />
               {inbox.groups.map((group) => (
                 <section key={group.priority}>
                   <p className="eyebrow mb-2">
@@ -284,10 +292,12 @@ function Panel({ onClose, placement }: { onClose: () => void; placement: Popover
                 </section>
               ))}
 
-              <p className="pt-1 text-center text-[0.7rem] leading-relaxed text-paper/35">
-                Worked out from your own data — nothing is stored, so anything
-                you resolve disappears on its own.
-              </p>
+              {inbox.items.length > 0 && (
+                <p className="pt-1 text-center text-[0.7rem] leading-relaxed text-paper/35">
+                  Worked out from your own data — nothing is stored, so anything
+                  you resolve disappears on its own.
+                </p>
+              )}
             </div>
           )}
         </div>
@@ -310,6 +320,7 @@ export function NotificationCentre({
 } = {}) {
   const [open, setOpen] = useState(false);
   const { inbox } = useNotifications();
+  const teamUnread = useTeamUnreadCount();
   const mounted = useMounted();
 
   /**
@@ -317,7 +328,7 @@ export function NotificationCentre({
    * server cannot know — so it is only rendered after mount. Without this the
    * server's "no badge" markup and the client's "3" disagree.
    */
-  const unread = mounted ? inbox.unread : 0;
+  const unread = mounted ? inbox.unread + teamUnread : 0;
   /** Anything critical or high changes the badge from informational to urgent. */
   const urgent = inbox.items.some(
     (i) => !i.read && (i.priority === "critical" || i.priority === "high"),

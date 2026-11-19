@@ -13,6 +13,7 @@
     "test:db": "node scripts/test-db.mjs",
     "mock:supabase": "node scripts/mock-supabase.mjs",
     "test:e2e": "node tests/e2e/accounts.e2e.mjs",
+    "test:e2e:admin": "node --import tsx tests/e2e/admin.e2e.mjs",
     "seo:audit": "node scripts/seo-audit.mjs",
     "seo:suggest": "node scripts/seo-suggest.mjs",
     "seo:screenshots": "tsx scripts/seo-screenshots.ts",

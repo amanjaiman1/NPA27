@@ -19,6 +19,7 @@ import {
 import { Prose, TableWrap } from "@/components/marketing/prose";
 import { SAMPLE_NOTE, SHOTS } from "@/components/marketing/shots";
 import { postPath } from "@/content/blog";
+import { TestimonialStrip } from "@/components/marketing/testimonials";
 
 const page = PAGES.revision;
 export const metadata = pageMetadata(page);
@@ -267,6 +268,8 @@ export default function RevisionTrackerPage() {
           />
         </Container>
       </Band>
+
+      <TestimonialStrip placement="feature" feature="revision" />
 
       <CtaBanner track="cta_revision_footer" />
     </>

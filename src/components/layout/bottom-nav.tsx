@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { Menu } from "lucide-react";
 import { essentialNavItems, isActivePath } from "@/lib/nav";
 import { cn } from "@/lib/utils";
+import { useVisibleNav } from "@/components/features/feature-access";
 
 /**
  * On a phone, the four everyday sections sit one tap away in a floating dock
@@ -18,6 +19,7 @@ import { cn } from "@/lib/utils";
  */
 export function BottomNav({ onOpenMenu }: { onOpenMenu: () => void }) {
   const pathname = usePathname();
+  const items = useVisibleNav(essentialNavItems);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -40,8 +42,12 @@ export function BottomNav({ onOpenMenu }: { onOpenMenu: () => void }) {
       aria-label="Quick access"
       className="fixed inset-x-3 bottom-[max(0.625rem,env(safe-area-inset-bottom))] z-30 lg:hidden"
     >
-      <ul className="chrome-glass mx-auto grid h-[3.75rem] max-w-md grid-cols-5 rounded-[1.4rem] px-1">
-        {essentialNavItems.map((item) => {
+      <ul
+        className="chrome-glass mx-auto grid h-[3.75rem] max-w-md grid-cols-5 rounded-[1.4rem] px-1"
+        // Five columns: the four everyday pages and "More". Fewer if an account can't open one of them.
+        style={items.length === 4 ? undefined : { gridTemplateColumns: `repeat(${items.length + 1}, minmax(0, 1fr))` }}
+      >
+        {items.map((item) => {
           const active = isActivePath(pathname, item.href);
           const Icon = item.icon;
           return (

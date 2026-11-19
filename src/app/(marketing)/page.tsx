@@ -20,6 +20,7 @@ import { PAGES, RESOURCE_PAGES } from "@/lib/seo/pages";
 import { filmVideo, softwareApplication } from "@/lib/seo/schema";
 import { HomeFilm } from "@/components/marketing/home-film";
 import { InstallAppInline } from "@/components/marketing/install-app-inline";
+import { TestimonialStrip } from "@/components/marketing/testimonials";
 import { JsonLd } from "@/components/seo/json-ld";
 import {
   Band,
@@ -461,6 +462,9 @@ export default function HomePage() {
           </div>
         </Container>
       </Band>
+
+      {/* ── Reviews (only once there are published ones) ───────── */}
+      <TestimonialStrip placement="home" />
 
       {/* ── FAQ ──────────────────────────────────────────────── */}
       <Band tone="raised" labelledBy="faq-title">

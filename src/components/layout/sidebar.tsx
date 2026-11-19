@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { CalendarClock, Command, Palette, PanelLeftClose, Search } from "lucide-react";
 import { isActivePath, navGroups, type NavItem } from "@/lib/nav";
+import { useVisibleNavGroups } from "@/components/features/feature-access";
 import { cn, daysBetween, toISODate } from "@/lib/utils";
 import { useChronicle } from "@/lib/store";
 import { useMounted } from "@/lib/hooks";
@@ -81,6 +82,7 @@ export function Sidebar({
   // A count only where something is actually waiting: revisions due today or earlier.
   const due = today ? revisions.filter((r) => r.nextDue <= today).length : 0;
   const drawer = variant === "drawer";
+  const groups = useVisibleNavGroups(navGroups);
 
   return (
     <aside
@@ -132,7 +134,7 @@ export function Sidebar({
       )}
 
       <nav aria-label="Main" className="no-scrollbar mask-fade-b flex-1 space-y-5 overflow-y-auto px-3 pb-6 pt-2">
-        {navGroups.map((group) => (
+        {groups.map((group) => (
           <div key={group.label}>
             <p className="px-3 pb-1.5 text-[0.72rem] font-medium text-paper/55">{group.label}</p>
             <ul className="space-y-0.5">

@@ -14,6 +14,10 @@ import { BottomNav } from "./bottom-nav";
 import { FileJanitor } from "@/components/attachments/file-janitor";
 import { NotificationsProvider } from "@/components/notifications/use-notifications";
 import { TourProvider } from "@/components/tour/tour-provider";
+import { useAccount } from "@/components/account/account-session";
+import { FeatureAccessScope, FeatureGate } from "@/components/features/feature-access";
+import { PlatformInbox } from "@/components/platform/inbox";
+import { TeamBanner } from "@/components/platform/team-notices";
 import { useMatchMedia } from "@/lib/hooks";
 
 /** "1" when the person hid the sidebar on a wide screen. Same key as before. */
@@ -43,6 +47,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [appearanceOpen, setAppearanceOpen] = useState(false);
   const pathname = usePathname();
+  const { accountId, mode, user } = useAccount();
 
   const docked = desktop && wide && !collapsed;
   const sidebarShowing = docked || (desktop && !wide && flyoutOpen);
@@ -110,7 +115,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     // One notification inbox for the whole shell: the bell, its panel and the
     // notifier all read the same evaluation. The feature tour sits over all
-    // of it, and its button lives in the top bar.
+    // of it, and its button lives in the top bar. Around them: what the
+    // account may open (lib/features.ts) and what the team has sent it.
+    <FeatureAccessScope accountId={accountId}>
+    <PlatformInbox userId={mode === "cloud" ? (user?.id ?? null) : null}>
     <NotificationsProvider>
       <MotionConfig reducedMotion="user">
         <TourProvider>
@@ -225,7 +233,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <main className="app-stage no-scrollbar relative min-h-0 flex-1 overflow-y-auto">
                 {/* Bottom padding clears the phone's dock. */}
                 <div className="mx-auto w-full max-w-[1480px] px-4 pb-[calc(var(--bottom-nav-h,0px)+1.5rem)] pt-3 sm:px-6 lg:px-8 lg:pb-10 lg:pt-8 2xl:px-10">
-                  <PageTransition>{children}</PageTransition>
+                  <TeamBanner />
+                  <PageTransition>
+                    <FeatureGate>{children}</FeatureGate>
+                  </PageTransition>
                 </div>
               </main>
             </div>
@@ -239,5 +250,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </TourProvider>
       </MotionConfig>
     </NotificationsProvider>
+    </PlatformInbox>
+    </FeatureAccessScope>
   );
 }
