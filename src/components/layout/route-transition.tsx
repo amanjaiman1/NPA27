@@ -2,25 +2,28 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
-import { Lottie } from "@/components/ui/lottie";
 
 /**
- * The page-to-page wait.
+ * The page-to-page progress bar: a thin line along the top of the window.
  *
  * `app/loading.tsx` cannot do this job on its own. Next only falls back to that
  * boundary when a segment actually suspends, and because the router prefetches
  * every link in the viewport, a navigation here usually resolves *inside* the
- * transition without ever touching the boundary — measured at roughly two
- * seconds of stalled page chunk with the fallback never rendering once. For that
- * whole time the old page just sits there, which is exactly the "did my tap
- * register?" problem.
+ * transition without ever touching the boundary, and for that whole time the
+ * old page just sits there, which is exactly the "did my tap register?"
+ * problem.
  *
  * So the start is taken from the interaction, not from the router: a
  * capture-phase click, a popstate, or an explicit `beginRouteTransition()` for
  * code that navigates programmatically. The end comes from `usePathname` /
- * `useSearchParams` changing — React has committed the new route by then — plus
- * two animation frames, so the overlay lifts only once the next page has
- * actually painted rather than the instant it is mounted.
+ * `useSearchParams` changing — React has committed the new route by then.
+ *
+ * It used to dim the whole screen behind a loading animation and keep that up
+ * for at least 0.45s once shown, so a page that was ready a moment later still
+ * waited behind it. Now nothing covers the page and nothing waits: the bar
+ * shows only when a change takes longer than a glance, on phones as well as
+ * computers, and it finishes as soon as the next page is there. The look is
+ * `.route-progress` in globals.css.
  */
 
 /* ── programmatic navigation ──────────────────────────────────
@@ -33,24 +36,25 @@ export function beginRouteTransition() {
   for (const start of starters) start();
 }
 
-/** Long enough that an already-warm navigation shows nothing at all. */
-const SHOW_AFTER_MS = 140;
-/** Once it *is* up, keep it up — a 50ms flash reads as a glitch. */
-const MIN_VISIBLE_MS = 450;
+/** Long enough that an ordinary navigation shows nothing at all. */
+const SHOW_AFTER_MS = 120;
+/** How long the finishing sweep and fade take (`.route-progress[data-state="done"]`). */
+const FINISH_MS = 360;
 /**
  * A cancelled or failed navigation never changes the pathname, so there has to
- * be a ceiling. It was 20s, which is indistinguishable from a hang; a stalled
- * indicator is worse than no indicator, so it gives up much sooner now.
+ * be a ceiling. A stalled indicator is worse than no indicator.
  */
 const BAIL_MS = 8_000;
+
+type BarState = "idle" | "loading" | "done";
 
 export function RouteTransition() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const [visible, setVisible] = useState(false);
+  const [bar, setBar] = useState<BarState>("idle");
   const running = useRef(false);
-  const shownAt = useRef(0);
+  const shown = useRef(false);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   const clearTimers = useCallback(() => {
@@ -58,44 +62,36 @@ export function RouteTransition() {
     timers.current = [];
   }, []);
 
-  const hide = useCallback(() => {
+  const reset = useCallback(() => {
     running.current = false;
+    shown.current = false;
     clearTimers();
-    setVisible(false);
+    setBar("idle");
   }, [clearTimers]);
 
   const start = useCallback(() => {
     if (running.current) return;
     running.current = true;
+    shown.current = false;
     clearTimers();
     timers.current.push(
       setTimeout(() => {
-        shownAt.current = Date.now();
-        setVisible(true);
+        shown.current = true;
+        setBar("loading");
       }, SHOW_AFTER_MS),
-      setTimeout(hide, BAIL_MS),
+      setTimeout(reset, BAIL_MS),
     );
-  }, [clearTimers, hide]);
+  }, [clearTimers, reset]);
 
   const finish = useCallback(() => {
     if (!running.current) return;
+    running.current = false;
     clearTimers();
-
-    const settle = () => {
-      // Two frames: the first is the commit that queued this, the second is the
-      // one that actually puts the new page's pixels on screen.
-      requestAnimationFrame(() => requestAnimationFrame(hide));
-    };
-
-    if (!visible) {
-      // Never got shown — the navigation beat SHOW_AFTER_MS. Nothing to fade.
-      running.current = false;
-      return;
-    }
-    const left = MIN_VISIBLE_MS - (Date.now() - shownAt.current);
-    if (left > 0) timers.current.push(setTimeout(settle, left));
-    else settle();
-  }, [clearTimers, hide, visible]);
+    // Never shown: the page beat the threshold, so there is nothing to finish.
+    if (!shown.current) return;
+    setBar("done");
+    timers.current.push(setTimeout(reset, FINISH_MS));
+  }, [clearTimers, reset]);
 
   /* ── start: a click on an internal link ─────────────────────── */
   useEffect(() => {
@@ -153,30 +149,10 @@ export function RouteTransition() {
 
   useEffect(() => clearTimers, [clearTimers]);
 
-  if (!visible) return null;
+  if (bar === "idle") return null;
 
-  return (
-    <div
-      /**
-       * Desktop only. On a phone this did more harm than good: a slower device
-       * plus a real chunk fetch kept it on screen long enough to read as a hang,
-       * which is worse than the brief unannounced pause it was replacing. A
-       * media query rather than a JS width check, so it costs no hydration and
-       * cannot disagree with the server.
-       *
-       * `pointer-events-none` on purpose. Blocking taps would stop an impatient
-       * double-tap queueing a second navigation, but it also means a mistimed
-       * overlay traps the user — and a second navigation is harmless where being
-       * unable to touch anything is not.
-       */
-      className="pointer-events-none fixed inset-0 z-[90] hidden place-items-center bg-ink/55 backdrop-blur-[2px] animate-fade-in-fast lg:grid"
-    >
-      <Lottie
-        src="/animations/page-transition.json"
-        className="lottie-neutral h-16 w-16"
-        staticFrame={8}
-        label="Loading page"
-      />
-    </div>
-  );
+  // `pointer-events: none`: it never stands between a tap and the page.
+  // Decorative to assistive technology, which hears the new page's title from
+  // Next's own route announcer.
+  return <div aria-hidden className="route-progress" data-state={bar} />;
 }

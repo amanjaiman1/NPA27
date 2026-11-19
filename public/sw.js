@@ -32,11 +32,6 @@ const OFFLINE_URL = "/offline.html";
 const SHELL_ASSETS = [
   OFFLINE_URL,
   "/manifest.webmanifest",
-  // The loading animations, 15 KB together. These specifically must not be
-  // fetched over the network on a cold start: the boot ring exists to cover a
-  // slow connection, so waiting for the network to deliver it would defeat it.
-  "/animations/boot.json",
-  "/animations/page-transition.json",
   "/icons/icon-192.png",
   "/icons/icon-512.png",
   "/icons/icon-maskable-192.png",

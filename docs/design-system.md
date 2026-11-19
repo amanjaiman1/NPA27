@@ -168,8 +168,15 @@ Every button is liquid glass, in two kinds. Each theme sets the values
 
 | Kind | What gets it | Look |
 | --- | --- | --- |
-| clear | `Button` ghost, outline, subtle and danger; `IconButton`; `Chip`; anything with `.lg-clear`; any button or link that is a hairline pill (`border-line rounded-full`) or a centred hairline button (`rounded-lg`/`rounded-xl` with `justify-center` or `place-items-center`); any quiet round or rounded icon button with no fill of its own | a translucent fill that blurs what's behind it (`--lg-blur`, 14px, 8px on phones), a bright rim lit from the top left, a softer rim at the bottom right, light pooled along the bottom edge, a soft drop |
+| clear | `Button` ghost, outline, subtle and danger; `IconButton`; `Chip`; anything with `.lg-clear`; any button or link that is a hairline pill (`border-line rounded-full`) or a centred hairline button (`rounded-lg`/`rounded-xl` with `justify-center` or `place-items-center`); any quiet round or rounded icon button with no fill of its own | a translucent fill, a bright rim lit from the top left, a softer rim at the bottom right, light pooled along the bottom edge, a soft drop; on the shell and in dialogs and menus it also blurs what's behind it (`--lg-blur`, 14px, 8px on phones) |
 | tinted | any button or link filled with the accent: the main action, the selected segment, selected toggles | the accent with the same rims and a sheen that stays clear of the label, so text keeps its contrast; danger, success and warning fills get the same in their own colour |
+
+Buttons on the page itself don't blur: `.app-stage` sets `--lg-blur: none`.
+They sit on cards, over soft light with nothing sharp behind them, so the blur
+changed nothing you could see; it did make every one of them a separate layer
+to redraw, over a hundred on a long journal, which cost time on every page
+change and every scroll (pages appeared 60 to 100 ms sooner without it on a
+phone-speed profile).
 
 A selected chip keeps its accent wash under clear glass. A segmented
 control's track is a shallow groove (`.lg-track`) the tinted segment sits
@@ -269,78 +276,75 @@ stored on a device is deleted when an account loads
 ## Loading states
 
 There are two waits, they are different events, and they get different
-animations. Both come from dotLottie files in `public/`, unpacked to plain JSON
-by `scripts/extract-lottie.py` because `lottie-web` cannot read the zip.
+animations. Both are drawn by CSS, so each is on screen the moment its wait
+begins, with nothing to download or start first. The two designs come from the
+dotLottie files kept in `public/` as the reference (`loading (1).lottie` and
+`loading (2).lottie`).
 
 | Wait | What you see | Where it lives |
 | --- | --- | --- |
 | Browser refresh / cold start | A cyan→blue→magenta gradient ring (white on Dark) | `SleepGate`, via `.boot-ring` |
-| Page to page (**desktop only**) | Three quiet dots over a dimmed scrim | `RouteTransition`, via `animations/page-transition.json` |
 | Signing in, loading an account, first cloud pull | The gradient ring | `BootScreen` in `components/account/boot-screen.tsx`, via `.boot-ring` |
+| Page to page | A thin accent line along the top of the window | `RouteTransition`, via `.route-progress` |
+| A page that isn't ready yet (**desktop only**) | Three pulsing dots | `PageLoading` (`app/(product)/(app)/loading.tsx`), via `.loading-dots` |
 
-**One wait, one animation.** An earlier version faded a CSS ring into the real
-Lottie once it loaded; on a slower device that hand-off was slow enough to be
-legible, so a single refresh appeared to play two different animations. Each wait
-now picks one technique and stays with it.
+**One wait, one animation, and never a JavaScript player.** The page-to-page
+wait used to be a Lottie animation. It had to fetch its player (about 50 KB) and
+its data before it could appear, so on a slow connection it showed up late or
+not at all, and spent the wait it was covering on itself. The cold-start ring has
+always been CSS for the same reason: that wait *ends* at hydration, so a player
+could not start until it was over.
 
-**The cold-start ring is CSS, not Lottie, and it has to be.** That wait *ends* at
-hydration (the moment React takes over is the moment the app is usable), and a
-Lottie player is JavaScript, so it cannot start until the wait is already over.
-Measured on a throttled cold load, the pre-hydration window was about 3.6s and
-the Lottie never mounted at all: the boot branch unmounted before its dynamic
-import even resolved. So `.boot-ring` in `globals.css` reproduces the reference as
-a masked conic gradient, which is in the server-rendered HTML and therefore
-turning before a single line of JavaScript has run. `loading (1).lottie` itself
-plays on the auth/sync screens, which are genuine post-hydration waits and need no
-stand-in.
+**A signed-in device opens without waiting for the auth server.** Confirming a
+session means asking for a fresh access token whenever the last one has expired,
+which it does an hour after the app was last used. The app used to keep the boot
+ring up until that answer came: a round trip on every morning's first open, and,
+with no connection, close to a minute, because the request is retried for that
+long. `RequireAccount` now opens the account straight away from the session saved
+on this device and the data already here, and the answer arrives in the
+background; sync waits for it on its own. If the server says the session ended,
+the app leaves for the sign-in screen with "your session ended", as it does when a
+session ends mid-use. The boot ring therefore only covers loading the page and the
+account's data, which takes a fraction of a second.
 
-**The page-to-page overlay is driven from the tap, not from the router.**
+**The page-to-page bar is driven from the tap, not from the router.**
 `app/loading.tsx` looks like the right tool and is not: Next only falls back to
 that boundary when a segment suspends, and because the router prefetches every
-link in the viewport, navigation normally resolves *inside* the transition. With
-a route's page chunk deliberately stalled for three seconds, the boundary
-rendered zero times while the old page sat there, which is the whole "did my tap
-register?" complaint. `RouteTransition` therefore starts on a capture-phase
+link in the viewport, navigation normally resolves *inside* the transition, with
+the old page sitting there. `RouteTransition` therefore starts on a capture-phase
 click, on `popstate`, and on an explicit `beginRouteTransition()` for
-`router.push` callers like the command palette; it ends when `usePathname` /
-`useSearchParams` change plus two animation frames, so it lifts only once the
-next page has painted.
+`router.push` callers like the command palette and the journal's entry cards; it
+ends when `usePathname` / `useSearchParams` change.
 
-It waits 140ms before appearing, so a warm navigation shows nothing, stays a
-minimum of 450ms once it does because a 50ms flash reads as a glitch, and gives up
-after 8s: a stalled indicator is worse than no indicator. It sets
-`pointer-events: none`: blocking taps would stop an impatient double-tap queueing
-a second navigation, but a mistimed overlay would then trap the user, and a second
-navigation is harmless where that is not.
+It appears only after 120ms, so an ordinary page change shows nothing; finishes
+the moment the next page is there, with a short sweep and fade; and gives up after
+8s, because a stalled indicator is worse than none. It never covers the page and
+lets every tap through (`pointer-events: none`). It used to be a full-screen
+overlay that dimmed the page, desktop only, and stayed up for at least 0.45s once
+shown, so a page that was ready a moment later still waited behind it. A 3px line
+doesn't read as a hang, so it shows on phones too.
 
-**It is desktop only** (`hidden lg:grid`, so `display: none` below 1024px, which
-also removes it from the accessibility and hit-testing trees). On a phone it did
-more harm than good: a slower device plus a real chunk fetch kept it on screen
-long enough to read as a hang, which is worse than the brief unannounced pause it
-was replacing. `PageLoading` carries the same cut-off, so neither path shows a
-page-to-page animation on a phone.
-
-The dots are three light greys, which sit well on Dark and all but vanish on
-Light. `.lottie-neutral` inverts them under `[data-surface="white"]`; they are
-near-neutral, so nothing shifts hue.
+`PageLoading` stays desktop only: on a phone a loader in the middle of the screen
+read as a hang on a slow connection, and the bar says "on its way" there instead.
 
 ## Opening animations
 
-Every route plays a short rise-and-fade, and the page's own top-level sections
-follow in a cascade: `.page-enter` in `globals.css`, applied by
-`components/layout/page-transition.tsx`, which is keyed on the pathname so each
-navigation replays it.
+A new page fades in over 0.12s, all of it at once: `.page-enter` in
+`globals.css`, applied by `components/layout/page-transition.tsx`, which is keyed
+on the pathname so each navigation replays it. Opacity only, on one layer, so it
+costs the compositor a few frames and nothing else.
 
-- **CSS, not JavaScript.** The stagger is `nth-child` animation delays, so there
-  is no per-element work on the main thread and nothing to hydrate.
+It used to rise into place and let the page's sections follow in a cascade, and
+the last of them was fully on screen about 0.8s after the page itself was ready.
+Measured on a phone-speed profile, the cascade alone took longer than building
+the page, and every page change waited for it. Now a page change is done in about
+0.2 to 0.4s on that profile, where it took 0.6 to 0.8s.
+
 - **No exit animation, on purpose.** Waiting for the old page to leave before the
-  new one arrives reads as latency, and the point is that it feels quicker.
-- **Six steps, then stop.** Past ~0.31s of delay the cascade stops feeling like
-  choreography and starts feeling like a slow app.
-- **Sticky descendants.** An ancestor with a transform breaks
-  `position: sticky`. `animation-fill-mode: both` settles on `transform: none`
-  so stickiness returns, and direct sticky children get a plain fade instead.
-- `prefers-reduced-motion` collapses all of it via the global block at the end of
+  new one arrives reads as latency.
+- **No transform**, so `position: sticky` inside a page works from the first
+  frame.
+- `prefers-reduced-motion` turns it off, via the global block at the end of
   `globals.css`.
 
 ## Marking a day accomplished
@@ -403,7 +407,13 @@ WCAG AA is 4.5:1, or 3:1 for text 24px and up.
 ## Performance rules that still apply
 
 - **No `backdrop-filter` on anything that scrolls with the page.** Only the
-  shell, sticky headers and overlays blur; cards never do.
+  shell, sticky headers and overlays blur; cards and the buttons on them never
+  do.
+- **Nothing makes a ready page wait.** No entrance cascade, no minimum time for
+  a loader, no player to download before a loader can show.
+- **Make a date formatter once.** `toLocaleDateString(locale, options)` builds a
+  new formatter on every call, which shows up in lists; use `dateFormat()` in
+  `lib/utils.ts`, which keeps one per combination.
 - **Don't transform-animate blurred layers on phones.** Animating a blur is
   continuous GPU work.
 - `content-visibility: auto` on the cards below the fold was tried and removed:
