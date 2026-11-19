@@ -19,7 +19,7 @@ import {
 } from "@/lib/graph";
 import type { TopicStatus } from "@/lib/types";
 import { Card } from "@/components/ui/card";
-import { RadialProgress } from "@/components/ui/progress";
+import { Progress, RadialProgress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 
 const STATUS_SHADE: Record<TopicStatus, string> = {
@@ -185,12 +185,7 @@ export function KnowledgeDensity({
               <span className="min-w-0 flex-1 truncate text-sm text-paper/70">
                 {s.name}
               </span>
-              <div className="h-1.5 w-20 overflow-hidden rounded-full bg-paper/10">
-                <div
-                  className="h-full rounded-full bg-accent"
-                  style={{ width: `${s.mastery}%` }}
-                />
-              </div>
+              <Progress value={s.mastery} decorative className="w-20" />
               <span className="tabular w-14 shrink-0 text-right text-[0.7rem] text-paper/45">
                 {s.links} links
               </span>

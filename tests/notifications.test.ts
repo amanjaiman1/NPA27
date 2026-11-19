@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import type { ChronicleData, Habit, JournalEntry, Profile, RevisionItem } from "@/lib/types";
+import type { ChronicleData, Habit, JournalEntry, Profile, Review, RevisionItem, RoadmapPlan } from "@/lib/types";
 import {
   DIGEST_TAG,
   TEST_TAG,
@@ -179,6 +179,57 @@ test("habits still open are counted together after the reminder hour", () => {
   assert.ok(pending);
   assert.equal(pending.count, 2);
   assert.equal(pending.body, "Habit a, Habit c");
+});
+
+test("a weekly habit is mentioned only once no spare day is left in its week", () => {
+  // The 15th is a Sunday, the last day of the week that began on Monday the 9th.
+  const weekly: Habit = { ...habit("w"), name: "Full mock", schedule: { kind: "weekly", timesPerWeek: 2 }, log: { "2026-11-10": true } };
+  const pending = (h: Habit, now: Date) => evaluate(data({ habits: [h] }), { now }).find((n) => n.ruleId === "habits-pending");
+
+  // Thursday, one of two kept: four days left for one more. No need to say anything.
+  assert.equal(pending(weekly, at(18, 0, 12)), undefined);
+  // Sunday, still one short, and today is the last chance.
+  assert.equal(pending(weekly, at(18))?.body, "Full mock (1 more day this week)");
+  // Nothing kept by Sunday: two can't fit in one day, so it isn't nagged about.
+  assert.equal(pending({ ...weekly, log: {} }, at(18)), undefined);
+  // Kept twice: done for the week.
+  assert.equal(pending({ ...weekly, log: { "2026-11-10": true, "2026-11-12": true } }, at(18)), undefined);
+});
+
+test("habits that count Roadmap work are left out only when the plans aren't known", () => {
+  const roadmap: Habit = { ...habit("r"), name: "A planned activity", source: "roadmap", metric: "roadmapActivities", target: 1, countFrom: "2026-11-01" };
+  const pending = (over: Partial<ChronicleData>, roadmapKnown?: boolean) =>
+    evaluate(data({ habits: [roadmap], ...over }), { now: at(18), roadmapKnown }).find((n) => n.ruleId === "habits-pending");
+
+  assert.equal(pending({})?.body, "A planned activity");
+  assert.equal(pending({}, false), undefined);
+  // The dispatcher's copy of the Roadmap: ids and completed activities only, no titles.
+  const trimmed = [
+    { id: "p1", items: [{ id: "a1", kind: "activity", status: "completed", completedAt: "2026-11-15T09:30:00" }] },
+  ] as unknown as RoadmapPlan[];
+  assert.equal(pending({ plans: trimmed }), undefined);
+});
+
+test("a draft review is asked to be finished, and links straight to it", () => {
+  // Last week ran from the 2nd to the 8th, and was lived in.
+  const lived = { journal: [day("2026-11-04", 3)] };
+  const notice = (reviews: Review[]) =>
+    evaluate(data({ ...lived, reviews }), { now: at(12) }).find((n) => n.id === "review-unwritten:Weekly:2026-11-02");
+  const review = (over: Partial<Review>): Review => ({ id: "rv", type: "Weekly", periodLabel: "2–8 Nov", startDate: "2026-11-02", endDate: "2026-11-08", ...over });
+
+  const missing = notice([]);
+  assert.equal(missing?.title, "Last week has no review");
+  assert.equal(missing?.cta, "Write it");
+  assert.equal(missing?.href, "/reviews?open=Weekly%3A2026-11-02");
+
+  const draft = notice([review({ status: "draft" })]);
+  assert.equal(draft?.title, "Last week's review is still a draft");
+  assert.equal(draft?.cta, "Finish it");
+  assert.equal(draft?.href, "/reviews?open=Weekly%3A2026-11-02");
+
+  assert.equal(notice([review({ status: "completed" })]), undefined);
+  // Written before drafts existed: finished.
+  assert.equal(notice([review({})]), undefined);
 });
 
 test("muting a rule or its whole category silences it", () => {

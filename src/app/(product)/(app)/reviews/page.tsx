@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { CalendarCheck, CalendarRange, Download, GitCompareArrows, Lock, PencilLine, Plus, Route, Search, Star, Trash2 } from "lucide-react";
 import { useChronicle, useHasHydrated } from "@/lib/store";
@@ -89,6 +89,30 @@ export default function ReviewsPage() {
     for (const r of history.slice(0, 40)) m.set(r.id, figuresFor(r, data, today));
     return m;
   }, [history, data, today]);
+
+  // `?open=Weekly:2026-11-09` (from the "review not written" reminder) opens
+  // that period, with its draft if there is one.
+  useEffect(() => {
+    if (!hydrated) return;
+    const params = new URLSearchParams(window.location.search);
+    const wanted = params.get("open");
+    if (!wanted) return;
+    window.history.replaceState({}, "", "/reviews");
+    const [kind, start] = wanted.split(":");
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(start ?? "")) return;
+    const existing = reviews.find((r) => r.type === kind && r.startDate === start);
+    const period =
+      kind === "Weekly" || kind === "Monthly" || kind === "Yearly"
+        ? recentPeriods(kind, today, 24).find((p) => p.startDate === start)
+        : existing
+          ? periodOfReview(existing)
+          : undefined;
+    if (!period) return;
+    if (kind === "Weekly" || kind === "Monthly" || kind === "Yearly") setType(kind);
+    setEditor({ open: true, period, review: findReview(reviews, period) ?? null });
+    // Only once the store has loaded.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hydrated]);
 
   if (!hydrated) return <Loading />;
 

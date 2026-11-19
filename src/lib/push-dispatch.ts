@@ -20,6 +20,29 @@ import {
 } from "./notifications";
 import { isValidTimeZone, pickTimeZone, zonedNow, zonedDayAndHour } from "./zoned-time";
 
+const pad = (n: number) => String(n).padStart(2, "0");
+
+/**
+ * A plan with each completion time re-expressed as the user's wall clock.
+ * A completion is a true instant, and the Habit Engine reads its calendar
+ * day with local getters: on a UTC server, an activity finished at 1 AM in
+ * India would count for the day before. Written without a zone, so it
+ * parses back as local time with the user's date and hour.
+ */
+function withWallClockCompletions(plan: ChronicleData["plans"][number], tz: string): ChronicleData["plans"][number] {
+  if (!plan || !Array.isArray(plan.items)) return { ...plan, items: [] };
+  return {
+    ...plan,
+    items: plan.items.map((item) => {
+      const at = item?.completedAt ? new Date(item.completedAt) : null;
+      if (!at || Number.isNaN(at.getTime())) return item;
+      const z = zonedNow(tz, at);
+      const completedAt = `${z.getFullYear()}-${pad(z.getMonth() + 1)}-${pad(z.getDate())}T${pad(z.getHours())}:${pad(z.getMinutes())}:${pad(z.getSeconds())}`;
+      return { ...item, completedAt };
+    }),
+  };
+}
+
 /** A device row, as stored in `chronicle_push_subscriptions`. */
 export interface SubscriptionRow {
   id: string;
@@ -176,13 +199,15 @@ export function decideForUser(
     topicLinks: snapshot.topicLinks ?? [],
     selection: snapshot.selection ?? [],
     files: [],
-    // No rule reads plans, and the dispatcher's reader leaves them out.
-    plans: [],
+    // Only the completed activities, without their titles or notes, for habits
+    // that count Roadmap work. A reader older than that leaves plans out, and
+    // then those habits are skipped rather than guessed (`roadmapKnown`).
+    plans: Array.isArray(snapshot.plans) ? snapshot.plans.map((p) => withWallClockCompletions(p, tz)) : [],
     coach: { decisions: [], briefings: [] },
   };
   if (!data.profile) return { send: false, reason: "Snapshot has no profile." };
 
-  const notices = evaluate(data, { now, settings });
+  const notices = evaluate(data, { now, settings, roadmapKnown: Array.isArray(snapshot.plans) });
   const inbox = buildInbox(notices, snapshot.notifyState, today);
   // `now` for the calendar, `at` for the minimum gap, which is a duration.
   const plan = planDelivery(inbox, settings, log, now, at);

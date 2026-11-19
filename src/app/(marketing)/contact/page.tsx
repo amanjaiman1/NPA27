@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Mail, UserCog } from "lucide-react";
+import { LifeBuoy, Mail, UserCog } from "lucide-react";
 import { pageMetadata } from "@/lib/seo/metadata";
 import { PAGES } from "@/lib/seo/pages";
 import { SITE } from "@/lib/seo/config";
@@ -27,7 +27,7 @@ export default function ContactPage() {
       />
       <Band className="pt-0 sm:pt-0">
         <Container className="max-w-4xl">
-          <div className={email ? "grid gap-4 md:grid-cols-2" : "grid max-w-xl gap-4"}>
+          <div className={email ? "grid gap-4 md:grid-cols-3" : "grid gap-4 md:grid-cols-2"}>
             {email && (
               <FeatureCard icon={Mail} title="Email">
                 Questions, bug reports, feature ideas and privacy requests:{" "}
@@ -37,6 +37,10 @@ export default function ContactPage() {
                 .
               </FeatureCard>
             )}
+            <FeatureCard icon={LifeBuoy} title="From inside the app">
+              Signed in? Settings, then Help &amp; feedback, sends a suggestion, a problem or a question straight to the
+              team. Your email goes with it only if you choose.
+            </FeatureCard>
             <FeatureCard icon={UserCog} title="Your account and data">
               You can download your data or delete your account yourself, any time, in Settings. If you can&apos;t sign
               in, use{" "}

@@ -38,6 +38,7 @@ import {
   recommendations,
 } from "@/lib/mock-analytics";
 import { formatDate, toISODate, uid, cn } from "@/lib/utils";
+import { Progress } from "@/components/ui/progress";
 
 type Filter = "Prelims GS" | "Prelims CSAT" | "Mains" | "Sectional" | "all";
 const TABS: { label: string; value: Filter }[] = [
@@ -370,19 +371,12 @@ export default function MocksPage() {
                       <span className="w-28 shrink-0 truncate text-sm text-paper/70">
                         {s.name}
                       </span>
-                      <div className="h-2 flex-1 overflow-hidden rounded-full bg-paper/[0.07]">
-                        <div
-                          className={cn(
-                            "h-full rounded-full",
-                            s.accuracy >= 65
-                              ? "bg-positive"
-                              : s.accuracy >= 50
-                                ? "bg-warning"
-                                : "bg-danger/70",
-                          )}
-                          style={{ width: `${s.accuracy}%` }}
-                        />
-                      </div>
+                      <Progress
+                        value={s.accuracy}
+                        decorative
+                        className="h-2 flex-1"
+                        tone={s.accuracy >= 65 ? "positive" : s.accuracy >= 50 ? "warning" : "danger"}
+                      />
                       <span className="tabular w-9 shrink-0 text-right text-xs text-paper/55">
                         {s.accuracy}%
                       </span>

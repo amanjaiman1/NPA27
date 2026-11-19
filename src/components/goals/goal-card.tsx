@@ -32,6 +32,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/form";
 import { Sparkline } from "@/components/charts/sparkline";
 import { cn, formatDate, formatDayShort } from "@/lib/utils";
+import { Progress, type ProgressTone } from "@/components/ui/progress";
 
 /** Badge tone per health state, so the same colour always means the same thing. */
 export const HEALTH_TONE: Record<GoalHealth, "positive" | "warning" | "danger" | "accent" | "outline" | "ghost"> = {
@@ -66,32 +67,26 @@ export function PriorityLabel({ priority }: { priority: GoalPriority }) {
  */
 export function PaceBar({ p }: { p: GoalProgress }) {
   const pct = p.pct ?? 0;
-  const fill =
+  const tone: ProgressTone =
     p.health === "achieved"
-      ? "bg-positive"
+      ? "positive"
       : p.health === "behind" || p.health === "missed"
-        ? "bg-danger"
+        ? "danger"
         : p.health === "atRisk"
-          ? "bg-warning"
-          : "bg-accent";
+          ? "warning"
+          : "accent";
   return (
-    <div
-      className="relative h-2 w-full overflow-hidden rounded-full bg-paper/10"
-      role="progressbar"
-      aria-valuemin={0}
-      aria-valuemax={100}
-      aria-valuenow={p.pct ?? undefined}
-      aria-label={`${p.goal.title}: ${p.pct ?? 0}% of target`}
-    >
-      <div className={cn("h-full rounded-full transition-all duration-700 ease-out", fill)} style={{ width: `${pct}%` }} />
-      {p.expectedPct != null && p.expectedPct > 0 && p.expectedPct < 100 && (
-        <span
-          className="absolute top-0 h-full w-px bg-paper/45"
-          style={{ left: `${p.expectedPct}%` }}
-          title={`Even pace for today would be ${p.expectedPct}%`}
-        />
-      )}
-    </div>
+    <Progress
+      value={pct}
+      className="h-2"
+      tone={tone}
+      label={`${p.goal.title}: ${p.pct ?? 0}% of target`}
+      marker={
+        p.expectedPct != null && p.expectedPct > 0 && p.expectedPct < 100
+          ? { at: p.expectedPct, label: `Even pace for today would be ${p.expectedPct}%` }
+          : undefined
+      }
+    />
   );
 }
 

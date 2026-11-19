@@ -80,7 +80,11 @@ hybrid, so its check-ins so far keep counting.
 - **After saving** a journal day, a night on the Life Dashboard or a revision,
   a note says which habits that record moved.
 - **Reminders:** "habits still open" asks the engine, so a habit already met by
-  your records never nags; weekly and Roadmap habits aren't chased daily.
+  your records never nags. A weekly habit is mentioned only when no spare day
+  is left in its week (`weeklyAtRisk`), and a weekly total on the week's last
+  two days while it is short. Habits that count Roadmap work are reminded about
+  in the app and, once the dispatcher's reader carries completed activities
+  (`20261203120000_dispatch_completed_activities.sql`), in the background too.
 - **Performance Review and Study Coach** read habit consistency for a period.
 
 ## Data and compatibility

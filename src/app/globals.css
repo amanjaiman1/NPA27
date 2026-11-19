@@ -69,6 +69,8 @@
   --aura-1: 100 188 235;
   --aura-2: 22 133 229;
   --accent: 14 107 196;
+  /* The light end of the accent's gradient (progress rings and bars). */
+  --accent-2: 86 178 245;
   --accent-fg: 255 255 255;
   /* Accent-coloured text and icons take a deeper blue than accent fills, so
      they stay readable on the accent's own tints (selected chips, the active
@@ -181,6 +183,8 @@
   /* White is the accent: a white fill takes black text, and accent text
      and icons are plain white, a step brighter than body text. */
   --accent: 245 245 245;
+  /* Silver: the gradient stays neutral in Dark. */
+  --accent-2: 150 150 160;
   --accent-fg: 10 10 10;
   --accent-ink: 255 255 255;
   --accent-glow: 0.12;
@@ -278,6 +282,7 @@
   --aura-1: 167 139 250;
   --aura-2: 255 170 140;
   --accent: 108 92 231;
+  --accent-2: 199 125 255;
   --accent-fg: 255 255 255;
   --accent-ink: 88 72 214;
   --accent-glow: 0.45;
@@ -1996,3 +2001,45 @@ button:is(.rounded-md, .rounded-lg, .rounded-xl, .rounded-full).place-items-cent
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ── Progress: rings and bars (components/ui/progress.tsx) ─────────── */
+
+/* The ring's centre: a slightly raised disc for the number to sit on. */
+.progress-disc {
+  background: radial-gradient(circle at 50% 28%, rgb(var(--card) / 0.95), rgb(var(--card) / 0.35) 72%);
+  box-shadow:
+    inset 0 1px 2px rgb(0 0 0 / 0.07),
+    0 0 0 1px rgb(var(--paper) / 0.05);
+}
+/* A bar's groove. */
+.progress-track {
+  box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.08);
+}
+/* One pass of light along a bar as it fills. Clipped to the fill, so the
+   light never spills onto the empty groove, before or after its pass. (The
+   fill's own glow is a shadow, which its overflow doesn't clip.) */
+.progress-sheen {
+  overflow: hidden;
+}
+.progress-sheen::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(100deg, transparent 15%, rgb(255 255 255 / 0.5) 50%, transparent 85%);
+  transform: translateX(-110%);
+  animation: progress-sheen 1.5s cubic-bezier(0.22, 1, 0.36, 1) 0.45s 1 both;
+  pointer-events: none;
+}
+@keyframes progress-sheen {
+  to {
+    transform: translateX(110%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .progress-sheen::after {
+    animation: none;
+    opacity: 0;
+  }
+}
+

@@ -45,6 +45,7 @@ import {
 import type { Habit, HabitSource } from "@/lib/types";
 import { useToast } from "@/components/ui/toast";
 import { Tooltip } from "@/components/ui/tooltip";
+import { Progress } from "@/components/ui/progress";
 
 /* ════════════════════════════════════════════════════════════════
    Shared pieces of the Habit Engine's screens: the habit page, its forms
@@ -149,18 +150,9 @@ export function DayLegend({ className }: { className?: string }) {
   );
 }
 
-/** A slim bar that eases to its value. */
+/** A slim bar that eases to its value: the shared progress bar, green once kept. */
 export function HabitBar({ value, done, className }: { value: number; done?: boolean; className?: string }) {
-  return (
-    <span className={cn("block h-1.5 overflow-hidden rounded-full bg-paper/10", className)} aria-hidden>
-      <motion.span
-        className={cn("block h-full rounded-full", done ? "bg-positive" : "bg-accent")}
-        initial={false}
-        animate={{ width: `${Math.round(Math.max(0, Math.min(1, value)) * 100)}%` }}
-        transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-      />
-    </span>
-  );
+  return <Progress value={Math.max(0, Math.min(1, value)) * 100} tone={done ? "positive" : "accent"} decorative className={cn("h-1.5", className)} />;
 }
 
 /** "From Daily Journal" with its icon. */

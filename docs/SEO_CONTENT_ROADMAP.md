@@ -13,12 +13,12 @@ publish something rushed.
 
 | Type | Page | Primary keyword |
 | --- | --- | --- |
-| Home | `/` | UPSC preparation tracker |
+| Home | `/` | free UPSC tracker (since 19 November 2026; was UPSC preparation tracker) |
 | Overview | `/features` | UPSC preparation app |
 | Feature | `/upsc-syllabus-tracker` | UPSC syllabus tracker |
 | Feature | `/daily-study-tracker` | UPSC daily study tracker |
 | Feature | `/upsc-revision-tracker` | UPSC revision tracker |
-| Feature | `/upsc-progress-tracker` | UPSC preparation progress tracker |
+| Feature | `/upsc-progress-tracker` | UPSC progress tracker (since 19 November 2026) |
 | Feature | `/upsc-study-planner` | UPSC study planner |
 | Tool | `/resources/upsc-prelims-2027-countdown` | days left for UPSC Prelims 2027 |
 | Tool | `/resources/spaced-revision-calculator` | spaced repetition calculator |

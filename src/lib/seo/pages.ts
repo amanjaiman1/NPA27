@@ -35,72 +35,72 @@ export const PAGES = {
   home: {
     path: "/",
     label: "Home",
-    title: "UPSC Preparation Tracker for Syllabus & Revision | DoOrDie",
+    title: "Free UPSC Tracker for Syllabus, Revision & Mock Tests | DoOrDie",
     description:
-      "Track your UPSC preparation in one private place: daily study hours, topic-wise syllabus progress, spaced revision, mock test analytics and goals. Free, with no ads.",
-    primaryKeyword: "UPSC preparation tracker",
+      "A free UPSC tracker for your whole preparation: daily study hours, topic-wise syllabus progress, spaced revision, mock test analytics and goals. No ads and no paid plan.",
+    primaryKeyword: "free UPSC tracker",
     kind: "home",
-    updated: LAUNCH,
+    updated: "2026-11-19",
   },
   features: {
     path: "/features",
     label: "Features",
-    title: "UPSC Preparation App Features",
+    title: "Free UPSC Preparation App: Every Feature",
     description:
-      "Everything DoOrDie tracks for UPSC preparation: syllabus progress, a daily study journal, spaced revision, mock analytics, a mistake notebook, goals, reviews and more.",
+      "Everything in DoOrDie, the free UPSC preparation app: syllabus progress, a daily study journal, spaced revision, mock analytics, a mistake notebook, goals, habits and reviews.",
     primaryKeyword: "UPSC preparation app",
     kind: "overview",
-    updated: LAUNCH,
+    updated: "2026-11-19",
   },
   syllabus: {
     path: "/upsc-syllabus-tracker",
     label: "Syllabus tracker",
-    title: "UPSC Syllabus Tracker with Topic-wise Progress",
+    title: "Free UPSC Syllabus Tracker with Topic-wise Progress",
     description:
-      "Track the UPSC syllabus topic by topic across GS I–IV, Essay, CSAT and your optional. Move each topic from untouched to mastered and see which paper is falling behind.",
+      "A free UPSC syllabus tracker, topic by topic, across GS I–IV, Essay, CSAT and your optional. Move each topic from untouched to mastered and see which paper is falling behind.",
     primaryKeyword: "UPSC syllabus tracker",
     kind: "feature",
-    updated: LAUNCH,
+    updated: "2026-11-19",
   },
   planner: {
     path: "/upsc-study-planner",
     label: "Study planner",
-    title: "UPSC Study Planner with Daily Plans and Goals",
+    title: "Free UPSC Study Planner with Daily Plans and Goals",
     description:
-      "Plan UPSC preparation with your own yearly, monthly and weekly roadmap, goals that measure themselves, and a suggested day built from your weak subjects.",
+      "A free UPSC study planner: your own yearly, monthly and weekly roadmap, goals that measure themselves, and a suggested day built from your weak subjects.",
     primaryKeyword: "UPSC study planner",
     kind: "feature",
-    updated: LAUNCH,
+    updated: "2026-11-19",
   },
   revision: {
     path: "/upsc-revision-tracker",
     label: "Revision tracker",
-    title: "UPSC Revision Tracker with Spaced Repetition",
+    title: "Free UPSC Revision Tracker with Spaced Repetition",
     description:
-      "Keep UPSC revision on schedule. Topics come back at growing gaps of 1, 3, 7, 14, 30 and 60 days, mistakes return for recall checks, and anything overdue is flagged.",
+      "A free UPSC revision tracker. Topics come back at growing gaps of 1, 3, 7, 14, 30 and 60 days, mistakes return for recall checks, and anything overdue is flagged.",
     primaryKeyword: "UPSC revision tracker",
     kind: "feature",
-    updated: LAUNCH,
+    updated: "2026-11-19",
   },
   progress: {
     path: "/upsc-progress-tracker",
     label: "Progress tracker",
-    title: "UPSC Progress Tracker: Study Analytics and Mock Tests",
+    title: "Free UPSC Progress Tracker: Study Analytics & Mock Tests",
     description:
-      "See how your UPSC preparation is really going: hours by subject, syllabus coverage, mock score and accuracy trends, marks lost to negative marking, and weekly reviews.",
-    primaryKeyword: "UPSC preparation progress tracker",
+      "A free UPSC progress tracker that shows how preparation is going: hours by subject, syllabus coverage, mock score and accuracy trends, negative marking and weekly reviews.",
+    primaryKeyword: "UPSC progress tracker",
     kind: "feature",
-    updated: LAUNCH,
+    updated: "2026-11-19",
   },
   daily: {
     path: "/daily-study-tracker",
     label: "Daily study tracker",
-    title: "UPSC Daily Study Tracker and Study Hours Log",
+    title: "Free UPSC Daily Study Tracker and Study Hours Log",
     description:
-      "Log each UPSC study day in a few minutes: hours per subject, topics, revisions, mocks, mood and lessons. Streaks and a heatmap show how consistent you really are.",
+      "A free UPSC daily study tracker. Log each day in a few minutes: hours per subject, topics, revisions, mocks, mood and lessons. Streaks and a heatmap show your consistency.",
     primaryKeyword: "UPSC daily study tracker",
     kind: "feature",
-    updated: LAUNCH,
+    updated: "2026-11-19",
   },
   resources: {
     path: "/resources",
@@ -166,7 +166,7 @@ export const PAGES = {
     description:
       "How to reach DoOrDie with a question, a bug report or a feature request, and how to manage your account and data yourself.",
     kind: "company",
-    updated: LAUNCH,
+    updated: "2026-11-19",
   },
   privacy: {
     path: "/privacy-policy",
@@ -175,7 +175,7 @@ export const PAGES = {
     description:
       "What DoOrDie collects, why, where it is stored, who processes it, and how to export or delete your data.",
     kind: "legal",
-    updated: LAUNCH,
+    updated: "2026-11-19",
   },
   terms: {
     path: "/terms",

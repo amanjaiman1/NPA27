@@ -107,7 +107,7 @@ function TodayTile({ t }: { t: Tile }) {
       )}
       {has && t.target ? (
         <>
-          <Progress value={pct} className="mt-2" barClassName={hit ? "bg-positive" : "bg-accent"} />
+          <Progress value={pct} className="mt-2" tone={hit ? "positive" : "accent"} />
           <p className="mt-1 truncate text-[0.62rem] text-paper/45">
             {t.detail ? `${t.detail} · ` : ""}
             {t.lowerBetter ? "limit" : "aim"} {t.target} {t.unit}

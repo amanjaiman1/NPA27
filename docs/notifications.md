@@ -115,12 +115,12 @@ anything, so a notification and the page it links to can never disagree.
 | `mistakes-due` | Mistakes are due for recall review | normal | `dueForReview` | `/mistakes` |
 | `journal-unlogged` | No entry for today, after your reminder hour | high | `journal` | `/journal?new=1` |
 | `journal-streak-risk` | A streak of ≥3 days dies at midnight | critical | `currentStreak` | `/journal?new=1` |
-| `habits-pending` | Habits due today and not yet met (by your records or a check-in), after the habit's reminder time or your reminder hour; weekly and Roadmap habits aren't chased | normal | `habits` · `lib/habit-engine.ts` | `/habits` |
+| `habits-pending` | Habits due today and not yet met (by your records or a check-in), after the habit's reminder time or your reminder hour. A weekly habit only once no spare day is left (`weeklyAtRisk`) | normal | `habits` · `lib/habit-engine.ts` | `/habits` |
 | `goal-deadline` | An active goal's deadline is ≤3 days out | high · critical on the day and the day before | `computeGoalProgress` | `/goals` |
 | `goal-at-risk` | Pace says the goal will miss its target | normal | `computeGoalProgress` | `/goals` |
 | `goal-ready` | A goal has *met* its target and can be closed | normal | `computeGoalProgress` | `/goals` |
 | `mock-drought` | No mock attempted in 14 days | high | `mocks` | `/mocks` |
-| `review-unwritten` | A week or month ended with no review written | normal | `reviewPeriods` · `findReviewFor` | `/reviews` |
+| `review-unwritten` | A week or month ended with no finished review: none written, or only a draft | normal | `reviewPeriods` · `findReviewFor` | `/reviews?open=<period>` |
 | `reflection-gap` | Nothing in the Personal Diary for 7 days (dates only; no entry is read) | low | `reflections` (dates) | `/diary` |
 | `subject-stale-topics` | Topics untouched for 45+ days | low | `staleTopics` | `/subjects` |
 | `book-stalled` | A *Reading* book has seen no pages in 14 days | low | `journal.booksStudied` | `/books` |
@@ -151,7 +151,24 @@ Per goal, at most one notice: `goal-ready`, else `goal-deadline`, else
 `review-unwritten` only asks about a period with at least one logged day inside
 it. Without that, a Chronicle opened for the first time would greet you with
 "last month has no review" for a month you had not started — and a week you
-logged nothing in has nothing to review anyway.
+logged nothing in has nothing to review anyway. A draft doesn't answer it: the
+notice says "Last week's review is still a draft", with "Finish it", because
+only completing a review keeps its figures. Its link opens that period's review
+directly. Reviews written before drafts existed have no status and count as
+finished.
+
+`habits-pending` leaves a weekly habit alone while any day of its week will
+still do. It mentions one only when the days left are exactly the days still
+needed ("Full mock (1 more day this week)"), and a weekly total on the week's
+last two days while it is short. A week that can no longer be made isn't nagged
+about. On the server, habits that count Roadmap work need the plans' completed
+activities, which the dispatcher's reader carries from
+`20261203120000_dispatch_completed_activities.sql` on. With an older reader the
+snapshot has no `plans` at all, and those habits are skipped
+(`EvaluateOptions.roadmapKnown`) rather than reported as open when they may be
+done. A completion is a true instant, so the dispatcher re-expresses it in the
+user's time zone before the engine reads its day: an activity finished at 1 AM
+in India counts for that day, not the day before in UTC.
 
 `mock-drought` and `reflection-gap` measure from `profile.startDate` when there
 is no history at all, so a three-day-old Chronicle is not scolded for a fortnight

@@ -946,6 +946,33 @@ export function summarizeToday(list: HabitToday[]): TodaySummary {
   return { due, done, pending: due - done, percent: due ? Math.round((done / due) * 100) : null };
 }
 
+/**
+ * A weekly habit that can't wait any longer, for the "habits still open"
+ * reminder, which otherwise leaves weekly habits alone (any day of the week
+ * will do). A habit kept so many days a week is due today once the days
+ * left are exactly the days still needed: no spare day remains. A weekly
+ * total is due on the week's last two days while it is still short.
+ * Nothing if today is already kept, or if the week can no longer be made.
+ */
+export function weeklyAtRisk(t: HabitToday, ctx: HabitContext): { needed: number; daysLeft: number; text: string } | null {
+  if (!t.week || t.done || t.day.done) return null;
+  const schedule = habitSchedule(t.habit);
+  const daysLeft = daysBetween(ctx.today, t.week.end) + 1;
+  if (schedule.kind === "weekly") {
+    const needed = t.week.required - t.week.achieved;
+    if (needed <= 0 || needed !== daysLeft) return null;
+    return { needed, daysLeft, text: `${needed} more ${needed === 1 ? "day" : "days"} this week` };
+  }
+  if (schedule.kind === "weeklyTotal") {
+    if (daysLeft > 2) return null;
+    const needed = r2(t.week.required - t.week.achieved);
+    if (needed <= 0) return null;
+    const m = habitMetric(t.habit);
+    return { needed, daysLeft, text: `${m.unit === "count" ? Math.ceil(needed) : formatAmount(m, needed)} more this week` };
+  }
+  return null;
+}
+
 /* ── Words ───────────────────────────────────────────────────── */
 
 const WEEKDAY_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];

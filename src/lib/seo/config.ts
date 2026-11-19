@@ -42,7 +42,7 @@ export const SITE = {
   name: "DoOrDie",
   tagline: "Your UPSC preparation, documented",
   description:
-    "DoOrDie is a free UPSC preparation tracker: a daily study journal, a topic-wise syllabus tracker, spaced revision, mock test analytics and goals, in one private account.",
+    "DoOrDie is a free UPSC tracker for Civil Services preparation: a daily study journal, a topic-wise syllabus tracker, spaced revision, mock test analytics, goals and habits, in one private account.",
   locale: "en_IN",
   language: "en-IN",
   /** Square brand mark, used by Organization structured data. */
@@ -51,7 +51,7 @@ export const SITE = {
     url: "/og/doordie.png",
     width: 1200,
     height: 630,
-    alt: "DoOrDie, a UPSC preparation tracker, showing a study dashboard with hours, syllabus progress and revisions due",
+    alt: "DoOrDie, a free UPSC tracker, showing a study dashboard with hours, syllabus progress and revisions due",
   },
   /**
    * The only way the site gives to reach its owner, shown on the contact page

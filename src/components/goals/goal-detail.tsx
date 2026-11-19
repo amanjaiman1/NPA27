@@ -157,6 +157,16 @@ function Overview({ p }: { p: GoalProgress }) {
           value={p.pct ?? 0}
           size={88}
           stroke={8}
+          ariaLabel="Progress towards the target"
+          tone={
+            p.health === "achieved"
+              ? "positive"
+              : p.health === "behind" || p.health === "missed"
+                ? "danger"
+                : p.health === "atRisk"
+                  ? "warning"
+                  : "accent"
+          }
           label={p.pct == null ? "—" : `${p.pct}%`}
           sublabel="of target"
         />

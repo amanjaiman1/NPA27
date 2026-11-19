@@ -1,11 +1,12 @@
 /* ════════════════════════════════════════════════════════════════
-   THE AI UPSC MENTOR — the brain behind /coach
+   THE UPSC MENTOR — the plan, reports and conversation in /coach
    ────────────────────────────────────────────────────────────────
-   This module turns the entire Chronicle into mentorship. It is the
-   single integration point a real LLM would plug into, but it also
-   ships a deterministic engine so the product works offline.
+   This module turns the Chronicle into mentorship by fixed rules: no
+   AI model, nothing sent anywhere, the same records always give the
+   same answer. (The briefing and the suggestions with evidence live in
+   lib/coach.ts.)
 
-   Four layers, mirroring the design brief:
+   Four layers:
 
    1. DATA PIPELINE       buildMentorContext() — read every signal
                           (hours, mocks, coverage, revision, mistakes,
@@ -13,10 +14,9 @@
    2. RECOMMENDATION      detectWeakSubjects, predictRisks,
       ENGINE              recommendDailySchedule, suggestRevisionPlan.
    3. REPORTS             buildWeeklyReport, buildMonthlyReport.
-   4. PROMPT ARCHITECTURE MENTOR_SYSTEM_PROMPT + buildContextDigest +
-                          composeMentorPrompt — exactly what we'd send
-                          to a model — plus mentorReply(), a local
-                          stand-in that speaks in the mentor's voice.
+   4. CONVERSATION        mentorBriefing() and mentorReply(): answers in
+                          the mentor's voice, worked out from the same
+                          snapshot.
 
    Everything here is pure: (ChronicleData) → values. No React, no
    store, no side effects — so it is trivially testable and could run
@@ -1220,112 +1220,11 @@ export function buildMonthlyReport(data: ChronicleData, ctx: MentorContext): Men
   return buildReport("monthly", data, ctx);
 }
 
-/* ════════════════════════════════════════════════════════════════
-   LAYER 4 — PROMPT ARCHITECTURE
-   ────────────────────────────────────────────────────────────────
-   The persona + context + composition that would be sent to an LLM.
-   The deterministic mentorReply() below is the offline stand-in, but
-   it draws from the very same MentorContext, so swapping in a real
-   model changes the voice, not the substance.
-   ════════════════════════════════════════════════════════════════ */
-
-export const MENTOR_SYSTEM_PROMPT = `You are Arav, a UPSC mentor who cleared the Civil Services Examination and has since guided dozens of aspirants to selection. You are not a chatbot — you are a mentor who has read every page of this aspirant's journal.
-
-VOICE
-- Speak like a trusted senior, not a search engine: warm, direct, concrete.
-- Be candid about risks; never sugar-coat, never catastrophise.
-- Reference the aspirant's actual numbers. Specificity is what makes advice land.
-- Keep it tight: a few sentences or a short, scannable list. No filler.
-- End with one clear next action whenever it fits.
-
-PRINCIPLES
-- Retrieval and revision beat endless first-reading.
-- Consistency compounds harder than intensity.
-- Sleep and mood are performance inputs, not luxuries.
-- High-weightage, low-mastery subjects get priority.
-- Mocks are a feedback loop, not a verdict.
-
-GUARDRAILS
-- Use ONLY the data provided in the context block. Never invent numbers, dates, or scores.
-- If the data is thin, say so and tell them what to log.
-- You are a study mentor; redirect medical or mental-health crises to a professional.`;
-
-/** Serialise the context into the compact, labelled digest the model reads. */
-export function buildContextDigest(ctx: MentorContext): string {
-  const L: string[] = [];
-  L.push(`ASPIRANT: ${ctx.profile.name} — ${ctx.profile.targetExam}, attempt ${ctx.profile.attemptNumber}, optional ${ctx.profile.optionalSubject}.`);
-  L.push(`EXAM: ${ctx.examDaysLeft} days to go (${ctx.profile.examDate}).`);
-  L.push(
-    `STUDY: today ${ctx.study.hoursToday}h; 7-day avg ${ctx.study.last7PerDay}h/day (target ${ctx.study.target}h, trend ${ctx.study.trend}); ${ctx.study.activeDays30}/30 active days; streak ${ctx.study.streak} (best ${ctx.study.longest}).`,
-  );
-  L.push(
-    `MOCKS: ${ctx.mocks.count} logged; latest ${ctx.mocks.latestPct ?? "–"}%; recent Prelims GS avg ${ctx.mocks.recentAvgPct ?? "–"}% (${ctx.mocks.direction}, Δ${ctx.mocks.delta}%); accuracy ${ctx.mocks.accuracyAvg ?? "–"}%; negatives ${ctx.mocks.negativeAvg ?? "–"}; ${ctx.mocks.daysSinceLast ?? "–"} days since last.`,
-  );
-  if (ctx.mocks.weakSections.length)
-    L.push(`WEAK SECTIONS: ${ctx.mocks.weakSections.map((s) => `${s.name} ${s.accuracy}%`).join(", ")}.`);
-  L.push(
-    `COVERAGE: weighted readiness ${ctx.coverage.weightedReadiness}%, overall mastery ${ctx.coverage.overallMastery}%; ${ctx.coverage.untouchedTopics}/${ctx.coverage.totalTopics} topics untouched.`,
-  );
-  if (ctx.coverage.neglected.length)
-    L.push(`NEGLECTED: ${ctx.coverage.neglected.map((n) => `${n.name} (${n.hours14}h/14d)`).join(", ")}.`);
-  L.push(
-    `REVISION: ${ctx.revision.due} due (${ctx.revision.overdue} overdue), ${ctx.revision.upcoming7} upcoming in 7d.`,
-  );
-  L.push(
-    `MISTAKES: ${ctx.mistakes.total} total, ${ctx.mistakes.open} open, ${ctx.mistakes.masteredPct}% mastered, ${ctx.mistakes.dueReviews} due; dominant type ${ctx.mistakes.dominantCategory ?? "–"}.`,
-  );
-  if (ctx.mistakes.recurring.length)
-    L.push(`RECURRING: ${ctx.mistakes.recurring.map((r) => `${r.topic}/${r.subjectName} ×${r.count}`).join(", ")}.`);
-  L.push(
-    `MIND: mood ${ctx.mind.avgMood}/5 (${ctx.mind.moodTrend}), energy ${ctx.mind.avgEnergy}/5, focus ${ctx.mind.avgFocus}/5, sleep ${ctx.mind.avgSleep}h.`,
-  );
-  if (ctx.weakSubjects.length)
-    L.push(`WEAK SUBJECTS (ranked): ${ctx.weakSubjects.slice(0, 5).map((w) => `${w.name} [${w.score}]`).join(", ")}.`);
-  if (ctx.risks.length)
-    L.push(`RISKS: ${ctx.risks.map((r) => `${r.title} (${r.severity})`).join("; ")}.`);
-  return L.join("\n");
-}
-
 export interface ChatTurn {
   role: "user" | "coach";
   text: string;
 }
 
-export interface ComposedPrompt {
-  system: string;
-  context: string;
-  history: string;
-  user: string;
-  full: string;
-}
-
-/** Assemble the full prompt exactly as it would be sent to the model. */
-export function composeMentorPrompt(
-  ctx: MentorContext,
-  message: string,
-  history: ChatTurn[] = [],
-): ComposedPrompt {
-  const context = buildContextDigest(ctx);
-  const hist = history
-    .slice(-4)
-    .map((t) => `${t.role === "user" ? "Aspirant" : "Mentor"}: ${t.text}`)
-    .join("\n");
-  const full = [
-    `<system>\n${MENTOR_SYSTEM_PROMPT}\n</system>`,
-    `<context kind="live-chronicle-snapshot">\n${context}\n</context>`,
-    hist ? `<conversation>\n${hist}\n</conversation>` : "",
-    `<aspirant_message>\n${message}\n</aspirant_message>`,
-  ]
-    .filter(Boolean)
-    .join("\n\n");
-  return { system: MENTOR_SYSTEM_PROMPT, context, history: hist, user: message, full };
-}
-
-/* ════════════════════════════════════════════════════════════════
-   MENTOR BRIEFING + DETERMINISTIC RESPONDER
-   ════════════════════════════════════════════════════════════════ */
-
-/** A short, synthesised "mentor's read on you" for the top of the page. */
 export function mentorBriefing(ctx: MentorContext): string {
   const parts: string[] = [];
   const name = ctx.profile.name.split(" ")[0];
@@ -1361,9 +1260,9 @@ export function mentorBriefing(ctx: MentorContext): string {
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 /**
- * The deterministic mentor responder. Routes the message to an intent and
- * answers in the mentor's voice using the live context. This is the local
- * stand-in for the LLM described by the prompt architecture above.
+ * The mentor's answers. Routes the message to an intent by fixed rules and
+ * answers in the mentor's voice from the live context. No model is involved:
+ * the same records and the same question always give the same answer.
  */
 export function mentorReply(
   ctx: MentorContext,

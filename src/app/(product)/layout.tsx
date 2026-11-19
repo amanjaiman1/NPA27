@@ -3,6 +3,7 @@ import { AuthProvider } from "@/components/auth/auth-provider";
 import { ConfirmProvider } from "@/components/ui/confirm-dialog";
 import { ToastProvider } from "@/components/ui/toast";
 import { PwaLayer } from "@/components/pwa/pwa-layer";
+import { CrashReporter } from "@/components/feedback/crash-reporter";
 
 /**
  * The private side: the app (`(app)`) and its sign-in screens (`(auth)`).
@@ -28,6 +29,7 @@ export default function ProductLayout({ children }: { children: React.ReactNode 
         <ToastProvider>
           {children}
           <PwaLayer />
+          <CrashReporter />
         </ToastProvider>
       </ConfirmProvider>
     </AuthProvider>

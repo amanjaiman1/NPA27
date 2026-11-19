@@ -10,6 +10,7 @@ import { useMounted } from "@/lib/hooks";
 import { Avatar } from "@/components/ui/avatar";
 import { IconButton } from "@/components/ui/button";
 import { Logo } from "./logo";
+import { Progress } from "@/components/ui/progress";
 
 /**
  * Where the sidebar is showing:
@@ -163,16 +164,7 @@ export function Sidebar({
                 {profile.targetExam.replace("UPSC ", "")}
               </span>
             </div>
-            <div
-              className="mt-2 h-1 overflow-hidden rounded-full bg-paper/10"
-              role="progressbar"
-              aria-label="How much of your preparation time has passed"
-              aria-valuemin={0}
-              aria-valuemax={100}
-              aria-valuenow={Math.round(elapsed)}
-            >
-              <div className="h-full rounded-full bg-accent" style={{ width: `${elapsed}%` }} />
-            </div>
+            <Progress value={elapsed} className="mt-2 h-1" label="How much of your preparation time has passed" />
           </div>
         )}
         <div className="flex items-center gap-2 px-1 pt-1">

@@ -15,7 +15,7 @@ import { staleTopics } from "./subjects";
 import { reviewPeriods, findReviewFor } from "./review-builder";
 import { currentStreak, hoursByDate } from "./selectors";
 import { clockMinutes, countedSleepHours } from "./sleep";
-import { habitContext, habitSource, todayHabits } from "./habit-engine";
+import { habitContext, habitSource, todayHabits, weeklyAtRisk } from "./habit-engine";
 
 /* ── shape ───────────────────────────────────────────────────── */
 
@@ -175,7 +175,7 @@ export const RULES: RuleMeta[] = [
     id: "review-unwritten",
     category: "review",
     label: "Review not written",
-    description: "A week or month ended with no review.",
+    description: "A week or month ended without a finished review, or its review is still a draft.",
   },
   {
     id: "reflection-gap",
@@ -280,6 +280,13 @@ export interface EvaluateOptions {
   /** The instant to evaluate at. Always explicit — never read from the clock. */
   now: Date;
   settings?: Partial<NotifySettings> | null;
+  /**
+   * Whether `data.plans` holds this account's Roadmap work. Always so in the
+   * app; on the server, only when the dispatcher's reader carries the
+   * completed activities. Without them, habits that count Roadmap work are
+   * left out rather than guessed. Defaults to true.
+   */
+  roadmapKnown?: boolean;
 }
 
 /**
@@ -289,7 +296,7 @@ export interface EvaluateOptions {
  */
 export function evaluate(
   data: ChronicleData,
-  { now, settings }: EvaluateOptions,
+  { now, settings, roadmapKnown = true }: EvaluateOptions,
 ): Notice[] {
   const cfg = withDefaults(settings);
   if (!cfg.enabled) return [];
@@ -406,14 +413,20 @@ export function evaluate(
 
   // Read through the Habit Engine, so a habit that fills in from the journal
   // or the Life Dashboard is pending only while its records fall short, and
-  // rest days and paused habits never nag. Weekly habits aren't chased daily,
-  // and Roadmap habits are left out: the server's copy has no plans, so it
-  // couldn't tell. A habit's own reminder time replaces the general one.
+  // rest days and paused habits never nag. A weekly habit is mentioned only on
+  // the days it can't wait any longer (`weeklyAtRisk`). Habits counting Roadmap
+  // work are left out when the plans aren't known (an older server reader).
+  // A habit's own reminder time replaces the general one.
   const nowMinutes = hour * 60 + now.getMinutes();
-  const pendingHabits = todayHabits(data.habits ?? [], habitContext(data, today))
-    .filter((t) => !t.done && !t.week && habitSource(t.habit) !== "roadmap")
+  const habitCtx = habitContext(data, today);
+  const pendingHabits = todayHabits(data.habits ?? [], habitCtx)
+    .filter((t) => !t.done && (roadmapKnown || habitSource(t.habit) !== "roadmap"))
     .filter((t) => nowMinutes >= (clockMinutes(t.habit.remindAt) ?? cfg.reminderHour * 60))
-    .map((t) => t.habit);
+    .flatMap((t) => {
+      if (!t.week) return [{ name: t.habit.name }];
+      const risk = weeklyAtRisk(t, habitCtx);
+      return risk ? [{ name: `${t.habit.name} (${risk.text})` }] : [];
+    });
   if (pendingHabits.length > 0) {
     push({
       id: `habits-pending:${today}`,
@@ -624,7 +637,10 @@ export function evaluate(
     const periods = reviewPeriods(type, today, 2);
     const last = periods[1];
     if (!last) continue;
-    if (findReviewFor(data.reviews ?? [], last)) continue;
+    // A finished review answers it; a draft is asked to be finished. Reviews
+    // from before drafts existed have no status and count as finished.
+    const written = findReviewFor(data.reviews ?? [], last);
+    if (written && written.status !== "draft") continue;
     /**
      * Only ask about a period you were actually present for. A fresh Chronicle
      * would otherwise open on "last month has no review" for a month the user
@@ -635,15 +651,18 @@ export function evaluate(
       (e) => e.date >= last.startDate && e.date <= last.endDate,
     );
     if (!livedIt) continue;
+    const span = type === "Weekly" ? "week" : "month";
     push({
       id: `review-unwritten:${last.key}`,
       ruleId: "review-unwritten",
       category: "review",
       priority: "normal",
-      title: `${type === "Weekly" ? "Last week" : "Last month"} has no review`,
-      body: `${last.periodLabel} closed without one. The draft is already filled in from your data.`,
-      href: "/reviews",
-      cta: "Write it",
+      title: written ? `Last ${span}'s review is still a draft` : `Last ${span} has no review`,
+      body: written
+        ? `${last.periodLabel}: complete it to keep its figures as the record of that ${span}.`
+        : `${last.periodLabel} closed without one. The figures are already gathered from your records.`,
+      href: `/reviews?open=${encodeURIComponent(last.key)}`,
+      cta: written ? "Finish it" : "Write it",
       dedupeKey: `review-unwritten:${type}`,
     });
   }

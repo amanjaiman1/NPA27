@@ -914,6 +914,12 @@ export interface Profile {
    * so finishing it on the phone means the laptop doesn't show it again.
    */
   tourSeenAt?: ISODate;
+  /**
+   * Whether the app sends a crash report on its own when something breaks.
+   * Absent means yes. A report holds the error and the page's path, never
+   * the account or anything written in the app (lib/report.ts).
+   */
+  crashReports?: boolean;
 }
 
 /* ── Root state ──────────────────────────────────────────────── */

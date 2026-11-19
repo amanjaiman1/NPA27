@@ -62,6 +62,8 @@ export function HabitsPanel({ className }: { className?: string }) {
         <div className="flex items-start gap-4">
           <RadialProgress
             value={summary.percent ?? 0}
+            tone={summary.percent === 100 ? "positive" : "accent"}
+            ariaLabel="Today's habits done"
             size={64}
             stroke={6}
             className="mt-2 hidden shrink-0 sm:inline-grid"

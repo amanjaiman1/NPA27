@@ -77,8 +77,8 @@ export default function DailyStudyTrackerPage() {
     <>
       <PageHero
         crumbs={[{ name: page.label, path: page.path }]}
-        eyebrow="UPSC daily study tracker"
-        title="A daily study tracker for UPSC that takes a few minutes a day"
+        eyebrow="Free UPSC daily study tracker"
+        title="A free daily study tracker for UPSC that takes a few minutes a day"
         intro={
           <p>
             Most of what decides an attempt happens on ordinary days. DoOrDie gives each day one entry: the hours you

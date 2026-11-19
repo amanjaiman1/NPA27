@@ -9,6 +9,7 @@ import { normalizeWeekStart, STATUS_LABEL, type ExecutionCounts } from "@/lib/ro
 import type { GoalData } from "@/lib/goals";
 import { Badge } from "@/components/ui/badge";
 import { cn, toISODate } from "@/lib/utils";
+import { Progress } from "@/components/ui/progress";
 
 export const LEVEL_ICON: Record<PlanLevel, LucideIcon> = {
   year: CalendarRange,
@@ -142,17 +143,12 @@ export function ExecutionBar({
           </span>
         </span>
       )}
-      <span
-        className="block h-1.5 w-full overflow-hidden rounded-full bg-paper/10"
-        role="progressbar"
-        aria-label={label}
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-valuenow={pct}
-        aria-valuetext={counts.total ? `${counts.completed} of ${counts.total} done` : "Nothing planned yet"}
-      >
-        <span className="block h-full rounded-full bg-accent transition-all duration-500" style={{ width: `${pct}%` }} />
-      </span>
+      <Progress
+        value={pct}
+        tone={counts.total > 0 && pct >= 100 ? "positive" : "accent"}
+        label={label}
+        valueText={counts.total ? `${counts.completed} of ${counts.total} done` : "Nothing planned yet"}
+      />
     </span>
   );
 }
