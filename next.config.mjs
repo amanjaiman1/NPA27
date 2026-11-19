@@ -10,6 +10,8 @@ const nextConfig = {
       // The Selection Archive is retired. Its stages stay in the account,
       // untouched; an old bookmark lands on the Command Center.
       { source: "/archive", destination: "/dashboard", permanent: false },
+      // The Milestone Timeline is retired too. Stored milestones stay as they were.
+      { source: "/timeline", destination: "/dashboard", permanent: false },
       // Reflections became the Personal Diary: same entries, new home.
       { source: "/reflections", destination: "/diary", permanent: true },
     ];

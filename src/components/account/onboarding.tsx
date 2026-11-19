@@ -243,7 +243,7 @@ function Onboarding() {
                     );
                   })}
                 </div>
-                <p className="mt-1.5 text-[0.7rem] text-paper/40">Add your own later on the Habits page.</p>
+                <p className="mt-1.5 text-[0.7rem] text-paper/40">Add your own later on My Habits.</p>
               </fieldset>
 
             </>

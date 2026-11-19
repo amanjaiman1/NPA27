@@ -20,7 +20,7 @@ import { daysBetween, fromISODate, toISODate } from "./utils";
    Daily Journal, a night on the Life Dashboard, a pass on the Revision
    page, a finished activity on the Roadmap) and every habit connected to
    that kind of record fills in from it. Only a habit you check off
-   yourself needs a tap on the Habits page.
+   yourself needs a tap on My Habits.
 
    How it stays correct:
    • One shared layer of activity events (`activityEvents`), read straight
@@ -311,7 +311,7 @@ export const HABIT_METRICS: MetricDef[] = [
     step: 1,
     min: 1,
     max: 1,
-    explain: "You tick it off on the Habits page or the dashboard.",
+    explain: "You tick it off on My Habits or the dashboard.",
     example: "",
     noun: "",
   },

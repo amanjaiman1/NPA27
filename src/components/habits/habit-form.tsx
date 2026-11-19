@@ -64,7 +64,7 @@ const AUTO_SOURCES: { id: AutoSource; reads: string }[] = [
 const TRACKING_TEXT: Record<Tracking, string> = {
   auto: "It fills in from records you already keep. There's nothing to tick.",
   hybrid: "It fills in from your records, and you can also check it off on a day they don't cover.",
-  manual: "You tick it off yourself, on the Habits page or the dashboard.",
+  manual: "You tick it off yourself, on My Habits or the dashboard.",
 };
 
 const UNIT_WORD: Record<MetricDef["unit"], string> = {

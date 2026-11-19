@@ -13,7 +13,7 @@ a deletion anywhere is reflected everywhere the next time the screen draws.
 | Revision (`/revision`) | The spaced-repetition queue and each item's revision days (`passes`) | Syllabus | |
 | Roadmap (`/roadmap`) | Your yearly, monthly and weekly plans, their activities and milestones | Goals and journal days (references only) | Change a goal or a journal day |
 | Goals (`/goals`) | What you are chasing, targets, deadlines, goal milestones | Journal, mocks, revision, books, current affairs, mistakes, life, diary entry count (for a goal you set to count them) | |
-| Habits (`/habits`) | Each habit's settings, your check-ins, and your corrections for a day | Journal, Life Dashboard, Revision, Roadmap, through the Habit Engine | Copy a record, or read free text |
+| My Habits (`/habits`) | Each habit's settings, your check-ins, and your corrections for a day | Journal, Life Dashboard, Revision, Roadmap, through the Habit Engine | Copy a record, or read free text |
 | Performance Review (`/reviews`) | What you wrote about a period, and the figures it was completed with | Journal, Roadmap, goals, revision, habits, life, mocks | Read the diary |
 | Personal Diary (`/diary`) | Your private entries | | Feed anything else |
 | Study Coach (`/coach`) | What you decided about its suggestions, and its daily briefings | Journal, syllabus, revision, mocks, Roadmap, goals, habits, life | Read the diary; change a plan, goal or the revision queue without your confirmation |

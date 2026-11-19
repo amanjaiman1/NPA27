@@ -152,8 +152,9 @@ export default function DailyStudyTrackerPage() {
             <FeatureCard icon={Clock3} title="Totals that add up">
               Total hours, active days, average hours per active day and your best day, worked out for you.
             </FeatureCard>
-            <FeatureCard icon={ListChecks} title="Habits">
-              Daily disciplines such as the newspaper or answer writing, each with its own streak.
+            <FeatureCard icon={ListChecks} title="My Habits">
+              Habits that fill in from your journal hours, sleep and revision, plus the ones you tick off, such as the
+              newspaper or answer writing, each with its own streak.
             </FeatureCard>
             <FeatureCard icon={Search} title="Every day searchable">
               Search past entries by topic, book, win or reflection, or filter them, and open any day again.

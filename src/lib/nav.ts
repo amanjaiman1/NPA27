@@ -1,7 +1,6 @@
 import {
   LayoutDashboard,
   NotebookPen,
-  Milestone,
   Route,
   Newspaper,
   Repeat,
@@ -65,7 +64,7 @@ export const navGroups: NavGroup[] = [
     items: [
       { label: "Command Center", href: "/dashboard", icon: LayoutDashboard, short: "Dashboard overview" },
       { label: "Roadmap", href: "/roadmap", icon: Route, short: "Your yearly, monthly and weekly plans" },
-      { label: "Milestone Timeline", href: "/timeline", icon: Milestone, short: "The journey so far" },
+      { label: "My Habits", href: "/habits", icon: ListChecks, short: "Habits that fill in from your records" },
       { label: "Study Coach", href: "/coach", icon: Sparkles, short: "Today's briefing, evidence & plan changes" },
     ],
   },
@@ -74,7 +73,6 @@ export const navGroups: NavGroup[] = [
     items: [
       { label: "Current Affairs", href: "/current-affairs", icon: Newspaper, short: "News vault" },
       { label: "Mistake Tracker", href: "/mistakes", icon: TriangleAlert, short: "Learn from errors" },
-      { label: "Habits", href: "/habits", icon: ListChecks, short: "Habits that fill in from your records" },
       { label: "Library", href: "/books", icon: BookOpen, short: "Book progress" },
     ],
   },

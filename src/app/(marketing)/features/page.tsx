@@ -64,7 +64,7 @@ const GROUPS: { title: string; intro: string; features: Feature[] }[] = [
       {
         id: "habits",
         icon: ListChecks,
-        title: "Habits",
+        title: "My Habits",
         body: "Habits that keep themselves: connect one to your journal hours, a night's sleep, a revision or a finished roadmap activity and it fills in from what you record there. The rest, like the newspaper or answer writing, you tick off. Each has a streak, a calendar and how often you keep it.",
       },
     ],
@@ -154,12 +154,6 @@ const GROUPS: { title: string; intro: string; features: Feature[] }[] = [
         body: "A week, a month or any dates you choose. Hours, topics, revision, habits, goals, the plan, mocks and sleep are gathered for you and compared with the period before. You answer six questions and keep it as a record.",
         href: PAGES.progress.path,
         link: "Progress tracking",
-      },
-      {
-        id: "timeline",
-        icon: Flag,
-        title: "Milestone timeline",
-        body: "The milestones of your preparation, many recorded automatically as you go, beside the ones you write yourself.",
       },
     ],
   },

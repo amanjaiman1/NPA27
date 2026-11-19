@@ -59,7 +59,6 @@ import type {
   MistakeStatus,
   Goal,
   GoalStatus,
-  Milestone,
   Reflection,
   Book,
   CurrentAffair,
@@ -273,8 +272,6 @@ interface ChronicleState extends ChronicleData {
   clearFileTrash: (paths: string[]) => void;
 
   /* milestones */
-  upsertMilestone: (m: Milestone) => void;
-  deleteMilestone: (id: string) => void;
 
   /* personal diary (stored as `reflections`, the name it always had) */
   upsertReflection: (r: Reflection) => void;
@@ -1288,20 +1285,6 @@ export const useChronicle = create<ChronicleState>()(
           const fileTrash = s.fileTrash.filter((p) => !gone.has(p));
           return fileTrash.length === s.fileTrash.length ? {} : { fileTrash };
         }),
-
-      upsertMilestone: (m) =>
-        set((s) => {
-          const idx = s.milestones.findIndex((x) => x.id === m.id);
-          const milestones = [...s.milestones];
-          if (idx >= 0) milestones[idx] = m;
-          else milestones.push(m);
-          milestones.sort((a, b) => a.date.localeCompare(b.date));
-          return { milestones };
-        }),
-      deleteMilestone: (id) =>
-        set((s) => ({
-          milestones: s.milestones.filter((m) => m.id !== id),
-        })),
 
       upsertReflection: (r) =>
         set((s) => {

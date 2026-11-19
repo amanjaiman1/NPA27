@@ -30,7 +30,7 @@ export function HabitsPanel({ className }: { className?: string }) {
   return (
     <Panel
       className={className}
-      eyebrow="Habits"
+      eyebrow="My Habits"
       title={summary.due ? `${summary.done} of ${summary.due} done today` : hasHabits ? "Nothing due today" : "No habits yet"}
       description={
         summary.due

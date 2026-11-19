@@ -2,7 +2,7 @@
 
 A habit can keep itself from records you already keep. Connect it to the Daily
 Journal, the Life Dashboard, Revision or the Roadmap, and it fills in as you
-record there; the ones you check off by hand get a button on the Habits page
+record there; the ones you check off by hand get a button on My Habits (`/habits`)
 and the dashboard. Code: `src/lib/habit-engine.ts` (pure functions, shared by
 the browser and the server's reminders).
 
@@ -65,16 +65,16 @@ hybrid, so its check-ins so far keep counting.
   or a paused day neither breaks it nor adds to it, and today doesn't break it
   while it is still open. Weekly habits count weeks.
 - Consistency is kept days over due days for a window. Today counts once it is
-  kept. The Habits page shows 7, 30 and 90 days, this week and this month; the
+  kept. My Habits shows 7, 30 and 90 days, this week and this month; the
   detail view shows the last eight weeks and a month calendar.
 
 ## Where it shows
 
-- **Habits page:** today's habits with progress and where it came from, every
+- **My Habits** (`/habits`, under Command in the sidebar): today's habits with progress and where it came from, every
   habit with streaks and its last five weeks, a consistency table, and a habit
   in full (calendar, records behind any day, corrections, pause, archive,
   delete).
-- **Dashboard:** "Habits" replaces the Milestones card: today's due habits,
+- **Dashboard:** the "My Habits" card replaces the Milestones card: today's due habits,
   done and pending counts, the share done, streaks, the actual amounts and
   their source, and "View all habits". Only habits you check off have a button.
 - **After saving** a journal day, a night on the Life Dashboard or a revision,
