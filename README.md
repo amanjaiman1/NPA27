@@ -177,6 +177,34 @@ Vercel → Project → Settings → Environment Variables.
 | `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`, `CRON_SECRET` | see `docs/notifications.md` | Background push (optional) |
 | `NEXT_PUBLIC_SITE_URL` | browser + server | The public site's main address for canonical links, the sitemap and social previews (strongly recommended) |
 | `NEXT_PUBLIC_CONTACT_EMAIL`, `NEXT_PUBLIC_GA_MEASUREMENT_ID`, `NEXT_PUBLIC_BING_SITE_VERIFICATION` | see `docs/SEO_SETUP_GUIDE.md` | Contact address, opt-in analytics, Bing verification (optional) |
+| `RESEND_API_KEY`, `REPORTS_TO_EMAIL` | **server only** | Crash reports and Settings → Help & feedback, emailed through [Resend](https://resend.com) (optional; without them the form says it isn't set up) |
+| `REPORTS_FROM_EMAIL` | **server only** | The sender for those emails. Leave unset to use Resend's test sender, which only delivers to the address the Resend account was created with. |
+
+### Crash reports and feedback
+
+When a page fails, the app emails a crash report: the error, its stack, the
+page's path (never the query), the browser and the time. It never includes
+the account, a name, or anything written in the app. People can switch these
+off in Settings → Help & feedback, and add a note on the error screen.
+
+The same section has a form for suggestions, problems and questions. A
+message carries the sender's account id, their email only if they leave
+"Include my email" on (it becomes the reply-to address), and their browser
+and window size only if they leave "Include technical details" on.
+
+Both go through `POST /api/report` (`src/lib/report-server.ts`), which only
+accepts requests from the site's own pages, caps sizes, and limits how many
+it sends per address, per account and per hour. Resend's free plan allows
+3,000 emails a month and 100 a day.
+
+To set it up: create a Resend account, make an API key with "Sending access",
+and set `RESEND_API_KEY` and `REPORTS_TO_EMAIL` (where reports go; several
+addresses can be separated by commas) in Vercel. With Resend's test sender,
+`REPORTS_TO_EMAIL` must be the address you signed up to Resend with. To send
+to any address, verify a domain in Resend and set `REPORTS_FROM_EMAIL`, for
+example `DoOrDie <reports@your-domain>`. Redeploy after changing them. The
+address in `REPORTS_TO_EMAIL` stays on the server; it is never sent to the
+browser or shown on the site.
 
 ## Deploy to Vercel
 
@@ -264,6 +292,8 @@ Usage page stays comfortably inside the plan.
       (diary and coach privacy in the dispatcher's copy).
 - [ ] Run `supabase/migrations/20261203120000_dispatch_completed_activities.sql` in the
       SQL Editor (background reminders for habits that count Roadmap work).
+- [ ] Set `RESEND_API_KEY` and `REPORTS_TO_EMAIL` in Vercel for crash reports and
+      feedback (see [Crash reports and feedback](#crash-reports-and-feedback)).
 - [ ] Run `supabase/tests/rls_isolation.sql` and confirm `All isolation checks passed`.
 - [ ] Set Site URL and the two Redirect URLs in Authentication → URL Configuration.
 - [ ] Configure custom SMTP, or decide to run with "Confirm email" off.
