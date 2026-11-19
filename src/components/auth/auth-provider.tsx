@@ -75,7 +75,7 @@ function sameUser(a: AccountUser | null, b: AccountUser): boolean {
 }
 
 /** The user in the session saved on this device, when it still has a refresh token. */
-function readStoredSessionUser(): AccountUser | null {
+export function readStoredSessionUser(): AccountUser | null {
   try {
     const raw = localStorage.getItem(AUTH_STORAGE_KEY);
     if (!raw) return null;
@@ -96,6 +96,15 @@ function dropStoredSession() {
 }
 
 const origin = () => (typeof window === "undefined" ? "" : window.location.origin);
+
+/**
+ * Whether this page started with a session saved on the device. Read as the
+ * module loads, before the auth client has had a chance to check it: when the
+ * server then turns it down (signed out everywhere, password changed), the
+ * client deletes it before telling anyone, and without this a session that
+ * ended would look like one that never existed.
+ */
+const hadSessionAtStart = typeof window !== "undefined" && readStoredSessionUser() !== null;
 
 interface State {
   status: AuthStatus;
@@ -141,13 +150,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (event === "INITIAL_SESSION") {
         // No usable session. If one is saved but couldn't be refreshed (no
         // network), keep working offline with it rather than locking the
-        // student out of their own data.
+        // student out of their own data. If the one this page started with is
+        // gone, the server ended it: say so on the sign-in screen.
         const stored = readStoredSessionUser();
         setState({
           status: stored ? "signedIn" : "signedOut",
           user: stored,
           offline: Boolean(stored),
-          endedReason: null,
+          endedReason: !stored && hadSessionAtStart ? "ended" : null,
         });
       }
     });
