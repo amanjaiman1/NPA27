@@ -6,6 +6,7 @@ import { Logo } from "./logo";
 import { AccountMenu } from "@/components/account/account-menu";
 import { NotificationCentre } from "@/components/notifications/centre";
 import { Notifier } from "@/components/notifications/notifier";
+import { TourButton } from "@/components/tour/tour-button";
 import { IconButton } from "@/components/ui/button";
 import { useChronicle } from "@/lib/store";
 import { useMounted } from "@/lib/hooks";
@@ -16,7 +17,8 @@ import { daysBetween, toISODate } from "@/lib/utils";
  * field that opens the command palette (⌘K / Ctrl+K), then the exam countdown
  * and the one loud action, logging today. The account and notifications live
  * on the rail there. On a phone the bar carries the menu, the brand, and
- * those two as well.
+ * those two as well. The feature tour's button is here on every page: a
+ * labelled pill on a desktop, a compass on a phone.
  */
 export function Topbar({
   onOpenDrawer,
@@ -79,11 +81,14 @@ export function Topbar({
           </div>
         )}
 
+        {desktop && <TourButton variant="pill" />}
+
         {!desktop && (
           <>
             <IconButton label="Search" onClick={onOpenPalette}>
               <Search className="h-5 w-5" />
             </IconButton>
+            <TourButton variant="icon" />
             <NotificationCentre />
             <AccountMenu />
           </>

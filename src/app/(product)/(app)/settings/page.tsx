@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Bell, Palette, Smartphone } from "lucide-react";
+import { Bell, Compass, Palette, Smartphone } from "lucide-react";
 import { useChronicle, useHasHydrated } from "@/lib/store";
 import { withDefaults } from "@/lib/notifications";
 import { PageHeader } from "@/components/ui/page-header";
@@ -14,6 +14,8 @@ import { ProfileSettings } from "@/components/settings/profile-settings";
 import { AccountSecurity, DangerZone } from "@/components/settings/account-settings";
 import { DataSettings } from "@/components/settings/data-settings";
 import { InstallCard } from "@/components/pwa/install-prompt";
+import { Button } from "@/components/ui/button";
+import { useTour } from "@/components/tour/tour-context";
 
 const JUMPS = [
   { id: "profile", label: "Profile & exam" },
@@ -21,9 +23,26 @@ const JUMPS = [
   { id: "appearance", label: "Appearance" },
   { id: "notifications", label: "Notifications" },
   { id: "app", label: "App" },
+  { id: "tour", label: "Feature tour" },
   { id: "data", label: "Data" },
   { id: "danger", label: "Delete" },
 ];
+
+/** Opens the feature tour, for anyone who wants to see it again. */
+function TourLauncher() {
+  const { open, prepare, fresh } = useTour();
+  return (
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <p className="text-sm text-paper/65">
+        {fresh ? "You haven't taken it yet." : "Six short chapters. Skip or leave it whenever you like."}
+      </p>
+      <Button onClick={open} onPointerEnter={prepare} onFocus={prepare} className="shrink-0">
+        <Compass className="h-4 w-4" />
+        Take the tour
+      </Button>
+    </div>
+  );
+}
 
 export default function SettingsPage() {
   const hydrated = useHasHydrated();
@@ -74,6 +93,15 @@ export default function SettingsPage() {
         description="One tap away on your phone or computer, full screen, and it keeps working offline. Your data syncs when you're back online."
       >
         <InstallCard bare />
+      </SettingsSection>
+
+      <SettingsSection
+        id="tour"
+        icon={Compass}
+        title="Feature tour"
+        description="A short look at what every page does, with a live picture of each. It's also behind the compass at the top of every page."
+      >
+        <TourLauncher />
       </SettingsSection>
 
       <DataSettings />

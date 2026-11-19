@@ -3,10 +3,40 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { Search, CornerDownLeft, ArrowUp, ArrowDown } from "lucide-react";
+import { Search, CornerDownLeft, ArrowUp, ArrowDown, Compass, type LucideIcon } from "lucide-react";
 import { searchableNavItems } from "@/lib/nav";
 import { cn } from "@/lib/utils";
+import { useTour } from "@/components/tour/tour-context";
 import { beginRouteTransition } from "./route-transition";
+
+/** A page to go to, or the feature tour. */
+interface PaletteItem {
+  key: string;
+  label: string;
+  short: string;
+  icon: LucideIcon;
+  /** What a search is matched against, each in lower case. */
+  terms: string[];
+  href?: string;
+}
+
+const ITEMS: PaletteItem[] = [
+  ...searchableNavItems.map((i) => ({
+    key: i.href,
+    label: i.label,
+    short: i.short,
+    icon: i.icon,
+    terms: [i.label, i.short, i.href].map((t) => t.toLowerCase()),
+    href: i.href,
+  })),
+  {
+    key: "tour",
+    label: "Feature tour",
+    short: "A short look at what every page does",
+    icon: Compass,
+    terms: ["feature tour", "a short look at what every page does", "help", "guide", "tutorial", "walkthrough", "what's new"],
+  },
+];
 
 export function CommandPalette({
   open,
@@ -16,18 +46,14 @@ export function CommandPalette({
   onClose: () => void;
 }) {
   const router = useRouter();
+  const tour = useTour();
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return searchableNavItems;
-    return searchableNavItems.filter(
-      (i) =>
-        i.label.toLowerCase().includes(q) ||
-        i.short.toLowerCase().includes(q) ||
-        i.href.toLowerCase().includes(q),
-    );
+    if (!q) return ITEMS;
+    return ITEMS.filter((i) => i.terms.some((t) => t.includes(q)));
   }, [query]);
 
   useEffect(() => {
@@ -42,11 +68,16 @@ export function CommandPalette({
     setActive(0);
   }, [query]);
 
-  function go(href: string) {
+  function go(item: PaletteItem) {
+    if (!item.href) {
+      onClose();
+      tour.open();
+      return;
+    }
     // A programmatic push raises no click, so the transition overlay has to be
     // told explicitly or navigating from the palette shows no feedback at all.
     beginRouteTransition();
-    router.push(href);
+    router.push(item.href);
     onClose();
   }
 
@@ -60,7 +91,7 @@ export function CommandPalette({
     } else if (e.key === "Enter") {
       e.preventDefault();
       const item = results[active];
-      if (item) go(item.href);
+      if (item) go(item);
     } else if (e.key === "Escape") {
       onClose();
     }
@@ -113,8 +144,9 @@ export function CommandPalette({
                 const Icon = item.icon;
                 return (
                   <button
-                    key={item.href}
-                    onClick={() => go(item.href)}
+                    key={item.key}
+                    onClick={() => go(item)}
+                    onPointerEnter={item.href ? undefined : tour.prepare}
                     onMouseEnter={() => setActive(i)}
                     className={cn(
                       "flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition-colors",
