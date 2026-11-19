@@ -114,6 +114,36 @@ async function passSleepPromptIfShown(page) {
   await prompt.waitFor({ state: "detached" });
 }
 
+/**
+ * A new account's first visit to the dashboard opens the feature tour over
+ * it. Skip it, as someone in a hurry would, so the run can carry on. It waits
+ * only when the tour is due: a recent setup, and the tour never seen.
+ */
+async function passTourIfShown(page) {
+  try {
+    await page.waitForURL(/\/dashboard(?:[?#]|$)/, { timeout: 8000 });
+  } catch {
+    return;
+  }
+  const due = await page.evaluate(() => {
+    const id = JSON.parse(localStorage.getItem("upsc-chronicle-auth") ?? "null")?.user?.id;
+    const raw = id && localStorage.getItem(`upsc-chronicle-store:${id}`);
+    const profile = raw ? JSON.parse(raw)?.state?.profile : null;
+    if (!profile?.onboardedAt || profile.tourSeenAt) return false;
+    const age = (Date.now() - new Date(`${profile.onboardedAt}T00:00:00`).getTime()) / 86_400_000;
+    return age > -2 && age < 8;
+  });
+  if (!due) return;
+  const tour = page.getByRole("dialog", { name: "DoOrDie feature tour" });
+  try {
+    await tour.waitFor({ timeout: 8000 });
+  } catch {
+    return;
+  }
+  await tour.getByRole("button", { name: "Skip tour", exact: true }).click();
+  await tour.waitFor({ state: "detached" });
+}
+
 /** Picks a time in the sleep card's picker, by typing or by tapping hour and minute. */
 async function pickTime(page, field, { type, hour, minute }) {
   await field.click();
@@ -242,6 +272,7 @@ async function main() {
       await signUp(page, A.name, A.email);
       await onboard(page, A.name);
       await passSleepPromptIfShown(page);
+      await passTourIfShown(page);
       await dashboardGreets(page, "Student");
       ids.A = (await sessionOf(page)).user.id;
       const cloud = await waitFor("A's setup in the cloud", async () => {
@@ -295,6 +326,7 @@ async function main() {
       await signUp(page, B.name, B.email);
       await onboard(page, B.name);
       await passSleepPromptIfShown(page);
+      await passTourIfShown(page);
       ids.B = (await sessionOf(page)).user.id;
       await page.goto(`${APP}/journal`);
       await page.getByText("Daily Journal").first().waitFor();
@@ -312,6 +344,7 @@ async function main() {
     await scenario("4. Switching back: A sees only A's data, with A's look", async () => {
       await signIn(page, A.email);
       await passSleepPromptIfShown(page);
+      await passTourIfShown(page);
       await dashboardGreets(page, "Student");
       await page.goto(`${APP}/journal/${today()}`);
       await page.getByText("A-only highlight").waitFor();
@@ -328,6 +361,7 @@ async function main() {
     await scenario("5. A second device gets A's data from the cloud", async () => {
       await signIn(phonePage, A.email);
       await passSleepPromptIfShown(phonePage);
+      await passTourIfShown(phonePage);
       await phonePage.goto(`${APP}/journal/${today()}`);
       await phonePage.getByText("A-only highlight").waitFor();
       check((await htmlAttr(phonePage, "data-surface")) === "black", "the theme didn't follow A to the phone");
@@ -832,6 +866,7 @@ async function main() {
       const bPage = await bCtx.newPage();
       await signIn(bPage, B.email);
       await passSleepPromptIfShown(bPage);
+      await passTourIfShown(bPage);
       await dashboardGreets(bPage, "Student");
       await bPage.goto(`${APP}/roadmap`);
       await bPage.getByText("Your roadmap starts empty.").waitFor();
@@ -885,6 +920,7 @@ async function main() {
       );
       await signIn(op, "owner@example.com");
       await passSleepPromptIfShown(op);
+      await passTourIfShown(op);
       await dashboardGreets(op, "Owner"); // straight in: no setup for an existing profile
       await waitFor("both owner entries in the cloud", async () => {
         const d = JSON.stringify((await cloudOf("owner@example.com")).data.journal);
@@ -904,6 +940,7 @@ async function main() {
       await signIn(cPage, C.email);
       await onboard(cPage, C.name);
       await passSleepPromptIfShown(cPage);
+      await passTourIfShown(cPage);
       const c = await waitFor("C's setup in the cloud", async () => {
         const s = await cloudOf(C.email);
         return s?.data?.profile?.onboardedAt ? s : null;
@@ -955,12 +992,14 @@ async function main() {
       await p.getByLabel("Confirm new password").fill("brandNew2028");
       await p.getByRole("button", { name: "Save new password" }).click();
       await passSleepPromptIfShown(p);
+      await passTourIfShown(p);
       await dashboardGreets(p, "Student");
       await signOut(p);
       await signIn(p, B.email, PASSWORD);
       await p.getByText("That email and password don't match an account.").waitFor();
       await signIn(p, B.email, "brandNew2028");
       await passSleepPromptIfShown(p);
+      await passTourIfShown(p);
       await dashboardGreets(p, "Student");
       check((await htmlAttr(p, "data-surface")) === "lavender", "B got A's dark theme");
       check((await htmlAttr(p, "data-transparency")) === null, "B got a reduced transparency B never chose");
