@@ -278,7 +278,7 @@ export const CHAPTERS: Chapter[] = [
         short: "A week, a month or any period",
         detail:
           "Hours, topics, revision, habits, goals, the plan and sleep are gathered for you, compared with the period before. You answer six questions and keep it as a record.",
-        href: "/reviews",
+        href: "/performance-review",
         area: { col: "1 / 2", row: "1 / 2" },
       },
       {

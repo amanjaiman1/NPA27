@@ -97,7 +97,7 @@ export default function ReviewsPage() {
     const params = new URLSearchParams(window.location.search);
     const wanted = params.get("open");
     if (!wanted) return;
-    window.history.replaceState({}, "", "/reviews");
+    window.history.replaceState({}, "", "/performance-review");
     const [kind, start] = wanted.split(":");
     if (!/^\d{4}-\d{2}-\d{2}$/.test(start ?? "")) return;
     const existing = reviews.find((r) => r.type === kind && r.startDate === start);

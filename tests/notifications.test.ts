@@ -220,12 +220,12 @@ test("a draft review is asked to be finished, and links straight to it", () => {
   const missing = notice([]);
   assert.equal(missing?.title, "Last week has no review");
   assert.equal(missing?.cta, "Write it");
-  assert.equal(missing?.href, "/reviews?open=Weekly%3A2026-11-02");
+  assert.equal(missing?.href, "/performance-review?open=Weekly%3A2026-11-02");
 
   const draft = notice([review({ status: "draft" })]);
   assert.equal(draft?.title, "Last week's review is still a draft");
   assert.equal(draft?.cta, "Finish it");
-  assert.equal(draft?.href, "/reviews?open=Weekly%3A2026-11-02");
+  assert.equal(draft?.href, "/performance-review?open=Weekly%3A2026-11-02");
 
   assert.equal(notice([review({ status: "completed" })]), undefined);
   // Written before drafts existed: finished.

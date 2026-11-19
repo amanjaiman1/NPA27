@@ -66,7 +66,7 @@ export function PlanReviewBlock({
   const dirty =
     wentWell !== (plan.review?.wentWell ?? "") || improve !== (plan.review?.improve ?? "") || nextPriorities !== (plan.review?.nextPriorities ?? "");
   const nextNoun = plan.level === "week" ? "week" : plan.level === "month" ? "month" : "year";
-  const reviewsHref = "/reviews";
+  const reviewsHref = "/performance-review";
   const when = useMemo(() => {
     const at = plan.review?.reviewedAt ? new Date(plan.review.reviewedAt) : null;
     return at && !Number.isNaN(at.getTime()) ? formatDay(toISODate(at)) : null;
