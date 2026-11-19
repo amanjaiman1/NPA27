@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { AuthProvider } from "@/components/auth/auth-provider";
 import { ConfirmProvider } from "@/components/ui/confirm-dialog";
+import { ToastProvider } from "@/components/ui/toast";
 import { PwaLayer } from "@/components/pwa/pwa-layer";
 
 /**
@@ -24,8 +25,10 @@ export default function ProductLayout({ children }: { children: React.ReactNode 
   return (
     <AuthProvider>
       <ConfirmProvider>
-        {children}
-        <PwaLayer />
+        <ToastProvider>
+          {children}
+          <PwaLayer />
+        </ToastProvider>
       </ConfirmProvider>
     </AuthProvider>
   );

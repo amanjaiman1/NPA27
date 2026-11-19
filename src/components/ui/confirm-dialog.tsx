@@ -25,6 +25,11 @@ export interface ConfirmOptions {
   cancelLabel?: string;
   /** "danger" (destructive, red) or "default" (neutral, accent). */
   tone?: ConfirmTone;
+  /**
+   * Whether it can be taken back, said plainly under the description:
+   * "This can't be undone." Destructive prompts say that by default.
+   */
+  consequence?: string;
 }
 
 type ConfirmFn = (options: ConfirmOptions) => Promise<boolean>;
@@ -109,6 +114,11 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
             {state.description && (
               <p className="mt-1 text-sm leading-relaxed text-paper/55">
                 {state.description}
+              </p>
+            )}
+            {(state.consequence ?? (danger ? "This can't be undone." : null)) && (
+              <p className={cn("mt-2 text-[0.78rem] font-medium", danger ? "text-danger" : "text-paper/60")}>
+                {state.consequence ?? "This can't be undone."}
               </p>
             )}
           </div>

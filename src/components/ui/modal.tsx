@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { X } from "lucide-react";
@@ -43,26 +43,70 @@ export function Modal({
   className?: string;
 }) {
   const mounted = useMounted();
+  const panel = useRef<HTMLDivElement>(null);
+  // Read through a ref, so a parent re-rendering with a new inline handler
+  // doesn't re-register this dialog (which used to move it above a newer one
+  // and let it take the Escape key).
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
 
   useEffect(() => {
     if (!open) return;
     const token = {};
     modalStack.push(token);
     lockScroll();
+    const before = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const isTop = () => modalStack[modalStack.length - 1] === token;
+
+    // Focus moves into the dialog: a field marked `data-autofocus`, else the
+    // first text field, else the dialog itself, so the keyboard starts here.
+    const focusIn = window.setTimeout(() => {
+      const root = panel.current;
+      if (!root || root.contains(document.activeElement)) return;
+      const target =
+        root.querySelector<HTMLElement>("[data-autofocus]") ??
+        root.querySelector<HTMLElement>("input:not([type=hidden]):not([disabled]):not([type=checkbox]):not([type=radio]), textarea:not([disabled])") ??
+        root;
+      target.focus({ preventScroll: true });
+    }, 60);
+
     const handler = (e: KeyboardEvent) => {
+      if (!isTop()) return;
       // Only the top-most modal reacts to Escape.
-      if (e.key !== "Escape") return;
-      if (modalStack[modalStack.length - 1] !== token) return;
-      onClose();
+      if (e.key === "Escape") {
+        closeRef.current();
+        return;
+      }
+      // Tab stays inside the dialog.
+      if (e.key !== "Tab" || !panel.current) return;
+      const items = Array.from(
+        panel.current.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), input:not([disabled]):not([type=hidden]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ),
+      ).filter((el) => el.getClientRects().length > 0);
+      if (!items.length) return;
+      const first = items[0];
+      const last = items[items.length - 1];
+      const current = document.activeElement as HTMLElement | null;
+      if (e.shiftKey && (current === first || current === panel.current || !panel.current.contains(current))) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && (current === last || !panel.current.contains(current))) {
+        e.preventDefault();
+        first.focus();
+      }
     };
     window.addEventListener("keydown", handler);
     return () => {
+      window.clearTimeout(focusIn);
       window.removeEventListener("keydown", handler);
       const idx = modalStack.indexOf(token);
       if (idx >= 0) modalStack.splice(idx, 1);
       unlockScroll();
+      // Back where you were.
+      if (before && before.isConnected && before !== document.body) before.focus({ preventScroll: true });
     };
-  }, [open, onClose]);
+  }, [open]);
 
   if (!mounted) return null;
 
@@ -81,6 +125,8 @@ export function Modal({
             onClick={onClose}
           />
           <motion.div
+            ref={panel}
+            tabIndex={-1}
             role="dialog"
             aria-modal="true"
             aria-label={ariaLabel ?? title}
@@ -89,7 +135,7 @@ export function Modal({
             exit={{ opacity: 0, scale: 0.98, y: 8 }}
             transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
             className={cn(
-              "glass-on-scrim relative flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-3xl border border-line bg-card shadow-lift sm:max-w-lg sm:rounded-3xl",
+              "glass-on-scrim relative flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-3xl border border-line bg-card shadow-lift focus:outline-none sm:max-w-lg sm:rounded-3xl",
               className,
             )}
           >

@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { cn } from "@/lib/utils";
+import { Tooltip } from "./tooltip";
 
 type Variant = "primary" | "ghost" | "outline" | "subtle" | "danger" | "solid";
 type Size = "sm" | "md" | "lg" | "icon";
@@ -35,24 +36,33 @@ export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: Variant;
   size?: Size;
+  /**
+   * What the action does, and what happens next, shown when the pointer rests
+   * on the button or it gets keyboard focus, and read as its description:
+   * "Record the subjects, topics and hours you studied today."
+   */
+  hint?: string;
 }
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant = "primary", size = "md", ...props }, ref) => (
-    <button
-      ref={ref}
-      className={cn(
-        "inline-flex items-center justify-center gap-2 rounded-full font-semibold tracking-snugg",
-        "transition-all duration-200 ease-out active:scale-[0.98]",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/45 focus-visible:ring-offset-2 focus-visible:ring-offset-ink",
-        "select-none disabled:pointer-events-none disabled:opacity-40",
-        variants[variant],
-        sizes[size],
-        className,
-      )}
-      {...props}
-    />
-  ),
+  ({ className, variant = "primary", size = "md", hint, ...props }, ref) => {
+    const button = (
+      <button
+        ref={ref}
+        className={cn(
+          "inline-flex items-center justify-center gap-2 rounded-full font-semibold tracking-snugg",
+          "transition-all duration-200 ease-out active:scale-[0.97]",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/45 focus-visible:ring-offset-2 focus-visible:ring-offset-ink",
+          "select-none disabled:pointer-events-none disabled:opacity-40",
+          variants[variant],
+          sizes[size],
+          className,
+        )}
+        {...props}
+      />
+    );
+    return hint ? <Tooltip content={hint}>{button}</Tooltip> : button;
+  },
 );
 Button.displayName = "Button";
 
@@ -63,14 +73,28 @@ Button.displayName = "Button";
  */
 export const IconButton = React.forwardRef<
   HTMLButtonElement,
-  React.ButtonHTMLAttributes<HTMLButtonElement> & { label: string; active?: boolean; size?: "sm" | "md" | "lg" }
->(function IconButton({ label, active, size = "md", className, children, ...props }, ref) {
+  React.ButtonHTMLAttributes<HTMLButtonElement> & { label: string; active?: boolean; size?: "sm" | "md" | "lg"; hint?: string }
+>(function IconButton({ label, active, size = "md", className, children, hint, ...props }, ref) {
+  // The label is its name; a tooltip shows it (and any hint) on hover and
+  // keyboard focus, where the browser's own `title` tooltip couldn't.
   return (
+    <Tooltip
+      content={
+        hint ? (
+          <>
+            <span className="font-semibold">{label}.</span> {hint}
+          </>
+        ) : (
+          label
+        )
+      }
+      describe={Boolean(hint)}
+      srText={hint}
+    >
     <button
       ref={ref}
       type="button"
       aria-label={label}
-      title={label}
       className={cn(
         "lg-clear grid shrink-0 place-items-center rounded-full transition-all duration-200",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/45",
@@ -82,5 +106,6 @@ export const IconButton = React.forwardRef<
     >
       {children}
     </button>
+    </Tooltip>
   );
 });
