@@ -1,5 +1,5 @@
 import type { MockTest, MockType } from "./types";
-import { avg, round, fromISODate } from "./utils";
+import { avg, round, fromISODate, dateFormat } from "./utils";
 
 /* ════════════════════════════════════════════════════════════════
    Mock Test analytics engine. Pure functions over MockTest[] that
@@ -9,10 +9,10 @@ import { avg, round, fromISODate } from "./utils";
    ════════════════════════════════════════════════════════════════ */
 
 function shortLabel(iso: string): string {
-  return fromISODate(iso).toLocaleDateString("en-GB", {
+  return dateFormat("gb-dd-mmm", "en-GB", {
     day: "2-digit",
     month: "short",
-  });
+  }).format(fromISODate(iso));
 }
 
 const clampPct = (n: number) => Math.max(0, Math.min(100, n));

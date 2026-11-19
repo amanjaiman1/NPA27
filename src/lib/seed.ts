@@ -313,13 +313,21 @@ export function buildSelection(targetExam: string): SelectionStage[] {
 
 /* ── Profiles ────────────────────────────────────────────────── */
 
-/** The device's IANA zone, or a sensible default where the API is missing. */
+let zone: string | null = null;
+
+/**
+ * The device's IANA zone, or a sensible default where the API is missing.
+ * Read once per visit: asking builds a whole formatter, and a new blank
+ * account (which every sign-in starts from) asks.
+ */
 export function deviceTimeZone(): string {
+  if (zone) return zone;
   try {
-    return Intl.DateTimeFormat().resolvedOptions().timeZone || "Asia/Kolkata";
+    zone = Intl.DateTimeFormat().resolvedOptions().timeZone || "Asia/Kolkata";
   } catch {
-    return "Asia/Kolkata";
+    zone = "Asia/Kolkata";
   }
+  return zone;
 }
 
 /** The next CSE year whose Prelims haven't happened yet (they fall in late May). */
