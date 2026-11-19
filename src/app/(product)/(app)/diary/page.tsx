@@ -413,7 +413,7 @@ function DiaryCalendar({
               className={cn(
                 "relative grid aspect-square place-items-center rounded-lg text-[0.7rem] font-semibold tabular transition-colors",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50",
-                n ? "bg-accent/15 text-paper" : "text-paper/60 hover:bg-paper/[0.05]",
+                n ? "bg-accent/15 text-paper" : "bg-transparent text-paper/60 hover:bg-paper/[0.05]",
                 selectedDate === date && "ring-2 ring-accent",
                 date === today && "font-bold text-accent",
                 future && "opacity-30",

@@ -274,7 +274,7 @@ function DetailBody({ habit: h, onClose, onEdit }: { habit: Habit; onClose: () =
                 aria-label={`${formatDate(c.date)}: ${DAY_LABEL[c.status]}`}
                 onClick={() => setSelected(c.date)}
                 className={cn(
-                  "relative grid aspect-square place-items-center rounded-lg text-[0.72rem] font-semibold tabular transition-transform duration-150 active:scale-95",
+                  "relative grid h-9 place-items-center rounded-lg text-[0.72rem] font-semibold tabular transition-transform duration-150 active:scale-95 sm:h-10",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60",
                   DAY_STYLE[c.status],
                   c.status === "done" ? "text-accent-fg" : c.status === "future" || c.status === "before" ? "text-paper/30" : "text-paper/80",

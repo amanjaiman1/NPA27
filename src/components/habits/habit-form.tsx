@@ -568,6 +568,7 @@ export function HabitForm({
         <fieldset className="space-y-3">
           <legend className="mb-2 text-[0.78rem] font-semibold text-paper/60">How it&apos;s tracked</legend>
           <Segmented<Tracking>
+            className="w-fit"
             label="How it's tracked"
             value={draft.tracking}
             onChange={chooseTracking}
@@ -688,6 +689,7 @@ export function HabitForm({
           <fieldset>
             <legend className="mb-2 text-[0.78rem] font-semibold text-paper/60">When it&apos;s due</legend>
             <Segmented<HabitSchedule["kind"]>
+              className="w-fit"
               label="When it's due"
               value={draft.scheduleKind}
               onChange={(v) => set("scheduleKind", v)}

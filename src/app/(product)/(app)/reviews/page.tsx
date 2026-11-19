@@ -19,7 +19,7 @@ import {
   reviewMatches,
   type ReviewPeriod,
 } from "@/lib/performance";
-import { normalizeWeekStart, planForPeriod, planName } from "@/lib/roadmap";
+import { planForPeriod, planName } from "@/lib/roadmap";
 import { roadmapHref } from "@/components/roadmap/shared";
 import { PageHeader } from "@/components/ui/page-header";
 import { Loading } from "@/components/ui/loading";
@@ -67,7 +67,6 @@ export default function ReviewsPage() {
   const hydrated = useHasHydrated();
   const reviews = useChronicle((s) => s.reviews);
   const plans = useChronicle((s) => s.plans);
-  const weekStart = normalizeWeekStart(useChronicle((s) => s.profile.weekStart));
   const remove = useChronicle((s) => s.deleteReview);
   const data = usePerformanceData();
   const confirm = useConfirm();
@@ -83,7 +82,7 @@ export default function ReviewsPage() {
   const [picked, setPicked] = useState<string[]>([]);
   const [comparing, setComparing] = useState(false);
 
-  const periods = useMemo(() => (type === "Custom" ? [] : recentPeriods(type, today, weekStart, 8)), [type, today, weekStart]);
+  const periods = useMemo(() => (type === "Custom" ? [] : recentPeriods(type, today, 8)), [type, today]);
   const trend = useMemo(() => (type === "Custom" ? [] : periodTrend(data, type, today, type === "Yearly" ? 4 : 8)), [data, type, today]);
 
   const history = useMemo(
@@ -164,6 +163,7 @@ export default function ReviewsPage() {
       <Panel eyebrow="Choose a period" title="Which stretch to look back on" icon={CalendarRange}>
         <div className="space-y-4">
           <Segmented<ReviewType>
+            className="w-fit"
             label="Kind of review"
             value={type}
             onChange={setType}

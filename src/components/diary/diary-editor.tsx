@@ -338,7 +338,7 @@ export function DiaryEditor({
                   onClick={() => format(t.action)}
                   disabled={mode === "preview"}
                   aria-label={t.label}
-                  className="grid h-8 w-8 place-items-center rounded-lg text-paper/60 transition-colors hover:bg-paper/[0.06] hover:text-paper focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/45 disabled:opacity-30"
+                  className="grid h-8 w-8 place-items-center rounded-lg bg-transparent text-paper/60 transition-colors hover:bg-paper/[0.06] hover:text-paper focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/45 disabled:opacity-30"
                 >
                   <t.icon className="h-4 w-4" aria-hidden />
                 </button>

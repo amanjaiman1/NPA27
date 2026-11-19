@@ -9,7 +9,7 @@ import type {
 } from "./types";
 import { countCompletedTopics } from "./topics";
 import { countedSleepHours } from "./sleep";
-import { addDays, normalizeWeekStart, overlapDays, weekStartOf } from "./roadmap";
+import { addDays, overlapDays, weekStartOf } from "./roadmap";
 import { habitConsistency, habitContext, habitStart, isActiveHabit, type HabitContext } from "./habit-engine";
 import { daysBetween, fromISODate, round, toISODate } from "./utils";
 
@@ -74,13 +74,17 @@ function monthBounds(year: number, month: number): [ISODate, ISODate] {
 /**
  * The most recent `count` calendar periods, newest first. The one still
  * running is included: reviewing a week on its last day is normal.
+ *
+ * Review weeks run Monday to Sunday whatever the Roadmap's week start, as
+ * goals and the "review not written" reminder count them, so a review
+ * always matches the week those ask about (and every older review).
  */
-export function recentPeriods(type: Exclude<ReviewType, "Custom">, today: ISODate, weekStart: number, count = 8): ReviewPeriod[] {
+export function recentPeriods(type: Exclude<ReviewType, "Custom">, today: ISODate, count = 8): ReviewPeriod[] {
   const out: ReviewPeriod[] = [];
   const t = fromISODate(today);
   for (let i = 0; i < count; i++) {
     if (type === "Weekly") {
-      const start = addDays(weekStartOf(today, normalizeWeekStart(weekStart)), -7 * i);
+      const start = addDays(weekStartOf(today, 1), -7 * i);
       out.push(makePeriod(type, start, addDays(start, 6)));
     } else if (type === "Monthly") {
       const [start, end] = monthBounds(t.getFullYear(), t.getMonth() - i);
@@ -524,9 +528,8 @@ export function reviewMarkdown(r: Review, s: PerformanceSnapshot | null): string
 
 /** Trend rows for the last few periods of a kind, oldest first. */
 export function periodTrend(data: PerformanceData, type: Exclude<ReviewType, "Custom">, today: ISODate, count: number): { period: ReviewPeriod; totals: PerformanceTotals }[] {
-  const weekStart = normalizeWeekStart(data.profile.weekStart);
   const ctx = habitContext(data, today);
-  return recentPeriods(type, today, weekStart, count)
+  return recentPeriods(type, today, count)
     .reverse()
     .map((period) => ({ period, totals: totalsOf(measureOnly(data, ctx, period, today, "")) }));
 }

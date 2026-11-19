@@ -520,18 +520,17 @@ export function buildBriefing(data: CoachInput, recs: ShownRecommendation[], tod
   const plan = r.thisWeek.plan;
   const counts = plan ? ownCounts(data.plans, plan, today) : null;
 
+  // The whole week so far, today included: what the daily target adds up to by tonight.
   const pace = target * elapsed;
-  const headline =
-    examDays !== null && examDays > 0
-      ? `${examDays} days to ${data.profile.targetExam || "the exam"}. ${h(weekHours)} studied this week${target ? `, against ${h(pace)} at your daily target` : ""}.`
-      : `${h(weekHours)} studied this week${target ? `, against ${h(pace)} at your daily target` : ""}.`;
+  const week = `${h(weekHours)} studied this week${target ? `; your daily target makes it ${h(pace)} by the end of today` : ""}.`;
+  const headline = examDays !== null && examDays > 0 ? `${examDays} days to ${data.profile.targetExam || "the exam"}. ${week}` : week;
 
   return {
     date: today,
     headline,
     priorities,
     preparation: [
-      { label: "This week", value: h(weekHours), note: target ? `of ${h(pace)} at ${h(target)} a day` : `${plural(elapsed, "day")} so far`, href: "/journal" },
+      { label: "This week", value: h(weekHours), note: target ? `of ${h(pace)} by tonight at ${h(target)} a day` : `${plural(elapsed, "day")} so far`, href: "/journal" },
       { label: "Syllabus", value: topics ? `${Math.round((started / topics) * 100)}%` : "–", note: topics ? `started, ${mastered} of ${topics} mastered` : "no topics yet", href: "/subjects" },
       { label: "Revision", value: `${due}`, note: overdue ? `due, ${overdue} overdue` : "due today", href: "/revision" },
       {
