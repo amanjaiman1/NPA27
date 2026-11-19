@@ -96,7 +96,8 @@ export function DataSettings() {
             <Progress
               value={(fileBytes / ACCOUNT_FILE_QUOTA) * 100}
               className="mt-3"
-              barClassName={fileBytes / ACCOUNT_FILE_QUOTA > 0.9 ? "bg-danger" : "bg-accent"}
+              tone={fileBytes / ACCOUNT_FILE_QUOTA > 0.9 ? "danger" : "accent"}
+              label="Your file allowance used"
             />
           )}
         </div>

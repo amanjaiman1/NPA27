@@ -27,7 +27,7 @@ import { Card } from "@/components/ui/card";
 import { Panel, MetricCard } from "@/components/ui/panel";
 import { Button } from "@/components/ui/button";
 import { Disclosure, EmptyState } from "@/components/ui/misc";
-import { RadialProgress } from "@/components/ui/progress";
+import { Progress, RadialProgress } from "@/components/ui/progress";
 import { useToast } from "@/components/ui/toast";
 import { HabitForm } from "@/components/habits/habit-form";
 import { HabitDetail } from "@/components/habits/habit-detail";
@@ -158,6 +158,8 @@ export default function HabitsPage() {
                 <div className="flex items-center gap-4 md:flex-col md:gap-2 md:px-4">
                   <RadialProgress
                     value={summary.percent ?? 0}
+                    tone={summary.percent === 100 ? "positive" : "accent"}
+                    ariaLabel="Today's habits done"
                     size={96}
                     stroke={8}
                     label={<span className="tabular text-xl font-semibold text-paper">{summary.percent ?? 0}%</span>}
@@ -460,9 +462,7 @@ function RateCell({ rate }: { rate: number | null }) {
   if (rate === null) return <span className="text-paper/45">–</span>;
   return (
     <span className="inline-flex items-center justify-end gap-2">
-      <span className="hidden h-1.5 w-14 overflow-hidden rounded-full bg-paper/10 sm:block" aria-hidden>
-        <span className={cn("block h-full rounded-full", rate >= 0.8 ? "bg-positive" : rate >= 0.5 ? "bg-accent" : "bg-warning")} style={{ width: `${Math.round(rate * 100)}%` }} />
-      </span>
+      <Progress value={rate * 100} tone={rate >= 0.8 ? "positive" : rate >= 0.5 ? "accent" : "warning"} decorative className="hidden w-14 sm:block" />
       <span className="tabular text-paper/80">{pct(rate)}</span>
     </span>
   );

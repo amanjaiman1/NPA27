@@ -335,7 +335,7 @@ export function TodayPanel({ className }: { className?: string }) {
       }
     >
       <div className="flex h-full flex-col">
-        <Progress value={pct} className="h-2" barClassName={pct >= 100 ? "bg-positive" : undefined} />
+        <Progress value={pct} className="h-2" tone={pct >= 100 ? "positive" : "accent"} label="Today's hours against the daily target" />
         <p className="tabular mt-1.5 text-[0.72rem] text-paper/60">
           {target ? `${Math.round(pct)}% of today's target` : "Set a daily target in Settings"}
         </p>
@@ -660,14 +660,15 @@ export function GoalsPanel({ className }: { className?: string }) {
                 <Progress
                   value={p.pct ?? 0}
                   className="h-2"
-                  barClassName={
+                  label={`${p.goal.title}: ${p.pct ?? 0}% of target`}
+                  tone={
                     p.health === "achieved" || p.health === "onTrack"
-                      ? "bg-positive"
+                      ? "positive"
                       : p.health === "behind" || p.health === "missed"
-                        ? "bg-danger"
+                        ? "danger"
                         : p.health === "atRisk"
-                          ? "bg-warning"
-                          : undefined
+                          ? "warning"
+                          : "accent"
                   }
                 />
                 <p className="tabular mt-1 text-[0.7rem] text-paper/60">
