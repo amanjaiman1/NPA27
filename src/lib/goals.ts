@@ -189,12 +189,13 @@ export const GOAL_METRICS: MetricDef[] = [
   },
   {
     id: "reflectionsWritten",
-    label: "Reflections written",
+    label: "Diary entries written",
     unit: "entries",
     kind: "sum",
-    source: "Reflection Journal",
-    href: "/reflections",
-    hint: "Reflections dated inside the window.",
+    source: "Personal Diary",
+    href: "/diary",
+    // Counts entries by date only: no goal ever reads what an entry says.
+    hint: "Diary entries dated inside the window. Only the count is used.",
   },
   {
     id: "mistakesMastered",
