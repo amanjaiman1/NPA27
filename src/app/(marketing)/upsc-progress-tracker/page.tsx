@@ -19,6 +19,7 @@ import {
 import { Prose } from "@/components/marketing/prose";
 import { SAMPLE_NOTE, SHOTS } from "@/components/marketing/shots";
 import { postPath } from "@/content/blog";
+import { TestimonialStrip } from "@/components/marketing/testimonials";
 
 const page = PAGES.progress;
 export const metadata = pageMetadata(page);
@@ -233,6 +234,8 @@ export default function ProgressTrackerPage() {
           />
         </Container>
       </Band>
+
+      <TestimonialStrip placement="feature" feature="mocks" />
 
       <CtaBanner track="cta_progress_footer" />
     </>

@@ -18,6 +18,7 @@ import {
 import { Prose, TableWrap } from "@/components/marketing/prose";
 import { SAMPLE_NOTE, SHOTS } from "@/components/marketing/shots";
 import { postPath } from "@/content/blog";
+import { TestimonialStrip } from "@/components/marketing/testimonials";
 
 const page = PAGES.planner;
 export const metadata = pageMetadata(page);
@@ -318,6 +319,8 @@ export default function StudyPlannerPage() {
           />
         </Container>
       </Band>
+
+      <TestimonialStrip placement="feature" feature="roadmap" />
 
       <CtaBanner track="cta_planner_footer" />
     </>

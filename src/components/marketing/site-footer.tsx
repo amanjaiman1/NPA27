@@ -34,7 +34,7 @@ const COLUMNS: { title: string; links: FooterLink[] }[] = [
   },
   {
     title: "DoOrDie",
-    links: [PAGES.about, PAGES.contact, PAGES.privacy, PAGES.terms, PAGES.disclaimer].map((p) => ({
+    links: [PAGES.about, PAGES.testimonials, PAGES.changelog, PAGES.contact, PAGES.privacy, PAGES.terms, PAGES.disclaimer].map((p) => ({
       href: p.path,
       label: p.label,
     })),

@@ -37,6 +37,7 @@ export default function PrivacyPolicyPage() {
                 You can switch that off.
               </li>
               <li>Analytics, if it is switched on, only runs on the public pages and only if you agree.</li>
+              <li>A review you write appears on the website only if you allow it, and comes down whenever you say so.</li>
             </ul>
 
             <h2 id="who">Who we are</h2>
@@ -94,10 +95,29 @@ export default function PrivacyPolicyPage() {
             </p>
             <h3>Messages you send us</h3>
             <p>
-              If you write to us from Settings, then Help &amp; feedback, we receive your message, the topic you picked and
-              your account&apos;s id, so we can look into a problem. Your email address is included only if you leave
-              &ldquo;Include my email&rdquo; on, so we can reply. Your browser, window size and whether the app is
-              installed are included only if you leave &ldquo;Include technical details&rdquo; on.
+              If you write to us from Settings, then Help &amp; feedback, we store your message, the category you picked
+              and your account&apos;s id, so we can look into it and answer you in the app. Your email address is included
+              only if you leave &ldquo;Include my email&rdquo; on. Your browser, window size and whether the app is
+              installed are included only if you leave &ldquo;Include technical details&rdquo; on. If you attach a
+              screenshot, your device makes it smaller and saves it again first, which removes details such as the camera
+              and location, and it is kept in private storage that only the team can open. We also keep the status we give
+              your message, our answer, and notes the team writes for itself while working on it. You see the status and our
+              answer; the notes stay with the team. We may also get an email telling us your message arrived.
+            </p>
+            <h3>Reviews</h3>
+            <p>
+              If you write a review of DoOrDie, we store your rating, what you wrote, the features and preparation stage you
+              chose, and the name you want shown with it. You give two separate permissions, and we record when you gave
+              each: that the team may read it (needed to send it), and that it may appear on our website (optional). To
+              check that a review comes from real use, the database counts the dates of your records, never what they say,
+              and keeps that count with the review: the date of your first record, on how many days you have records, and
+              which features those were. A review appears on the website only with your permission, after a moderator has
+              checked it, under the name you chose, and comes down as soon as you change your mind.
+            </p>
+            <h3>Announcements</h3>
+            <p>
+              When we post an announcement in the app, we record whether you have read or dismissed it, so it doesn&apos;t
+              keep coming back, on any of your devices.
             </p>
             <h3>Technical logs</h3>
             <p>
@@ -121,6 +141,8 @@ export default function PrivacyPolicyPage() {
               <li>To send account emails, such as confirming your address or resetting your password.</li>
               <li>To send the reminders you have turned on.</li>
               <li>To find and fix crashes, and to read and answer the messages you send us.</li>
+              <li>To moderate the reviews you send, and to show the ones you allowed us to publish.</li>
+              <li>To stop abuse, such as spam, including by suspending an account.</li>
               <li>To keep the service secure and working.</li>
               <li>If you agreed to analytics, to understand which public pages are useful.</li>
             </ul>
@@ -156,6 +178,14 @@ export default function PrivacyPolicyPage() {
               account data except to fix a problem, to respond to a request from you, or when the law requires it.
             </p>
             <p>
+              The few people who run DoOrDie use an admin area that shows, for each account, its email address, when it
+              was created, when it last signed in, whether its email is confirmed, whether it is suspended, and whether it
+              has an admin role, together with the reviews and messages you sent us. It never shows your preparation data
+              or anything you wrote in the app. An account can be suspended for abuse, such as spam; the reason is
+              recorded, and nothing in the account is deleted. Every action in the admin area is written to a permanent
+              log of who did what and why, which holds account ids, not what you wrote.
+            </p>
+            <p>
               The automated reminder service reads a trimmed copy of your data to decide which reminders to send. It
               leaves out your writing: journal reflections, wins, lessons and highlights; the words of your Personal Diary
               (it sees only the dates of entries); what you wrote in Performance Reviews; the questions, answers and
@@ -176,7 +206,8 @@ export default function PrivacyPolicyPage() {
               </li>
               <li>
                 <strong>Delete it:</strong> Settings, then Delete account. This permanently deletes your account, your
-                preparation data, your attached files and your notification subscriptions.
+                preparation data, your attached files, your notification subscriptions, your review, the messages and
+                screenshots you sent us, and your announcement read state.
               </li>
               <li>
                 <strong>Stop notifications:</strong> turn them off in Settings or in your browser.
@@ -184,6 +215,10 @@ export default function PrivacyPolicyPage() {
               <li>
                 <strong>Stop crash reports:</strong> switch off &ldquo;Send crash reports automatically&rdquo; in Settings,
                 then Help &amp; feedback.
+              </li>
+              <li>
+                <strong>Your review:</strong> in Settings, then Review DoOrDie, take it off the website at any time,
+                withdraw it, or delete it entirely.
               </li>
               <li>
                 <strong>Withdraw analytics consent:</strong> use the button above, or clear this site&apos;s data in your
@@ -198,10 +233,12 @@ export default function PrivacyPolicyPage() {
             <h2 id="retention">How long we keep it</h2>
             <p>
               Your account and preparation data are kept for as long as your account exists, and deleted when you delete
-              it. Copies on your own devices stay until you sign out or clear your browser&apos;s data. Crash reports and
-              your messages arrive as emails; we keep them only as long as we need them to fix the problem or answer you,
-              and we delete your messages if you ask. Our providers may keep technical logs and backups for a limited time
-              under their own policies.
+              it. Copies on your own devices stay until you sign out or clear your browser&apos;s data. Your reviews and
+              messages are kept until you delete them or your account, and we delete a message if you ask. Crash reports,
+              and the emails that tell us a message arrived, are kept only as long as we need them to fix the problem or
+              answer you. The log of admin actions is kept as a security record; it holds account ids rather than your
+              writing, and once an account is deleted its email address no longer appears in it. Our providers may keep
+              technical logs and backups for a limited time under their own policies.
             </p>
 
             <h2 id="security">Security</h2>

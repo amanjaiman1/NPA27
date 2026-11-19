@@ -186,6 +186,24 @@ export const PAGES = {
     kind: "legal",
     updated: LAUNCH,
   },
+  testimonials: {
+    path: "/testimonials",
+    label: "Reviews",
+    title: "DoOrDie Reviews from UPSC Aspirants",
+    description:
+      "Reviews of DoOrDie by UPSC aspirants who use it, published as they wrote them after a check for spam and abuse. Newest first, and never filtered by rating.",
+    kind: "company",
+    updated: "2026-11-19",
+  },
+  changelog: {
+    path: "/changelog",
+    label: "Changelog",
+    title: "Changelog: What's New in DoOrDie",
+    description:
+      "Every update to DoOrDie, the free UPSC tracker: new features, improvements, bug fixes, performance and security work, newest first.",
+    kind: "company",
+    updated: "2026-11-19",
+  },
   disclaimer: {
     path: "/disclaimer",
     label: "Disclaimer",

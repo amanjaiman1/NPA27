@@ -20,6 +20,7 @@ import {
 import { Prose } from "@/components/marketing/prose";
 import { SAMPLE_NOTE, SHOTS } from "@/components/marketing/shots";
 import { postPath } from "@/content/blog";
+import { TestimonialStrip } from "@/components/marketing/testimonials";
 
 const page = PAGES.daily;
 export const metadata = pageMetadata(page);
@@ -250,6 +251,8 @@ export default function DailyStudyTrackerPage() {
           />
         </Container>
       </Band>
+
+      <TestimonialStrip placement="feature" feature="journal" />
 
       <CtaBanner track="cta_daily_footer" />
     </>
