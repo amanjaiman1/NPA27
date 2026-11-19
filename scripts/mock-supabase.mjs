@@ -8,7 +8,9 @@
  *
  * It implements only what this app calls: email/password auth (sign-up is
  * auto-confirmed), password reset (the email is printed here instead of sent),
- * account deletion, and reads/saves of `chronicle_state`. Data lives in an
+ * the Auth admin calls (read, ban and delete a user; a banned account can't
+ * sign in or refresh), reads/saves of `chronicle_state`, any function in
+ * `public` through /rest/v1/rpc, and Storage. Data lives in an
  * in-memory Postgres (PGlite) running the real `supabase/schema.sql` and
  * migrations, and every request runs as the caller's role with their JWT
  * claims, so Row Level Security is enforced exactly as on Supabase.
@@ -77,7 +79,11 @@ await db.exec(`
     encrypted_password text not null,
     raw_user_meta_data jsonb not null default '{}',
     created_at timestamptz not null default now(),
-    updated_at timestamptz not null default now()
+    updated_at timestamptz not null default now(),
+    -- Sign-up is auto-confirmed here, as the app's tests expect.
+    email_confirmed_at timestamptz default now(),
+    last_sign_in_at timestamptz,
+    banned_until timestamptz
   );
   create function auth.uid() returns uuid language sql stable as $$
     select coalesce(
@@ -143,6 +149,8 @@ const checkPw = (pw, stored) => {
   return timingSafeEqual(got, Buffer.from(h, "hex"));
 };
 
+const iso = (v) => (v ? new Date(v).toISOString() : null);
+
 function userJson(u) {
   const at = new Date(u.created_at).toISOString();
   return {
@@ -150,10 +158,11 @@ function userJson(u) {
     aud: "authenticated",
     role: "authenticated",
     email: u.email,
-    email_confirmed_at: at,
-    confirmed_at: at,
+    email_confirmed_at: iso(u.email_confirmed_at),
+    confirmed_at: iso(u.email_confirmed_at),
     phone: "",
-    last_sign_in_at: new Date().toISOString(),
+    last_sign_in_at: iso(u.last_sign_in_at),
+    banned_until: iso(u.banned_until),
     app_metadata: { provider: "email", providers: ["email"] },
     user_metadata: u.raw_user_meta_data ?? {},
     identities: [{ id: u.id, user_id: u.id, provider: "email", identity_data: { sub: u.id, email: u.email } }],
@@ -184,6 +193,15 @@ async function findUser(where, value) {
   return r.rows[0] ?? null;
 }
 
+/** Supabase Auth refuses to sign in, or refresh the session of, a banned account. */
+const isBanned = (u) => Boolean(u.banned_until && new Date(u.banned_until).getTime() > Date.now());
+
+/** A fresh session, stamping the sign-in time as Supabase does. */
+async function signedIn(u) {
+  await asAdmin(() => db.query("update auth.users set last_sign_in_at = now() where id = $1", [u.id]));
+  return session(await findUser("id", u.id));
+}
+
 /* ── http ───────────────────────────────────────────────────────── */
 
 const CORS = {
@@ -206,7 +224,49 @@ async function rawBody(req) {
 }
 const authError = (res, status, code, msg) => send(res, status, { code: status, error_code: code, msg });
 const pgError = (res, e) =>
-  send(res, e.code === "42501" ? 403 : 400, { code: e.code, message: e.message, details: null, hint: null });
+  send(res, e.code === "42501" ? 403 : 400, { code: e.code, message: e.message, details: e.detail ?? null, hint: e.hint ?? null });
+
+/* ── any function in `public`, as PostgREST's /rpc ─────────────── */
+
+const functions = new Map();
+async function functionInfo(name) {
+  if (!functions.has(name)) {
+    const r = await asAdmin(() =>
+      db.query(
+        `select p.pronargs::int as nargs, coalesce(p.proargnames, '{}') as names,
+                array(select format_type(t, null) from unnest(p.proargtypes::oid[]) as t) as types,
+                p.proretset as returns_set, rt.typtype as ret_kind, format_type(p.prorettype, null) as ret
+           from pg_proc p join pg_namespace n on n.oid = p.pronamespace join pg_type rt on rt.oid = p.prorettype
+          where n.nspname = 'public' and p.proname = $1`,
+        [name],
+      ),
+    );
+    functions.set(name, r.rows[0] ?? null);
+  }
+  return functions.get(name);
+}
+
+const quoteIdent = (s) => `"${String(s).replace(/"/g, '""')}"`;
+
+/** Calls `name` with named arguments, cast to the function's own types, as the caller. */
+async function callFunction(claims, name, args) {
+  const info = await functionInfo(name);
+  if (!info) return { status: 404, body: { code: "PGRST202", message: `Could not find the function public.${name}`, details: null, hint: null } };
+  const values = [];
+  const named = [];
+  info.names.slice(0, info.nargs).forEach((arg, i) => {
+    if (!(arg in args)) return; // the function's default applies
+    const v = args[arg];
+    const type = info.types[i];
+    values.push(v === null || v === undefined ? null : /json/.test(type) ? JSON.stringify(v) : typeof v === "object" ? JSON.stringify(v) : String(v));
+    named.push(`${quoteIdent(arg)} => $${values.length}::${type}`);
+  });
+  const call = `public.${quoteIdent(name)}(${named.join(", ")})`;
+  const tableLike = info.returns_set || info.ret_kind === "c";
+  const r = await asCaller(claims, () => db.query(tableLike ? `select * from ${call}` : `select ${call} as v`, values));
+  if (info.ret === "void") return { status: 204 };
+  return { status: 200, body: tableLike ? r.rows : (r.rows[0]?.v ?? null) };
+}
 
 async function body(req) {
   const chunks = [];
@@ -235,7 +295,7 @@ async function handleAuth(req, res, url) {
       ]),
     );
     console.log(`  signed up ${email} (${id})`);
-    return send(res, 200, session(await findUser("id", id)));
+    return send(res, 200, await signedIn(await findUser("id", id)));
   }
   if (req.method === "POST" && path === "/token") {
     const grant = url.searchParams.get("grant_type");
@@ -244,12 +304,14 @@ async function handleAuth(req, res, url) {
       const u = await findUser("email", String(b.email ?? "").toLowerCase());
       if (!u || !checkPw(String(b.password ?? ""), u.encrypted_password))
         return authError(res, 400, "invalid_credentials", "Invalid login credentials");
-      return send(res, 200, session(u));
+      if (isBanned(u)) return authError(res, 400, "user_banned", "User is banned");
+      return send(res, 200, await signedIn(u));
     }
     if (grant === "refresh_token") {
       const id = refreshTokens.get(b.refresh_token);
       const u = id && (await findUser("id", id));
       if (!u) return authError(res, 400, "refresh_token_not_found", "Invalid Refresh Token");
+      if (isBanned(u)) return authError(res, 400, "user_banned", "User is banned");
       refreshTokens.delete(b.refresh_token);
       return send(res, 200, session(u));
     }
@@ -292,13 +354,32 @@ async function handleAuth(req, res, url) {
   }
   if (req.method === "POST" && path === "/resend") return send(res, 200, {});
   const adminMatch = /^\/admin\/users\/([0-9a-f-]{36})$/.exec(path);
-  if (adminMatch && req.method === "DELETE") {
+  if (adminMatch) {
     if (bearerClaims(req)?.role !== "service_role") return authError(res, 403, "not_admin", "User not allowed");
     const u = await findUser("id", adminMatch[1]);
     if (!u) return authError(res, 404, "user_not_found", "User not found");
-    await asAdmin(() => db.query("delete from auth.users where id = $1", [u.id]));
-    console.log(`  deleted account ${u.email}`);
-    return send(res, 200, userJson(u));
+    if (req.method === "GET") return send(res, 200, userJson(u));
+    if (req.method === "PUT") {
+      // Only what the app sends: `ban_duration`, "none" or a number of hours such as "876000h".
+      const b = await body(req);
+      if (typeof b.ban_duration === "string") {
+        const hours = /^(\d+)h$/.exec(b.ban_duration)?.[1];
+        if (b.ban_duration !== "none" && !hours) return authError(res, 400, "validation_failed", "invalid ban_duration");
+        await asAdmin(() =>
+          db.query("update auth.users set banned_until = $2, updated_at = now() where id = $1", [
+            u.id,
+            hours ? new Date(Date.now() + Number(hours) * 3_600_000).toISOString() : null,
+          ]),
+        );
+        console.log(`  ${hours ? "banned" : "unbanned"} ${u.email}`);
+      }
+      return send(res, 200, userJson(await findUser("id", u.id)));
+    }
+    if (req.method === "DELETE") {
+      await asAdmin(() => db.query("delete from auth.users where id = $1", [u.id]));
+      console.log(`  deleted account ${u.email}`);
+      return send(res, 200, userJson(u));
+    }
   }
   return authError(res, 404, "not_found", `no mock for ${req.method} ${path}`);
 }
@@ -320,6 +401,12 @@ async function handleRest(req, res, url) {
         ),
       );
       return send(res, 200, rows.rows);
+    }
+    const rpc = /^\/rpc\/([a-z_][a-z0-9_]*)$/.exec(path);
+    if (rpc && (req.method === "POST" || req.method === "GET")) {
+      const args = req.method === "POST" ? await body(req) : Object.fromEntries(url.searchParams);
+      const out = await callFunction(claims, rpc[1], args ?? {});
+      return send(res, out.status, out.body);
     }
     if (path === "/chronicle_state") {
       const filter = url.searchParams.get("user_id")?.replace(/^eq\./, "");
@@ -471,6 +558,16 @@ createServer(async (req, res) => {
     if (url.pathname.startsWith("/rest/v1")) return await handleRest(req, res, url);
     if (url.pathname.startsWith("/storage/v1")) return await handleStorage(req, res, url);
     if (url.pathname === "/__mock/last-email") return send(res, 200, lastEmail);
+    if (url.pathname === "/__mock/sql" && req.method === "POST") {
+      // Tests only: run SQL as the database owner, as the Supabase SQL Editor does.
+      const { sql } = await body(req);
+      try {
+        const results = await asAdmin(() => db.exec(String(sql ?? "")));
+        return send(res, 200, results.at(-1)?.rows ?? []);
+      } catch (e) {
+        return send(res, 400, { code: e.code, message: e.message, details: e.detail ?? null });
+      }
+    }
     if (url.pathname === "/__mock/storage") {
       // By owner id (works after the account is gone) or by email.
       const user = url.searchParams.get("user");
