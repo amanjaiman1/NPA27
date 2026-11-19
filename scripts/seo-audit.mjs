@@ -21,7 +21,7 @@
  */
 
 import { spawn, execFileSync } from "node:child_process";
-import { writeFileSync, mkdirSync } from "node:fs";
+import { writeFileSync, mkdirSync, rmSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { gzipSync } from "node:zlib";
@@ -34,7 +34,7 @@ const args = process.argv.slice(2);
 const outIndex = args.indexOf("--out");
 const outFile = outIndex >= 0 ? args[outIndex + 1] : null;
 
-const PRIVATE = ["/dashboard", "/journal", "/subjects", "/revision", "/mocks", "/settings", "/announcements", "/welcome", "/login", "/signup", "/forgot-password", "/reset-password", "/auth/callback", "/admin", "/admin/users", "/admin/audit"];
+const PRIVATE = ["/dashboard", "/journal", "/subjects", "/revision", "/mocks", "/settings", "/announcements", "/performance-review", "/coach", "/roadmap", "/welcome", "/login", "/signup", "/forgot-password", "/reset-password", "/auth/callback", "/admin", "/admin/users", "/admin/audit"];
 
 const mockEnv = Object.fromEntries(
   execFileSync("node", ["scripts/mock-supabase.mjs", "--print-env"], { cwd: root, encoding: "utf8" })
@@ -120,6 +120,10 @@ async function get(path, init) {
 async function main() {
   console.log("Starting the mock Supabase…");
   await start("node", ["scripts/mock-supabase.mjs"], "Mock Supabase on");
+  // The mock's database starts empty, so answers Next kept from an earlier run
+  // (published reviews and changelog entries, say) would describe pages that
+  // don't exist here. Cleared before the build, which would reuse them.
+  rmSync(join(root, ".next", "cache", "fetch-cache"), { recursive: true, force: true });
   if (!args.includes("--no-build")) {
     console.log("Building as production (a minute or two)…");
     execFileSync("npx", ["next", "build"], { cwd: root, env, stdio: "ignore" });

@@ -69,9 +69,9 @@ people. Delete `.env.local` when you're done, and never deploy with it.
 
 | Command | What it checks |
 | --- | --- |
-| `npm test` | Unit tests: the three-way merge, the sync engine with two simulated devices (offline edits, clashes, stale devices), per-account browser storage, the one-time move of pre-account data, the new-account template, attached-file rules, completed topics, Life Dashboard reports and form, goals, the clean-up of data older versions wrote, saving a journal day, sleep times and durations, the three themes (synced, painted before load, and what a theme, palette or Liquid Glass saved by an older version becomes), Reduce transparency as a setting of its own, and the Roadmap (periods across month and year ends, leap years and time zones, progress from activities only, carry forward, duplicate, archive, goal and journal links that change neither, two accounts, two devices), and the Admin Center's roles and permissions, the checks on everything it accepts, its API dispatcher with fake dependencies (every address needs the permission the design gives it, 401s, 403s, cross-site refusals, a failed suspension record lifting the ban again, rate limits), and feature access (everything open, no payment code). |
-| `npm run test:db` | Applies `supabase/schema.sql` and every migration (twice, to prove they re-run safely) to a throwaway Postgres with Supabase's roles, then runs `supabase/tests/rls_isolation.sql` and `supabase/tests/platform_admin.sql` (every Admin Center rule the database enforces: who may call what, roles, the last Super Admin, review eligibility and consent, feedback privacy, announcements, the changelog, settings and the append-only audit log). |
-| `npm run test:e2e:admin` | 16 scenarios against the mock: the first Super Admin from the setup guide's SQL, the same permissions in TypeScript and the database, roles (never to oneself, never Super Admin from the app, never through a profile or a direct database call), each role's reach, a review from real use to the website and back down, feedback with a screenshot and private notes, announcements and read state, changelog drafts as 404s, suspension blocking sign-in, settings reaching the public site, the audit log (complete, append-only, no private words), the last Super Admin's account, then the Admin Center in a browser for a student, a Super Admin and a Moderator, on a phone and in all three themes. Builds against the mock like `test:e2e`. |
+| `npm test` | Unit tests: the three-way merge, the sync engine with two simulated devices (offline edits, clashes, stale devices), per-account browser storage, the one-time move of pre-account data, the new-account template, attached-file rules, completed topics, Life Dashboard reports and form, goals, the clean-up of data older versions wrote, saving a journal day, sleep times and durations, the three themes (synced, painted before load, and what a theme, palette or Liquid Glass saved by an older version becomes), Reduce transparency as a setting of its own, and the Roadmap (periods across month and year ends, leap years and time zones, progress from activities only, carry forward, duplicate, archive, goal and journal links that change neither, two accounts, two devices), and the Admin Center's roles and permissions, the checks on everything it accepts, its API dispatcher with fake dependencies (every address needs the permission the design gives it, 401s, 403s, cross-site refusals, a failed suspension record lifting the ban again, rate limits), and feature access (everything open, no payment code); the review system (moderation needs a listed reason and never "negative", what a review may carry, the new settings and switches, hiding needs its permission) and the interactive demo (the sample account is the same each time and written nowhere, and nothing that acts for an account reaches the server in demo mode). |
+| `npm run test:db` | Applies `supabase/schema.sql` and every migration (twice, to prove they re-run safely) to a throwaway Postgres with Supabase's roles, then runs `supabase/tests/rls_isolation.sql`, `supabase/tests/platform_admin.sql` (every Admin Center rule the database enforces: who may call what, roles, the last Super Admin, review eligibility and consent, feedback privacy, announcements, the changelog, settings and the append-only audit log) and `supabase/tests/platform_trust.sql` (badges from records only, consent and edit history, the edit policy, the invitation, reasons for taking a review down, story pages, aggregates only from five reviews, nothing private in public answers). |
+| `npm run test:e2e:admin` | 22 scenarios against the mock: the first Super Admin from the setup guide's SQL, the same permissions in TypeScript and the database, roles (never to oneself, never Super Admin from the app, never through a profile or a direct database call), each role's reach, a review from real use to the website and back down, feedback with a screenshot and private notes, announcements and read state, changelog drafts as 404s, suspension blocking sign-in, settings reaching the public site, the audit log (complete, append-only, no private words), the last Super Admin's account; badges from records, a story page, an edit that keeps the approved version up, featuring and hiding; the invitation's Later and No thanks; the Trust Center, the demo page and the reviews page saying only what's true; then the Admin Center in a browser for a student, a Super Admin and a Moderator, on a phone and in all three themes; a student invited on the dashboard writing a review in five steps; and the demo for a visitor and for a signed-in student, whose account it never touches. Builds against the mock like `test:e2e`; `-- --no-build --trust-only` runs just the last three. |
 | `npm run test:e2e` | 20 browser scenarios against the mock: two accounts in one browser, the theme following an account with no light flash, a second device, simultaneous edits, direct database access with another account's token, attached files (stored once, linked to a goal without a copy, unreadable by another account, deleted with the last day that holds them), recording, editing and deleting a night's sleep, Reduce transparency (on any theme, painted before load, on a second device, never on another account), Light and Dark frosted and Lavender crisp (synced, painted before load, on a second device), an older device's Blue Glass opening as Light, the Roadmap (empty at first; a year, its months and a week planned by hand; deleting one month; a goal and a journal day linked without changing either; edits from two devices at once; archiving; another account seeing none of it), sign-out, the owner's existing data, a fresh account, account deletion (including its files) and password reset. Needs `npx playwright install chromium` once. It builds the app against the mock, so run `npm run build` again afterwards. |
 | `npm run lint`, `npx tsc --noEmit`, `npm run check:classes` | Lint, types, and the Tailwind opacity guard. |
 
@@ -85,7 +85,7 @@ The site has two halves, kept apart by route groups:
 
 | Part | Where | Indexed |
 | --- | --- | --- |
-| Public pages: home, features, five feature pages, free tools, guides, about, contact, legal | `src/app/(marketing)/` | Yes (production only) |
+| Public pages: home, features, five feature pages, free tools, guides, reviews, the Trust Center, the interactive demo, the changelog, about, contact, legal | `src/app/(marketing)/` | Yes (production only) |
 | The app and its sign-in screens | `src/app/(product)/` | No: every page answers `noindex` |
 
 The public pages are rendered on the server and load none of the app's account
@@ -161,6 +161,16 @@ In the Supabase SQL Editor, run these files in order:
      the server can send on it), and the announcements function also returns
      the next scheduled start or end. No new tables. Until it runs, apps pick
      up changes when they open or come back after 15 minutes.
+   - `20261210120000_trust_reviews.sql`: the Trust & Review system on top of
+     the Admin Center. The five-step review (new optional answers, context,
+     how the name is shown), consent versions and a consent history, an edit
+     history, the dashboard invitation and its Later and No thanks, badges
+     worked out from each author's records, featured reviews, story pages,
+     moderation reasons, the new settings and switches, and the changelog's
+     "what changed", "why it matters", feedback theme and Accessibility
+     category. Three new tables, all with row-level security on and no direct
+     access. Reviews already published stay published. Until it runs, the
+     review form and the public reviews pages have nothing to show.
 
 All of them are additive and safe to re-run: nothing is dropped or rewritten, and
 existing data keeps working. A SQL file in the repo does nothing until you run it.
@@ -238,9 +248,21 @@ Super Admin. Every page checks the role on the server, and every database
 function checks it again. Administrators see account metadata (email, dates,
 status, role), never what anyone wrote in DoOrDie.
 
-Published reviews, with their authors' consent, appear on `/testimonials` and,
-if the settings say so, on the home page and the five feature pages: the
-newest first, never chosen by rating.
+Students who have used DoOrDie long enough are invited by a quiet card on
+their dashboard (Later asks again in two weeks; No thanks, or a third Later,
+stops it), and write a review in five steps; publishing it on the website is a
+separate permission, off unless they tick it. Published reviews appear on
+`/reviews` with badges the database works out from each author's records,
+longer ones get a page of their own, and, if the settings say so, they appear
+on the home page and the five feature pages: newest first, never chosen or
+filtered by rating. There are no sample or invented reviews anywhere: with
+none published, the pages say so. The design: [`docs/trust-review-architecture-audit.md`](docs/trust-review-architecture-audit.md).
+
+`/trust` explains what DoOrDie is (and isn't), how its parts connect, how data
+is handled, what's available, how reviews are checked and how to reach the
+team. `/demo` opens the real app with a made-up sample account in that tab
+only: nothing is saved, and an account signed in on the same browser is never
+read or changed (`src/lib/demo/mode.ts`).
 
 Setup, the bootstrap SQL and how each part works: [`docs/ADMIN_SETUP.md`](docs/ADMIN_SETUP.md).
 The design and its reasons: [`docs/admin-architecture-audit.md`](docs/admin-architecture-audit.md).
@@ -353,6 +375,8 @@ Usage page stays comfortably inside the plan.
       ordinary sign-in page then opens the Admin Center.
 - [ ] Run `supabase/migrations/20261205120000_live_updates.sql` in the SQL Editor
       (Admin Center changes reach open apps at once).
+- [ ] Run `supabase/migrations/20261210120000_trust_reviews.sql` in the SQL Editor
+      (the review form, badges, the invitation and the public reviews pages).
 - [ ] Set `RESEND_API_KEY` and `REPORTS_TO_EMAIL` in Vercel for crash reports and
       feedback (see [Crash reports and feedback](#crash-reports-and-feedback)).
 - [ ] Run `supabase/tests/rls_isolation.sql` and confirm `All isolation checks passed`.

@@ -11,6 +11,7 @@
  *     npx playwright install chromium     # once
  *     npm run test:e2e:admin              # builds against the mock, then runs
  *     npm run test:e2e:admin -- --no-build
+ *     npm run test:e2e:admin -- --no-build --trust-only   # the review form and the demo only
  *
  * Everything here is local and thrown away at the end. The build points at
  * the mock, so run `npm run build` again before using the app for real.
@@ -23,6 +24,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
 import { PLATFORM_ROLES, permissionsFor } from "../../src/lib/platform/roles.ts";
+import { PRODUCT_MODULES } from "../../src/content/product-status.ts";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const APP = "http://localhost:3100";
@@ -40,6 +42,8 @@ const SUGGESTION_MARK = `SUGGESTION-${RUN}`;
 const ENTRY_TITLE = `Faster mocks on phones ${RUN}`;
 const ENTRY_SLUG = `faster-mocks-on-phones-${RUN}`;
 const SUPPORT = `help-${RUN}@doordie.example`;
+const STORY_MARK = `STORY-${RUN}`;
+const EDIT_MARK = `EDITED-${RUN}`;
 
 const mockEnv = Object.fromEntries(
   execFileSync("node", ["scripts/mock-supabase.mjs", "--print-env"], { cwd: root, encoding: "utf8" })
@@ -182,6 +186,29 @@ async function giveUsage(user, days = 6) {
   check(r.ok, `couldn't store usage: ${JSON.stringify(r.error)}`);
 }
 
+/** Use on each of the last `days` days, in an account `ageDays` old: enough for every badge. */
+async function giveDailyUsage(user, days, ageDays) {
+  check((await sql(`update auth.users set created_at = now() - interval '${ageDays} days' where id = '${user.id}'`)).ok, "couldn't backdate the account");
+  const journal = Array.from({ length: days }, (_, i) => ({
+    id: `e2e-day-${i}`,
+    date: new Date(Date.now() - (days - i) * 86_400_000).toISOString().slice(0, 10),
+    blocks: [{ subjectId: "economy", hours: 5, topics: ["Inflation"] }],
+    totalHours: 5,
+    mood: 4,
+    energy: 4,
+    motivation: 4,
+    focus: 4,
+    highlights: "PRIVATE-JOURNAL-TEXT",
+  }));
+  const r = await sql(
+    `insert into public.chronicle_state (user_id, data) values ('${user.id}', '${q(JSON.stringify({ journal }))}'::jsonb)
+     on conflict (user_id) do update set data = excluded.data`,
+  );
+  check(r.ok, `couldn't store usage: ${JSON.stringify(r.error)}`);
+}
+
+const invited = async (person) => (await rpcAs(person.token, "platform_my_announcements")).body?.reviewInvite;
+
 /** The bootstrap statement exactly as docs/ADMIN_SETUP.md gives it to the owner. */
 function bootstrapSql(userId) {
   const guide = readFileSync(join(root, "docs", "ADMIN_SETUP.md"), "utf8");
@@ -197,7 +224,7 @@ const auditRows = async (where = "true") =>
 /* ── the API scenarios ─────────────────────────────────────────── */
 
 async function apiScenarios(people) {
-  const { owner, admin, mod, s1, s2 } = people;
+  const { owner, admin, mod, s1, s2, s3, s4, s6 } = people;
 
   await scenario("1. Nobody has the Admin Center until the owner runs the guide's SQL", async () => {
     check((await api(null, "GET", "/api/admin/me")).status === 401, "no session should be 401");
@@ -214,14 +241,23 @@ async function apiScenarios(people) {
     check((await auditRows(`target_id = '${owner.id}'`)).length === 1, "a repeat run adds no audit entry");
   });
 
-  await scenario("2. TypeScript and the database agree on what every role may do", async () => {
+  await scenario("2. TypeScript and the database agree on what every role may do, under every combination of switches", async () => {
+    const sorted = (xs) => JSON.stringify([...(xs ?? [])].sort());
     for (const role of PLATFORM_ROLES) {
-      for (const flag of [false, true]) {
-        const r = await sql(`select public.platform_permissions('${role}', ${flag}) as p`);
-        const fromDb = r.rows?.[0]?.p;
-        const fromTs = permissionsFor(role, { moderatorsHandleFeedback: flag });
-        check(JSON.stringify(fromDb) === JSON.stringify(fromTs), `${role} (feedback setting ${flag}): database ${JSON.stringify(fromDb)}, app ${JSON.stringify(fromTs)}`);
+      for (const feedback of [false, true]) {
+        for (const hide of [false, true]) {
+          for (const audit of [false, true]) {
+            const flags = JSON.stringify({ moderators_handle_feedback: feedback, moderators_hide_reviews: hide, admins_read_audit: audit });
+            const r = await sql(`select public.platform_role_permissions('${role}', '${flags}'::jsonb) as p`);
+            const fromDb = r.rows?.[0]?.p;
+            const fromTs = permissionsFor(role, { moderatorsHandleFeedback: feedback, moderatorsHideReviews: hide, adminsReadAudit: audit });
+            check(sorted(fromDb) === sorted(fromTs), `${role} ${flags}: database ${JSON.stringify(fromDb)}, app ${JSON.stringify(fromTs)}`);
+          }
+        }
       }
+      // The older two-argument form still answers, with the other switches at their defaults.
+      const legacy = (await sql(`select public.platform_permissions('${role}', false) as p`)).rows?.[0]?.p;
+      check(sorted(legacy) === sorted(permissionsFor(role)), `${role}: the two-argument form ${JSON.stringify(legacy)}`);
     }
   });
 
@@ -324,7 +360,7 @@ async function apiScenarios(people) {
 
     const sent = data(await api(s1.token, "POST", "/api/reviews", review));
     check(sent?.status === "pending" && sent.feedbackConsentAt && sent.publicConsentAt, `sent and waiting: ${JSON.stringify(sent)}`);
-    check(!(await pageText("/testimonials")).text.includes(REVIEW_MARK), "a pending review isn't public");
+    check(!(await pageText("/reviews")).text.includes(REVIEW_MARK), "a pending review isn't public");
 
     const queue = data(await api(mod.token, "GET", "/api/admin/reviews?status=pending"));
     check(queue.items.some((r) => r.id === sent.id && r.rating === 2), "the low rating is in the queue like any other");
@@ -335,8 +371,8 @@ async function apiScenarios(people) {
     const live = data(await api(mod.token, "GET", `/api/admin/reviews/${sent.id}`));
     check(live.status === "published" && live.rating === 2 && live.body === review.body, "moderators can't edit a review");
 
-    await waitFor("the review on /testimonials", async () => (await pageText("/testimonials")).text.includes(REVIEW_MARK));
-    const page = (await pageText("/testimonials")).text;
+    await waitFor("the review on /reviews", async () => (await pageText("/reviews")).text.includes(REVIEW_MARK));
+    const page = (await pageText("/reviews")).text;
     check(!page.includes(SUGGESTION_MARK) && !page.includes(s1.email), "suggestions and the author's email stay private");
     await waitFor("the review on the home page", async () => (await pageText("/")).text.includes(REVIEW_MARK));
     await waitFor("the review on a feature page", async () => (await pageText("/upsc-progress-tracker")).text.includes(REVIEW_MARK));
@@ -344,14 +380,17 @@ async function apiScenarios(people) {
     // Taking back public display takes it down at once, everywhere.
     const off = data(await api(s1.token, "PATCH", "/api/reviews", { publicConsent: false }));
     check(off.status === "approved" && off.publicConsent === false && off.publicConsentAt === null, `consent withdrawn: ${JSON.stringify(off)}`);
-    await waitFor("the review off /testimonials", async () => !(await pageText("/testimonials")).text.includes(REVIEW_MARK));
+    await waitFor("the review off /reviews", async () => !(await pageText("/reviews")).text.includes(REVIEW_MARK));
     await waitFor("the review off the home page", async () => !(await pageText("/")).text.includes(REVIEW_MARK));
 
     // Allowing it again sends it back to a moderator, and so does editing what's public.
     check(data(await api(s1.token, "PATCH", "/api/reviews", { publicConsent: true })).status === "pending", "consent again means moderation again");
     check((await api(mod.token, "POST", `/api/admin/reviews/${sent.id}/moderate`, { action: "reject" })).status === 400, "a rejection needs a reason");
-    check((await api(mod.token, "POST", `/api/admin/reviews/${sent.id}/moderate`, { action: "reject", reason: "It includes a phone number" })).status === 200, "rejecting");
-    check(data(await api(s1.token, "GET", "/api/reviews")).review.moderationReason === "It includes a phone number", "the author sees why");
+    check((await api(mod.token, "POST", `/api/admin/reviews/${sent.id}/moderate`, { action: "reject", reason: "It includes a phone number" })).status === 400, "a note alone isn't a reason: it needs one of the listed ones");
+    check((await api(mod.token, "POST", `/api/admin/reviews/${sent.id}/moderate`, { action: "reject", code: "negative", reason: "Too harsh" })).status === 400, "being critical is never a reason");
+    check((await api(mod.token, "POST", `/api/admin/reviews/${sent.id}/moderate`, { action: "reject", code: "personal_info", reason: "It includes a phone number" })).status === 200, "rejecting");
+    const rejected = data(await api(s1.token, "GET", "/api/reviews")).review;
+    check(rejected.moderationReason === "It includes a phone number" && rejected.moderationCode === "personal_info", "the author sees why");
     check(data(await api(s1.token, "POST", "/api/reviews", { ...review, body: `${review.body} Fixed.` })).status === "pending", "an edit goes back to a moderator");
     const onlyPrivate = data(await api(s1.token, "POST", "/api/reviews", { ...review, body: `${review.body} Fixed.`, suggestions: `${SUGGESTION_MARK}: changed` }));
     check(onlyPrivate.status === "pending", "still waiting");
@@ -361,9 +400,14 @@ async function apiScenarios(people) {
     check((await api(s1.token, "DELETE", "/api/reviews?mode=delete")).status === 200, "deleting");
     check(data(await api(s1.token, "GET", "/api/reviews")).review === null, "deleted means gone");
 
+    // With nothing published, the site says so in plain words, and invents nothing.
+    await waitFor("the honest empty state on the home page", async () => (await pageText("/")).text.includes("No student reviews published yet"));
+    await waitFor("and on /reviews", async () => (await pageText("/reviews")).text.includes("No student reviews published yet"));
+    check(!/"aggregateRating"/.test((await pageText("/reviews")).text), "no rating markup without reviews");
+
     const log = await auditRows(`target_type = 'review'`);
     check(log.some((e) => e.action === "review.published" && e.actor_id === mod.id && e.actor_role === "moderator"), "publishing is audited with the moderator");
-    check(log.some((e) => e.action === "review.rejected" && e.reason === "It includes a phone number"), "the rejection is audited with its reason");
+    check(log.some((e) => e.action === "review.rejected" && e.reason === "It includes a phone number" && JSON.parse(e.metadata).code === "personal_info"), "the rejection is audited with its reason");
     check(!JSON.stringify(log).includes(REVIEW_MARK) && !JSON.stringify(log).includes(SUGGESTION_MARK), "the audit log holds no review text");
   });
 
@@ -555,6 +599,151 @@ async function apiScenarios(people) {
     check(r.status === 409 && r.body.code === "last_super_admin", `deleting the last Super Admin: ${r.status} ${JSON.stringify(r.body)}`);
     check(data(await api(owner.token, "GET", "/api/admin/me")).role === "super_admin", "still there");
   });
+
+  await scenario("13. Badges come from the author's records, a long review gets a page of its own, and an edit keeps the approved version up", async () => {
+    await giveDailyUsage(s2, 16, 120);
+    const story = {
+      rating: 4,
+      headline: `Finally one place for the whole preparation ${RUN}`,
+      problemBefore: `${STORY_MARK} Hours went in a notebook, mocks in a spreadsheet and revision dates in my head. ${"I kept losing track of which topics had gone cold, and every Sunday went on adding things up. ".repeat(3)}`,
+      useful: "The revision queue, and the dashboard pulling everything together without typing anything twice. ".repeat(2),
+      changeNote: "I plan the week on Sunday, log each evening in a few minutes, and revise what is due before anything new. ".repeat(2),
+      body: "Give it two weeks of honest logging before you judge it. The value shows once the records add up.",
+      suggestions: `${SUGGESTION_MARK}-2: the mocks page could load faster`,
+      features: ["journal", "mocks", "dashboard"],
+      stage: "mains",
+      aspirantType: "working",
+      displayName: "Student Two",
+      displayPreference: "initials",
+      showTenure: true,
+      feedbackConsent: true,
+      publicConsent: true,
+      consentVersion: "2026-11-19",
+      source: "invitation",
+    };
+    const sent = data(await api(s2.token, "POST", "/api/reviews", { ...story, badges: { activeUser: true, features: ["coach"] } }));
+    check(sent?.status === "pending" && sent.source === "invitation" && sent.consentVersion === "2026-11-19" && sent.publicName === "S. T.", `sent: ${JSON.stringify(sent)}`);
+    check(sent.live === false && sent.publicVersion === null, "nothing is public before a moderator looks");
+    check((await api(mod.token, "POST", `/api/admin/reviews/${sent.id}/moderate`, { action: "publish" })).status === 200, "publishing");
+
+    const pub = (await rpcAs(null, "platform_public_reviews", { p_limit: 50, p_offset: 0 })).body;
+    const item = pub.items.find((r) => (r.problemBefore ?? "").includes(STORY_MARK));
+    check(item, "on the website");
+    for (const field of ["id", "userId", "usage", "suggestions", "email", "displayPreference"]) check(!(field in item), `the public review carries ${field}`);
+    check(item.displayName === "S. T.", `the name as its author chose: ${item.displayName}`);
+    const b = item.badges ?? {};
+    check(
+      b.verifiedUser === true && b.activeUser === true && b.established === true && JSON.stringify(b.features) === JSON.stringify(["journal"]),
+      `badges from the records only (journal has records; mocks and the dashboard don't count): ${JSON.stringify(item.badges)}`,
+    );
+    check(item.story === true && pub.averageRating === null, `a story, and no average from one review: ${JSON.stringify({ story: item.story, avg: pub.averageRating })}`);
+    const slug = item.slug;
+    check(!slug.includes("student") && /-review-[0-9a-f]{8}$/.test(slug), `the address never holds the author's name: ${slug}`);
+
+    await waitFor("the story's page", async () => (await pageText(`/reviews/${slug}`)).status === 200);
+    const story1 = (await pageText(`/reviews/${slug}`)).text;
+    check(story1.includes(STORY_MARK) && story1.includes("Verified active user") && story1.includes("Established member"), "the page shows the review and its badges");
+    check(!story1.includes(SUGGESTION_MARK) && !story1.includes(s2.email) && !story1.includes("Student Two"), "never the suggestions, the email or the full name");
+    check(story1.includes('"@type":"Review"') && !story1.includes('"aggregateRating"'), "review markup, and no aggregate below five reviews");
+    await waitFor("the review on /reviews", async () => (await pageText("/reviews")).text.includes(story.body));
+    await waitFor("the story in the sitemap", async () => (await pageText("/sitemap.xml")).text.includes(`/reviews/${slug}</loc>`));
+    // Real reviews take the home page's slot, and the empty state goes.
+    await waitFor("the review on the home page", async () => {
+      const home = (await pageText("/")).text;
+      return home.includes(story.body) && !home.includes("No student reviews published yet");
+    });
+
+    // An edit goes back to a moderator; the approved version stays up meanwhile.
+    const edited = data(await api(s2.token, "POST", "/api/reviews", { ...story, body: `${EDIT_MARK}: two weeks of honest logging, then judge it.` }));
+    check(edited.status === "pending" && edited.live === true && edited.publicVersion?.body === story.body, `edited: ${JSON.stringify({ status: edited.status, live: edited.live })}`);
+    check((await rpcAs(null, "platform_public_review", { p_slug: slug })).body?.body === story.body, "the website keeps the approved words");
+    await waitFor("the page rebuilt after the edit", async () => (await pageText(`/reviews/${slug}`)).text.includes(STORY_MARK));
+    check(!(await pageText(`/reviews/${slug}`)).text.includes(EDIT_MARK), "the edit isn't public yet");
+    const detail = data(await api(mod.token, "GET", `/api/admin/reviews/${sent.id}`));
+    check(detail.revisions?.length >= 1 && JSON.stringify(detail.revisions).includes(story.body), "the team keeps the earlier version");
+    const kinds = (detail.consentHistory ?? []).map((e) => `${e.kind}:${e.version ?? ""}`);
+    check(kinds.includes("feedback_granted:2026-11-19") && kinds.includes("public_granted:2026-11-19"), `consent history: ${kinds}`);
+    check(!JSON.stringify(detail).includes("PRIVATE-JOURNAL-TEXT"), "nothing from the author's records");
+    check((await api(mod.token, "POST", `/api/admin/reviews/${sent.id}/moderate`, { action: "publish" })).status === 200, "publishing the edit");
+    await waitFor("the edit on the page", async () => (await pageText(`/reviews/${slug}`)).text.includes(EDIT_MARK));
+
+    // Featured by the team, for being useful: never by stars.
+    check((await api(mod.token, "POST", `/api/admin/reviews/${sent.id}/moderate`, { action: "feature" })).status === 200, "featuring");
+    await waitFor("the featured section", async () => (await pageText("/reviews")).text.includes("Featured experiences"));
+
+    // Hiding needs a listed reason, and the switch.
+    check((await api(mod.token, "POST", `/api/admin/reviews/${sent.id}/moderate`, { action: "hide" })).status === 400, "hiding needs a reason");
+    check((await api(mod.token, "POST", `/api/admin/reviews/${sent.id}/moderate`, { action: "hide", code: "personal_info", reason: "A phone number in the text" })).status === 200, "hiding");
+    await waitFor("the story gone", async () => (await pageText(`/reviews/${slug}`)).status === 404);
+    const mine = data(await api(s2.token, "GET", "/api/reviews")).review;
+    check(mine.status === "hidden" && mine.moderationCode === "personal_info" && mine.live === false, "the author sees it's down, and why");
+    check((await api(owner.token, "PATCH", "/api/admin/settings", { moderators_hide_reviews: false })).status === 200, "switching Moderators' hiding off");
+    check((await api(mod.token, "POST", `/api/admin/reviews/${sent.id}/moderate`, { action: "restore" })).status === 403, "a Moderator can't restore with the switch off");
+    check(!data(await api(mod.token, "GET", "/api/admin/me")).permissions.includes("reviews.hide"), "and their permissions say so");
+    check((await api(owner.token, "POST", `/api/admin/reviews/${sent.id}/moderate`, { action: "restore" })).status === 200, "a Super Admin restores it");
+    check((await api(owner.token, "PATCH", "/api/admin/settings", { moderators_hide_reviews: true })).status === 200, "switching it back on");
+    await waitFor("the story back", async () => (await pageText(`/reviews/${slug}`)).status === 200);
+
+    const log = await auditRows(`target_type = 'review' and target_id = '${sent.id}'`);
+    const actions = log.map((e) => e.action);
+    for (const a of ["review.published", "review.featured", "review.hidden", "review.restored"]) check(actions.includes(a), `the log has ${a}`);
+    check(!JSON.stringify(log).includes(STORY_MARK) && !JSON.stringify(log).includes(EDIT_MARK), "and no review text");
+  });
+
+  await scenario("14. The invitation needs real use; Later asks again in two weeks; No thanks, or a third Later, ends it", async () => {
+    check((await invited(s3)) === false, "no invitation without real use");
+    await giveUsage(s3);
+    check((await invited(s3)) === true, "invited once the use is real");
+    check((await rpcAs(s3.token, "platform_review_invite", { p_action: "postpone" })).status === 200, "Later");
+    check((await invited(s3)) === false, "not asked again straight away");
+    const row = (await sql(`select postpone_count, postponed_until > now() + interval '13 days' as later, dismissed_at from public.platform_review_invitations where user_id = '${s3.id}'`)).rows[0];
+    check(row.postpone_count === 1 && row.later === true && row.dismissed_at === null, `two weeks later: ${JSON.stringify(row)}`);
+    for (const n of [2, 3]) {
+      check((await sql(`update public.platform_review_invitations set postponed_until = now() - interval '1 minute' where user_id = '${s3.id}'`)).ok, "two weeks pass");
+      check((await invited(s3)) === true, `asked again (${n})`);
+      check((await rpcAs(s3.token, "platform_review_invite", { p_action: "postpone" })).status === 200, `Later (${n})`);
+    }
+    check((await sql(`update public.platform_review_invitations set postponed_until = now() - interval '1 minute' where user_id = '${s3.id}'`)).ok, "and two more weeks");
+    check((await invited(s3)) === false, "the third Later is the last");
+
+    await giveUsage(s4);
+    check((await invited(s4)) === true, "the next student is invited");
+    check((await rpcAs(s4.token, "platform_review_invite", { p_action: "dismiss" })).status === 200, "No thanks");
+    check((await invited(s4)) === false, "and not asked again");
+    check((await rpcAs(s4.token, "platform_review_invite", { p_action: "accept" })).status >= 400, "unknown answers are refused");
+    check((await rpcAs(null, "platform_review_invite", { p_action: "dismiss" })).status >= 400, "a visitor has nothing to answer");
+
+    // The Super Admin's switch.
+    await giveUsage(s6);
+    check((await invited(s6)) === true, "eligible");
+    check((await api(owner.token, "PATCH", "/api/admin/settings", { review_invite_enabled: false })).status === 200, "invitations off");
+    check((await invited(s6)) === false, "nobody is invited while it's off");
+    check((await api(owner.token, "PATCH", "/api/admin/settings", { review_invite_enabled: true })).status === 200, "invitations on");
+    check((await invited(s6)) === true, "and again once it's on");
+  });
+
+  await scenario("15. The Trust Center, the demo page and the reviews page say only what's true", async () => {
+    const trust = await pageText("/trust");
+    check(trust.status === 200, `/trust: ${trust.status}`);
+    for (const phrase of ["Not affiliated with UPSC", "The database itself lets each account read only its own records", "DoOrDie has no security certification", "There&#x27;s no guaranteed reply time"]) {
+      check(trust.text.includes(phrase), `/trust says: ${phrase}`);
+    }
+    for (const m of PRODUCT_MODULES) check(trust.text.includes(m.name), `/trust lists ${m.name}`);
+    check((trust.text.match(/>Available</g) ?? []).length >= PRODUCT_MODULES.length, "each one marked Available");
+    check(!/ISO 27001|SOC 2|GDPR certified|bank-grade/i.test(trust.text), "no certification it doesn't have");
+    const demo = await pageText("/demo");
+    check(demo.status === 200 && demo.text.includes("Try DoOrDie with a sample account") && demo.text.includes("Nothing is saved"), "/demo explains itself");
+    const reviews = (await pageText("/reviews")).text;
+    check(reviews.includes("Real Aspirants. Real Experiences.") && reviews.includes("What the badges mean"), "/reviews explains its badges");
+    const old = await fetch(`${APP}/testimonials`, { redirect: "manual" });
+    check(old.status === 308 && new URL(old.headers.get("location"), APP).pathname === "/reviews", `the old address moves for good: ${old.status}`);
+    const reminder = await fetch(`${APP}/reviews?open=rv-1`, { redirect: "manual" });
+    const to = new URL(reminder.headers.get("location") ?? "/", APP);
+    check(reminder.status === 307 && to.pathname === "/performance-review" && to.searchParams.get("open") === "rv-1", "an old reminder link still opens the Performance Review");
+    const map = (await pageText("/sitemap.xml")).text;
+    for (const path of ["/reviews", "/trust", "/demo", "/changelog"]) check(map.includes(`${path}</loc>`), `the sitemap lists ${path}`);
+    for (const path of ["/admin", "/performance-review", "/dashboard"]) check(!map.includes(`${path}</loc>`), `the sitemap leaves out ${path}`);
+  });
 }
 
 /* ── in the browser ────────────────────────────────────────────── */
@@ -614,7 +803,14 @@ async function intoApp(page, person) {
   await onboardIfAsked(page, person.name);
   await passSleepPromptIfShown(page);
   await passTourIfShown(page);
-  await page.getByRole("button", { name: /^Account:/ }).waitFor();
+  try {
+    await page.getByRole("button", { name: /^Account:/ }).waitFor();
+  } catch (e) {
+    // What was on screen instead, for whoever reads the failure.
+    await page.screenshot({ path: join(SHOTS, `failed-into-app-${person.name.replace(/\s+/g, "-")}.png`), fullPage: true }).catch(() => {});
+    const text = await page.locator("body").innerText().catch(() => "");
+    throw new Error(`${person.name} didn't get into the app at ${page.url()}. On screen: ${text.slice(0, 600)}\n${e.message}`);
+  }
   await page.getByRole("heading", { level: 1 }).first().waitFor();
   await notCrashed(page, "the dashboard");
 }
@@ -654,11 +850,24 @@ async function noErrorShown(page, where) {
   check(!alerts.some((t) => t.trim()), `${where} shows an error: ${alerts.join(" | ")}`);
 }
 
+/** Requests that read or change data: the database, storage and the app's API. Sign-in housekeeping isn't counted. */
+function watchDataCalls(page) {
+  const calls = [];
+  page.on("request", (r) => {
+    const u = new URL(r.url());
+    const data = (u.origin === MOCK && (u.pathname.startsWith("/rest/") || u.pathname.startsWith("/storage/"))) || (u.origin === APP && u.pathname.startsWith("/api/"));
+    if (data) calls.push(`${r.method()} ${u.pathname}`);
+  });
+  return calls;
+}
+
+const storedStores = (page) => page.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith("upsc-chronicle-store")));
+
 async function browserScenarios(browser, people) {
   const { owner, mod, s1 } = people;
   mkdirSync(SHOTS, { recursive: true });
 
-  await scenario("13. A student who opens /admin is told there's no access, and their menu has no link to it", async () => {
+  await scenario("16. A student who opens /admin is told there's no access, and their menu has no link to it", async () => {
     const page = await (await browser.newContext()).newPage();
     await signInUi(page, s1.email, "/admin");
     await page.getByRole("heading", { name: "No access" }).waitFor();
@@ -722,7 +931,7 @@ async function browserScenarios(browser, people) {
     await page.close();
   });
 
-  await scenario("14. A Super Admin signs in on the ordinary sign-in page, lands in the Admin Center, and every page renders its own data", async () => {
+  await scenario("17. A Super Admin signs in on the ordinary sign-in page, lands in the Admin Center, and every page renders its own data", async () => {
     const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
     const page = await ctx.newPage();
     // Nothing typed after /login: the account's role decides.
@@ -779,7 +988,7 @@ async function browserScenarios(browser, people) {
     await ctx.close();
   });
 
-  await scenario("15. A Moderator sees only Reviews, and a page outside the role says so without loading it", async () => {
+  await scenario("18. A Moderator sees only Reviews, and a page outside the role says so without loading it", async () => {
     const page = await (await browser.newContext()).newPage();
     const asked = [];
     page.on("request", (r) => r.url().includes("/api/admin/") && asked.push(new URL(r.url()).pathname));
@@ -795,7 +1004,7 @@ async function browserScenarios(browser, people) {
     await page.close();
   });
 
-  await scenario("16. On a phone, every page fits and the menu opens as a drawer", async () => {
+  await scenario("19. On a phone, every page fits and the menu opens as a drawer", async () => {
     const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
     const page = await ctx.newPage();
     await signInUi(page, owner.email, "/admin");
@@ -812,6 +1021,146 @@ async function browserScenarios(browser, people) {
       await page.screenshot({ path: join(SHOTS, `phone-${link.toLowerCase().replace(/\s+/g, "-")}.png`), fullPage: true });
       check(await fitsWidth(page), `${title} spills sideways on a phone`);
     }
+    await ctx.close();
+  });
+}
+
+/** The review invitation and form, and the demo, in the browser. `--trust-only` runs just these, after a minimal setup. */
+async function trustBrowserScenarios(browser, people) {
+  const { s5, s6 } = people;
+  mkdirSync(SHOTS, { recursive: true });
+
+  await scenario("20. An eligible student is invited on the dashboard, writes a review in five steps, and finds it in Settings", async () => {
+    const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+    const page = await ctx.newPage();
+    await signInUi(page, s6.email, "/dashboard");
+    await page.waitForURL(`${APP}/dashboard`);
+    await intoApp(page, s6);
+    const card = page.getByRole("region", { name: "How has DoOrDie been for your preparation?" });
+    await card.waitFor();
+    await page.screenshot({ path: join(SHOTS, "review-invitation.png") });
+    await card.getByRole("button", { name: "Write a review" }).click();
+    const wizard = page.getByRole("dialog", { name: "Review DoOrDie" });
+    await wizard.waitFor();
+    const next = wizard.getByRole("button", { name: /^Next/ });
+    check(await next.isDisabled(), "with no rating chosen there's nothing to go on with");
+    check((await wizard.getByRole("radio", { checked: true }).count()) === 0, "no rating is chosen for them");
+    await wizard.getByRole("radio", { name: "4 out of 5: Good" }).click();
+    await next.click();
+    await wizard.getByLabel("What has been most helpful?").fill("The revision queue tells me what to do first every morning.");
+    await wizard.getByLabel("What would you tell another aspirant considering DoOrDie?").fill("Log honestly for two weeks and the dashboard starts to mean something.");
+    await next.click();
+    await wizard.getByRole("button", { name: "Daily Journal", exact: true }).click();
+    await wizard.getByRole("button", { name: "Command Center", exact: true }).click();
+    await next.click();
+    await wizard.getByText("Full time or working").first().waitFor();
+    await next.click();
+    const privateBox = wizard.getByRole("checkbox", { name: /Private product feedback/ });
+    const publicBox = wizard.getByRole("checkbox", { name: /Public student testimonial/ });
+    check(!(await privateBox.isChecked()) && !(await publicBox.isChecked()), "neither permission is assumed");
+    await wizard.getByRole("button", { name: "Send review" }).click();
+    await wizard.getByText(/let the team read it/).waitFor();
+    await privateBox.check();
+    await publicBox.check();
+    await wizard.getByText("How it would look").waitFor();
+    await page.screenshot({ path: join(SHOTS, "review-wizard-sharing.png") });
+    await wizard.getByRole("button", { name: "Send review" }).click();
+    await wizard.waitFor({ state: "detached" });
+    await page.getByText("Review sent").first().waitFor();
+    check(!(await card.count()), "the invitation goes once a review is sent");
+    const mine = data(await api(s6.token, "GET", "/api/reviews")).review;
+    check(
+      mine.rating === 4 && mine.source === "invitation" && mine.publicConsent === true && mine.consentVersion && mine.features.length === 2 && mine.features.includes("dashboard"),
+      `saved as sent: ${JSON.stringify(mine)}`,
+    );
+    await page.goto(`${APP}/settings#review`);
+    await page.getByText("Waiting for a moderator").waitFor();
+    await notCrashed(page, "Settings with a review");
+    await page.screenshot({ path: join(SHOTS, "review-settings.png"), fullPage: true });
+    await page.goto(`${APP}/dashboard`);
+    await page.getByRole("button", { name: /^Account:/ }).waitFor();
+    await page.waitForLoadState("networkidle");
+    check(!(await page.getByRole("region", { name: "How has DoOrDie been for your preparation?" }).count()), "and isn't asked again");
+    await ctx.close();
+  });
+
+  await scenario("21. A visitor tries the demo: the sample account, the seven-stop guide, nothing saved, and the way out", async () => {
+    const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+    const page = await ctx.newPage();
+    const calls = watchDataCalls(page);
+    await page.goto(`${APP}/demo`);
+    await page.getByRole("heading", { name: "Try DoOrDie with a sample account", level: 1 }).waitFor();
+    await page.getByRole("button", { name: "Start the demo" }).first().click();
+    await page.waitForURL(`${APP}/dashboard`);
+    const bar = page.getByRole("region", { name: "Demo" });
+    await bar.getByText("Meera’s sample account, with made-up data.").waitFor();
+    await page.getByRole("button", { name: "Account: Meera. Demo." }).waitFor();
+    const guide = page.getByRole("complementary", { name: "Demo guide" });
+    await guide.getByText("Guided tour · 1 of 7").waitFor();
+    await notCrashed(page, "the demo's dashboard");
+    await page.screenshot({ path: join(SHOTS, "demo-dashboard.png") });
+    for (const [i, path] of ["/journal", "/subjects", "/revision", "/mocks", "/roadmap", "/coach"].entries()) {
+      await guide.getByRole("button", { name: /^Next:/ }).click();
+      await page.waitForURL(`${APP}${path}`);
+      await guide.getByText(`Guided tour · ${i + 2} of 7`).waitFor();
+      await page.getByRole("heading", { level: 1 }).first().waitFor();
+      await notCrashed(page, `the demo's ${path}`);
+      check(await fitsWidth(page), `${path} spills sideways in the demo`);
+    }
+    await guide.getByRole("button", { name: "Create your free account" }).waitFor();
+    await page.screenshot({ path: join(SHOTS, "demo-guide-end.png") });
+
+    await page.goto(`${APP}/settings`);
+    await page.getByRole("heading", { name: "Start the demo over" }).waitFor();
+    check(!(await page.getByRole("button", { name: "Delete my account" }).count()), "no account to delete");
+    check(!(await page.getByRole("heading", { name: "Review DoOrDie" }).count()), "no review from the demo");
+    await page.getByRole("button", { name: "Reset the sample" }).click();
+    check((await storedStores(page)).length === 0, `the sample reached this browser's storage: ${await storedStores(page)}`);
+    check(calls.length === 0, `the demo called for data: ${calls}`);
+
+    await page.screenshot({ path: join(SHOTS, "demo-settings.png") });
+    await bar.getByRole("button", { name: "Exit demo" }).click();
+    await page.waitForURL(`${APP}/demo?left=1`);
+    await page.getByText("left the demo").waitFor();
+    await page.goto(`${APP}/dashboard`);
+    await page.waitForURL(/\/welcome/);
+    await ctx.close();
+  });
+
+  await scenario("22. A signed-in student's demo tab never touches their account, and their own tab stays theirs", async () => {
+    const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+    const own = await ctx.newPage();
+    await signInUi(own, s5.email, "/dashboard");
+    await own.waitForURL(`${APP}/dashboard`);
+    await intoApp(own, s5);
+    const mine = own.getByRole("button", { name: /^Account: Student Five\./ });
+    await mine.waitFor();
+    const storeKey = `upsc-chronicle-store:${s5.id}`;
+    await waitFor("the account saved in this browser", async () => (await own.evaluate((k) => localStorage.getItem(k), storeKey)) !== null);
+
+    const demo = await ctx.newPage();
+    const calls = watchDataCalls(demo);
+    await demo.goto(`${APP}/demo`);
+    await demo.getByRole("button", { name: "Start the demo" }).first().click();
+    await demo.waitForURL(`${APP}/dashboard`);
+    await demo.getByRole("button", { name: "Account: Meera. Demo." }).waitFor();
+    check(!(await demo.getByText("Student Five").count()), "nothing of the student's account shows in the demo");
+    await demo.goto(`${APP}/settings`);
+    await demo.getByRole("button", { name: "Reset the sample" }).click();
+    check(calls.length === 0, `the demo called for data with the student's session: ${calls}`);
+    const saved = JSON.parse((await demo.evaluate((k) => localStorage.getItem(k), storeKey)) ?? "{}");
+    check(saved.state?.profile?.name === "Student Five" && !JSON.stringify(saved).includes("Meera"), "the student's saved copy is still theirs alone");
+    check(JSON.stringify(await storedStores(demo)) === JSON.stringify([storeKey]), `no other store appeared: ${await storedStores(demo)}`);
+
+    await own.reload();
+    await mine.waitFor();
+    check(!(await own.getByRole("region", { name: "Demo" }).count()), "no demo in the student's own tab");
+
+    await demo.getByRole("region", { name: "Demo" }).getByRole("button", { name: "Exit demo" }).click();
+    await demo.waitForURL(`${APP}/dashboard`);
+    await demo.getByRole("button", { name: /^Account: Student Five\./ }).waitFor();
+    const cloud = (await sql(`select data::text as d from public.chronicle_state where user_id = '${s5.id}'`)).rows[0]?.d ?? "";
+    check(cloud.includes("Student Five") && !cloud.includes("Meera"), "and the account in the cloud holds nothing of the demo");
     await ctx.close();
   });
 }
@@ -837,9 +1186,19 @@ async function main() {
       mod: await signUpApi("Team Moderator", "moderator@example.com"),
       s1: await signUpApi("Student One", "student.one@example.com"),
       s2: await signUpApi("Student Two", "student.two@example.com"),
+      s3: await signUpApi("Student Three", "student.three@example.com"),
+      s4: await signUpApi("Student Four", "student.four@example.com"),
+      s5: await signUpApi("Student Five", "student.five@example.com"),
+      s6: await signUpApi("Student Six", "student.six@example.com"),
     };
-    await apiScenarios(people);
-    await browserScenarios(browser, people);
+    if (process.argv.includes("--trust-only")) {
+      check((await sql(bootstrapSql(people.owner.id))).ok, "the owner's role");
+      await giveUsage(people.s6);
+    } else {
+      await apiScenarios(people);
+      await browserScenarios(browser, people);
+    }
+    await trustBrowserScenarios(browser, people);
     console.log(`\nAll ${passed} scenarios passed. Screenshots: ${SHOTS}`);
   } catch (e) {
     console.log("✗");
