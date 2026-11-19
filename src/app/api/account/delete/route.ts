@@ -15,9 +15,11 @@ export const dynamic = "force-dynamic";
  * calling this, which mints a new one, so a session left open on a borrowed
  * computer can't be used to destroy the account later.
  *
- * Attached files are deleted from Storage first. Then deleting the auth user
- * cascades (`on delete cascade`) to the snapshot, the push subscriptions and
- * the delivery log, in one database operation.
+ * Attached files and feedback screenshots are deleted from Storage first. Then
+ * deleting the auth user cascades (`on delete cascade`) to the snapshot, the
+ * push subscriptions, the delivery log, and the account's reviews, feedback
+ * and announcement read state, in one database operation. The platform's last
+ * Super Admin can't be deleted here.
  */
 const MAX_TOKEN_AGE_SECONDS = 10 * 60;
 const CONFIRM_PHRASE = "DELETE";
@@ -67,10 +69,25 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: `Type ${CONFIRM_PHRASE} to confirm.` }, { status: 400 });
   }
 
+  // The platform must keep a Super Admin. Before the Admin Center migration the
+  // function doesn't exist, and nobody can be one, so the check passes.
+  const { data: lastSuperAdmin } = await admin.rpc("platform_admin_is_last_super_admin", { p_user: userId });
+  if (lastSuperAdmin === true) {
+    return NextResponse.json(
+      {
+        error:
+          "You're the platform's only Super Admin. Add another Super Admin first (docs/ADMIN_SETUP.md), then delete your account.",
+        code: "last_super_admin",
+      },
+      { status: 409 },
+    );
+  }
+
   // Attached files first: Storage objects aren't tied to the auth user, so
   // deleting the user alone would leave them behind. If this fails the account
   // is kept, so the student can retry rather than end up with orphaned files.
-  if (!(await removeAllFiles(admin, userId))) {
+  // Screenshots sent with feedback go too.
+  if (!(await removeAllFiles(admin, userId, FILE_BUCKET)) || !(await removeAllFiles(admin, userId, "platform-feedback"))) {
     return NextResponse.json({ error: "Your attached files couldn't be deleted. Try again." }, { status: 500 });
   }
 
@@ -81,13 +98,13 @@ export async function POST(request: Request) {
   return NextResponse.json({ ok: true });
 }
 
-/** Deletes every object in the account's folder of the attachments bucket. */
-async function removeAllFiles(admin: SupabaseClient, userId: string): Promise<boolean> {
-  const bucket = admin.storage.from(FILE_BUCKET);
+/** Deletes every object in the account's folder of a bucket. */
+async function removeAllFiles(admin: SupabaseClient, userId: string, bucketId: string): Promise<boolean> {
+  const bucket = admin.storage.from(bucketId);
   for (let round = 0; round < 20; round++) {
     const { data, error } = await bucket.list(userId, { limit: 1000 });
     if (error) {
-      // No bucket means the attachments migration was never run: nothing to delete.
+      // No bucket means its migration was never run: nothing to delete.
       return /not found/i.test(error.message);
     }
     const paths = (data ?? []).filter((o) => o.id).map((o) => `${userId}/${o.name}`);
