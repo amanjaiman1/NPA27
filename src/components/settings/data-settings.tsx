@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { ACCOUNT_FILE_QUOTA, totalFileBytes } from "@/lib/files";
 import { useConfirm } from "@/components/ui/confirm-dialog";
+import { useConfirmedDownload } from "@/components/ui/confirm-download";
 import { DataBackup } from "@/components/layout/data-backup";
 import { useAccount } from "@/components/account/account-session";
 import { describeSync } from "@/components/account/sync-label";
@@ -19,23 +20,13 @@ function formatBytes(n: number): string {
   return `${(n / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function download(name: string, value: unknown) {
-  const url = URL.createObjectURL(new Blob([JSON.stringify(value, null, 2)], { type: "application/json" }));
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = name;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
-}
-
 export function DataSettings() {
   const { mode, sync, syncNow, conflicts, dismissConflicts } = useAccount();
   const journal = useChronicle((s) => s.journal);
   const files = useChronicle((s) => s.files);
   const removeLegacyAttachments = useChronicle((s) => s.removeLegacyAttachments);
   const confirm = useConfirm();
+  const download = useConfirmedDownload();
   const [removed, setRemoved] = useState<number | null>(null);
   const status = describeSync(sync, mode);
 
@@ -130,7 +121,19 @@ export function DataSettings() {
               was kept, and the other is saved here in case you want it back.
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
-              <Button variant="ghost" size="sm" onClick={() => download("upsc-chronicle-clashes.json", conflicts)}>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() =>
+                  void download({
+                    title: "Download the other versions?",
+                    description: `The ${conflicts.length === 1 ? "edit" : `${conflicts.length} edits`} from the other device that weren't kept, as a JSON file.`,
+                    fileName: "upsc-chronicle-clashes.json",
+                    content: () => JSON.stringify(conflicts, null, 2),
+                    type: "application/json",
+                  })
+                }
+              >
                 <Download className="h-3.5 w-3.5" /> Download the other versions
               </Button>
               <Button variant="subtle" size="sm" onClick={dismissConflicts}>

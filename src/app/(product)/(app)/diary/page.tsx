@@ -24,6 +24,7 @@ import { Button } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/form";
 import { EmptyState, Segmented } from "@/components/ui/misc";
 import { useToast } from "@/components/ui/toast";
+import { useConfirmedDownload } from "@/components/ui/confirm-download";
 import { DiaryEditor } from "@/components/diary/diary-editor";
 import { cn, formatDate, fromISODate, toISODate, uid, weekday } from "@/lib/utils";
 
@@ -40,22 +41,12 @@ function blankEntry(date: ISODate): Reflection {
   return { id: uid("diary"), date, content: "" };
 }
 
-function download(name: string, text: string) {
-  const url = URL.createObjectURL(new Blob([text], { type: "text/markdown;charset=utf-8" }));
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = name;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
-
 export default function DiaryPage() {
   const hydrated = useHasHydrated();
   const entries = useChronicle((s) => s.reflections);
   const files = useChronicle((s) => s.files);
   const toast = useToast();
+  const download = useConfirmedDownload();
   const today = toISODate(new Date());
 
   const [view, setView] = useState<View>("list");
@@ -85,7 +76,10 @@ export default function DiaryPage() {
   // Escape leaves focus mode.
   useEffect(() => {
     if (!focus) return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setFocus(false);
+    // Not while a dialog is open: there, Escape only closes the dialog.
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !document.querySelector('[role="dialog"][aria-modal="true"]')) setFocus(false);
+    };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [focus]);
@@ -107,10 +101,20 @@ export default function DiaryPage() {
 
   if (!hydrated) return <Loading />;
 
-  function exportShown() {
-    const names = new Map(files.map((f) => [f.id, f.name]));
-    download(`diary-${today}.md`, diaryExport(shown, names));
-    toast({ title: `${shown.length} ${shown.length === 1 ? "entry" : "entries"} exported`, description: "Saved as one Markdown file on this device." });
+  async function exportShown() {
+    const n = shown.length;
+    const fileName = `diary-${today}.md`;
+    const done = await download({
+      title: filtering ? `Download ${n === 1 ? "this diary entry" : `these ${n} diary entries`}?` : "Download your whole diary?",
+      description:
+        n === 1
+          ? `${filtering ? "The entry shown" : "Your only entry"}, with everything you wrote, its tags and the names of attached files, as a Markdown file.`
+          : `${filtering ? `The ${n} entries shown` : `All ${n} entries`}, with everything you wrote, their tags and the names of attached files, as one Markdown file.`,
+      fileName,
+      content: () => diaryExport(shown, new Map(files.map((f) => [f.id, f.name]))),
+      type: "text/markdown;charset=utf-8",
+    });
+    if (done) toast({ title: n === 1 ? "Entry downloaded" : `${n} entries downloaded`, description: fileName });
   }
 
   const editor = current ? (
@@ -138,7 +142,7 @@ export default function DiaryPage() {
         actions={
           <>
             {entries.length > 0 && (
-              <Button variant="ghost" onClick={exportShown} disabled={!shown.length} hint={filtering ? "The entries shown, as one Markdown file." : "Every entry, as one Markdown file."}>
+              <Button variant="ghost" onClick={() => void exportShown()} disabled={!shown.length} hint={filtering ? "The entries shown, as one Markdown file. It asks first." : "Every entry, as one Markdown file. It asks first."}>
                 <Download className="h-4 w-4" aria-hidden /> Export
               </Button>
             )}

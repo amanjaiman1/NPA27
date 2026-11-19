@@ -54,7 +54,8 @@ overall 1 to 5 rating is optional.
 
 Every review, newest first, with search (what you wrote and the period), kind
 and status filters, a side-by-side comparison of any two (each with its own
-kept figures), Markdown export of one or all shown, and trends for the last
+kept figures), Markdown export of one or all shown (each asks first, naming
+the file), and trends for the last
 eight weeks, six months or four years.
 
 ## Privacy

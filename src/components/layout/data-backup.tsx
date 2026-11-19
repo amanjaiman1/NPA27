@@ -9,6 +9,7 @@ import {
 } from "@/lib/store";
 import type { CloudSnapshot } from "@/lib/store";
 import { useConfirm } from "@/components/ui/confirm-dialog";
+import { useConfirmedDownload } from "@/components/ui/confirm-download";
 import { useAccount } from "@/components/account/account-session";
 import { dropForeignFiles } from "@/lib/files";
 
@@ -37,31 +38,35 @@ export function DataBackup() {
   const applyCloudSnapshot = useChronicle((s) => s.applyCloudSnapshot);
   const { accountId } = useAccount();
   const confirm = useConfirm();
+  const download = useConfirmedDownload();
   const fileRef = useRef<HTMLInputElement>(null);
   const [note, setNote] = useState<Note>(null);
 
-  function handleExport() {
+  async function handleExport() {
+    setNote(null);
     try {
-      const payload = {
-        app: BACKUP_APP_ID,
-        schemaVersion: BACKUP_SCHEMA_VERSION,
-        exportedAt: new Date().toISOString(),
-        account: { id: accountId },
-        data: readCloudSnapshot(),
-      };
-      const blob = new Blob([JSON.stringify(payload, null, 2)], {
+      const stamp = new Date().toISOString().slice(0, 10);
+      const done = await download({
+        title: "Download all your data?",
+        description:
+          "Everything in your account: the journal, syllabus, revision, mocks, goals, plans, habits, reviews, your Personal Diary and settings, as a JSON file you can restore from later. Attached files are listed by name, not included.",
+        fileName: `upsc-chronicle-backup-${stamp}.json`,
+        // Read when you say yes, so the file holds the data as it is then.
+        content: () =>
+          JSON.stringify(
+            {
+              app: BACKUP_APP_ID,
+              schemaVersion: BACKUP_SCHEMA_VERSION,
+              exportedAt: new Date().toISOString(),
+              account: { id: accountId },
+              data: readCloudSnapshot(),
+            },
+            null,
+            2,
+          ),
         type: "application/json",
       });
-      const url = URL.createObjectURL(blob);
-      const stamp = new Date().toISOString().slice(0, 10);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `upsc-chronicle-backup-${stamp}.json`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-      setNote({ kind: "ok", text: "Backup downloaded to your device." });
+      if (done) setNote({ kind: "ok", text: "Backup downloaded to your device." });
     } catch {
       setNote({ kind: "err", text: "Couldn't create the backup. Try again." });
     }
@@ -105,7 +110,7 @@ export function DataBackup() {
     <div>
       <div className="flex flex-col gap-2.5 sm:flex-row">
         <button
-          onClick={handleExport}
+          onClick={() => void handleExport()}
           className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-sm font-medium text-accent-fg shadow-soft transition-all hover:opacity-90"
         >
           <Download className="h-4 w-4" />

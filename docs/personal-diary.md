@@ -25,7 +25,8 @@ Code: `src/lib/diary.ts`, the page and `src/components/diary/`.
 A list (pinned first), a timeline by month and a calendar; search across the
 title, the words, tags, category and prompt; filters for pinned, important,
 with files, a category and a tag. Export one entry, or every entry shown, as
-Markdown.
+Markdown. Every export asks first, says what the file holds and its name, and
+warns that the file isn't protected once it's on the device.
 
 ## Privacy
 
