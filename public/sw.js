@@ -12,9 +12,10 @@
  * Bump CACHE_VERSION to retire every previous cache on the next activation.
  */
 
-// v11 — Lavender is the default; the precached offline page opens in it.
-// (v10: a third theme, Lavender. v9: the redesign, with Light and Dark.)
-const CACHE_VERSION = "v11";
+// v12 — violet icons, and the loading animations are CSS, so there are no
+// animation files to keep. (v11: Lavender the default. v10: a third theme,
+// Lavender. v9: the redesign, with Light and Dark.)
+const CACHE_VERSION = "v12";
 const SHELL_CACHE = `chronicle-shell-${CACHE_VERSION}`;
 const PAGE_CACHE = `chronicle-pages-${CACHE_VERSION}`;
 const ASSET_CACHE = `chronicle-assets-${CACHE_VERSION}`;
@@ -32,11 +33,11 @@ const OFFLINE_URL = "/offline.html";
 const SHELL_ASSETS = [
   OFFLINE_URL,
   "/manifest.webmanifest",
-  "/icons/icon-192.png",
-  "/icons/icon-512.png",
-  "/icons/icon-maskable-192.png",
-  "/icons/icon-maskable-512.png",
-  "/icons/apple-touch-icon.png",
+  "/icons/icon-192.png?v=2",
+  "/icons/icon-512.png?v=2",
+  "/icons/icon-maskable-192.png?v=2",
+  "/icons/icon-maskable-512.png?v=2",
+  "/icons/apple-touch-icon.png?v=2",
 ];
 
 // ---------------------------------------------------------------- lifecycle
@@ -183,8 +184,8 @@ self.addEventListener("push", (event) => {
     // Re-using a tag replaces the previous notification about the same thing
     // instead of stacking duplicates on the lock screen.
     tag: str(payload.tag, "chronicle"),
-    icon: "/icons/icon-192.png",
-    badge: "/icons/icon-192.png",
+    icon: "/icons/icon-192.png?v=2",
+    badge: "/icons/icon-192.png?v=2",
     // The href travels in `data` so `notificationclick` can route without
     // re-parsing the body.
     data: { href },

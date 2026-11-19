@@ -46,7 +46,7 @@ export const SITE = {
   locale: "en_IN",
   language: "en-IN",
   /** Square brand mark, used by Organization structured data. */
-  logo: "/icons/icon-512.png",
+  logo: "/icons/icon-512.png?v=2",
   ogImage: {
     url: "/og/doordie.png",
     width: 1200,

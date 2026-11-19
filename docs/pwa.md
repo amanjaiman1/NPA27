@@ -11,7 +11,8 @@ connection. No PWA framework is used — the pieces are small and explicit.
 | Service worker | `public/sw.js` |
 | Offline fallback document | `public/offline.html` |
 | Icons (192, 512, maskable, apple-touch) | `public/icons/*` |
-| Icon generator | `scripts/generate-icons.py` |
+| The browser tab's icon | `src/app/favicon.ico` |
+| Icon generator, for both | `scripts/generate-icons.py` |
 | Pictures in the install dialog | `public/screenshots/*.jpg`, written by `scripts/seo-screenshots.ts` |
 | The app: install banner, Settings and Appearance card | `src/components/pwa/install-prompt.tsx` |
 | The app: SW registration, update toast, offline pill | `src/components/pwa/pwa-layer.tsx` |
@@ -119,20 +120,31 @@ had it switched on had nothing to be dragged by. It was removed.
 
 ## Icons
 
-`scripts/generate-icons.py` renders the Chronicle mark (the same ring-and-node
-as `components/layout/logo.tsx`) in ivory over a vivid crimson plate, using only
-the Python standard library. The icons kept the crimson brand plate when the app
-moved to its Light, Dark and Lavender themes:
+`scripts/generate-icons.py` renders the DoOrDie mark (the same ring-and-node as
+`components/layout/logo.tsx`) in white over a violet plate, Lavender's accent,
+lit from the top left, using only the Python standard library:
 
 ```bash
 python3 scripts/generate-icons.py
 ```
 
 It writes `icon-192`, `icon-512`, `icon-maskable-{192,512}` (mark inside the
-80% safe zone) and `apple-touch-icon.png` into `public/icons/`. Re-run it after
-changing the mark or the accent colour. `offline.html` hand-copies the Light
-and Dark tokens (it can't import the app's CSS), so refresh it too if those move
-— see `docs/design-system.md`.
+80% safe zone) and `apple-touch-icon.png` into `public/icons/`, and the browser
+tab's `src/app/favicon.ico` (16, 32 and 48 pixels, drawn with bolder lines so the
+mark stays legible that small, plus 256). The favicon used to be the framework's
+default triangle, and the other icons a crimson plate from before the themes.
+
+**After regenerating, bump the version on every icon reference.** The icons are
+served with a year-long, immutable cache (`next.config.mjs`), so a browser that
+already has `/icons/icon-192.png` never asks for it again; the references carry
+`?v=2` so the new ones are fetched. They are in `public/manifest.webmanifest`,
+`src/app/layout.tsx`, `public/sw.js`, `public/offline.html`,
+`src/components/notifications/notifier.tsx` and `src/lib/seo/config.ts`. A
+changed icon address is also what tells an installed Android app to update its
+icon. The favicon isn't cached that way and needs nothing.
+
+`offline.html` hand-copies the theme tokens (it can't import the app's CSS), so
+refresh it too if those move — see `docs/design-system.md`.
 
 ## Notes and caveats
 
