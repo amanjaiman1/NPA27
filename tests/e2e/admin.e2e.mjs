@@ -13,6 +13,7 @@
  *     npm run test:e2e:admin -- --no-build
  *     npm run test:e2e:admin -- --no-build --trust-only   # the review form and the demo only
  *     npm run test:e2e:admin -- --no-build --help-only    # Help & feedback and crash reports only
+ *     npm run test:e2e:admin -- --no-build --refresh-only # Refresh Data only
  *
  * Everything here is local and thrown away at the end. The build points at
  * the mock, so run `npm run build` again before using the app for real.
@@ -25,6 +26,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
 import { PLATFORM_ROLES, permissionsFor } from "../../src/lib/platform/roles.ts";
+import { ADMIN_RESOURCES } from "../../src/lib/platform/admin-refresh.ts";
 import { PRODUCT_MODULES } from "../../src/content/product-status.ts";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
@@ -1406,6 +1408,346 @@ async function liveBrowserScenarios(browser, people) {
   });
 }
 
+/* ── Refresh Data ──────────────────────────────────────────────── */
+
+/** Presses Refresh Data in the header and waits for it to finish; returns how it went. */
+async function refreshData(page) {
+  const control = page.locator("[data-refresh-control]").first();
+  const before = Number((await control.getAttribute("data-refresh-run")) ?? 0);
+  await control.locator("[data-refresh-button]").click();
+  await waitFor("Refresh Data to finish", async () => Number(await control.getAttribute("data-refresh-run")) > before, 20_000);
+  return control.getAttribute("data-refresh-outcome");
+}
+
+/** A figure on the Overview, by its label. */
+const metric = (page, label) =>
+  page.evaluate((l) => {
+    const p = [...document.querySelectorAll("main p.eyebrow")].find((x) => x.textContent?.trim() === l);
+    return p?.parentElement?.parentElement?.querySelector("p.tabular")?.textContent?.trim() ?? null;
+  }, label);
+
+/** The status panel's rows, as "Label: state text". */
+const panelRows = (page) =>
+  page.evaluate(() =>
+    [...document.querySelectorAll('[role=dialog][aria-label="Refresh details"] li[data-resource]')].map(
+      (li) => `${li.getAttribute("data-resource")}:${li.getAttribute("data-state")}`,
+    ),
+  );
+
+async function refreshScenarios(browser, people) {
+  const { owner, mod } = people;
+  const RS = `refresh-${RUN}`;
+
+  await scenario("26. Refresh Data brings every module's changes in with no live updates and no page load, keeping filters, pages, open sections and drafts", async () => {
+    const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+    // No live updates in this browser: whatever changes on screen, Refresh Data brought.
+    await ctx.routeWebSocket(/\/realtime\/v1\//, (ws) => ws.close());
+    const page = await ctx.newPage();
+    let loads = 0;
+    page.on("load", () => loads++);
+    const adminCalls = [];
+    page.on("request", (r) => {
+      const u = new URL(r.url());
+      if (u.origin === APP && u.pathname.startsWith("/api/admin/")) adminCalls.push(`${u.pathname.slice("/api/admin/".length)}${u.search}`);
+    });
+    await signInUi(page, owner.email);
+    await page.getByRole("heading", { name: "Overview", level: 1 }).waitFor();
+    await page.waitForLoadState("networkidle");
+    const nav = page.getByRole("navigation", { name: "Admin Center" });
+    const go = async (link) => {
+      await nav.getByRole("link", { name: link, exact: true }).click();
+      await page.getByRole("heading", { name: link, level: 1 }).waitFor();
+      await page.waitForLoadState("networkidle");
+    };
+    const settled = loads;
+    const header = page.locator("[data-refresh-control]");
+    check(await header.locator("[data-refresh-button]").isVisible(), "Refresh Data is in the header");
+    await page.screenshot({ path: join(SHOTS, "refresh-header.png") });
+
+    // A. The Overview: a new account shows in the figures.
+    const before = await metric(page, "Registered accounts");
+    const fresh = await signUpApi("Refresh One", `${RS}-new@example.com`);
+    await page.waitForTimeout(1_500);
+    check((await metric(page, "Registered accounts")) === before, "the Overview changed without a refresh: live updates weren't off");
+    check((await refreshData(page)) === "success", "the Overview's refresh");
+    await page.getByText("Admin data refreshed successfully.").waitFor();
+    const total = data(await api(owner.token, "GET", "/api/admin/overview")).accounts.total;
+    check((await metric(page, "Registered accounts")) === total.toLocaleString("en-IN"), `the Overview shows ${await metric(page, "Registered accounts")}, the API ${total}`);
+    check(/^Refreshed \d\d:\d\d:\d\d$/.test(await header.locator("button").first().innerText()), "the header says when it refreshed, to the second");
+
+    // B, H. Users: a search, its first page scrolled down, then a suspension on its second page:
+    // the search, the page and the scroll position stay as they were.
+    const crowd = [];
+    for (let i = 0; i < 26; i++) crowd.push(await signUpApi(`Refresh ${i}`, `${RS}-${String(i).padStart(2, "0")}@example.com`));
+    await go("Users");
+    await page.getByLabel("Search accounts").fill(RS);
+    await page.getByText(/^1–25 of 27$/).waitFor();
+    const main = page.locator("main");
+    await main.evaluate((m) => (m.scrollTop = 400));
+    const scrolled = await main.evaluate((m) => m.scrollTop);
+    check(scrolled > 100, `the list is too short to scroll: ${scrolled}`);
+    check((await refreshData(page)) === "success", "the Users refresh");
+    check(Math.abs((await main.evaluate((m) => m.scrollTop)) - scrolled) <= 1, "the scroll position was kept");
+    check((await page.getByLabel("Search accounts").inputValue()) === RS, "the search was kept");
+    await page.getByRole("button", { name: "Next" }).click();
+    await page.getByText(/^26–27 of 27$/).waitFor();
+    const second = (await page.locator("tbody tr").first().locator("td").first().locator("p").first().innerText()).trim();
+    const target = [...crowd, fresh].find((p) => p.email === second);
+    check(target, `the second page shows ${second}`);
+    check((await api(owner.token, "POST", `/api/admin/users/${target.id}/suspend`, { reason: "Refresh Data check", length: "7" })).status === 200, "the suspension");
+    const row = page.locator("tbody tr", { hasText: second });
+    await page.waitForTimeout(1_000);
+    check(!(await row.getByText("Suspended", { exact: true }).count()), "the suspension showed without a refresh");
+    check((await refreshData(page)) === "success", "the Users refresh after a suspension");
+    // The badge in the status column (the one beside the email is for phones).
+    await row.getByText("Suspended", { exact: true }).last().waitFor();
+    await page.getByText(/^26–27 of 27$/).waitFor();
+    check((await page.getByLabel("Search accounts").inputValue()) === RS, "the search was kept on the second page");
+    check(new URL(page.url()).pathname === "/admin/users", `the refresh moved to ${page.url()}`);
+    await api(owner.token, "POST", `/api/admin/users/${target.id}/restore`, { reason: "Done checking" });
+
+    // G. Changes in other modules while Users is open: refreshed or loaded fresh when opened.
+    const student = await signUpApi("Refresh Student", `${RS}-student@example.com`);
+    await giveUsage(student);
+    const headline = `Refresh ${RUN}: the queue keeps me honest`;
+    const review = data(
+      await api(student.token, "POST", "/api/reviews", {
+        rating: 5,
+        headline,
+        body: `${REVIEW_MARK} refresh: the revision queue tells me what to read each morning.`,
+        features: ["journal"],
+        stage: "prelims",
+        displayName: "Student R.",
+        feedbackConsent: true,
+        publicConsent: true,
+      }),
+    );
+    check(review?.status === "pending", `the review was sent: ${JSON.stringify(review)}`);
+    const message = `REFRESH-FEEDBACK-${RUN}: the timer pauses when the tab is hidden.`;
+    check(data(await api(student.token, "POST", "/api/feedback", { category: "bug", message, shareEmail: false, includeDetails: false }))?.id, "the feedback was sent");
+    const annTitle = `REFRESH-ANNOUNCE-${RUN}: Mocks open faster`;
+    const ann = data(await api(owner.token, "POST", "/api/admin/announcements", { title: annTitle, body: "Half the time.", category: "product_update" }));
+    check(data(await api(owner.token, "POST", `/api/admin/announcements/${ann.id}/action`, { action: "publish" }))?.state === "live", "the announcement is live");
+    const entryTitle = `Refresh check ${RUN}`;
+    const entry = data(await api(owner.token, "POST", "/api/admin/changelog", { title: entryTitle, summary: "A refresh check.", body: "Nothing to see.", category: "improvement" }));
+    check(data(await api(owner.token, "POST", `/api/admin/changelog/${entry.id}/action`, { action: "publish" }))?.state === "published", "the update is published");
+    check((await refreshData(page)) === "success", "the refresh with other modules changed");
+    await page.locator("[data-refresh-control]").getByRole("button", { name: /^Refresh details/ }).click();
+    const rows = await panelRows(page);
+    check(rows.includes("users:updated") && rows.includes("visits:updated") && rows.includes("role:updated"), `what's on screen was refreshed: ${rows}`);
+    const panel = page.getByRole("dialog", { name: "Refresh details" });
+    const closedLine = await panel.getByText(/^Not open now:/).locator("..").innerText();
+    for (const name of ["Overview", "Reviews", "Feedback", "Announcements", "Changelog", "Audit log"]) check(closedLine.includes(name), `${name} isn't listed as not open: ${closedLine}`);
+    await page.waitForTimeout(400); // the panel has finished opening
+    await page.screenshot({ path: join(SHOTS, "refresh-panel.png") });
+    await page.keyboard.press("Escape");
+    await panel.waitFor({ state: "detached" });
+
+    // C. Reviews: the new one is waiting, and the count says so.
+    await go("Reviews");
+    await page.getByRole("heading", { name: headline }).waitFor();
+    const waiting = async () =>
+      Number((await page.getByRole("group", { name: "Review status" }).getByRole("button", { name: /^Waiting/ }).innerText()).match(/· (\d+)/)?.[1] ?? 0);
+    const waitingBefore = await waiting();
+    const second2 = data(
+      await api(student.token, "POST", "/api/reviews", {
+        rating: 4,
+        headline: `${headline} (edited)`,
+        body: `${REVIEW_MARK} refresh: edited, and still the revision queue.`,
+        features: ["journal"],
+        stage: "prelims",
+        displayName: "Student R.",
+        feedbackConsent: true,
+        publicConsent: true,
+      }),
+    );
+    check(second2?.status === "pending", "the edit was sent");
+    // H. An open section and an unsent response stay as they are.
+    /** A review's card: the innermost box with both its headline and its response section. */
+    const cardOf = (h) =>
+      page
+        .locator("div")
+        .filter({ has: page.getByRole("heading", { name: h, exact: true }) })
+        .filter({ has: page.getByRole("button", { name: /Respond officially/ }) })
+        .last();
+    const card = cardOf(headline);
+    await card.getByRole("button", { name: /Respond officially/ }).click();
+    await card.getByLabel("Official response").fill("REFRESH-DRAFT: thank you, written but not sent.");
+    await card.getByRole("button", { name: /History, consent and earlier versions/ }).click();
+    await card.getByText("Moderation history").waitFor();
+    check((await refreshData(page)) === "success", "the Reviews refresh");
+    await page.getByRole("heading", { name: `${headline} (edited)` }).waitFor();
+    const edited = cardOf(`${headline} (edited)`);
+    check((await edited.getByLabel("Official response").inputValue()) === "REFRESH-DRAFT: thank you, written but not sent.", "the unsent response was kept");
+    check(await edited.getByText("Moderation history").isVisible(), "the open section stayed open");
+    check((await waiting()) === waitingBefore, `an edit isn't a new review: ${await waiting()} waiting`);
+
+    // D. Feedback: the message is there; a new one arrives with Refresh Data.
+    await go("Feedback");
+    await page.getByText(message).waitFor();
+    const message2 = `REFRESH-FEEDBACK-2-${RUN}: the export button is hidden on phones.`;
+    await api(student.token, "POST", "/api/feedback", { category: "bug", message: message2, shareEmail: false, includeDetails: false });
+    await page.waitForTimeout(1_000);
+    check(!(await page.getByText(message2).count()), "the feedback arrived without a refresh");
+    // J. Pressed five times in a row: one refresh, one request per address on screen. The list is
+    // held back a moment, as on a slow connection, so every press lands while the refresh runs.
+    const slowList = (url) => url.pathname === "/api/admin/feedback";
+    await page.route(slowList, (r) => setTimeout(() => r.continue().catch(() => undefined), 1_200));
+    const callsBefore = adminCalls.length;
+    const button = await header.locator("[data-refresh-button]").elementHandle();
+    const runBefore = Number(await header.getAttribute("data-refresh-run"));
+    // Three in the same instant (a double-click and then some), then two more a moment apart.
+    await button.evaluate((b) => {
+      b.click();
+      b.click();
+      b.click();
+    });
+    check(await header.getByRole("button", { name: "Refreshing admin data" }).isVisible(), "the button didn't say it was refreshing");
+    for (let i = 0; i < 2; i++) {
+      await page.waitForTimeout(150);
+      await button.click({ force: true, noWaitAfter: true });
+    }
+    await waitFor("the refresh to finish", async () => Number(await header.getAttribute("data-refresh-run")) > runBefore);
+    await page.unroute(slowList);
+    await page.waitForTimeout(500);
+    check(Number(await header.getAttribute("data-refresh-run")) === runBefore + 1, "five presses made more than one refresh");
+    const during = adminCalls.slice(callsBefore);
+    check(new Set(during).size === during.length, `an address was asked twice: ${during}`);
+    check(during.some((c) => c.startsWith("feedback?")) && during.some((c) => c.startsWith("crashes?")) && during.includes("me"), `what was asked: ${during}`);
+    await page.getByText(message2).waitFor();
+
+    // I. One resource failing: the rest refresh, it's named, and a retry brings it back.
+    const crashes = (url) => url.pathname === "/api/admin/crashes";
+    await page.route(crashes, (r) => r.fulfill({ status: 500, contentType: "application/json", body: JSON.stringify({ error: "relation crash_secrets does not exist", code: "server" }) }));
+    check((await refreshData(page)) === "partial", "one failing resource is a partial refresh");
+    await page.getByText("Some information could not be refreshed. Your existing data is still available.").waitFor();
+    await page.getByText("Not refreshed: Crash reports.").waitFor();
+    await header.getByRole("button", { name: /^Refresh details/ }).click();
+    check((await panelRows(page)).includes("crashes:failed") && (await panelRows(page)).includes("feedback:updated"), `the panel: ${await panelRows(page)}`);
+    check(!(await panel.innerText()).includes("crash_secrets"), "the server's own words reached the panel");
+    await page.unroute(crashes);
+    await panel.getByRole("button", { name: "Retry Crash reports" }).click();
+    await page.getByText("Crash reports refreshed.").waitFor();
+    await waitFor("the retried row to update", async () => (await panelRows(page)).includes("crashes:updated"));
+    check((await header.getAttribute("data-refresh-outcome")) === "success", "the retry is folded into the last refresh");
+    await page.keyboard.press("Escape");
+    await panel.waitFor({ state: "detached" });
+    check(!(await page.locator("main [role=alert]").allInnerTexts()).some((t) => t.trim()), "the failure showed as an error on the page");
+
+    // E. Announcements, F. Changelog: what was published, live and published.
+    await go("Announcements");
+    await page.getByRole("heading", { name: annTitle }).waitFor();
+    const ann2 = `REFRESH-ANNOUNCE-2-${RUN}: Notes sync faster`;
+    const a2 = data(await api(owner.token, "POST", "/api/admin/announcements", { title: ann2, body: "At once.", category: "product_update" }));
+    await api(owner.token, "POST", `/api/admin/announcements/${a2.id}/action`, { action: "publish" });
+    check((await refreshData(page)) === "success", "the Announcements refresh");
+    const annRow = page.locator("li").filter({ has: page.getByRole("heading", { name: ann2 }) });
+    await annRow.getByText("Live", { exact: true }).first().waitFor();
+    await go("Changelog");
+    await page.getByRole("heading", { name: entryTitle }).first().waitFor();
+    const entry2Title = `Refresh check two ${RUN}`;
+    const e2 = data(await api(owner.token, "POST", "/api/admin/changelog", { title: entry2Title, summary: "Another check.", body: "Still nothing.", category: "improvement" }));
+    await api(owner.token, "POST", `/api/admin/changelog/${e2.id}/action`, { action: "publish" });
+    check((await refreshData(page)) === "success", "the Changelog refresh");
+    const entryRow = page.locator("li").filter({ has: page.getByRole("heading", { name: entry2Title }) });
+    await entryRow.getByText("Published", { exact: true }).first().waitFor();
+
+    // H. Unsaved fields: a setting being edited, and an email being typed in Admin access.
+    await go("Platform settings");
+    const usage = page.getByLabel("Days with records (days)");
+    await usage.fill("11");
+    check((await refreshData(page)) === "success", "the Settings refresh");
+    check((await usage.inputValue()) === "11", "the setting being edited kept its value");
+    await page.getByRole("button", { name: "Discard" }).first().click();
+    await go("Admin access");
+    await page.getByLabel("Account email").fill(`${RS}-typed@example.com`);
+    check((await refreshData(page)) === "success", "the Admin access refresh");
+    check((await page.getByLabel("Account email").inputValue()) === `${RS}-typed@example.com`, "the email being typed was kept");
+
+    // The audit log: an entry made elsewhere arrives on top; older ones stay.
+    await go("Audit log");
+    check((await sql(`insert into public.platform_admin_audit_log (actor_id, actor_role, action, target_type, target_id, reason) values ('${owner.id}', 'super_admin', 'user.suspended', 'user', '${student.id}', 'Refresh audit check ${RUN}')`)).ok, "an audit entry added elsewhere");
+    await page.waitForTimeout(1_000);
+    check(!(await page.getByText(`“Refresh audit check ${RUN}”`).count()), "the audit entry arrived without a refresh");
+    check((await refreshData(page)) === "success", "the audit refresh");
+    await page.getByText(`“Refresh audit check ${RUN}”`).waitFor();
+
+    // K. Not one page load in all of it.
+    check(loads === settled, `the Admin Center loaded the page again ${loads - settled} time(s)`);
+    await ctx.close();
+  });
+
+  await scenario("27. A Moderator's Refresh Data covers only what the role includes, and asks for nothing else", async () => {
+    const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+    const page = await ctx.newPage();
+    const responses = [];
+    page.on("response", (r) => {
+      const u = new URL(r.url());
+      if (u.origin === APP && u.pathname.startsWith("/api/admin/")) responses.push(`${r.status()} ${u.pathname}`);
+    });
+    await signInUi(page, mod.email, "/admin");
+    await page.getByRole("heading", { name: "Overview", level: 1 }).waitFor();
+    await page.waitForLoadState("networkidle");
+    responses.length = 0;
+    check((await refreshData(page)) === "success", "the Moderator's refresh");
+    const asked = [...new Set(responses)];
+    check(asked.every((r) => /^200 \/api\/admin\/(overview|me)$/.test(r)), `the Moderator's refresh asked: ${asked}`);
+    await page.locator("[data-refresh-control]").getByRole("button", { name: /^Refresh details/ }).click();
+    const panel = page.getByRole("dialog", { name: "Refresh details" });
+    const outside = await panel.getByText(/^Not part of your role:/).locator("..").innerText();
+    // Whatever the platform settings let a Moderator do today, the server's word for it.
+    const { permissions } = data(await api(mod.token, "GET", "/api/admin/me"));
+    for (const r of ADMIN_RESOURCES) {
+      const listed = new RegExp(`(: |, )${r.label}(,|\\.)`).test(outside);
+      check(listed === !permissions.includes(r.permission), `${r.label} is${listed ? "" : "n't"} listed outside the role: ${outside}`);
+    }
+    await page.waitForTimeout(400); // the panel has finished opening
+    await page.screenshot({ path: join(SHOTS, "refresh-moderator.png") });
+    await ctx.close();
+
+    // L. Without a role there's no Admin Center, so nothing to refresh, and the API refuses its data.
+    const s = await signUpApi("Refresh Stranger", `${RS}-stranger@example.com`);
+    for (const p of ["/api/admin/overview", "/api/admin/users", "/api/admin/audit", "/api/admin/me"]) {
+      check((await api(s.token, "GET", p)).status === 403, `${p} answered someone without a role`);
+    }
+  });
+
+  await scenario("28. Refresh Data on a phone and in every theme: two round buttons, the panel as a sheet, nothing spilling sideways", async () => {
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+    const page = await ctx.newPage();
+    await signInUi(page, owner.email);
+    await page.getByRole("heading", { name: "Overview", level: 1 }).waitFor();
+    await page.waitForLoadState("networkidle");
+    const control = page.locator("[data-refresh-control]");
+    check(await control.locator("[data-refresh-button]").isVisible(), "Refresh Data is in the phone's header");
+    check((await refreshData(page)) === "success", "the phone's refresh");
+    await control.getByRole("button", { name: /^Refresh details/ }).click();
+    const sheet = page.getByRole("dialog", { name: "Refresh details" });
+    await sheet.waitFor();
+    const box = await sheet.boundingBox();
+    check(box && box.x >= 0 && box.x + box.width <= 390 + 1 && box.y + box.height <= 844 + 1, `the sheet is off screen: ${JSON.stringify(box)}`);
+    check(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), "the header spills sideways on a phone");
+    await page.waitForTimeout(400); // the panel has finished opening
+    await page.screenshot({ path: join(SHOTS, "refresh-phone.png") });
+    await page.keyboard.press("Escape");
+    for (const [mode, surface] of [["lavender", "lavender"], ["light", "white"], ["dark", "black"]]) {
+      await page.evaluate(([id, m]) => localStorage.setItem(`upsc-chronicle-theme:${id}`, m), [owner.id, mode]);
+      await page.setViewportSize({ width: 1440, height: 900 });
+      await page.goto(`${APP}/admin/users`);
+      await page.getByRole("heading", { name: "Users", level: 1 }).waitFor();
+      check((await page.evaluate(() => document.documentElement.getAttribute("data-surface"))) === surface, `the ${mode} theme applies`);
+      await page.waitForLoadState("networkidle");
+      check((await refreshData(page)) === "success", `the refresh in ${mode}`);
+      await control.getByRole("button", { name: /^Refresh details/ }).click();
+      await page.getByRole("dialog", { name: "Refresh details" }).waitFor();
+      await page.waitForTimeout(400); // the panel has finished opening
+      await page.screenshot({ path: join(SHOTS, `refresh-theme-${mode}.png`) });
+      await page.keyboard.press("Escape");
+    }
+    await ctx.close();
+  });
+}
+
 /* ── run ───────────────────────────────────────────────────────── */
 
 async function main() {
@@ -1432,6 +1774,13 @@ async function main() {
       s5: await signUpApi("Student Five", "student.five@example.com"),
       s6: await signUpApi("Student Six", "student.six@example.com"),
     };
+    if (process.argv.includes("--refresh-only")) {
+      check((await sql(bootstrapSql(people.owner.id))).ok, "the owner's role");
+      check((await api(people.owner.token, "POST", "/api/admin/access", { email: people.mod.email, role: "moderator" })).status === 200, "the Moderator's role");
+      await refreshScenarios(browser, people);
+      console.log(`\nAll ${passed} scenarios passed. Screenshots: ${SHOTS}`);
+      return;
+    }
     if (process.argv.includes("--help-only")) {
       check((await sql(bootstrapSql(people.owner.id))).ok, "the owner's role");
       check((await api(people.owner.token, "POST", "/api/admin/access", { email: people.mod.email, role: "moderator" })).status === 200, "the Moderator's role");
@@ -1446,7 +1795,10 @@ async function main() {
       await trustBrowserScenarios(browser, people);
     }
     await helpScenarios(browser, people);
-    if (!process.argv.includes("--trust-only") && !process.argv.includes("--help-only")) await liveBrowserScenarios(browser, people);
+    if (!process.argv.includes("--trust-only") && !process.argv.includes("--help-only")) {
+      await liveBrowserScenarios(browser, people);
+      await refreshScenarios(browser, people);
+    }
     console.log(`\nAll ${passed} scenarios passed. Screenshots: ${SHOTS}`);
   } catch (e) {
     console.log("✗");
