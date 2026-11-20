@@ -40,9 +40,8 @@ export default async function ContactPage() {
               </FeatureCard>
             )}
             <FeatureCard icon={LifeBuoy} title="From inside the app">
-              Signed in? Settings, then Help &amp; feedback, sends a bug report, an idea or a question straight to the
-              team, with a screenshot if it helps. Their answer appears there too. Your email goes with it only if you
-              choose.
+              Signed in? The Help &amp; feedback button at the bottom right of the app sends a bug report, an idea or a
+              question straight to the team, with a screenshot if it helps. Their answer appears there too.
             </FeatureCard>
             <FeatureCard icon={UserCog} title="Your account and data">
               You can download your data or delete your account yourself, any time, in Settings. If you can&apos;t sign

@@ -436,8 +436,8 @@ export default async function TrustPage() {
               <LifeBuoy className="h-5 w-5 text-accent" aria-hidden />
               <h3 className="mt-3 font-semibold text-paper">From inside the app</h3>
               <p className="mt-1.5">
-                Settings, then Help &amp; feedback, sends a bug report, an idea or a question to the team. Their answer appears there
-                too.
+                The Help &amp; feedback button at the bottom right of the app sends a bug report, an idea or a question to the
+                team. Their answer appears there too.
               </p>
             </li>
             {email && (
