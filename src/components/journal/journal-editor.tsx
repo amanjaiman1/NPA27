@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import { Plus, Minus, Trash2, Sunrise, Moon, ChevronDown, AlertTriangle, Target, Check, GraduationCap, BookOpenCheck, Copy, PenLine, Paperclip, RotateCcw, Smile } from "lucide-react";
+import { Plus, Minus, Trash2, Sunrise, Moon, ChevronDown, AlertTriangle, Target, Check, GraduationCap, BookOpenCheck, PenLine, Paperclip, RotateCcw, Smile } from "lucide-react";
 import type { Goal, ISODate, JournalEntry, LifeEntry, StudyBlock, Subject, TopicCompletion } from "@/lib/types";
 import { useChronicle, type JournalSaveResult } from "@/lib/store";
 import { Field, Input, Textarea, Select, ListEditor } from "@/components/ui/form";
@@ -98,15 +98,17 @@ function HeroCard({
   hint,
   aside,
   children,
+  className,
 }: {
   icon: typeof Plus;
   title: string;
   hint: string;
   aside?: React.ReactNode;
   children: React.ReactNode;
+  className?: string;
 }) {
   return (
-    <section className="min-w-0">
+    <section className={cn("min-w-0", className)}>
       <header className="mb-5 flex items-start justify-between gap-4">
         <div className="flex min-w-0 items-center gap-3">
           <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-accent/15 text-accent ring-1 ring-accent/20" aria-hidden>
@@ -155,52 +157,31 @@ function PlainCard({
 const SHADES = ["bg-accent", "bg-accent/70", "bg-accent/50", "bg-accent/35", "bg-accent/25", "bg-accent/15"];
 
 /**
- * Hours by subject, built for speed: tap a subject you usually study to add
- * it, nudge the hours in half-hour steps, or repeat your last day's subjects.
- * The ring shows the day against your daily target.
+ * Hours by subject. Rows work as they always have (choose a subject, give
+ * it hours, "Add a subject" for another row), with half-hour steps on each
+ * row and the day shown against your daily target.
  */
 function StudyCard({
   draft,
   patch,
   subjects,
-  journal,
   target,
+  className,
 }: {
   draft: JournalEntry;
   patch: (p: Partial<JournalEntry>) => void;
   subjects: Subject[];
-  journal: JournalEntry[];
   target: number;
+  className?: string;
 }) {
   const blocks = draft.blocks;
   const total = round(blocks.reduce((a, b) => a + (Number(b.hours) || 0), 0), 2);
   const counted = blocks.filter((b) => b.subjectId && Number(b.hours) > 0);
-  const used = new Set(blocks.map((b) => b.subjectId).filter(Boolean));
-
-  // Subjects you study most often come first among the quick picks.
-  const ranked = useMemo(() => {
-    const seen = new Map<string, number>();
-    for (const j of journal) if (j.date < draft.date) for (const b of j.blocks ?? []) if (b.subjectId) seen.set(b.subjectId, (seen.get(b.subjectId) ?? 0) + 1);
-    return [...subjects].sort((a, b) => (seen.get(b.id) ?? 0) - (seen.get(a.id) ?? 0) || a.name.localeCompare(b.name));
-  }, [journal, subjects, draft.date]);
-  const quick = ranked.filter((s) => !used.has(s.id)).slice(0, 6);
-  const last = useMemo(
-    () =>
-      journal
-        .filter((j) => j.date < draft.date && (j.blocks ?? []).some((b) => b.subjectId && b.hours > 0))
-        .reduce<JournalEntry | null>((best, j) => (!best || j.date > best.date ? j : best), null),
-    [journal, draft.date],
-  );
 
   const setBlock = (i: number, p: Partial<StudyBlock>) => {
     const next = [...blocks];
     next[i] = { ...next[i], ...p };
     patch({ blocks: next });
-  };
-  const addSubject = (id: string) => {
-    const empty = blocks.findIndex((b) => !b.subjectId);
-    if (empty >= 0) setBlock(empty, { subjectId: id, hours: Number(blocks[empty].hours) || 1 });
-    else patch({ blocks: [...blocks, { subjectId: id, hours: 1 }] });
   };
   const step = (i: number, by: number) => setBlock(i, { hours: Math.min(24, Math.max(0, round((Number(blocks[i].hours) || 0) + by, 2))) });
   const pct = target > 0 ? Math.min(100, Math.round((total / target) * 100)) : null;
@@ -208,6 +189,7 @@ function StudyCard({
 
   return (
     <HeroCard
+      className={className}
       icon={GraduationCap}
       title="Study"
       hint="What you studied today, and for how long."
@@ -298,40 +280,13 @@ function StudyCard({
         ))}
       </ul>
 
-      <div className="space-y-2 border-t border-line pt-4">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <p className="text-[0.72rem] font-semibold text-paper/55">Add a subject</p>
-          {last && used.size === 0 && (
-            <button
-              type="button"
-              onClick={() => patch({ blocks: last.blocks.filter((b) => b.subjectId && b.hours > 0).map((b) => ({ ...b })) })}
-              className="inline-flex items-center gap-1.5 text-[0.74rem] font-semibold text-accent hover:underline"
-            >
-              <Copy className="h-3.5 w-3.5" aria-hidden /> Same as {formatDate(last.date)}
-            </button>
-          )}
-        </div>
-        <div className="flex flex-wrap gap-1.5">
-          {quick.map((s) => (
-            <button
-              key={s.id}
-              type="button"
-              onClick={() => addSubject(s.id)}
-              className="inline-flex max-w-full items-center gap-1 rounded-full border border-line px-3 py-1.5 text-xs font-semibold text-paper/75 transition-colors hover:border-accent/40 hover:text-accent"
-            >
-              <Plus className="h-3 w-3 shrink-0" aria-hidden />
-              <span className="truncate">{s.name}</span>
-            </button>
-          ))}
-          <button
-            type="button"
-            onClick={() => patch({ blocks: [...blocks, { subjectId: "", hours: 1 }] })}
-            className="inline-flex items-center gap-1 rounded-full border border-dashed border-paper/25 px-3 py-1.5 text-xs font-semibold text-paper/60 hover:text-paper"
-          >
-            <Plus className="h-3 w-3" aria-hidden /> Another row
-          </button>
-        </div>
-      </div>
+      <button
+        type="button"
+        onClick={() => patch({ blocks: [...blocks, { subjectId: "", hours: 1 }] })}
+        className="inline-flex items-center gap-1.5 text-xs font-semibold text-accent hover:underline"
+      >
+        <Plus className="h-3.5 w-3.5" /> Add a subject
+      </button>
     </HeroCard>
   );
 }
@@ -780,7 +735,7 @@ export function JournalFields({
         type="button"
         onClick={() => setMore((m) => !m)}
         aria-expanded={more}
-        className={cn("flex w-full items-center justify-between gap-3 text-left", page ? "-mx-2 rounded-xl px-2 py-3 hover:bg-paper/[0.03]" : "px-4 py-3")}
+        className={cn("flex w-full items-center justify-between gap-3 text-left", page ? "px-4 py-4 transition-colors hover:bg-paper/[0.03] sm:px-6" : "px-4 py-3")}
       >
         <span>
           <span className="block text-[0.78rem] font-semibold text-paper/80">More details</span>
@@ -789,7 +744,7 @@ export function JournalFields({
         <ChevronDown className={cn("h-4 w-4 shrink-0 text-paper/45 transition-transform", more && "rotate-180")} />
       </button>
       {more && (
-        <div className={cn("space-y-6 border-t border-line pb-4 pt-4", page ? "" : "px-4")}>
+        <div className={cn("space-y-6 border-t border-line pb-4 pt-4", page ? "px-4 pb-6 pt-5 sm:px-6" : "px-4")}>
           <Section title="Wins">
             <ListEditor items={draft.wins ?? []} onChange={(wins) => patch({ wins })} placeholder="What went well?" />
           </Section>
@@ -835,15 +790,14 @@ export function JournalFields({
 
   if (page) {
     const topicCount = draft.completedTopics?.length ?? 0;
+    const pad = "p-4 sm:p-6";
     return (
-      <div className="divide-y divide-line">
+      <div className="overflow-hidden rounded-3xl border border-line bg-paper/[0.015] shadow-soft">
         {/* What the day was mostly about, first and largest. */}
-        <div className="grid items-start gap-6 pb-7 xl:grid-cols-[minmax(0,1.08fr)_minmax(0,1fr)] xl:gap-0 xl:divide-x xl:divide-line">
-          <div className="min-w-0 xl:pr-7">
-          <StudyCard draft={draft} patch={patch} subjects={subjects} journal={journal} target={profile.dailyHourTarget} />
-          </div>
-          <div className="min-w-0 border-t border-line pt-6 xl:border-t-0 xl:pl-7 xl:pt-0">
+        <div className="grid divide-y divide-line bg-gradient-to-b from-accent/[0.06] to-transparent xl:grid-cols-[minmax(0,1.08fr)_minmax(0,1fr)] xl:divide-x xl:divide-y-0">
+          <StudyCard className={pad} draft={draft} patch={patch} subjects={subjects} target={profile.dailyHourTarget} />
           <HeroCard
+            className={pad}
             icon={BookOpenCheck}
             title="Topics completed"
             hint="Search your syllabus or type your own. Topics from today's subjects come first."
@@ -880,15 +834,14 @@ export function JournalFields({
               </label>
             )}
           </HeroCard>
-          </div>
         </div>
 
-        {/* Then the rest of the day, quieter. */}
-        <div className="grid items-start gap-6 py-7 lg:grid-cols-2 lg:gap-0 lg:divide-x lg:divide-line">
-          <PlainCard className="lg:pr-7" icon={RotateCcw} title="Revision" aside={draft.revisionSessions?.length ? `${draft.revisionSessions.length} done` : undefined}>
+        {/* Then the rest of the day, each in its own bay of the same sheet. */}
+        <div className="grid divide-y divide-line border-t border-line lg:grid-cols-2 lg:divide-x lg:divide-y-0">
+          <PlainCard className={pad} icon={RotateCcw} title="Revision" aside={draft.revisionSessions?.length ? `${draft.revisionSessions.length} done` : undefined}>
             <RevisionPicker date={draft.date} sessions={draft.revisionSessions ?? []} onChange={(revisionSessions) => patch({ revisionSessions })} />
           </PlainCard>
-          <PlainCard className="border-t border-line pt-6 lg:border-t-0 lg:pl-7 lg:pt-0" icon={Smile} title="How the day felt">
+          <PlainCard className={pad} icon={Smile} title="How the day felt">
             <div className="grid grid-cols-1 gap-x-5 gap-y-3 sm:grid-cols-2">
               <RatingRow label="Mood" value={draft.mood} onChange={(v) => patch({ mood: v })} labels={MOOD_LABELS} />
               <RatingRow label="Energy" value={draft.energy} onChange={(v) => patch({ energy: v })} labels={ENERGY_LABELS} />
@@ -898,7 +851,7 @@ export function JournalFields({
           </PlainCard>
         </div>
 
-        <PlainCard className="py-7" icon={PenLine} title="Reflection">
+        <PlainCard className={cn(pad, "border-t border-line")} icon={PenLine} title="Reflection">
           <div className="space-y-2.5">
             <Input
               value={draft.highlights ?? ""}
@@ -918,8 +871,8 @@ export function JournalFields({
           </div>
         </PlainCard>
 
-        <div className="grid items-start gap-6 py-7 lg:grid-cols-[minmax(0,1fr)_minmax(0,19rem)] lg:gap-0 lg:divide-x lg:divide-line">
-          <PlainCard className="lg:pr-7" icon={Paperclip} title="Files" aside={draft.fileIds?.length ? `${draft.fileIds.length}` : undefined}>
+        <div className="grid divide-y divide-line border-t border-line lg:grid-cols-[minmax(0,1fr)_minmax(0,19rem)] lg:divide-x lg:divide-y-0">
+          <PlainCard className={pad} icon={Paperclip} title="Files" aside={draft.fileIds?.length ? `${draft.fileIds.length}` : undefined}>
             <AttachmentTray
               entryDate={draft.date}
               otherDates={isEdit && draft.date !== base.date ? [base.date] : undefined}
@@ -931,13 +884,13 @@ export function JournalFields({
               onBusyChange={editor.onBusyChange}
             />
           </PlainCard>
-          <PlainCard className="border-t border-line pt-6 lg:border-t-0 lg:pl-7 lg:pt-0" icon={Sunrise} title="Morning check-in">
+          <PlainCard className={pad} icon={Sunrise} title="Morning check-in">
             {sleepLine}
             <p className="mt-2 text-[0.7rem] text-paper/45">Wake-up and bedtime are recorded in the Life tab.</p>
           </PlainCard>
         </div>
 
-        <div className="pt-3">{moreDetails}</div>
+        <div className="border-t border-line">{moreDetails}</div>
       </div>
     );
   }

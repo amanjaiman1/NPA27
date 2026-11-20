@@ -272,15 +272,15 @@ export function LifeFields({
     return (
       <div className="space-y-5" data-testid="life-form">
         {tracking}
-        <div className="divide-y divide-line">
+        <div className="divide-y divide-line overflow-hidden rounded-3xl border border-line bg-paper/[0.015] shadow-soft">
           {groups.map((g) => (
-            <div key={g.title} className="py-6 first:pt-2">
+            <div key={g.title} className="p-4 sm:p-6">
               <Group icon={g.icon} title={g.title}>
                 {groupBody(g)}
               </Group>
             </div>
           ))}
-          <div className="space-y-6 py-6">
+          <div className="space-y-6 p-4 sm:p-6">
             {note}
             {files}
           </div>

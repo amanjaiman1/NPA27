@@ -999,7 +999,7 @@ function CaptureTabs({
       role="tablist"
       aria-label="Daily Capture sections"
       onKeyDown={onKeyDown}
-      className="lg-clear relative isolate grid grid-cols-4 rounded-full border border-line p-1.5"
+      className="lg-clear relative isolate grid w-full grid-cols-4 rounded-full border border-line px-2 py-2 sm:px-4"
     >
       {SECTIONS.map((s, i) => {
         const active = section === s.id;
@@ -1021,35 +1021,37 @@ function CaptureTabs({
             title={`${s.label}: ${v.text}`}
             onClick={() => onSelect(s.id)}
             className={cn(
-              "group relative flex min-w-0 flex-col items-center gap-0.5 rounded-full bg-transparent px-1 py-2 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/45 sm:py-2.5",
+              "group relative flex min-w-0 flex-col items-center gap-1 bg-transparent px-0.5 focus-visible:outline-none",
               active ? "text-accent" : "text-paper/65 hover:text-paper",
             )}
           >
-            {active && (
-              <motion.span
-                layoutId="capture-lens"
-                className="lg-lens absolute inset-0 -z-10 rounded-full"
-                transition={{ type: "spring", stiffness: 420, damping: 34, mass: 0.9 }}
-                aria-hidden
-              />
-            )}
-            <span className="relative">
-              <Icon
-                className={cn("h-[1.35rem] w-[1.35rem] transition-transform duration-300 sm:h-6 sm:w-6", active ? "scale-105" : "group-hover:-translate-y-px")}
-                strokeWidth={active ? 2.2 : 1.9}
-                aria-hidden
-              />
+            {/* The button itself: a small circle, with the glass lens gliding to the selected one. */}
+            <span
+              className={cn(
+                "relative grid h-10 w-10 place-items-center rounded-full transition-colors duration-200 group-focus-visible:ring-2 group-focus-visible:ring-accent/45 sm:h-11 sm:w-11",
+                !active && "bg-paper/[0.05] group-hover:bg-paper/[0.09]",
+              )}
+            >
+              {active && (
+                <motion.span
+                  layoutId="capture-lens"
+                  className="lg-lens absolute inset-0 -z-10 rounded-full"
+                  transition={{ type: "spring", stiffness: 420, damping: 32, mass: 0.85 }}
+                  aria-hidden
+                />
+              )}
+              <Icon className={cn("h-[1.1rem] w-[1.1rem] transition-transform duration-300 sm:h-5 sm:w-5", active && "scale-105")} strokeWidth={active ? 2.2 : 1.9} aria-hidden />
               {v.state === "complete" && (
-                <span className="absolute -right-1.5 -top-1 grid h-3.5 w-3.5 place-items-center rounded-full bg-positive text-card ring-2 ring-card" aria-hidden>
+                <span className="absolute -right-0.5 -top-0.5 grid h-3.5 w-3.5 place-items-center rounded-full bg-positive text-card ring-2 ring-card" aria-hidden>
                   <Check className="h-2 w-2" strokeWidth={4} />
                 </span>
               )}
               {(v.state === "unsaved" || v.state === "error") && (
-                <span className={cn("absolute -right-1 -top-0.5 h-2.5 w-2.5 rounded-full ring-2 ring-card", v.state === "error" ? "bg-danger" : "bg-accent")} aria-hidden />
+                <span className={cn("absolute right-0 top-0 h-2.5 w-2.5 rounded-full ring-2 ring-card", v.state === "error" ? "bg-danger" : "bg-accent")} aria-hidden />
               )}
             </span>
-            <span className={cn("max-w-full truncate text-[0.74rem] font-semibold tracking-snugg sm:text-[0.86rem]", active ? "text-paper" : "")}>{s.label}</span>
-            <span className={cn("tabular max-w-full truncate text-[0.62rem] font-medium sm:text-[0.68rem]", FIGURE[v.state])}>{v.badge}</span>
+            <span className={cn("max-w-full truncate text-[0.68rem] font-semibold tracking-snugg sm:text-[0.74rem]", active && "text-paper")}>{s.label}</span>
+            <span className={cn("tabular -mt-0.5 max-w-full truncate text-[0.6rem] font-medium sm:text-[0.64rem]", FIGURE[v.state])}>{v.badge}</span>
             <span className="sr-only">, {v.text}</span>
           </button>
         );

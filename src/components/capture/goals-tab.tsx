@@ -140,7 +140,7 @@ export function GoalsTab({
           }
         />
       ) : (
-        <ul className="divide-y divide-line" aria-label="Goals">
+        <ul className="divide-y divide-line overflow-hidden rounded-3xl border border-line bg-paper/[0.015] shadow-soft" aria-label="Goals">
           {shown.map((p) => (
             <GoalCaptureCard
               key={p.goal.id}
@@ -210,7 +210,7 @@ const GoalCaptureCard = memo(function GoalCaptureCard({
 
   return (
     <li className="min-w-0">
-      <div className={cn("-mx-2 rounded-2xl px-2 py-4 transition-colors sm:-mx-3 sm:px-3", pending && "bg-accent/[0.05]", error && "bg-danger/[0.06]")}>
+      <div className={cn("px-4 py-4 transition-colors sm:px-6 sm:py-5", pending && "bg-accent/[0.05]", error && "bg-danger/[0.06]")}>
         <div className="flex items-start gap-3">
           <span className={cn("grid h-10 w-10 shrink-0 place-items-center rounded-xl", PILL[tone])} aria-hidden>
             {isMilestones ? <Flag className="h-[1.05rem] w-[1.05rem]" /> : <Target className="h-[1.05rem] w-[1.05rem]" />}

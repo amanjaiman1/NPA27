@@ -77,8 +77,8 @@ export function HabitTab({
   };
 
   return (
-    <div className="space-y-5">
-      <div className="flex flex-wrap items-center gap-4 border-b border-line pb-5">
+    <div className="divide-y divide-line overflow-hidden rounded-3xl border border-line bg-paper/[0.015] shadow-soft">
+      <div className="flex flex-wrap items-center gap-4 p-4 sm:p-6">
         <RadialProgress
           value={summary.percent ?? 0}
           tone={summary.percent === 100 ? "positive" : "accent"}
@@ -111,8 +111,8 @@ export function HabitTab({
       </div>
 
       {manual.length > 0 && (
-        <section aria-labelledby="habits-manual">
-          <h2 id="habits-manual" className="mb-2 px-1 text-[0.78rem] font-semibold tracking-snugg text-paper/75">
+        <section aria-labelledby="habits-manual" className="px-4 pt-4 sm:px-6">
+          <h2 id="habits-manual" className="text-[0.7rem] font-semibold uppercase tracking-[0.08em] text-paper/50">
             Check these off
           </h2>
           <div>
@@ -121,8 +121,8 @@ export function HabitTab({
         </section>
       )}
       {connected.length > 0 && (
-        <section aria-labelledby="habits-connected">
-          <h2 id="habits-connected" className="mb-2 px-1 text-[0.78rem] font-semibold tracking-snugg text-paper/75">
+        <section aria-labelledby="habits-connected" className="px-4 pt-4 sm:px-6">
+          <h2 id="habits-connected" className="text-[0.7rem] font-semibold uppercase tracking-[0.08em] text-paper/50">
             Filled in from your records
           </h2>
           <div>

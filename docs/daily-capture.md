@@ -25,10 +25,12 @@ The form opens on the day: a week strip (logged days have a green dot, days
 with unsaved edits an amber one, and the calendar button jumps anywhere) and
 four one-line tabs, each with its figure. Day Update leads with its two most
 important parts, **Study** and **Topics completed**, as large cards. Study
-shows the day's total against the daily target, the split by subject, and
-quick inputs: tap a subject you often study to add it, nudge hours in
-half-hour steps, or repeat your last day's subjects. Revision, how the day
-felt, reflection, files and the more detailed lists follow, quieter.
+shows the day's total against the daily target and the split by subject;
+rows work as in the entry dialog ("Add a subject" adds an empty row), with
+half-hour steps on each row. Revision, how the day felt, reflection, files
+and the more detailed lists follow. Every tab lays its sections out in one
+bordered sheet, divided by hairlines. The tabs are small round buttons in
+one bar of liquid glass, with a tinted lens that glides to the selected one.
 
 ## No new data
 
