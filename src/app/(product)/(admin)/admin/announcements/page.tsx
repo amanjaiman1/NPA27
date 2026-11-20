@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Archive, CalendarClock, Megaphone, Pencil, Plus, Send, Trash2, Undo2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -220,16 +220,20 @@ function Editor({
   const [view, setView] = useState<"write" | "preview">("write");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // The default category as it is when the editor opens. A new default arriving
+  // while it's open (a refresh, a live update) must not wipe what's being written.
+  const defaultCategory = useRef(defaults.category);
+  defaultCategory.current = defaults.category;
 
   useEffect(() => {
     if (!open) return;
     setTitle(item?.title ?? "");
     setBody(item?.body ?? "");
-    setCategory(item?.category ?? defaults.category);
+    setCategory(item?.category ?? defaultCategory.current);
     setEndsAt(toLocalInput(item?.endsAt));
     setView("write");
     setError(null);
-  }, [open, item, defaults.category]);
+  }, [open, item]);
 
   async function save(publish: boolean) {
     setBusy(true);
@@ -327,6 +331,9 @@ function PublishDialog({ item, days, onClose, onDone }: { item: AdminAnnouncemen
   const [endsAt, setEndsAt] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // As it is when the dialog opens: a new default arriving meanwhile keeps the times chosen.
+  const defaultDays = useRef(days);
+  defaultDays.current = days;
 
   useEffect(() => {
     if (!item) return;
@@ -334,9 +341,9 @@ function PublishDialog({ item, days, onClose, onDone }: { item: AdminAnnouncemen
     const start = new Date(Date.now() + 60 * 60_000);
     start.setMinutes(0, 0, 0);
     setStartsAt(toLocalInput(start.toISOString()));
-    setEndsAt(item.endsAt ? toLocalInput(item.endsAt) : toLocalInput(new Date(Date.now() + days * 86_400_000).toISOString()));
+    setEndsAt(item.endsAt ? toLocalInput(item.endsAt) : toLocalInput(new Date(Date.now() + defaultDays.current * 86_400_000).toISOString()));
     setError(null);
-  }, [item, days]);
+  }, [item]);
 
   async function publish() {
     if (!item) return;

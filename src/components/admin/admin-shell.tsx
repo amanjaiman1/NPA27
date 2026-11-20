@@ -13,6 +13,7 @@ import { ADMIN_NAV, activeAdminItem } from "@/lib/platform/nav";
 import { ROLE_LABEL, opensAdminCenter } from "@/lib/platform/roles";
 import { cn } from "@/lib/utils";
 import { useAdminActor } from "./admin-context";
+import { RefreshDataControl } from "./refresh-data";
 
 function AdminNav({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname() ?? "/admin";
@@ -107,8 +108,10 @@ function Identity() {
 }
 
 /**
- * The Admin Center's own frame: its navigation, filtered to the role, and a
- * stage like the app's. On a phone the navigation is a drawer.
+ * The Admin Center's own frame: its navigation, filtered to the role, a
+ * header bar, and a stage like the app's. The header carries Refresh Data
+ * on every page, the one place it lives. On a phone the navigation is a
+ * drawer and the header also holds the menu.
  */
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const [drawer, setDrawer] = useState(false);
@@ -176,19 +179,34 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       </AnimatePresence>
 
       <div className="flex min-w-0 flex-1 flex-col gap-3 lg:py-3 lg:pl-3 lg:pr-3">
-        <header className="z-30 shrink-0 px-3 pt-3 lg:hidden">
-          <div className="chrome-glass flex h-14 items-center gap-2 rounded-[1.25rem] px-2">
+        <header className="z-30 shrink-0 px-3 pt-3 lg:px-0 lg:pt-0">
+          <div className="chrome-glass flex h-14 items-center gap-2 rounded-[1.25rem] px-2 lg:h-[3.75rem] lg:gap-3 lg:rounded-[1.4rem] lg:px-3">
             <button
               type="button"
               onClick={() => setDrawer(true)}
               aria-label="Open the Admin Center menu"
-              className="lg-clear grid h-10 w-10 place-items-center rounded-full text-paper/70 hover:text-paper"
+              className="lg-clear grid h-10 w-10 shrink-0 place-items-center rounded-full text-paper/70 hover:text-paper lg:hidden"
             >
               <Menu className="h-[1.15rem] w-[1.15rem]" />
             </button>
-            <Logo className="h-6 w-6" />
-            <span className="min-w-0 truncate text-sm font-semibold text-paper">{current?.label ?? "Admin Center"}</span>
-            <span className="ml-auto mr-1 rounded-full bg-accent/[0.12] px-2.5 py-1 text-[0.68rem] font-semibold text-accent">Admin</span>
+            <Logo className="h-6 w-6 shrink-0 lg:hidden" />
+            <span className="min-w-0 truncate text-sm font-semibold text-paper lg:hidden">{current?.label ?? "Admin Center"}</span>
+            {/* A desktop's sidebar names the page too; the header says what it covers. */}
+            <div className="hidden min-w-0 items-center gap-3 lg:flex">
+              {current && (
+                <span aria-hidden className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-line bg-card text-accent shadow-soft">
+                  <current.icon className="h-4 w-4" strokeWidth={1.9} />
+                </span>
+              )}
+              <p className="min-w-0 truncate text-sm">
+                <span className="font-semibold text-paper">{current?.label ?? "Admin Center"}</span>
+                {current && <span className="text-paper/55"> · {current.description}</span>}
+              </p>
+            </div>
+            <div className="ml-auto flex shrink-0 items-center gap-1.5">
+              <RefreshDataControl />
+              <span className="mr-1 hidden rounded-full bg-accent/[0.12] px-2.5 py-1 text-[0.68rem] font-semibold text-accent min-[400px]:inline lg:hidden">Admin</span>
+            </div>
           </div>
         </header>
         <main className="app-stage no-scrollbar relative min-h-0 flex-1 overflow-y-auto">

@@ -13,7 +13,7 @@
    ════════════════════════════════════════════════════════════════ */
 
 import type { Actor, Permission } from "../roles";
-import type { Presence } from "../types";
+import type { Presence, VisitsStatus } from "../types";
 import {
   isUuid,
   parseAnnouncement,
@@ -83,23 +83,27 @@ const actorArgs = (ctx: Ctx) => ({ p_actor: ctx.actor.userId });
 
 /** Adds each account's latest visit (supabase/migrations/20261215120000_presence.sql).
  *  Best effort: if the lookup fails, say before that migration has run, the accounts
- *  still load, with presence null. */
-async function withPresence<U extends { id: string }>(ctx: Ctx, users: U[]) {
-  let visits: Partial<Record<string, Presence>> | null = null;
+ *  still load, with presence null, and `visits` says why (for Refresh Data's status). */
+async function withPresence<U extends { id: string }>(ctx: Ctx, users: U[]): Promise<{ users: (U & { presence: Presence | null })[]; visits: VisitsStatus }> {
+  let found: Partial<Record<string, Presence>> | null = null;
+  let visits: VisitsStatus = "ok";
   if (users.length) {
     try {
-      visits = await ctx.deps.rpc<Partial<Record<string, Presence>> | null>("platform_admin_presence", {
+      found = await ctx.deps.rpc<Partial<Record<string, Presence>> | null>("platform_admin_presence", {
         ...actorArgs(ctx),
         p_users: users.map((u) => u.id),
       });
-    } catch {
-      visits = null;
+    } catch (e) {
+      visits = e instanceof PlatformError && e.code === "not_migrated" ? "not_set_up" : "failed";
     }
   }
-  return users.map((u) => {
-    const v = visits?.[u.id];
-    return { ...u, presence: v && typeof v === "object" ? v : null };
-  });
+  return {
+    users: users.map((u) => {
+      const v = found?.[u.id];
+      return { ...u, presence: v && typeof v === "object" ? v : null };
+    }),
+    visits,
+  };
 }
 
 export const ADMIN_ROUTES: AdminRoute[] = [
@@ -130,7 +134,9 @@ export const ADMIN_ROUTES: AdminRoute[] = [
         p_limit: q.limit,
         p_offset: q.offset,
       });
-      return page?.items ? { ...page, items: await withPresence(ctx, page.items) } : page;
+      if (!page?.items) return page;
+      const { users, visits } = await withPresence(ctx, page.items);
+      return { ...page, items: users, visits };
     },
   },
   {
@@ -142,7 +148,9 @@ export const ADMIN_ROUTES: AdminRoute[] = [
         ...actorArgs(ctx),
         p_user: ctx.params.id,
       });
-      return user?.id ? (await withPresence(ctx, [user]))[0] : user;
+      if (!user?.id) return user;
+      const { users, visits } = await withPresence(ctx, [user]);
+      return { ...users[0], visits };
     },
   },
   {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { X } from "lucide-react";
@@ -20,6 +20,29 @@ function lockScroll() {
 }
 function unlockScroll() {
   if (modalStack.length === 0) document.body.style.overflow = "";
+}
+
+/**
+ * Puts a layer that isn't a Modal (a panel with its own scrim) on the same
+ * stack while `open`, so a dialog underneath leaves Escape and Tab to it.
+ * Returns whether it's the top-most layer, for its own key handling.
+ */
+export function useOverlayLayer(open: boolean): () => boolean {
+  const token = useRef<object | null>(null);
+  useEffect(() => {
+    if (!open) return;
+    const mine = {};
+    token.current = mine;
+    modalStack.push(mine);
+    lockScroll();
+    return () => {
+      const idx = modalStack.indexOf(mine);
+      if (idx >= 0) modalStack.splice(idx, 1);
+      unlockScroll();
+      if (token.current === mine) token.current = null;
+    };
+  }, [open]);
+  return useCallback(() => token.current !== null && modalStack[modalStack.length - 1] === token.current, []);
 }
 
 export function Modal({

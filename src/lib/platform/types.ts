@@ -64,10 +64,23 @@ export interface Page<T> {
   items: T[];
 }
 
+/**
+ * Whether visit times came with an answer: looked up, not set up on this
+ * project yet (the presence migration hasn't run), or the lookup failed.
+ * Accounts load either way; this tells Refresh Data which it was.
+ */
+export type VisitsStatus = "ok" | "not_set_up" | "failed";
+
+/** A page of Users. */
+export interface UserPage extends Page<AccountBrief> {
+  visits?: VisitsStatus;
+}
+
 export interface UserDetail extends AccountBrief {
   reviewStatus: ReviewStatus | null;
   feedbackCount: number;
   history: HistoryEntry[];
+  visits?: VisitsStatus;
 }
 
 export interface ReviewUsage {
