@@ -1,8 +1,10 @@
 # Daily Capture
 
-**Daily Journal** in the sidebar opens Daily Capture at `/journal`: one page
-with four tabs for the day, saved together with **Save All Changes**
-(or Ctrl/⌘ + S).
+**Daily Journal** in the sidebar opens the journal at `/journal` with the
+Daily Capture form over it: a popup with four tabs for the day, saved together
+with **Save All Changes** (or Ctrl/⌘ + S). A full save closes the form;
+closing with unsaved edits asks first and keeps them as a draft. The journal's
+"Capture today" button opens the form again.
 
 | Tab | What it edits | Saved through |
 |---|---|---|
@@ -12,14 +14,14 @@ with four tabs for the day, saved together with **Save All Changes**
 | Habit | manual check-ins; connected habits are shown as the Habit Engine reads them | `toggleHabit` |
 
 The address keeps the day and tab: `/journal?date=2026-11-18&section=goals`.
-`/journal?new=1` opens today's Day Update. Past entries, topics and analysis
-moved to **History** (`/journal/history`); `/journal?tab=topics|analysis`
-redirects there. The standalone Goals, My Habits and Life Dashboard pages are
+`/journal?new=1` opens today's Day Update. Behind the form is the journal
+itself (entries, topics, analysis; `components/journal/journal-list.tsx`);
+`/journal?tab=topics|analysis` and `/journal/history` show it without the form. The standalone Goals, My Habits and Life Dashboard pages are
 unchanged.
 
 ## Layout
 
-The page opens on the day: a week strip (logged days have a green dot, days
+The form opens on the day: a week strip (logged days have a green dot, days
 with unsaved edits an amber one, and the calendar button jumps anywhere) and
 four one-line tabs, each with its figure. Day Update leads with its two most
 important parts, **Study** and **Topics completed**, as large cards. Study

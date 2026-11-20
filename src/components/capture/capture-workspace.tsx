@@ -2,8 +2,8 @@
 
 import { forwardRef, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
-import { AnimatePresence, motion, useInView } from "framer-motion";
+import { useSearchParams } from "next/navigation";
+import { motion } from "framer-motion";
 import {
   Activity,
   AlertTriangle,
@@ -14,7 +14,6 @@ import {
   ChevronRight,
   CircleCheck,
   CloudOff,
-  History,
   Loader2,
   NotebookPen,
   RotateCcw,
@@ -49,7 +48,7 @@ import { useAccount, useSyncStatus } from "@/components/account/account-session"
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { useToast } from "@/components/ui/toast";
 import { Button } from "@/components/ui/button";
-import { AccomplishedModal } from "@/components/celebrate/accomplished-modal";
+import { Modal } from "@/components/ui/modal";
 import { emptyEntry } from "@/components/journal/constants";
 import {
   JournalFields,
@@ -62,7 +61,7 @@ import { LifeFields, TrackedFieldsDialog, useLifeEditor } from "@/components/lif
 import { GoalsTab } from "./goals-tab";
 import { HabitTab } from "./habit-tab";
 import { draftDates, readDraft, writeDraft } from "./draft-store";
-import { cn, daysBetween, formatDate, formatHours, toISODate } from "@/lib/utils";
+import { cn, formatDate, formatHours, toISODate } from "@/lib/utils";
 
 const SECTIONS: { id: CaptureSection; label: string; icon: LucideIcon }[] = [
   { id: "day", label: "Day Update", icon: NotebookPen },
@@ -130,10 +129,16 @@ const byDate = <T extends { date: string }>(a: T, b: T) => a.date.localeCompare(
  * Unsaved drafts are kept per account and day in this browser tab, so a
  * reload, another page or another day never loses them.
  */
-export function CaptureWorkspace() {
+export function CaptureWorkspace({
+  onClose,
+  onCelebrate,
+}: {
+  onClose: () => void;
+  /** A first entry for the day was saved: the celebration is the page's to show. */
+  onCelebrate: (c: JournalCelebration) => void;
+}) {
   const params = useSearchParams();
   const paramKey = params.toString();
-  const router = useRouter();
   const { accountId, mode, flush, syncNow } = useAccount();
   const { sync } = useSyncStatus();
   const confirm = useConfirm();
@@ -147,7 +152,8 @@ export function CaptureWorkspace() {
   const [restored, setRestored] = useState(false);
   const [saving, setSaving] = useState(false);
   const [outcome, setOutcome] = useState<SaveOutcome | null>(null);
-  const [celebration, setCelebration] = useState<JournalCelebration | null>(null);
+  /** Set once everything is saved, so closing doesn't keep a stale draft. */
+  const skipPersist = useRef(false);
   const [fieldsOpen, setFieldsOpen] = useState(false);
   const savingRef = useRef(false);
   const dateRef = useRef(date);
@@ -256,7 +262,12 @@ export function CaptureWorkspace() {
     const t = window.setTimeout(() => persistRef.current(), 350);
     return () => window.clearTimeout(t);
   }, [ready, anyDirty, journalEd.draft, journalEd.sessionFiles, journalEd.goalIds, lifeEd.draft, goalDrafts, habitDrafts]);
-  useEffect(() => () => persistRef.current(), []);
+  useEffect(
+    () => () => {
+      if (!skipPersist.current) persistRef.current();
+    },
+    [],
+  );
   useEffect(() => {
     if (!anyDirty && !journalEd.uploading) return;
     const onUnload = (e: BeforeUnloadEvent) => {
@@ -302,15 +313,10 @@ export function CaptureWorkspace() {
   // the journal's old ?tab=topics|analysis, which now live on History.
   useEffect(() => {
     const p = new URLSearchParams(paramKey);
-    const tab = p.get("tab");
-    if (tab === "topics" || tab === "analysis") {
-      router.replace(`/journal/history?tab=${tab}`);
-      return;
-    }
     const fresh = p.get("new") === "1";
     changeDate(fresh ? toISODate(new Date()) : parseCaptureDate(p.get("date"), toISODate(new Date())));
     selectSection(fresh ? "day" : parseSection(p.get("section")));
-  }, [paramKey, router, changeDate, selectSection]);
+  }, [paramKey, changeDate, selectSection]);
 
   /* ── the Habit Engine's view of the day, unsaved edits included ─ */
 
@@ -526,12 +532,18 @@ export function CaptureWorkspace() {
           tone: "error",
         });
       }
-      if (earned) setCelebration(earned);
+      if (earned) onCelebrate(earned);
+      if (!failedNames.length) {
+        // Everything is saved: the form closes, as every entry form does.
+        skipPersist.current = true;
+        writeDraft(accountId, date, null);
+        onClose();
+      }
     } finally {
       savingRef.current = false;
       setSaving(false);
     }
-  }, [anyDirty, journalEd, lifeEd, dirty.day, dirty.life, dirty.goals, dirty.habit, date, today, confirm, goalIdsChanged, goalDrafts, linkDiff, habitDrafts, resetJournal, loadLife, mode, flush, toast]);
+  }, [anyDirty, journalEd, lifeEd, dirty.day, dirty.life, dirty.goals, dirty.habit, date, today, confirm, goalIdsChanged, goalDrafts, linkDiff, habitDrafts, resetJournal, loadLife, mode, flush, toast, accountId, onCelebrate, onClose]);
 
   const discardAll = useCallback(async () => {
     const ok = await confirm({
@@ -578,8 +590,6 @@ export function CaptureWorkspace() {
     });
   }, []);
 
-  const saveButton = useRef<HTMLButtonElement>(null);
-  const headerSaveVisible = useInView(saveButton);
   const unsavedNames = SECTIONS.filter((s) => dirty[s.id]).map((s) => s.label);
   const failures = outcome ? (Object.entries(outcome.results) as [CaptureSection, SectionResult][]).filter(([, r]) => !r.ok) : [];
 
@@ -636,133 +646,121 @@ export function CaptureWorkspace() {
     }
   };
 
+  const requestClose = useCallback(async () => {
+    if (savingRef.current) return;
+    if (anyDirty || journalEd.uploading) {
+      const ok = await confirm({
+        title: "Close without saving?",
+        description: journalEd.uploading
+          ? "Files are still uploading. Closing stops them; everything else stays as a draft."
+          : `Your changes for ${formatDate(date)} stay as a draft and come back when you open Daily Capture again.`,
+        confirmLabel: "Close",
+        cancelLabel: "Keep editing",
+      });
+      if (!ok) return;
+      persistRef.current();
+    }
+    onClose();
+  }, [anyDirty, journalEd.uploading, confirm, date, onClose]);
+
+  const footer = (
+    <>
+      <p className="mr-auto hidden min-w-0 truncate text-[0.76rem] text-paper/55 sm:block">
+        {saving ? "Saving…" : anyDirty ? `Unsaved: ${unsavedNames.join(", ")}` : "Ctrl + S saves all tabs"}
+      </p>
+      {anyDirty && (
+        <Button variant="ghost" onClick={() => void discardAll()} disabled={saving} className="hidden sm:inline-flex">
+          Discard
+        </Button>
+      )}
+      <Button variant="ghost" onClick={() => void requestClose()} disabled={saving}>
+        Close
+      </Button>
+      <SaveAllButton saving={saving} disabled={!anyDirty} onClick={() => void saveAll()} />
+    </>
+  );
+
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-5">
-      {celebration && (
-        <AccomplishedModal
-          open
-          onClose={() => setCelebration(null)}
-          date={celebration.date}
-          journeyDay={daysBetween(profile.startDate, celebration.date)}
-          streak={celebration.streak}
-          totalAccomplished={celebration.total}
-          hoursToday={celebration.hours}
-          daysToExam={daysBetween(today, profile.examDate)}
-        />
-      )}
+    <>
       <TrackedFieldsDialog open={fieldsOpen} onClose={() => setFieldsOpen(false)} />
-
-      {/* The day first: which one, how far it has got, and saving. */}
-      <header className="space-y-4">
-        <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
-          <div className="min-w-0">
-            <h1 className="text-[1.65rem] font-semibold leading-tight tracking-[-0.025em] text-paper sm:text-[1.95rem]">Daily Capture</h1>
-            <p className="mt-0.5 text-[0.86rem] text-paper/60">
-              {longDate(date)}
-              {date === today && <span className="font-semibold text-accent"> · Today</span>}
-            </p>
-          </div>
-          <div className="flex w-full gap-2 sm:w-auto">
-            <Link
-              href="/journal/history"
-              aria-label="Journal history"
-              className="inline-flex h-10 items-center gap-1.5 rounded-xl border border-line px-3 text-sm font-semibold text-paper/75 hover:text-paper"
-            >
-              <History className="h-4 w-4" aria-hidden /> <span className="hidden sm:inline">History</span>
-            </Link>
-            <SaveAllButton ref={saveButton} saving={saving} disabled={!anyDirty} onClick={() => void saveAll()} className="flex-1 sm:flex-none" />
-          </div>
-        </div>
-
-        <div className="rounded-3xl border border-line bg-card p-2 shadow-soft sm:p-2.5">
-          <WeekStrip date={date} today={today} logged={loggedDays} waiting={waitingDays} onPick={changeDate} />
-          <div className="mt-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t border-line px-2 pb-1 pt-2.5">
-            <SaveStatus saving={saving} anyDirty={anyDirty} outcome={outcome} failures={failures} mode={mode} sync={sync} onRetry={() => (anyDirty ? void saveAll() : syncNow())} />
-            <div className="flex items-center gap-2.5" role="group" aria-label={date === today ? "Today's progress" : "Progress for this day"}>
-              <div className="flex gap-1" aria-hidden>
-                {SECTIONS.map((s) => (
-                  <span key={s.id} className={cn("h-1.5 w-6 rounded-full transition-colors duration-300", DOT[views[s.id].state])} />
-                ))}
+      <Modal
+        open
+        onClose={() => void requestClose()}
+        title="Daily Capture"
+        description={`${longDate(date)}${date === today ? " · Today" : ""}`}
+        className="sm:max-w-5xl"
+        footer={footer}
+      >
+        <div className="space-y-4">
+          <div className="rounded-2xl border border-line p-1.5">
+            <WeekStrip date={date} today={today} logged={loggedDays} waiting={waitingDays} onPick={changeDate} />
+            <div className="mt-1.5 flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5 border-t border-line px-2 pb-0.5 pt-2">
+              <SaveStatus saving={saving} anyDirty={anyDirty} outcome={outcome} failures={failures} mode={mode} sync={sync} onRetry={() => (anyDirty ? void saveAll() : syncNow())} />
+              <div className="flex items-center gap-2.5" role="group" aria-label={date === today ? "Today's progress" : "Progress for this day"}>
+                <div className="flex gap-1" aria-hidden>
+                  {SECTIONS.map((s) => (
+                    <span key={s.id} className={cn("h-1.5 w-6 rounded-full transition-colors duration-300", DOT[views[s.id].state])} />
+                  ))}
+                </div>
+                <p className="text-[0.76rem] text-paper/60">
+                  <span className="tabular font-semibold text-paper">
+                    {captured} of {applicable}
+                  </span>{" "}
+                  captured
+                </p>
               </div>
-              <p className="text-[0.76rem] text-paper/60">
-                <span className="tabular font-semibold text-paper">
-                  {captured} of {applicable}
-                </span>{" "}
-                captured
-              </p>
             </div>
           </div>
+
+          {restored && anyDirty && (
+            <Notice
+              action={
+                <button type="button" onClick={() => void discardAll()} className="font-semibold text-accent hover:underline">
+                  Discard them
+                </button>
+              }
+            >
+              Unsaved changes you made earlier for this day are back. Save them when you&rsquo;re ready.
+            </Notice>
+          )}
+          {otherDrafts.length > 0 && (
+            <Notice>
+              Unsaved changes are also waiting on{" "}
+              {otherDrafts.slice(0, 3).map((d, i) => (
+                <span key={d}>
+                  {i > 0 && ", "}
+                  <button type="button" onClick={() => changeDate(d)} className="font-semibold text-accent hover:underline">
+                    {formatDate(d)}
+                  </button>
+                </span>
+              ))}
+              {otherDrafts.length > 3 && ` and ${otherDrafts.length - 3} more`}.
+            </Notice>
+          )}
+
+          {/* The tabs stay in view while the form scrolls. */}
+          <div className="sticky top-0 z-10 -mx-5 bg-card px-5 pb-2 pt-1">
+            <CaptureTabs section={section} onSelect={selectSection} views={views} />
+          </div>
+
+          <div>
+            {SECTIONS.map((s) =>
+              visited.has(s.id) ? (
+                <div key={s.id} role="tabpanel" id={`capture-panel-${s.id}`} aria-labelledby={`capture-tab-${s.id}`} hidden={section !== s.id}>
+                  <motion.div
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={section === s.id ? { opacity: 1, y: 0 } : { opacity: 0, y: 6 }}
+                    transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                  >
+                    {panel(s.id)}
+                  </motion.div>
+                </div>
+              ) : null,
+            )}
+          </div>
         </div>
-      </header>
-
-      {restored && anyDirty && (
-        <Notice
-          action={
-            <button type="button" onClick={() => void discardAll()} className="font-semibold text-accent hover:underline">
-              Discard them
-            </button>
-          }
-        >
-          Unsaved changes you made earlier for this day are back. Save them when you&rsquo;re ready.
-        </Notice>
-      )}
-      {otherDrafts.length > 0 && (
-        <Notice>
-          Unsaved changes are also waiting on{" "}
-          {otherDrafts.slice(0, 3).map((d, i) => (
-            <span key={d}>
-              {i > 0 && ", "}
-              <button type="button" onClick={() => changeDate(d)} className="font-semibold text-accent hover:underline">
-                {formatDate(d)}
-              </button>
-            </span>
-          ))}
-          {otherDrafts.length > 3 && ` and ${otherDrafts.length - 3} more`}.
-        </Notice>
-      )}
-
-      <CaptureTabs section={section} onSelect={selectSection} views={views} />
-
-      <div>
-        {SECTIONS.map((s) =>
-          visited.has(s.id) ? (
-            <div key={s.id} role="tabpanel" id={`capture-panel-${s.id}`} aria-labelledby={`capture-tab-${s.id}`} hidden={section !== s.id}>
-              <motion.div
-                initial={{ opacity: 0, y: 6 }}
-                animate={section === s.id ? { opacity: 1, y: 0 } : { opacity: 0, y: 6 }}
-                transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-              >
-                {panel(s.id)}
-              </motion.div>
-            </div>
-          ) : null,
-        )}
-      </div>
-
-      <AnimatePresence>
-        {(anyDirty || saving) && !headerSaveVisible && (
-          <motion.div
-            key="savebar"
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 16 }}
-            transition={{ duration: 0.2 }}
-            className="sticky bottom-[calc(var(--bottom-nav-h,0px)+0.75rem)] z-20 lg:bottom-6"
-          >
-            <div className="glass-sticky mx-auto flex max-w-2xl items-center gap-3 rounded-2xl border border-line px-3.5 py-2.5 shadow-lift sm:px-4">
-              <span className="h-2 w-2 shrink-0 rounded-full bg-accent" aria-hidden />
-              <p className="min-w-0 flex-1 truncate text-[0.8rem] text-paper/75">
-                {saving ? "Saving…" : `Unsaved: ${unsavedNames.join(", ")}`}
-              </p>
-              <Button size="sm" variant="ghost" onClick={() => void discardAll()} disabled={saving} className="hidden sm:inline-flex">
-                Discard
-              </Button>
-              <SaveAllButton saving={saving} disabled={!anyDirty} onClick={() => void saveAll()} size="sm" />
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+      </Modal>
+    </>
   );
 }
 
