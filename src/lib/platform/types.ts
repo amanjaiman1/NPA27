@@ -20,13 +20,31 @@ export interface AccountBrief {
   email: string;
   createdAt: string;
   lastSignInAt: string | null;
-  /** When the account last used the app, to about 5 minutes. Null if it hasn't since
-   *  the last_active migration ran, or if the lookup failed. */
-  lastActiveAt?: string | null;
+  /** The latest visit. Null if none was recorded, or if the lookup failed. */
+  presence?: Presence | null;
   emailConfirmedAt: string | null;
   bannedUntil: string | null;
   suspended: boolean;
   role: PlatformRole | null;
+}
+
+/**
+ * An account's latest visit, as the database worked it out when asked
+ * (supabase/migrations/20261215120000_presence.sql).
+ */
+export interface Presence {
+  /** When it opened the app. Null for a visit recorded before visits were kept. */
+  openedAt: string | null;
+  /** The last moment the app was known to be on screen. */
+  seenAt: string;
+  /** When it left. Null while it's on the site. */
+  leftAt: string | null;
+  /** On the site now. */
+  online: boolean;
+  /** While online: when that runs out unless the app reports again, so a screen knows when to look. */
+  onlineUntil: string | null;
+  /** The database's time when it answered: with onlineUntil, how long from now, whatever this device's clock says. */
+  checkedAt: string;
 }
 
 export interface HistoryEntry {

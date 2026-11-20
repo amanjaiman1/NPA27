@@ -13,6 +13,7 @@
    ════════════════════════════════════════════════════════════════ */
 
 import type { Actor, Permission } from "../roles";
+import type { Presence } from "../types";
 import {
   isUuid,
   parseAnnouncement,
@@ -80,22 +81,25 @@ function take<T>(parsed: Parsed<T>): T {
 
 const actorArgs = (ctx: Ctx) => ({ p_actor: ctx.actor.userId });
 
-/** Adds "Last active" (supabase/migrations/20261214120000_last_active.sql) to accounts.
+/** Adds each account's latest visit (supabase/migrations/20261215120000_presence.sql).
  *  Best effort: if the lookup fails, say before that migration has run, the accounts
- *  still load, with lastActiveAt null. */
-async function withLastActive<U extends { id: string }>(ctx: Ctx, users: U[]) {
-  let times: Partial<Record<string, string>> | null = null;
+ *  still load, with presence null. */
+async function withPresence<U extends { id: string }>(ctx: Ctx, users: U[]) {
+  let visits: Partial<Record<string, Presence>> | null = null;
   if (users.length) {
     try {
-      times = await ctx.deps.rpc<Partial<Record<string, string>> | null>("platform_admin_last_active", {
+      visits = await ctx.deps.rpc<Partial<Record<string, Presence>> | null>("platform_admin_presence", {
         ...actorArgs(ctx),
         p_users: users.map((u) => u.id),
       });
     } catch {
-      times = null;
+      visits = null;
     }
   }
-  return users.map((u) => ({ ...u, lastActiveAt: times?.[u.id] ?? null }));
+  return users.map((u) => {
+    const v = visits?.[u.id];
+    return { ...u, presence: v && typeof v === "object" ? v : null };
+  });
 }
 
 export const ADMIN_ROUTES: AdminRoute[] = [
@@ -126,7 +130,7 @@ export const ADMIN_ROUTES: AdminRoute[] = [
         p_limit: q.limit,
         p_offset: q.offset,
       });
-      return page?.items ? { ...page, items: await withLastActive(ctx, page.items) } : page;
+      return page?.items ? { ...page, items: await withPresence(ctx, page.items) } : page;
     },
   },
   {
@@ -138,7 +142,7 @@ export const ADMIN_ROUTES: AdminRoute[] = [
         ...actorArgs(ctx),
         p_user: ctx.params.id,
       });
-      return user?.id ? (await withLastActive(ctx, [user]))[0] : user;
+      return user?.id ? (await withPresence(ctx, [user]))[0] : user;
     },
   },
   {

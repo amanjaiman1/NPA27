@@ -6,7 +6,10 @@ import { ADMIN_TOPIC, LIVE_AREAS, PLATFORM_TOPIC, accountTopic, adminAreasFor, l
 import { ADMIN_ROUTES } from "@/lib/platform/server/admin-api";
 
 // Doubled quotes (SQL inside an execute string) read as plain ones.
-const migration = readFileSync(join(process.cwd(), "supabase/migrations/20261213120000_live_everywhere.sql"), "utf8").replace(/''/g, "'");
+const read = (name: string) => readFileSync(join(process.cwd(), "supabase/migrations", name), "utf8").replace(/''/g, "'");
+const migration = read("20261213120000_live_everywhere.sql");
+/** Every migration that adds live update triggers: together, what the database sends. */
+const senders = migration + read("20261215120000_presence.sql");
 
 test("a message is read for area names and a version only", () => {
   assert.deepEqual(liveAreasOf({ areas: ["reviews", "users"] }), ["reviews", "users"]);
@@ -28,12 +31,12 @@ test("the three channels are named as the policies name them", () => {
 
 test("every area the database sends is one the browser knows, and every one it knows is sent", () => {
   const sent = new Set<string>();
-  for (const m of migration.matchAll(/platform_live_(?:notify|owner)\(([^)]*)\)/g)) {
+  for (const m of senders.matchAll(/platform_live_(?:notify|owner)\(([^)]*)\)/g)) {
     const args = [...m[1].matchAll(/'([^']*)'/g)].map((x) => x[1]);
     // notify: (channel, areas) pairs; owner: (column, areas).
     for (let i = 1; i < args.length; i += 2) for (const a of args[i].split(",")) sent.add(a);
   }
-  for (const m of migration.matchAll(/array\['([a-z]+)'\]/g)) sent.add(m[1]);
+  for (const m of senders.matchAll(/array\['([a-z]+)'\]/g)) sent.add(m[1]);
   assert.deepEqual([...sent].sort(), [...LIVE_AREAS].sort());
 });
 

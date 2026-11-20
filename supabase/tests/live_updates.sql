@@ -65,7 +65,7 @@ begin
     end if;
     if exists (select 1 from jsonb_array_elements_text(m.payload -> 'areas') a
                 where a not in ('announcements', 'notice', 'reviews', 'feedback', 'changelog', 'users',
-                                'settings', 'access', 'audit', 'chronicle', 'role', 'session')) then
+                                'settings', 'access', 'audit', 'chronicle', 'role', 'session', 'activity')) then
       raise exception 'FAIL: a message names an unknown area: %', m.payload;
     end if;
     out := out || m.topic || ': ' || (select string_agg(a, ',' order by a) from jsonb_array_elements_text(m.payload -> 'areas') a)
@@ -287,6 +287,33 @@ delete from auth.users where id = '1f000000-0000-4000-8000-000000000006';
 select public.test_live_expect('a deletion', array[
   'platform-admin-updates: users',
   'account:1f000000-0000-4000-8000-000000000006: session']);
+
+-- Presence: a visit beginning, ending and resuming reaches the Admin Center
+-- (Users, "Last visit"); the once-a-minute "still here" doesn't.
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"1e000000-0000-4000-8000-000000000005","role":"authenticated"}', true);
+select public.platform_mark_presence('here');
+reset role;
+select public.test_live_expect('opening the app', array['platform-admin-updates: activity']);
+update public.platform_last_active set active_at = active_at - interval '1 minute', opened_at = opened_at - interval '1 minute'
+ where user_id = '1e000000-0000-4000-8000-000000000005';
+select public.test_live_take();
+set local role authenticated;
+select public.platform_mark_presence('here');
+reset role;
+select public.test_live_expect('a minute on the site', array[]::text[]);
+set local role authenticated;
+select public.platform_mark_presence('left');
+reset role;
+select public.test_live_expect('leaving', array['platform-admin-updates: activity']);
+set local role authenticated;
+select public.platform_mark_presence('left');
+reset role;
+select public.test_live_expect('leaving twice', array[]::text[]);
+set local role authenticated;
+select public.platform_mark_presence('here');
+reset role;
+select public.test_live_expect('coming back', array['platform-admin-updates: activity']);
 
 -- ── 3. Sending never breaks a change ──────────────────────────────
 -- Without Realtime: nothing sent, the change saved.

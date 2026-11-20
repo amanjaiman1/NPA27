@@ -268,6 +268,18 @@ async function functionInfo(name) {
 
 const quoteIdent = (s) => `"${String(s).replace(/"/g, '""')}"`;
 
+/** A JSON array as a Postgres array literal, as PostgREST reads one for an array parameter (`uuid[]` and the like). */
+const pgArray = (items) =>
+  `{${items
+    .map((x) =>
+      x === null || x === undefined
+        ? "NULL"
+        : Array.isArray(x)
+          ? pgArray(x)
+          : `"${String(typeof x === "object" ? JSON.stringify(x) : x).replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`,
+    )
+    .join(",")}}`;
+
 /** Calls `name` with named arguments, cast to the function's own types, as the caller. */
 async function callFunction(claims, name, args) {
   const info = await functionInfo(name);
@@ -278,7 +290,15 @@ async function callFunction(claims, name, args) {
     if (!(arg in args)) return; // the function's default applies
     const v = args[arg];
     const type = info.types[i];
-    values.push(v === null || v === undefined ? null : /json/.test(type) ? JSON.stringify(v) : typeof v === "object" ? JSON.stringify(v) : String(v));
+    values.push(
+      v === null || v === undefined
+        ? null
+        : type.endsWith("[]") && Array.isArray(v)
+          ? pgArray(v)
+          : /json/.test(type) || typeof v === "object"
+            ? JSON.stringify(v)
+            : String(v),
+    );
     named.push(`${quoteIdent(arg)} => $${values.length}::${type}`);
   });
   const call = `public.${quoteIdent(name)}(${named.join(", ")})`;

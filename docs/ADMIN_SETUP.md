@@ -53,11 +53,13 @@ They are all safe to run again.
 9. `supabase/migrations/20261210120000_trust_reviews.sql` (the five-step review
    form, verification badges, the dashboard invitation, edit history, consent
    history, the public reviews pages and the changelog's new fields)
-10. `supabase/migrations/20261213120000_live_everywhere.sql` (everything updates by itself)
-11. `supabase/migrations/20261214120000_last_active.sql` (last active times in Users)
 10. `supabase/migrations/20261212120000_help_feedback.sql` (Help & feedback
     without email: feedback never carries an address, and crash reports are
     kept for the team under Feedback → Crash reports)
+11. `supabase/migrations/20261213120000_live_everywhere.sql` (everything updates by itself)
+12. `supabase/migrations/20261214120000_last_active.sql` (the table visits are kept in)
+13. `supabase/migrations/20261215120000_presence.sql` (Last visit in Users: on the
+    site now, when each account opened the app and when it left)
 
 If you use the Supabase CLI, `supabase db push` runs the same migrations.
 
@@ -151,19 +153,43 @@ Both are refused for the last Super Admin.
 ### Accounts
 
 **Users** lists every account with what's needed to run the platform: email,
-when it joined, when it was last active, when it last signed in, whether its
-email is confirmed, whether it's suspended, and its role. Never anything the
-person wrote in DoOrDie. Search by email or paste an account id.
+when it joined, its last visit, when it last signed in, whether its email is
+confirmed, whether it's suspended, and its role. Never anything the person
+wrote in DoOrDie. Search by email or paste an account id.
 
-**Last active** is when the account last used the app (opened it, came back
-to it, tapped or typed), accurate to about 5 minutes. It's only a time: the
-app sends it at most every 5 minutes through `platform_mark_active()`, which
-can mark only the signed-in account, and `platform_last_active` keeps one row
-per account that no browser can read and that goes when the account is deleted.
-It doesn't update an open page by itself; it's as of when the page loaded.
-"Not recorded" means the account hasn't used the app since
-`20261214120000_last_active.sql` ran. Last sign-in changes only when someone signs in again, which
-can be weeks apart.
+**Last visit** says whether the account is on the site right now, and
+otherwise when it left and when that visit began. The account's dialog has
+both times to the second, and how long the visit lasted. The list and an
+open dialog change by themselves the moment someone opens the app, leaves
+it or comes back. Only times are kept, never what the person did:
+
+- Each tab of the app reports "here" when it opens or comes back on screen,
+  and once a minute while it stays there. It reports "left" the moment it
+  goes off screen: the tab is closed or hidden, the phone locked, another app
+  opened, or the account signs out. "Left" goes with `navigator.sendBeacon`
+  through `/api/presence`, the one request browsers finish after a tab has
+  closed.
+- The account is on the site while any of its tabs is, on any device: the
+  phone locking while the laptop is open ends nothing. Each tab sends a
+  random id (nothing about the device) and numbers its reports, so a late
+  one is ignored.
+- Coming back within five minutes carries on the same visit. After longer
+  away, the next report starts a new one.
+- If a tab's "left" never arrives (the browser was killed, the connection
+  dropped), it counts as gone two and a half minutes after its last report,
+  and the visit ends at that report.
+- Moving between the app and the Admin Center is one visit. Opening a page
+  of the public site (the blog, say) counts as leaving: those pages don't
+  load accounts. A page left open on screen counts as being on the site. The
+  demo reports nothing.
+- `platform_mark_presence()` can report only for the signed-in account, with
+  the database's clock. `platform_last_active` keeps one row per account,
+  no browser can read it, and it goes when the account is deleted.
+
+"Not recorded" means the account hasn't opened the app since
+`20261215120000_presence.sql` ran (an account seen only before that shows when
+it was last seen, without an opening time). Last sign-in is different: it
+changes only when someone signs in again, which can be weeks apart.
 
 Suspending an account (Admin or Super Admin, with a reason and a length)
 blocks new sign-ins at once through Supabase Auth's ban. A session that's
@@ -318,7 +344,7 @@ Anything one person changes shows up for everyone else who has it open,
 within a couple of seconds and without reloading:
 
 - **In the Admin Center:** new accounts, sign-ins and suspensions (Users and
-  the Overview), reviews as students send, edit or withdraw them, feedback as
+  the Overview), visits starting and ending (Users' Last visit), reviews as students send, edit or withdraw them, feedback as
   it arrives, everything other administrators do (moderation, answers,
   announcements, the changelog, settings, roles) and the audit log. A form
   being filled in keeps what's typed; only untouched fields take new values.

@@ -227,7 +227,11 @@ export function useAccountUpdates(userId: string | null | undefined, areas: read
   useLiveUpdates(userId ? accountTopic(userId) : null, areas, reload, { enabled, minGapMs: 800 });
 }
 
-/** Changes the Admin Center shows. Only Admin Center roles can join this channel. */
-export function useAdminUpdates(areas: readonly LiveArea[], reload: () => void, enabled = true): void {
-  useLiveUpdates(ADMIN_TOPIC, areas, () => reload(), { enabled, spreadMs: 300, minGapMs: 1_200 });
+/**
+ * Changes the Admin Center shows. Only Admin Center roles can join this
+ * channel. `minGapMs`: reload at most this often (a busier area, such as
+ * visits, waits longer between reloads).
+ */
+export function useAdminUpdates(areas: readonly LiveArea[], reload: () => void, enabled = true, minGapMs = 1_200): void {
+  useLiveUpdates(ADMIN_TOPIC, areas, () => reload(), { enabled, spreadMs: 300, minGapMs });
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Ban, RotateCcw, ShieldCheck, Users } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -15,7 +15,7 @@ import { adminApi, useAdmin } from "@/lib/platform/client";
 import { ROLE_LABEL } from "@/lib/platform/roles";
 import { REVIEW_STATUS } from "@/lib/platform/content";
 import { SUSPENSION_LENGTHS } from "@/lib/platform/validate";
-import type { AccountBrief, Page, UserDetail } from "@/lib/platform/types";
+import type { AccountBrief, Page, Presence, UserDetail } from "@/lib/platform/types";
 
 const FILTERS = [
   { value: "all", label: "All" },
@@ -27,9 +27,98 @@ const FILTERS = [
 type Filter = (typeof FILTERS)[number]["value"];
 const LIMIT = 25;
 
+/* ── visits ("Last visit": supabase/migrations/20261215120000_presence.sql) ── */
+
+const clock = new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit" });
+const dayClock = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+const fullClock = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+
+/** "14:30" on the same day as `ref`, "19 Nov, 14:30" in the same year, the full date otherwise. */
+function shortTime(at: string, ref: Date = new Date()): string {
+  const d = new Date(at);
+  if (d.toDateString() === ref.toDateString()) return clock.format(d);
+  return (d.getFullYear() === ref.getFullYear() ? dayClock : fullClock).format(d);
+}
+
+/** "40 s", "22 min", "1 h 5 min". */
+function lasted(from: string, to: string | Date): string {
+  const s = Math.max(0, Math.round((new Date(to).getTime() - new Date(from).getTime()) / 1000));
+  if (s < 60) return `${s} s`;
+  const m = Math.round(s / 60);
+  if (m < 60) return `${m} min`;
+  return m % 60 ? `${Math.floor(m / 60)} h ${m % 60} min` : `${m / 60} h`;
+}
+
+/**
+ * Looks again when someone's "on the site" may have run out. A visit that
+ * starts or ends updates the page at once (live updates), but one that ended
+ * without saying so (the browser was killed) only shows when its time is
+ * up. Timed by the database's clock (`checkedAt`), so a fast or slow clock
+ * on this computer changes nothing.
+ */
+function useRefreshWhenVisitsMayEnd(visits: readonly (Presence | null | undefined)[], refresh: () => void) {
+  const latest = useRef(refresh);
+  latest.current = refresh;
+  let wait: number | null = null;
+  let key = "";
+  for (const v of visits) {
+    if (!v?.online || !v.onlineUntil) continue;
+    const ms = Date.parse(v.onlineUntil) - Date.parse(v.checkedAt);
+    if (Number.isFinite(ms) && (wait === null || ms < wait)) wait = ms;
+    key += `${v.checkedAt}|`;
+  }
+  useEffect(() => {
+    if (wait === null) return;
+    // A moment after, so the database agrees it has run out.
+    const timer = setTimeout(() => latest.current(), Math.max(0, wait) + 3_000);
+    return () => clearTimeout(timer);
+  }, [wait, key]);
+}
+
+function OnSite() {
+  return (
+    <span className="inline-flex items-center gap-1.5 font-medium text-positive">
+      <span aria-hidden className="h-2 w-2 shrink-0 rounded-full bg-positive" />
+      On the site now
+    </span>
+  );
+}
+
+/** The latest visit, in a table cell: on the site now, or when it left, and when it began. */
+function LastVisit({ presence: p }: { presence: Presence | null | undefined }) {
+  if (!p) return <span className="text-paper/45">Not recorded</span>;
+  if (p.online) {
+    return (
+      <span className="block">
+        <OnSite />
+        {p.openedAt && <span className="block text-xs text-paper/55">since {shortTime(p.openedAt)}</span>}
+      </span>
+    );
+  }
+  const left = p.leftAt ?? p.seenAt;
+  return (
+    <span className="block">
+      <span>
+        Left <time dateTime={new Date(left).toISOString()} title={fullClock.format(new Date(left))}>{shortTime(left)}</time>
+      </span>
+      {p.openedAt && (
+        <span className="block text-xs text-paper/55">
+          opened {shortTime(p.openedAt, new Date(left))} · {lasted(p.openedAt, left)}
+        </span>
+      )}
+    </span>
+  );
+}
+
 function StatusBadges({ user }: { user: AccountBrief }) {
   return (
     <span className="flex flex-wrap gap-1.5">
+      {/* Wide screens show it in its own column ("Last visit"). */}
+      {user.presence?.online && (
+        <Badge tone="positive" className="lg:hidden">
+          On the site
+        </Badge>
+      )}
       {user.suspended && <Badge tone="danger">Suspended</Badge>}
       {!user.emailConfirmedAt && <Badge tone="warning">Email unconfirmed</Badge>}
       {user.role && (
@@ -64,13 +153,14 @@ export default function AdminUsersPage() {
     return `users?${p}`;
   }, [q, filter, offset]);
   const list = useAdmin<Page<AccountBrief>>(path);
+  useRefreshWhenVisitsMayEnd(list.data?.items.map((u) => u.presence) ?? [], list.refresh);
 
   return (
     <div className="space-y-6">
       <AdminHeader
         icon={Users}
         title="Users"
-        description="Every account, with what's needed to run the platform: email, dates, status and role. What anyone writes in DoOrDie is never shown here."
+        description="Every account, with what's needed to run the platform: email, dates, visits, status and role. What anyone writes in DoOrDie is never shown here."
       />
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
         <SearchBox
@@ -118,7 +208,7 @@ function UserTable({ page, onOpen }: { page: Page<AccountBrief>; onOpen: (id: st
           <tr>
             <th scope="col" className="px-5 py-3 font-medium">Account</th>
             <th scope="col" className="hidden px-3 py-3 font-medium md:table-cell">Joined</th>
-            <th scope="col" className="hidden px-3 py-3 font-medium lg:table-cell">Last active</th>
+            <th scope="col" className="hidden px-3 py-3 font-medium lg:table-cell">Last visit</th>
             <th scope="col" className="hidden px-3 py-3 font-medium xl:table-cell">Last sign-in</th>
             <th scope="col" className="hidden px-3 py-3 font-medium sm:table-cell">Status</th>
             <th scope="col" className="px-5 py-3 text-right font-medium">
@@ -141,7 +231,7 @@ function UserTable({ page, onOpen }: { page: Page<AccountBrief>; onOpen: (id: st
                 <When at={u.createdAt} date />
               </td>
               <td className="hidden whitespace-nowrap px-3 py-3 text-paper/70 lg:table-cell">
-                <When at={u.lastActiveAt} fallback="Not recorded" />
+                <LastVisit presence={u.presence} />
               </td>
               <td className="hidden whitespace-nowrap px-3 py-3 text-paper/70 xl:table-cell">
                 <When at={u.lastSignInAt} />
@@ -179,6 +269,8 @@ function UserDialog({ id, onClose, onChanged }: { id: string | null; onClose: ()
   const [ask, setAsk] = useState<"suspend" | "restore" | null>(null);
   const [length, setLength] = useState<string>("indefinite");
   const u = id && user.data?.id === id ? user.data : null;
+  const visit = u?.presence ?? null;
+  useRefreshWhenVisitsMayEnd([visit], user.refresh);
   const self = u?.id === actor.userId;
   const mayChange = can("users.suspend") && u && !self && !u.role;
 
@@ -207,9 +299,17 @@ function UserDialog({ id, onClose, onChanged }: { id: string | null; onClose: ()
             <Detail label="Email confirmed">
               <When at={u.emailConfirmedAt} fallback="Not yet" />
             </Detail>
-            <Detail label="Last active">
-              <When at={u.lastActiveAt} fallback="Not recorded" />
+            <Detail label="Opened the site">
+              <When at={visit?.openedAt} seconds fallback="Not recorded" />
             </Detail>
+            <Detail label="Left the site">
+              {visit?.online ? <OnSite /> : <When at={visit ? (visit.leftAt ?? visit.seenAt) : null} seconds fallback="Not recorded" />}
+            </Detail>
+            {visit?.openedAt && (
+              <Detail label="Time on the site">
+                {visit.online ? `${lasted(visit.openedAt, new Date())} so far` : lasted(visit.openedAt, visit.leftAt ?? visit.seenAt)}
+              </Detail>
+            )}
             <Detail label="Last sign-in">
               <When at={u.lastSignInAt} />
             </Detail>

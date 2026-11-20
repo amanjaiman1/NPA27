@@ -14,9 +14,6 @@
    No polling. Read and dismissed state is kept per account in the
    database (platform_announcement_reads), so it follows the person
    between devices.
-   It also tells the database when this account last used the app, for
-   "Last active" in Admin → Users: a time and nothing else, sent on
-   opening and on use, at most every 5 minutes (platform_mark_active).
    ════════════════════════════════════════════════════════════════ */
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
@@ -25,8 +22,6 @@ import type { MyAnnouncement, MyAnnouncements } from "@/lib/platform/types";
 import { useAccountUpdates, usePlatformUpdates } from "./live-updates";
 
 const REFRESH_AFTER = 15 * 60_000;
-/** "Last active" is sent at most this often; the database ignores repeats within 5 minutes too. */
-const ACTIVE_EVERY = 5 * 60_000;
 /** A scheduled change is reloaded a moment after it happens, spread so every app doesn't ask at once. */
 const AFTER_CHANGE_MS = 1_500;
 const CHANGE_SPREAD_MS = 4_000;
@@ -119,27 +114,6 @@ export function PlatformInbox({ userId, children }: { userId: string | null; chi
       changeTimer.current = null;
     };
   }, [userId, load]);
-
-  // Last active, for Admin → Users: sent when the app opens and on use (a tap, a key,
-  // coming back to it), at most every ACTIVE_EVERY. No timer, so an idle or hidden
-  // app sends nothing. Best effort: offline, or before the migration, nothing changes.
-  useEffect(() => {
-    const client = supabase;
-    if (!userId || !client) return;
-    let sentAt = 0;
-    const report = () => {
-      if (document.visibilityState !== "visible" || Date.now() - sentAt < ACTIVE_EVERY) return;
-      sentAt = Date.now();
-      // The request goes out on .then.
-      void client.rpc("platform_mark_active").then(undefined, () => undefined);
-    };
-    report();
-    const events = ["pointerdown", "keydown", "visibilitychange"] as const;
-    for (const e of events) document.addEventListener(e, report, { passive: true });
-    return () => {
-      for (const e of events) document.removeEventListener(e, report);
-    };
-  }, [userId]);
 
   // The team published or changed an announcement, the notice, or the review settings
   // (which decide the invitation to review): show it now.
