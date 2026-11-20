@@ -20,8 +20,9 @@ const TONE: Record<FeedbackStatus, "default" | "accent" | "warning" | "positive"
 const day = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric" });
 
 /**
- * "Your messages": what the person sent, where each stands, and the team's
- * answer. Answers count as read once the list has been on screen.
+ * "Your messages" in Help & feedback: what the person sent, where each
+ * stands, and the team's answer. Answers count as read once the list has
+ * been on screen.
  */
 export function FeedbackHistory({ items, onSeen }: { items: MyFeedback[]; onSeen: () => void }) {
   const list = useRef<HTMLDivElement>(null);
@@ -55,9 +56,8 @@ export function FeedbackHistory({ items, onSeen }: { items: MyFeedback[]; onSeen
   }, [pending]);
 
   return (
-    <div ref={list} className="mt-6 border-t border-line pt-5">
-      <h3 className="text-sm font-semibold text-paper">Your messages</h3>
-      <p className="mt-0.5 text-xs text-paper/50">Your newest 50, with where each one stands.</p>
+    <div ref={list}>
+      <p className="text-xs text-paper/50">Your newest 50, with where each one stands. The team&apos;s answers appear here.</p>
       <ol className="mt-3 space-y-3">
         {items.map((f) => (
           <li key={f.id} className="rounded-2xl border border-line p-4">

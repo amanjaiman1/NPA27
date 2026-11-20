@@ -36,7 +36,7 @@ p { margin: 0; font-size: 14px; line-height: 1.6; color: rgba(24, 24, 40, 0.7); 
 
 const NOTE: Partial<Record<SendResult, string>> = {
   sent: "A crash report went to the team: the error and the page's address, nothing you wrote.",
-  off: "Crash reports are switched off in Settings, so nothing was sent.",
+  off: "Crash reports are switched off in Help & feedback, so nothing was sent.",
   ask: "Send the team a crash report? It holds the error and the page's address, nothing you wrote.",
   failed: "The crash report couldn't be sent.",
 };
