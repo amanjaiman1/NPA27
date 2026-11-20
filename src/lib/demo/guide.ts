@@ -27,8 +27,8 @@ export const DEMO_STEPS: DemoStep[] = [
     path: "/journal",
     page: "Daily Journal",
     title: "Write the day down in a minute",
-    body: "One entry a day: hours by subject, topics finished, revisions, mocks, mood and notes. The dashboard, the heatmap and the habits all read from it.",
-    tryIt: "Press Log today, add an hour of a subject and save it.",
+    body: "One form a day, in four tabs: the journal (hours by subject, topics finished, revision, mood and notes), life readings, goals and habits. The dashboard, the heatmap and the habits all read from it.",
+    tryIt: "Press Capture today, add an hour of a subject and press Save All Changes.",
   },
   {
     path: "/subjects",

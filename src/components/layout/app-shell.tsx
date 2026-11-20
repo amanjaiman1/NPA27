@@ -8,7 +8,7 @@ import { NavRail } from "./nav-rail";
 import { RouteTransition } from "./route-transition";
 import { PageTransition } from "./page-transition";
 import { Topbar } from "./topbar";
-import { BottomNav } from "./bottom-nav";
+import { CaptureButton } from "./bottom-nav";
 import { FileJanitor } from "@/components/attachments/file-janitor";
 import { NotificationsProvider } from "@/components/notifications/use-notifications";
 import { TourProvider } from "@/components/tour/tour-provider";
@@ -292,7 +292,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </main>
             </div>
 
-            <BottomNav onOpenMenu={() => setDrawerOpen(true)} />
+            <CaptureButton />
             {demo ? <DemoGuide /> : <FileJanitor />}
 
             {(paletteOpen || paletteUsed) && (
