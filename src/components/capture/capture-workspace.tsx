@@ -691,10 +691,10 @@ export function CaptureWorkspace({
         className="sm:max-w-5xl"
         footer={footer}
       >
-        <div className="space-y-4">
+        <div className="space-y-3">
           <div>
             <WeekStrip date={date} today={today} logged={loggedDays} waiting={waitingDays} onPick={changeDate} />
-            <div className="mt-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5 px-1.5">
+            <div className="mt-1.5 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-1.5">
               <SaveStatus saving={saving} anyDirty={anyDirty} outcome={outcome} failures={failures} mode={mode} sync={sync} onRetry={() => (anyDirty ? void saveAll() : syncNow())} />
               <div className="flex items-center gap-2.5" role="group" aria-label={date === today ? "Today's progress" : "Progress for this day"}>
                 <div className="flex gap-1" aria-hidden>
@@ -739,7 +739,7 @@ export function CaptureWorkspace({
           )}
 
           {/* The tabs float in view while the form scrolls under the glass. */}
-          <div className="sticky top-0 z-10 -mx-3 bg-gradient-to-b from-card from-45% to-transparent px-3 pb-2 pt-1">
+          <div className="sticky top-0 z-10 -mx-3 bg-gradient-to-b from-card from-45% to-transparent px-3 pb-1.5 pt-0.5">
             <CaptureTabs section={section} onSelect={selectSection} views={views} />
           </div>
 
@@ -860,7 +860,7 @@ function WeekStrip({
   const picker = useRef<HTMLInputElement>(null);
   const end = shiftDay(date, 3) < today ? shiftDay(date, 3) : today;
   const days = Array.from({ length: 7 }, (_, i) => shiftDay(end, i - 6));
-  const arrow = "grid h-10 w-9 shrink-0 place-items-center rounded-xl text-paper/60 hover:bg-paper/[0.05] hover:text-paper disabled:cursor-not-allowed disabled:opacity-35";
+  const arrow = "grid h-9 w-8 shrink-0 place-items-center rounded-lg text-paper/60 hover:bg-paper/[0.05] hover:text-paper disabled:cursor-not-allowed disabled:opacity-35";
 
   return (
     <div className="flex items-center gap-1">
@@ -880,7 +880,7 @@ function WeekStrip({
               aria-pressed={on}
               aria-label={`${longDate(d)}${state}`}
               className={cn(
-                "flex min-w-0 flex-col items-center gap-0.5 rounded-2xl py-2 transition-colors duration-200",
+                "flex min-w-0 flex-col items-center gap-0.5 rounded-xl py-1.5 transition-colors duration-200",
                 on ? "bg-accent text-accent-fg shadow-accent" : "text-paper/75 hover:bg-paper/[0.05] hover:text-paper",
               )}
             >
@@ -894,7 +894,7 @@ function WeekStrip({
                   format(day, "EEE")
                 )}
               </span>
-              <span className="tabular text-[1.02rem] font-semibold leading-tight">{format(day, "d")}</span>
+              <span className="tabular text-[0.94rem] font-semibold leading-tight">{format(day, "d")}</span>
               <span
                 className={cn(
                   "h-1.5 w-1.5 rounded-full",
@@ -920,7 +920,7 @@ function WeekStrip({
               picker.current?.focus();
             }
           }}
-          className="grid h-10 w-10 place-items-center rounded-xl border border-line text-paper/70 hover:text-paper"
+          className="grid h-9 w-9 place-items-center rounded-lg border border-line text-paper/70 hover:text-paper"
         >
           <CalendarDays className="h-4 w-4" />
         </button>
@@ -938,6 +938,24 @@ function WeekStrip({
     </div>
   );
 }
+
+/** The links between tabs take the colours of the two sections they join. */
+const RAIL_FROM: Record<SectionState, string> = {
+  empty: "from-paper/25",
+  progress: "from-warning",
+  complete: "from-positive",
+  unsaved: "from-accent",
+  error: "from-danger",
+  na: "from-paper/15",
+};
+const RAIL_TO: Record<SectionState, string> = {
+  empty: "to-paper/25",
+  progress: "to-warning",
+  complete: "to-positive",
+  unsaved: "to-accent",
+  error: "to-danger",
+  na: "to-paper/15",
+};
 
 const FIGURE: Record<SectionState, string> = {
   empty: "text-paper/50",
@@ -999,8 +1017,28 @@ function CaptureTabs({
       role="tablist"
       aria-label="Daily Capture sections"
       onKeyDown={onKeyDown}
-      className="lg-clear relative isolate grid w-full grid-cols-4 rounded-full border border-line px-2 py-2 sm:px-4"
+      className="lg-clear relative isolate grid w-full grid-cols-4 gap-1 rounded-xl border border-line p-1"
     >
+      {/* The links: a rail from each icon to the next, lit in the colours of the
+          sections it joins, with light running along it from one tab to the next. */}
+      {SECTIONS.slice(0, -1).map((s, i) => {
+        const from = views[s.id].state;
+        const to = views[SECTIONS[i + 1].id].state;
+        return (
+          <span
+            key={`link-${s.id}`}
+            aria-hidden
+            className="pointer-events-none absolute top-[22px] h-[3px] overflow-hidden rounded-full bg-paper/10 sm:top-[24px]"
+            style={{ left: `calc(${(i + 0.5) * 25}% + 21px)`, width: "calc(25% - 42px)" }}
+          >
+            <span className={cn("absolute inset-0 rounded-full bg-gradient-to-r opacity-75 transition-colors duration-500", RAIL_FROM[from], RAIL_TO[to])} />
+            <span
+              className="capture-flow absolute inset-y-0 left-0 w-1/3 rounded-full bg-gradient-to-r from-transparent via-white/90 to-transparent"
+              style={{ animationDelay: `${i * 0.5}s` }}
+            />
+          </span>
+        );
+      })}
       {SECTIONS.map((s, i) => {
         const active = section === s.id;
         const v = views[s.id];
@@ -1021,37 +1059,38 @@ function CaptureTabs({
             title={`${s.label}: ${v.text}`}
             onClick={() => onSelect(s.id)}
             className={cn(
-              "group relative flex min-w-0 flex-col items-center gap-1 bg-transparent px-0.5 focus-visible:outline-none",
+              "group relative flex min-w-0 flex-col items-center gap-1 rounded-lg bg-transparent px-1 py-1.5 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/45",
               active ? "text-accent" : "text-paper/65 hover:text-paper",
             )}
           >
-            {/* The button itself: a small circle, with the glass lens gliding to the selected one. */}
+            {active && (
+              <motion.span
+                layoutId="capture-lens"
+                className="lg-lens absolute inset-0 -z-10 rounded-lg"
+                transition={{ type: "spring", stiffness: 420, damping: 34, mass: 0.85 }}
+                aria-hidden
+              />
+            )}
             <span
               className={cn(
-                "relative grid h-10 w-10 place-items-center rounded-full transition-colors duration-200 group-focus-visible:ring-2 group-focus-visible:ring-accent/45 sm:h-11 sm:w-11",
-                !active && "bg-paper/[0.05] group-hover:bg-paper/[0.09]",
+                "relative grid h-7 w-7 shrink-0 place-items-center rounded-md transition-colors duration-200 sm:h-8 sm:w-8",
+                active ? "bg-accent/15 ring-1 ring-accent/30" : "bg-card ring-1 ring-line group-hover:ring-paper/25",
               )}
             >
-              {active && (
-                <motion.span
-                  layoutId="capture-lens"
-                  className="lg-lens absolute inset-0 -z-10 rounded-full"
-                  transition={{ type: "spring", stiffness: 420, damping: 32, mass: 0.85 }}
-                  aria-hidden
-                />
-              )}
-              <Icon className={cn("h-[1.1rem] w-[1.1rem] transition-transform duration-300 sm:h-5 sm:w-5", active && "scale-105")} strokeWidth={active ? 2.2 : 1.9} aria-hidden />
+              <Icon className="h-4 w-4" strokeWidth={active ? 2.2 : 1.9} aria-hidden />
               {v.state === "complete" && (
-                <span className="absolute -right-0.5 -top-0.5 grid h-3.5 w-3.5 place-items-center rounded-full bg-positive text-card ring-2 ring-card" aria-hidden>
-                  <Check className="h-2 w-2" strokeWidth={4} />
+                <span className="absolute -right-1 -top-1 grid h-3 w-3 place-items-center rounded-full bg-positive text-card ring-2 ring-card" aria-hidden>
+                  <Check className="h-[0.45rem] w-[0.45rem]" strokeWidth={4.5} />
                 </span>
               )}
               {(v.state === "unsaved" || v.state === "error") && (
-                <span className={cn("absolute right-0 top-0 h-2.5 w-2.5 rounded-full ring-2 ring-card", v.state === "error" ? "bg-danger" : "bg-accent")} aria-hidden />
+                <span className={cn("absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full ring-2 ring-card", v.state === "error" ? "bg-danger" : "bg-accent")} aria-hidden />
               )}
             </span>
-            <span className={cn("max-w-full truncate text-[0.68rem] font-semibold tracking-snugg sm:text-[0.74rem]", active && "text-paper")}>{s.label}</span>
-            <span className={cn("tabular -mt-0.5 max-w-full truncate text-[0.6rem] font-medium sm:text-[0.64rem]", FIGURE[v.state])}>{v.badge}</span>
+            <span className="flex min-w-0 max-w-full items-baseline justify-center gap-1.5">
+              <span className={cn("truncate text-[0.66rem] font-semibold leading-tight tracking-snugg sm:text-[0.78rem]", active && "text-paper")}>{s.label}</span>
+              <span className={cn("tabular hidden shrink-0 text-[0.66rem] font-medium leading-tight sm:inline", FIGURE[v.state])}>{v.badge}</span>
+            </span>
             <span className="sr-only">, {v.text}</span>
           </button>
         );

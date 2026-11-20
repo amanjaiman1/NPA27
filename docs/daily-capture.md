@@ -29,8 +29,10 @@ shows the day's total against the daily target and the split by subject;
 rows work as in the entry dialog ("Add a subject" adds an empty row), with
 half-hour steps on each row. Revision, how the day felt, reflection, files
 and the more detailed lists follow. Every tab lays its sections out in one
-bordered sheet, divided by hairlines. The tabs are small round buttons in
-one bar of liquid glass, with a tinted lens that glides to the selected one.
+bordered sheet, divided by hairlines. The tabs are compact icon tiles in
+one bar of liquid glass, joined by links that take the colours of the
+sections they connect (green between finished ones), with light running
+along them; a tinted lens glides to the selected tab.
 
 ## No new data
 
