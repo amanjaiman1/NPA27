@@ -1,5 +1,7 @@
 # Daily Journal
 
+> Daily Journal now opens **Daily Capture** (see [daily-capture.md](daily-capture.md)). The entry list described here lives at `/journal/history`.
+
 One entry per calendar day (`JournalEntry` in `src/lib/types.ts`, unique by
 `date`). This page describes how it works now; the original design is kept at
 the end as history.

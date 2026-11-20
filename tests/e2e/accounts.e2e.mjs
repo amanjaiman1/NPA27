@@ -174,9 +174,12 @@ async function signOut(page) {
   await page.waitForURL(/\/welcome/);
 }
 
-/** Today's entry in the composer (new or existing). */
+/**
+ * Today's entry in the composer (new or existing). /journal is Daily Capture
+ * now; the entry dialog it shares its form with opens from History.
+ */
 async function openComposer(page) {
-  await page.goto(`${APP}/journal?new=1`);
+  await page.goto(`${APP}/journal/history?new=1`);
   const composer = page.getByRole("dialog", { name: /^(New|Edit) entry$/ });
   await composer.waitFor();
   return composer;

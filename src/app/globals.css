@@ -1872,6 +1872,36 @@ button:is(.rounded-md, .rounded-lg, .rounded-xl, .rounded-full).place-items-cent
   box-shadow: var(--lg-track-shadow);
 }
 
+/* The selected tab in Daily Capture's tab bar: a lens of tinted glass that
+   glides along the clear bar (components/capture/capture-workspace.tsx). */
+.lg-lens {
+  background-color: rgb(var(--accent) / 0.15);
+  background-image: var(--lg-sheen);
+  box-shadow:
+    var(--lg-shadow),
+    inset 0 0 0 1px rgb(var(--accent) / 0.22);
+}
+
+/* Light running along the links between Daily Capture's tabs, one tab to
+   the next. Still for anyone who asks for less motion. */
+@keyframes capture-flow {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(400%);
+  }
+}
+.capture-flow {
+  animation: capture-flow 2.8s cubic-bezier(0.45, 0, 0.25, 1) infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .capture-flow {
+    animation: none;
+    opacity: 0;
+  }
+}
+
 /* ── Fallbacks and Reduce transparency ─────────────────────────────── */
 
 /* No backdrop-filter support: translucent surfaces would show sharp content
