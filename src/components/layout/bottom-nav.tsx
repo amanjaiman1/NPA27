@@ -51,11 +51,11 @@ export function CaptureButton() {
       <Link
         href="/journal?new=1"
         aria-label={logged ? "Update today in Daily Capture" : "Capture today in Daily Capture"}
-        className="group pointer-events-auto relative grid h-[3.75rem] w-[3.75rem] place-items-center rounded-2xl bg-accent text-accent-fg shadow-accent transition-transform duration-200 ease-out hover:-translate-y-0.5 active:scale-95"
+        className="group pointer-events-auto relative grid h-[3.75rem] w-[3.75rem] place-items-center rounded-full bg-accent text-accent-fg shadow-accent transition-transform duration-200 ease-out hover:-translate-y-0.5 active:scale-95"
       >
         {/* A soft glow under the glass, and a halo that breathes until today is logged. */}
-        <span aria-hidden className="pointer-events-none absolute -inset-3 -z-10 rounded-[1.75rem] bg-accent/30 blur-xl" />
-        {!logged && <span aria-hidden className="capture-halo pointer-events-none absolute inset-0 rounded-2xl ring-2 ring-accent/60" />}
+        <span aria-hidden className="pointer-events-none absolute -inset-3 -z-10 rounded-full bg-accent/30 blur-xl" />
+        {!logged && <span aria-hidden className="capture-halo pointer-events-none absolute inset-0 rounded-full ring-2 ring-accent/60" />}
         <Plus
           className="relative h-7 w-7 drop-shadow-sm transition-transform duration-300 ease-out group-hover:rotate-90 group-active:rotate-90"
           strokeWidth={2.75}
@@ -64,7 +64,7 @@ export function CaptureButton() {
         {logged && (
           <span
             aria-hidden
-            className={cn("absolute -right-1 -top-1 grid h-5 w-5 place-items-center rounded-full bg-positive text-card shadow-soft ring-2 ring-card")}
+            className={cn("absolute -right-0.5 -top-0.5 grid h-5 w-5 place-items-center rounded-full bg-positive text-card shadow-soft ring-2 ring-card")}
           >
             <Check className="h-3 w-3" strokeWidth={3.5} />
           </span>
