@@ -1,11 +1,11 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import { Plus, Trash2, Sunrise, Moon, ChevronDown, AlertTriangle, Target, Check } from "lucide-react";
-import type { Goal, ISODate, JournalEntry, LifeEntry, TopicCompletion } from "@/lib/types";
+import { Plus, Minus, Trash2, Sunrise, Moon, ChevronDown, AlertTriangle, Target, Check, GraduationCap, BookOpenCheck, Copy, PenLine, Paperclip, RotateCcw, Smile } from "lucide-react";
+import type { Goal, ISODate, JournalEntry, LifeEntry, StudyBlock, Subject, TopicCompletion } from "@/lib/types";
 import { useChronicle, type JournalSaveResult } from "@/lib/store";
 import { Field, Input, Textarea, Select, ListEditor } from "@/components/ui/form";
-import { Card } from "@/components/ui/card";
+import { RadialProgress } from "@/components/ui/progress";
 import { RevisionPicker } from "./revision-picker";
 import { TopicPicker } from "./topic-picker";
 import { AttachmentTray, type SessionFile } from "@/components/attachments/attachment-tray";
@@ -89,9 +89,252 @@ function RatingRow({
   );
 }
 
-/** In the page layout each block is a card of its own. */
-function PageCard({ children }: { children: React.ReactNode }) {
-  return <Card className="space-y-4 p-5 sm:p-6">{children}</Card>;
+/* ── the page layout (Daily Capture) ───────────────────────────── */
+
+/** The two things a day is mostly about: a large card that leads the page. */
+function HeroCard({
+  icon: Icon,
+  title,
+  hint,
+  aside,
+  children,
+}: {
+  icon: typeof Plus;
+  title: string;
+  hint: string;
+  aside?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="relative min-w-0 overflow-hidden rounded-3xl border border-line bg-card p-5 shadow-soft sm:p-6">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-accent/[0.08] to-transparent" aria-hidden />
+      <header className="relative mb-5 flex items-start justify-between gap-4">
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-accent/15 text-accent" aria-hidden>
+            <Icon className="h-5 w-5" />
+          </span>
+          <div className="min-w-0">
+            <h3 className="text-[1.08rem] font-semibold tracking-snugg text-paper">{title}</h3>
+            <p className="text-[0.76rem] text-paper/55">{hint}</p>
+          </div>
+        </div>
+        {aside}
+      </header>
+      <div className="relative space-y-4">{children}</div>
+    </section>
+  );
+}
+
+/** Everything else: a quieter card with a small heading. */
+function PlainCard({
+  icon: Icon,
+  title,
+  aside,
+  children,
+  className,
+}: {
+  icon: typeof Plus;
+  title: string;
+  aside?: React.ReactNode;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <section className={cn("min-w-0 rounded-2xl border border-line bg-card p-5 shadow-soft", className)}>
+      <header className="mb-3.5 flex items-center justify-between gap-3">
+        <h3 className="flex items-center gap-2 text-[0.88rem] font-semibold tracking-snugg text-paper">
+          <Icon className="h-4 w-4 text-accent" aria-hidden /> {title}
+        </h3>
+        {aside && <span className="text-[0.72rem] text-paper/55">{aside}</span>}
+      </header>
+      {children}
+    </section>
+  );
+}
+
+/** Shades of the accent for each subject's share of the day, in row order. */
+const SHADES = ["bg-accent", "bg-accent/70", "bg-accent/50", "bg-accent/35", "bg-accent/25", "bg-accent/15"];
+
+/**
+ * Hours by subject, built for speed: tap a subject you usually study to add
+ * it, nudge the hours in half-hour steps, or repeat your last day's subjects.
+ * The ring shows the day against your daily target.
+ */
+function StudyCard({
+  draft,
+  patch,
+  subjects,
+  journal,
+  target,
+}: {
+  draft: JournalEntry;
+  patch: (p: Partial<JournalEntry>) => void;
+  subjects: Subject[];
+  journal: JournalEntry[];
+  target: number;
+}) {
+  const blocks = draft.blocks;
+  const total = round(blocks.reduce((a, b) => a + (Number(b.hours) || 0), 0), 2);
+  const counted = blocks.filter((b) => b.subjectId && Number(b.hours) > 0);
+  const used = new Set(blocks.map((b) => b.subjectId).filter(Boolean));
+
+  // Subjects you study most often come first among the quick picks.
+  const ranked = useMemo(() => {
+    const seen = new Map<string, number>();
+    for (const j of journal) if (j.date < draft.date) for (const b of j.blocks ?? []) if (b.subjectId) seen.set(b.subjectId, (seen.get(b.subjectId) ?? 0) + 1);
+    return [...subjects].sort((a, b) => (seen.get(b.id) ?? 0) - (seen.get(a.id) ?? 0) || a.name.localeCompare(b.name));
+  }, [journal, subjects, draft.date]);
+  const quick = ranked.filter((s) => !used.has(s.id)).slice(0, 6);
+  const last = useMemo(
+    () =>
+      journal
+        .filter((j) => j.date < draft.date && (j.blocks ?? []).some((b) => b.subjectId && b.hours > 0))
+        .reduce<JournalEntry | null>((best, j) => (!best || j.date > best.date ? j : best), null),
+    [journal, draft.date],
+  );
+
+  const setBlock = (i: number, p: Partial<StudyBlock>) => {
+    const next = [...blocks];
+    next[i] = { ...next[i], ...p };
+    patch({ blocks: next });
+  };
+  const addSubject = (id: string) => {
+    const empty = blocks.findIndex((b) => !b.subjectId);
+    if (empty >= 0) setBlock(empty, { subjectId: id, hours: Number(blocks[empty].hours) || 1 });
+    else patch({ blocks: [...blocks, { subjectId: id, hours: 1 }] });
+  };
+  const step = (i: number, by: number) => setBlock(i, { hours: Math.min(24, Math.max(0, round((Number(blocks[i].hours) || 0) + by, 2))) });
+  const pct = target > 0 ? Math.min(100, Math.round((total / target) * 100)) : null;
+  const left = target > 0 ? round(target - total, 2) : 0;
+
+  return (
+    <HeroCard
+      icon={GraduationCap}
+      title="Study"
+      hint="What you studied today, and for how long."
+      aside={
+        pct != null ? (
+          <RadialProgress
+            value={pct}
+            tone={pct >= 100 ? "positive" : "accent"}
+            ariaLabel="Study hours against your daily target"
+            size={58}
+            stroke={5}
+            label={<span className="tabular text-[0.72rem] font-semibold text-paper">{pct}%</span>}
+          />
+        ) : undefined
+      }
+    >
+      <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-1">
+        <p className="tabular text-[2.1rem] font-semibold leading-none tracking-[-0.03em] text-paper">{formatHours(total)}</p>
+        <p className={cn("pb-1 text-[0.78rem]", total > 24 ? "font-semibold text-danger" : left <= 0 && target > 0 ? "font-semibold text-positive" : "text-paper/60")}>
+          {total > 24
+            ? "More than 24 hours. Check the rows below."
+            : target > 0
+              ? left > 0
+                ? `${formatHours(left)} to your ${formatHours(target)} target`
+                : `Daily target of ${formatHours(target)} reached`
+              : `${counted.length} ${counted.length === 1 ? "subject" : "subjects"}`}
+        </p>
+      </div>
+
+      {total > 0 && (
+        <div className="flex h-2 gap-0.5 overflow-hidden rounded-full bg-paper/[0.06]" aria-hidden>
+          {blocks.map((b, i) =>
+            Number(b.hours) > 0 && b.subjectId ? (
+              <span key={i} className={cn("h-full transition-all duration-300", SHADES[i % SHADES.length])} style={{ width: `${(Number(b.hours) / Math.max(total, target || 0)) * 100}%` }} />
+            ) : null,
+          )}
+        </div>
+      )}
+
+      <ul className="space-y-2" aria-label="Study by subject">
+        {blocks.map((b, i) => (
+          <li key={i} className="flex items-center gap-2">
+            <span className={cn("hidden h-2.5 w-2.5 shrink-0 rounded-full sm:block", b.subjectId ? SHADES[i % SHADES.length] : "bg-paper/20")} aria-hidden />
+            <Select
+              value={b.subjectId}
+              aria-label={`Subject ${i + 1}`}
+              onChange={(e) => setBlock(i, { subjectId: e.target.value })}
+              className="min-w-0 flex-1 font-medium"
+            >
+              <option value="">Choose a subject…</option>
+              {subjects.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </Select>
+            <div className="flex h-10 shrink-0 items-center rounded-xl border border-line bg-paper/[0.03]">
+              <button type="button" onClick={() => step(i, -0.5)} aria-label={`Half an hour less for subject ${i + 1}`} className="grid h-full w-7 place-items-center rounded-l-xl text-paper/55 hover:text-paper sm:w-8">
+                <Minus className="h-3.5 w-3.5" />
+              </button>
+              <input
+                type="number"
+                inputMode="decimal"
+                step="0.25"
+                min="0"
+                max="24"
+                aria-label={`Hours for subject ${i + 1}`}
+                value={b.hours}
+                onChange={(e) => setBlock(i, { hours: parseFloat(e.target.value) || 0 })}
+                className="tabular h-full w-10 bg-transparent sm:w-11 text-center text-sm font-semibold text-paper outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
+              />
+              <span className="hidden pr-1 text-xs text-paper/45 sm:inline" aria-hidden>
+                h
+              </span>
+              <button type="button" onClick={() => step(i, 0.5)} aria-label={`Half an hour more for subject ${i + 1}`} className="grid h-full w-7 place-items-center rounded-r-xl text-paper/55 hover:text-paper sm:w-8">
+                <Plus className="h-3.5 w-3.5" />
+              </button>
+            </div>
+            <button
+              type="button"
+              onClick={() => patch({ blocks: blocks.filter((_, bi) => bi !== i) })}
+              aria-label={`Remove subject ${i + 1}`}
+              className="grid h-10 w-8 shrink-0 place-items-center rounded-xl text-paper/40 hover:bg-paper/[0.06] hover:text-paper sm:w-9"
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+          </li>
+        ))}
+      </ul>
+
+      <div className="space-y-2 border-t border-line pt-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-[0.72rem] font-semibold text-paper/55">Add a subject</p>
+          {last && used.size === 0 && (
+            <button
+              type="button"
+              onClick={() => patch({ blocks: last.blocks.filter((b) => b.subjectId && b.hours > 0).map((b) => ({ ...b })) })}
+              className="inline-flex items-center gap-1.5 text-[0.74rem] font-semibold text-accent hover:underline"
+            >
+              <Copy className="h-3.5 w-3.5" aria-hidden /> Same as {formatDate(last.date)}
+            </button>
+          )}
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          {quick.map((s) => (
+            <button
+              key={s.id}
+              type="button"
+              onClick={() => addSubject(s.id)}
+              className="inline-flex max-w-full items-center gap-1 rounded-full border border-line px-3 py-1.5 text-xs font-semibold text-paper/75 transition-colors hover:border-accent/40 hover:text-accent"
+            >
+              <Plus className="h-3 w-3 shrink-0" aria-hidden />
+              <span className="truncate">{s.name}</span>
+            </button>
+          ))}
+          <button
+            type="button"
+            onClick={() => patch({ blocks: [...blocks, { subjectId: "", hours: 1 }] })}
+            className="inline-flex items-center gap-1 rounded-full border border-dashed border-paper/25 px-3 py-1.5 text-xs font-semibold text-paper/60 hover:text-paper"
+          >
+            <Plus className="h-3 w-3" aria-hidden /> Another row
+          </button>
+        </div>
+      </div>
+    </HeroCard>
+  );
 }
 
 /**
@@ -592,26 +835,106 @@ export function JournalFields({
   );
 
   if (page) {
+    const topicCount = draft.completedTopics?.length ?? 0;
     return (
-      <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(17rem,21rem)]">
-        <div className="min-w-0 space-y-5">
-          <PageCard>{notes}</PageCard>
-          <PageCard>{study}</PageCard>
-          <PageCard>
-            {topics}
-            <div className="border-t border-line pt-4">{revision}</div>
-          </PageCard>
-          {moreDetails}
+      <div className="space-y-5">
+        {/* What the day was mostly about, first and largest. */}
+        <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1.08fr)_minmax(0,1fr)]">
+          <StudyCard draft={draft} patch={patch} subjects={subjects} journal={journal} target={profile.dailyHourTarget} />
+          <HeroCard
+            icon={BookOpenCheck}
+            title="Topics completed"
+            hint="Search your syllabus or type your own. Topics from today's subjects come first."
+            aside={
+              <span className="text-right">
+                <span className="tabular block text-[2.1rem] font-semibold leading-none tracking-[-0.03em] text-paper">{topicCount}</span>
+                <span className="text-[0.7rem] text-paper/55">{topicCount === 1 ? "topic" : "topics"}</span>
+              </span>
+            }
+          >
+            <TopicPicker
+              value={draft.completedTopics ?? []}
+              onChange={(completedTopics) => patch({ completedTopics })}
+              subjects={subjects}
+              journal={journal}
+              prefer={studiedSubjects}
+            />
+            {topicCount === 0 && (
+              <p className="rounded-xl border border-dashed border-paper/15 px-3.5 py-3 text-[0.76rem] leading-relaxed text-paper/55">
+                Nothing marked yet. A finished syllabus topic moves forward on Subject Progress and can join the revision queue.
+              </p>
+            )}
+            {newSyllabusTopics > 0 && (
+              <label className="flex cursor-pointer items-start gap-2.5 rounded-xl bg-accent/[0.07] px-3.5 py-3 text-xs text-paper/75">
+                <input
+                  type="checkbox"
+                  checked={editor.scheduleRevision}
+                  onChange={(e) => editor.setScheduleRevision(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 accent-[rgb(var(--accent))]"
+                />
+                <span>
+                  Put {newSyllabusTopics === 1 ? "this topic" : `these ${newSyllabusTopics} topics`} on the revision queue, first pass tomorrow.
+                </span>
+              </label>
+            )}
+          </HeroCard>
         </div>
-        <div className="min-w-0 space-y-5">
-          <PageCard>{feel}</PageCard>
-          <PageCard>
-            <Section title="Morning check-in" hint="Wake-up and bedtime come from the Life tab.">
-              {sleepLine}
-            </Section>
-          </PageCard>
-          <PageCard>{files}</PageCard>
+
+        {/* Then the rest of the day, quieter. */}
+        <div className="grid items-start gap-5 lg:grid-cols-2">
+          <PlainCard icon={RotateCcw} title="Revision" aside={draft.revisionSessions?.length ? `${draft.revisionSessions.length} done` : undefined}>
+            <RevisionPicker date={draft.date} sessions={draft.revisionSessions ?? []} onChange={(revisionSessions) => patch({ revisionSessions })} />
+          </PlainCard>
+          <PlainCard icon={Smile} title="How the day felt">
+            <div className="grid grid-cols-1 gap-x-5 gap-y-3 sm:grid-cols-2">
+              <RatingRow label="Mood" value={draft.mood} onChange={(v) => patch({ mood: v })} labels={MOOD_LABELS} />
+              <RatingRow label="Energy" value={draft.energy} onChange={(v) => patch({ energy: v })} labels={ENERGY_LABELS} />
+              <RatingRow label="Motivation" value={draft.motivation} onChange={(v) => patch({ motivation: v })} labels={MOTIVATION_LABELS} />
+              <RatingRow label="Focus" value={draft.focus} onChange={(v) => patch({ focus: v })} labels={FOCUS_LABELS} />
+            </div>
+          </PlainCard>
         </div>
+
+        <PlainCard icon={PenLine} title="Reflection">
+          <div className="space-y-2.5">
+            <Input
+              value={draft.highlights ?? ""}
+              onChange={(e) => patch({ highlights: e.target.value })}
+              placeholder="One line that captures the day"
+              aria-label="Highlight of the day"
+              maxLength={200}
+              className="font-medium"
+            />
+            <Textarea
+              value={draft.reflection ?? ""}
+              onChange={(e) => patch({ reflection: e.target.value })}
+              placeholder="How did today really go?"
+              aria-label="Reflection"
+              className="min-h-[140px] leading-relaxed"
+            />
+          </div>
+        </PlainCard>
+
+        <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,20rem)]">
+          <PlainCard icon={Paperclip} title="Files" aside={draft.fileIds?.length ? `${draft.fileIds.length}` : undefined}>
+            <AttachmentTray
+              entryDate={draft.date}
+              otherDates={isEdit && draft.date !== base.date ? [base.date] : undefined}
+              fileIds={draft.fileIds ?? []}
+              onChange={(fileIds) => patch({ fileIds })}
+              sessionFiles={editor.sessionFiles}
+              onSessionFile={editor.onSessionFile}
+              onReplace={editor.onReplace}
+              onBusyChange={editor.onBusyChange}
+            />
+          </PlainCard>
+          <PlainCard icon={Sunrise} title="Morning check-in">
+            {sleepLine}
+            <p className="mt-2 text-[0.7rem] text-paper/45">Wake-up and bedtime are recorded in the Life tab.</p>
+          </PlainCard>
+        </div>
+
+        {moreDetails}
       </div>
     );
   }

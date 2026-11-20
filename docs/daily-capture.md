@@ -17,6 +17,17 @@ moved to **History** (`/journal/history`); `/journal?tab=topics|analysis`
 redirects there. The standalone Goals, My Habits and Life Dashboard pages are
 unchanged.
 
+## Layout
+
+The page opens on the day: a week strip (logged days have a green dot, days
+with unsaved edits an amber one, and the calendar button jumps anywhere) and
+four one-line tabs, each with its figure. Day Update leads with its two most
+important parts, **Study** and **Topics completed**, as large cards. Study
+shows the day's total against the daily target, the split by subject, and
+quick inputs: tap a subject you often study to add it, nudge hours in
+half-hour steps, or repeat your last day's subjects. Revision, how the day
+felt, reflection, files and the more detailed lists follow, quieter.
+
 ## No new data
 
 Daily Capture stores nothing of its own. The forms are the same components

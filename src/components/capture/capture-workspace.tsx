@@ -8,6 +8,7 @@ import {
   Activity,
   AlertTriangle,
   ArrowUpRight,
+  CalendarDays,
   Check,
   ChevronLeft,
   ChevronRight,
@@ -48,7 +49,6 @@ import { useAccount, useSyncStatus } from "@/components/account/account-session"
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { useToast } from "@/components/ui/toast";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/form";
 import { AccomplishedModal } from "@/components/celebrate/accomplished-modal";
 import { emptyEntry } from "@/components/journal/constants";
 import {
@@ -75,10 +75,21 @@ const LABEL = Object.fromEntries(SECTIONS.map((s) => [s.id, s.label])) as Record
 type SectionState = "empty" | "progress" | "complete" | "unsaved" | "error" | "na";
 interface SectionView {
   state: SectionState;
+  /** The tab's figure: "3h 30m", "5/9", "2", "1/4". */
+  badge: string;
   text: string;
   /** Counts towards the day's capture; null when the section has nothing to do. */
   done: boolean | null;
 }
+
+const BADGE: Record<SectionState, string> = {
+  empty: "bg-paper/[0.06] text-paper/55",
+  progress: "bg-warning/15 text-warning",
+  complete: "bg-positive/15 text-positive",
+  unsaved: "bg-accent/15 text-accent",
+  error: "bg-danger/15 text-danger",
+  na: "bg-paper/[0.06] text-paper/45",
+};
 
 const DOT: Record<SectionState, string> = {
   empty: "bg-paper/25",
@@ -264,6 +275,9 @@ export function CaptureWorkspace() {
     [accountId, date, loaded, outcome],
   );
 
+  const loggedDays = useMemo(() => new Set(journal.map((j) => j.date)), [journal]);
+  const waitingDays = useMemo(() => new Set([...otherDrafts, ...(anyDirty ? [date] : [])]), [otherDrafts, anyDirty, date]);
+
   /* ── the day and the tab live in the address ────────────────── */
 
   const changeDate = useCallback((next: ISODate) => {
@@ -334,6 +348,7 @@ export function CaptureWorkspace() {
     const hours = savedEntry?.totalHours ? formatHours(savedEntry.totalHours) : null;
     const day: SectionView = {
       state: editing("day") ?? (savedEntry ? "complete" : "empty"),
+      badge: dirty.day ? "Edited" : savedEntry ? (hours ?? "Saved") : "New",
       text: dirty.day ? lead("day", savedEntry ? "edited" : "new entry") : savedEntry ? (hours ? `Saved · ${hours}` : "Saved") : "Not started",
       done: Boolean(savedEntry) && !dirty.day,
     };
@@ -341,6 +356,7 @@ export function CaptureWorkspace() {
     const recorded = lifeRecorded(dirty.life ? lifeEd.entry : lifeEd.saved, tracked);
     const life: SectionView = {
       state: editing("life") ?? (lifeEd.saved ? "complete" : "empty"),
+      badge: `${recorded}/${tracked.length}`,
       text: lead("life", `${recorded}/${tracked.length} recorded`),
       done: Boolean(lifeEd.saved) && !dirty.life,
     };
@@ -350,18 +366,20 @@ export function CaptureWorkspace() {
     const pending = new Set([...goalIdsChanged, ...linkDiff.map((g) => g.id)]).size;
     const goalsView: SectionView =
       !dirty.goals && !active && !updated
-        ? { state: "na", text: "No active goals", done: null }
+        ? { state: "na", badge: "–", text: "No active goals", done: null }
         : {
             state: editing("goals") ?? (updated ? "complete" : "empty"),
+            badge: dirty.goals ? `${pending}` : `${updated}`,
             text: dirty.goals ? lead("goals", `${pending} to save`) : updated ? `${updated} updated` : "None updated",
             done: updated > 0 && !dirty.goals,
           };
 
     const { due, done } = habitSummary;
     const habit: SectionView = !due
-      ? { state: editing("habit") ?? "na", text: lead("habit", "Nothing due"), done: null }
+      ? { state: editing("habit") ?? "na", badge: "–", text: lead("habit", "Nothing due"), done: null }
       : {
           state: editing("habit") ?? (done === due ? "complete" : done ? "progress" : "empty"),
+          badge: `${done}/${due}`,
           text: lead("habit", `${done}/${due} done`),
           done: done === due && !dirty.habit,
         };
@@ -570,11 +588,6 @@ export function CaptureWorkspace() {
       case "day":
         return (
           <div className="space-y-4">
-            <PanelIntro
-              title={savedEntry ? "Your entry" : "Write the day"}
-              text={savedEntry ? `Editing what's saved for ${formatDate(date)}.` : `Nothing saved for ${formatDate(date)} yet.`}
-              link={savedEntry ? { href: `/journal/${date}`, label: "View the day" } : undefined}
-            />
             {journalEd.error && <Notice tone="danger">{journalEd.error}</Notice>}
             {journalEd.uploading && <Notice>Waiting for files to finish uploading…</Notice>}
             <JournalFields editor={journalEd} isEdit={Boolean(savedEntry)} variant="page" />
@@ -639,83 +652,45 @@ export function CaptureWorkspace() {
       )}
       <TrackedFieldsDialog open={fieldsOpen} onClose={() => setFieldsOpen(false)} />
 
-      {/* Header: the day, how far it has got, and saving */}
-      <header className="relative overflow-hidden rounded-3xl border border-line bg-card p-5 shadow-soft sm:p-7">
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-accent/[0.09] via-transparent to-transparent" aria-hidden />
-        <div className="relative flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
+      {/* The day first: which one, how far it has got, and saving. */}
+      <header className="space-y-4">
+        <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
           <div className="min-w-0">
-            <p className="text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-accent">Daily Journal</p>
-            <h1 className="mt-1 text-[1.7rem] font-semibold leading-tight tracking-[-0.02em] text-paper sm:text-[2rem]">Daily Capture</h1>
-            <p className="mt-1 text-[0.9rem] text-paper/60">Your day, all in one place.</p>
+            <h1 className="text-[1.65rem] font-semibold leading-tight tracking-[-0.025em] text-paper sm:text-[1.95rem]">Daily Capture</h1>
+            <p className="mt-0.5 text-[0.86rem] text-paper/60">
+              {longDate(date)}
+              {date === today && <span className="font-semibold text-accent"> · Today</span>}
+            </p>
           </div>
-          <div className="flex flex-col gap-2.5 md:items-end">
-            <SaveStatus saving={saving} anyDirty={anyDirty} outcome={outcome} failures={failures} mode={mode} sync={sync} onRetry={() => (anyDirty ? void saveAll() : syncNow())} />
-            <div className="flex gap-2">
-              <Link
-                href="/journal/history"
-                className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-line px-3.5 text-sm font-semibold text-paper/80 hover:text-paper"
-              >
-                <History className="h-4 w-4" aria-hidden /> History
-              </Link>
-              <SaveAllButton ref={saveButton} saving={saving} disabled={!anyDirty} onClick={() => void saveAll()} className="flex-1 md:flex-none" />
-            </div>
+          <div className="flex w-full gap-2 sm:w-auto">
+            <Link
+              href="/journal/history"
+              aria-label="Journal history"
+              className="inline-flex h-10 items-center gap-1.5 rounded-xl border border-line px-3 text-sm font-semibold text-paper/75 hover:text-paper"
+            >
+              <History className="h-4 w-4" aria-hidden /> <span className="hidden sm:inline">History</span>
+            </Link>
+            <SaveAllButton ref={saveButton} saving={saving} disabled={!anyDirty} onClick={() => void saveAll()} className="flex-1 sm:flex-none" />
           </div>
         </div>
 
-        <div className="relative mt-5 flex flex-col gap-4 border-t border-line pt-5 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex min-w-0 flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={() => changeDate(shiftDay(date, -1))}
-              aria-label="Previous day"
-              className="grid h-10 w-10 place-items-center rounded-xl border border-line text-paper/70 hover:text-paper"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-            <Input
-              type="date"
-              value={date}
-              max={today}
-              onChange={(e) => changeDate(parseCaptureDate(e.target.value, today))}
-              aria-label="Day to capture"
-              className="h-10 w-[10.5rem] font-semibold"
-            />
-            <button
-              type="button"
-              onClick={() => changeDate(shiftDay(date, 1))}
-              disabled={date >= today}
-              aria-label="Next day"
-              className="grid h-10 w-10 place-items-center rounded-xl border border-line text-paper/70 hover:text-paper disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </button>
-            {date !== today && (
-              <button
-                type="button"
-                onClick={() => changeDate(today)}
-                className="h-10 rounded-full border border-line px-3.5 text-xs font-semibold text-paper/75 hover:text-paper"
-              >
-                Today
-              </button>
-            )}
-            <p className="w-full pl-1 text-[0.95rem] font-semibold text-paper sm:w-auto sm:pl-2">
-              {longDate(date)}
-              {date === today && <span className="ml-2 text-[0.75rem] font-medium text-accent">Today</span>}
-            </p>
-          </div>
-          <div className="flex items-center gap-3" role="group" aria-label={date === today ? "Today's progress" : "Progress for this day"}>
-            <div className="flex gap-1" aria-hidden>
-              {SECTIONS.map((s) => (
-                <span key={s.id} className={cn("h-1.5 w-7 rounded-full transition-colors duration-300", DOT[views[s.id].state])} />
-              ))}
+        <div className="rounded-3xl border border-line bg-card p-2 shadow-soft sm:p-2.5">
+          <WeekStrip date={date} today={today} logged={loggedDays} waiting={waitingDays} onPick={changeDate} />
+          <div className="mt-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t border-line px-2 pb-1 pt-2.5">
+            <SaveStatus saving={saving} anyDirty={anyDirty} outcome={outcome} failures={failures} mode={mode} sync={sync} onRetry={() => (anyDirty ? void saveAll() : syncNow())} />
+            <div className="flex items-center gap-2.5" role="group" aria-label={date === today ? "Today's progress" : "Progress for this day"}>
+              <div className="flex gap-1" aria-hidden>
+                {SECTIONS.map((s) => (
+                  <span key={s.id} className={cn("h-1.5 w-6 rounded-full transition-colors duration-300", DOT[views[s.id].state])} />
+                ))}
+              </div>
+              <p className="text-[0.76rem] text-paper/60">
+                <span className="tabular font-semibold text-paper">
+                  {captured} of {applicable}
+                </span>{" "}
+                captured
+              </p>
             </div>
-            <p className="text-[0.8rem] text-paper/65">
-              {date === today ? "Today's progress: " : "Progress: "}
-              <span className="tabular font-semibold text-paper">
-                {captured} of {applicable}
-              </span>{" "}
-              sections
-            </p>
           </div>
         </div>
       </header>
@@ -870,6 +845,102 @@ function SaveStatus({
   );
 }
 
+/** Seven days around the one shown, each marked when it's logged or has unsaved edits. */
+function WeekStrip({
+  date,
+  today,
+  logged,
+  waiting,
+  onPick,
+}: {
+  date: ISODate;
+  today: ISODate;
+  logged: Set<ISODate>;
+  waiting: Set<ISODate>;
+  onPick: (d: ISODate) => void;
+}) {
+  const picker = useRef<HTMLInputElement>(null);
+  const end = shiftDay(date, 3) < today ? shiftDay(date, 3) : today;
+  const days = Array.from({ length: 7 }, (_, i) => shiftDay(end, i - 6));
+  const arrow = "grid h-10 w-9 shrink-0 place-items-center rounded-xl text-paper/60 hover:bg-paper/[0.05] hover:text-paper disabled:cursor-not-allowed disabled:opacity-35";
+
+  return (
+    <div className="flex items-center gap-1">
+      <button type="button" onClick={() => onPick(shiftDay(date, -1))} aria-label="Previous day" className={arrow}>
+        <ChevronLeft className="h-4 w-4" />
+      </button>
+      <div className="grid min-w-0 flex-1 grid-cols-7 gap-1">
+        {days.map((d) => {
+          const on = d === date;
+          const day = new Date(`${d}T00:00:00`);
+          const state = waiting.has(d) ? ", unsaved changes" : logged.has(d) ? ", logged" : "";
+          return (
+            <button
+              key={d}
+              type="button"
+              onClick={() => onPick(d)}
+              aria-pressed={on}
+              aria-label={`${longDate(d)}${state}`}
+              className={cn(
+                "flex min-w-0 flex-col items-center gap-0.5 rounded-2xl py-2 transition-colors duration-200",
+                on ? "bg-accent text-accent-fg shadow-accent" : "text-paper/75 hover:bg-paper/[0.05] hover:text-paper",
+              )}
+            >
+              <span className={cn("text-[0.6rem] font-semibold uppercase tracking-[0.08em]", on ? "opacity-85" : "text-paper/45")}>
+                {d === today ? (
+                  <>
+                    <span className="sm:hidden">{format(day, "EEE")}</span>
+                    <span className="hidden sm:inline">Today</span>
+                  </>
+                ) : (
+                  format(day, "EEE")
+                )}
+              </span>
+              <span className="tabular text-[1.02rem] font-semibold leading-tight">{format(day, "d")}</span>
+              <span
+                className={cn(
+                  "h-1.5 w-1.5 rounded-full",
+                  waiting.has(d) ? "bg-warning" : logged.has(d) ? (on ? "bg-accent-fg" : "bg-positive") : "bg-transparent",
+                )}
+                aria-hidden
+              />
+            </button>
+          );
+        })}
+      </div>
+      <button type="button" onClick={() => onPick(shiftDay(date, 1))} disabled={date >= today} aria-label="Next day" className={arrow}>
+        <ChevronRight className="h-4 w-4" />
+      </button>
+      <div className="relative shrink-0">
+        <button
+          type="button"
+          aria-label="Pick any day"
+          onClick={() => {
+            try {
+              picker.current?.showPicker();
+            } catch {
+              picker.current?.focus();
+            }
+          }}
+          className="grid h-10 w-10 place-items-center rounded-xl border border-line text-paper/70 hover:text-paper"
+        >
+          <CalendarDays className="h-4 w-4" />
+        </button>
+        <input
+          ref={picker}
+          type="date"
+          value={date}
+          max={today}
+          onChange={(e) => onPick(parseCaptureDate(e.target.value, today))}
+          tabIndex={-1}
+          aria-hidden
+          className="pointer-events-none absolute inset-0 h-full w-full opacity-0"
+        />
+      </div>
+    </div>
+  );
+}
+
 function CaptureTabs({
   section,
   onSelect,
@@ -880,14 +951,6 @@ function CaptureTabs({
   views: Record<CaptureSection, SectionView>;
 }) {
   const refs = useRef<Partial<Record<CaptureSection, HTMLButtonElement | null>>>({});
-  const first = useRef(true);
-  useEffect(() => {
-    if (first.current) {
-      first.current = false;
-      return;
-    }
-    refs.current[section]?.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "smooth" });
-  }, [section]);
 
   function onKeyDown(e: React.KeyboardEvent) {
     const i = SECTIONS.findIndex((s) => s.id === section);
@@ -900,58 +963,47 @@ function CaptureTabs({
   }
 
   return (
-    <div className="no-scrollbar -mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
-      <div role="tablist" aria-label="Daily Capture sections" onKeyDown={onKeyDown} className="lg-track flex min-w-max gap-1 rounded-2xl border border-line p-1.5 sm:min-w-0">
-        {SECTIONS.map((s) => {
-          const active = section === s.id;
-          const v = views[s.id];
-          const Icon = s.icon;
-          return (
-            <button
-              key={s.id}
-              ref={(el) => {
-                refs.current[s.id] = el;
-              }}
-              type="button"
-              role="tab"
-              id={`capture-tab-${s.id}`}
-              aria-selected={active}
-              aria-controls={`capture-panel-${s.id}`}
-              tabIndex={active ? 0 : -1}
-              onClick={() => onSelect(s.id)}
-              className={cn(
-                "relative flex min-w-[9.5rem] flex-1 items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/45",
-                active ? "text-paper" : "text-paper/60 hover:text-paper",
-              )}
-            >
-              {active && (
-                <motion.span
-                  layoutId="capture-tab"
-                  className="absolute inset-0 rounded-xl border border-line bg-card shadow-soft"
-                  transition={{ type: "spring", bounce: 0.15, duration: 0.4 }}
-                  aria-hidden
-                />
-              )}
-              <span
-                className={cn(
-                  "relative grid h-9 w-9 shrink-0 place-items-center rounded-lg transition-colors",
-                  active ? "bg-accent/15 text-accent" : "bg-paper/[0.05]",
-                )}
+    <div role="tablist" aria-label="Daily Capture sections" onKeyDown={onKeyDown} className="lg-track grid grid-cols-4 gap-1 rounded-2xl border border-line p-1.5">
+      {SECTIONS.map((s) => {
+        const active = section === s.id;
+        const v = views[s.id];
+        const Icon = s.icon;
+        return (
+          <button
+            key={s.id}
+            ref={(el) => {
+              refs.current[s.id] = el;
+            }}
+            type="button"
+            role="tab"
+            id={`capture-tab-${s.id}`}
+            aria-selected={active}
+            aria-controls={`capture-panel-${s.id}`}
+            tabIndex={active ? 0 : -1}
+            title={v.text}
+            onClick={() => onSelect(s.id)}
+            className={cn(
+              "relative flex min-w-0 flex-col items-center gap-1 rounded-xl px-1 py-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/45 sm:flex-row sm:gap-2.5 sm:px-3.5 sm:py-3",
+              active ? "text-paper" : "text-paper/60 hover:text-paper",
+            )}
+          >
+            {active && (
+              <motion.span
+                layoutId="capture-tab"
+                className="absolute inset-0 rounded-xl border border-line bg-card shadow-soft"
+                transition={{ type: "spring", bounce: 0.15, duration: 0.4 }}
                 aria-hidden
-              >
-                <Icon className="h-[1.05rem] w-[1.05rem]" />
-              </span>
-              <span className="relative min-w-0">
-                <span className="block text-[0.86rem] font-semibold">{s.label}</span>
-                <span className="mt-0.5 flex items-center gap-1.5 whitespace-nowrap text-[0.7rem] text-paper/55">
-                  <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", DOT[v.state])} aria-hidden />
-                  {v.text}
-                </span>
-              </span>
-            </button>
-          );
-        })}
-      </div>
+              />
+            )}
+            <Icon className={cn("relative h-[1.1rem] w-[1.1rem] shrink-0", active && "text-accent")} aria-hidden />
+            <span className="relative min-w-0 truncate text-[0.74rem] font-semibold sm:text-[0.88rem]">{s.label}</span>
+            <span className={cn("tabular relative rounded-full px-1.5 py-px text-[0.62rem] font-semibold sm:ml-auto sm:px-2 sm:text-[0.68rem]", BADGE[v.state])}>
+              {v.badge}
+            </span>
+            <span className="sr-only">, {v.text}</span>
+          </button>
+        );
+      })}
     </div>
   );
 }
