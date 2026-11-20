@@ -67,7 +67,7 @@ async function show(opts: {
  * verified without a browser.
  */
 export function Notifier() {
-  const { inbox, settings, notifyLog, now, hydrated, ready } = useNotifications();
+  const { inbox, settings, notifyLog, now, evaluated, ready } = useNotifications();
   const { permission } = useNotificationPermission();
   const { accountId } = useAccount();
   const record = useChronicle((s) => s.recordNoticeDelivery);
@@ -91,12 +91,13 @@ export function Notifier() {
    * the swallowed rejection.
    */
   useEffect(() => {
-    if (!hydrated) return;
+    // Not before the inbox is worked out: an empty one would clear the badge for a moment.
+    if (!evaluated) return;
     if (typeof navigator === "undefined" || !("setAppBadge" in navigator)) return;
     const unread = inbox.unread;
     if (unread > 0) void navigator.setAppBadge(unread).catch(() => {});
     else void navigator.clearAppBadge().catch(() => {});
-  }, [hydrated, inbox.unread]);
+  }, [evaluated, inbox.unread]);
 
   /**
    * Re-run every minute (`now`) as well as on every change, because the digest
@@ -107,7 +108,7 @@ export function Notifier() {
    * phone would be announced again on the laptop.
    */
   useEffect(() => {
-    if (!ready) return;
+    if (!ready || !evaluated) return;
     if (permission !== "granted") return;
     if (!settings.enabled || !settings.deliver) return;
 
@@ -167,7 +168,7 @@ export function Notifier() {
     return () => {
       stale = true;
     };
-  }, [ready, permission, inbox, settings, notifyLog, now, record, accountId]);
+  }, [ready, evaluated, permission, inbox, settings, notifyLog, now, record, accountId]);
 
   return null;
 }

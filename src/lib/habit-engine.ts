@@ -571,8 +571,55 @@ export function metricsFor(source: HabitSource): MetricDef[] {
 
 /* ── A habit's settings, with defaults for older habits ─────── */
 
-export function habitSource(h: Habit): HabitSource {
+/**
+ * A habit's settings, worked out once per habit object rather than once per
+ * day evaluated. Streaks and consistency walk every day since a habit
+ * started, and `habitStart` reads every check-in the habit has, so working
+ * it out per day made two years of history cost hundreds of thousands of
+ * steps (over 100 ms on a laptop, several times that on a phone) every time
+ * the store changed. Habits are immutable records: the store replaces a
+ * habit with a new object whenever anything about it changes, so a cache
+ * keyed by the object can never be stale. The WeakMap lets a replaced
+ * habit's entry go with it.
+ */
+interface HabitSettings {
+  source: HabitSource;
+  metric: MetricDef;
+  target: number;
+  schedule: HabitSchedule;
+  start: ISODate;
+}
+const SETTINGS = new WeakMap<Habit, HabitSettings>();
+
+function settingsOf(h: Habit): HabitSettings {
+  let s = SETTINGS.get(h);
+  if (!s) {
+    const source = readSource(h);
+    const metric = readMetric(h, source);
+    s = { source, metric, target: readTarget(h, metric), schedule: readSchedule(h), start: readStart(h, source) };
+    SETTINGS.set(h, s);
+  }
+  return s;
+}
+
+function readSource(h: Habit): HabitSource {
   return h.source && h.source in SOURCE_LABEL ? h.source : "manual";
+}
+
+function readMetric(h: Habit, source: HabitSource): MetricDef {
+  const m = h.metric ? METRIC_BY_ID.get(h.metric) : undefined;
+  if (m && m.source === source) return m;
+  return metricsFor(source)[0];
+}
+
+function readTarget(h: Habit, m: MetricDef): number {
+  if (m.compare === "check") return 1;
+  const t = h.target;
+  return typeof t === "number" && Number.isFinite(t) && t >= m.min && t <= m.max ? t : m.defaultTarget;
+}
+
+export function habitSource(h: Habit): HabitSource {
+  return settingsOf(h).source;
 }
 
 export function isAutomatic(h: Habit): boolean {
@@ -580,21 +627,19 @@ export function isAutomatic(h: Habit): boolean {
 }
 
 export function habitMetric(h: Habit): MetricDef {
-  const source = habitSource(h);
-  const m = h.metric ? METRIC_BY_ID.get(h.metric) : undefined;
-  if (m && m.source === source) return m;
-  return metricsFor(source)[0];
+  return settingsOf(h).metric;
 }
 
 export function habitTarget(h: Habit): number {
-  const m = habitMetric(h);
-  if (m.compare === "check") return 1;
-  const t = h.target;
-  return typeof t === "number" && Number.isFinite(t) && t >= m.min && t <= m.max ? t : m.defaultTarget;
+  return settingsOf(h).target;
 }
 
 /** The schedule, reading the older `cadence` when there isn't one. */
 export function habitSchedule(h: Habit): HabitSchedule {
+  return settingsOf(h).schedule;
+}
+
+function readSchedule(h: Habit): HabitSchedule {
   const s = h.schedule;
   if (s?.kind === "daily" || s?.kind === "weeklyTotal") return s;
   if (s?.kind === "weekdays") {
@@ -615,12 +660,17 @@ export function sourceStart(h: Habit): ISODate {
 
 /** The first day that counts. */
 export function habitStart(h: Habit): ISODate {
+  return settingsOf(h).start;
+}
+
+function readStart(h: Habit, source: HabitSource): ISODate {
+  const automatic = source !== "manual";
   // An automatic habit: from the day you chose to count records from.
-  let start = isAutomatic(h) ? sourceStart(h) : h.createdOn;
+  let start = automatic ? sourceStart(h) : h.createdOn;
   // A check-in older than that still counts where check-ins do: a manual
   // habit, or one connected later with check-ins allowed (its history stays).
-  if (!isAutomatic(h) || h.allowManual) {
-    for (const [date, done] of Object.entries(h.log ?? {})) if (done && date < start) start = date;
+  if (!automatic || h.allowManual) {
+    for (const date in h.log ?? {}) if (h.log[date] && date < start) start = date;
   }
   return start;
 }
@@ -648,11 +698,35 @@ export interface HabitContext {
   index: Map<ISODate, ActivityEvent[]>;
 }
 
+/**
+ * The last few contexts built, by the records they were read from. The
+ * notifications, the dashboard's habits, the coach (three times, once per
+ * view it builds) and the reviews each ask for the same context from the
+ * same records within one screen update; reading every record into events
+ * once instead of five times is most of what a store change costs on a
+ * long history. Records are immutable (each change replaces the array), so
+ * the same arrays always give the same events. Nothing reads or changes a
+ * context's index in place.
+ */
+interface CachedContext {
+  key: readonly unknown[];
+  value: HabitContext;
+}
+const CONTEXTS: CachedContext[] = [];
+const CONTEXTS_KEPT = 4;
+
 export function habitContext(
   data: ActivityData & { profile?: Pick<Profile, "weekStart"> },
   today: ISODate = toISODate(new Date()),
 ): HabitContext {
-  return { today, weekStart: normalizeWeekStart(data.profile?.weekStart), index: indexEvents(activityEvents(data)) };
+  const weekStart = normalizeWeekStart(data.profile?.weekStart);
+  const key = [data.journal, data.lifeLog, data.revisions, data.plans, data.subjects, today, weekStart] as const;
+  const hit = CONTEXTS.find((c) => c.key.every((k, i) => k === key[i]));
+  if (hit) return hit.value;
+  const value: HabitContext = { today, weekStart, index: indexEvents(activityEvents(data)) };
+  CONTEXTS.unshift({ key, value });
+  if (CONTEXTS.length > CONTEXTS_KEPT) CONTEXTS.pop();
+  return value;
 }
 
 export type DayStatus =

@@ -29,10 +29,15 @@ export function createSupabaseTransport(client: SupabaseClient, accountId: strin
   return {
     async head(): Promise<RemoteHead | null> {
       await assertAccount();
+      // `.retry(false)`: the client would otherwise retry a failed read three
+      // times over 7 seconds before saying so, which kept "Offline" off the
+      // screen and held up a sign-out by as long. The engine has its own
+      // backoff (2 s to 60 s), so a failure is reported at once instead.
       const { data, error, status } = await client
         .from("chronicle_state")
         .select("version, updated_at")
         .eq("user_id", accountId)
+        .retry(false)
         .maybeSingle();
       if (error) throw classify(error, status);
       return data ? { version: Number(data.version), updatedAt: data.updated_at ?? null } : null;
@@ -44,6 +49,7 @@ export function createSupabaseTransport(client: SupabaseClient, accountId: strin
         .from("chronicle_state")
         .select("data, version, updated_at")
         .eq("user_id", accountId)
+        .retry(false)
         .maybeSingle();
       if (error) throw classify(error, status);
       if (!data) return null;

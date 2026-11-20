@@ -3,8 +3,10 @@
 import {
   createContext,
   createElement,
+  startTransition,
   useCallback,
   useContext,
+  useDeferredValue,
   useEffect,
   useMemo,
   useRef,
@@ -13,7 +15,7 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import { useChronicle, useHasHydrated } from "@/lib/store";
-import { useAccount } from "@/components/account/account-session";
+import { useAccount, useSyncStatus } from "@/components/account/account-session";
 import { toISODate } from "@/lib/utils";
 import {
   evaluate,
@@ -51,6 +53,11 @@ export interface NotificationsValue {
   /** The account's data has been read from this device. */
   hydrated: boolean;
   /**
+   * The inbox describes the records as they are now. Briefly false while the
+   * page first paints and right after an edit, when evaluation runs deferred.
+   */
+  evaluated: boolean;
+  /**
    * Hydrated, and the first cloud sync of this visit has finished or cannot
    * happen. Interrupting someone, and tidying their read-state, both wait for
    * this: until then the data on screen may be days behind another device.
@@ -73,7 +80,8 @@ const NotificationsContext = createContext<NotificationsValue | null>(null);
  */
 function useNotificationsSource(): NotificationsValue {
   const hydrated = useHasHydrated();
-  const { mode, sync } = useAccount();
+  const { mode } = useAccount();
+  const { sync } = useSyncStatus();
 
   const profile = useChronicle((s) => s.profile);
   const subjects = useChronicle((s) => s.subjects);
@@ -115,7 +123,8 @@ function useNotificationsSource(): NotificationsValue {
      the first thing you do on returning is look at the bell. */
   const [nowMs, setNowMs] = useState(() => Date.now());
   useEffect(() => {
-    const bump = () => setNowMs(Date.now());
+    // A transition: re-reading every rule once a minute must never hold up a tap.
+    const bump = () => startTransition(() => setNowMs(Date.now()));
     const id = window.setInterval(bump, TICK_MS);
     const onVisible = () => {
       if (document.visibilityState === "visible") bump();
@@ -192,15 +201,26 @@ function useNotificationsSource(): NotificationsValue {
    * Never evaluated before hydration: the store starts from fresh defaults, so
    * evaluating early would flash a bell full of notices about data that is about
    * to be replaced by what's actually on disk.
+   *
+   * Never in the way of the student, either. Every rule reads the records, so
+   * on a long history an evaluation is a noticeable piece of work. It waits
+   * for the page's first paint (`settled`), and after an edit it runs on the
+   * deferred value: the tap that changed the records paints first, and the
+   * bell catches up a moment later in a render React can interrupt.
    */
+  const [settled, setSettled] = useState(false);
+  useEffect(() => {
+    if (hydrated && !settled) startTransition(() => setSettled(true));
+  }, [hydrated, settled]);
+  const deferredData = useDeferredValue(settled ? data : null);
   const notices = useMemo(
-    () => (data ? evaluate(data, { now, settings }) : []),
-    [data, now, settings],
+    () => (deferredData ? evaluate(deferredData, { now, settings }) : []),
+    [deferredData, now, settings],
   );
 
   const inbox = useMemo(
-    () => (data ? buildInbox(notices, notifyState, today) : EMPTY_INBOX),
-    [data, notices, notifyState, today],
+    () => (deferredData ? buildInbox(notices, notifyState, today) : EMPTY_INBOX),
+    [deferredData, notices, notifyState, today],
   );
 
   /* ── pruning ─────────────────────────────────────────────────
@@ -214,18 +234,22 @@ function useNotificationsSource(): NotificationsValue {
      another device, it would throw away "read" for notices that are still true
      there, and they would come back unread everywhere. */
   const sweptOn = useRef<string | null>(null);
+  // Only once the notices describe the records as they are: while the
+  // deferred evaluation is behind (or hasn't run), every read state would look
+  // stale and be thrown away.
+  const current = deferredData !== null && deferredData === data;
   useEffect(() => {
-    if (!ready || !data || sweptOn.current === today) return;
+    if (!ready || !data || !current || sweptOn.current === today) return;
     sweptOn.current = today;
     pruneNotifyState(staleStateIds(notices, notifyState));
     // `notices`/`notifyState` are read at sweep time, not tracked: re-running on
     // every change is exactly what this guard exists to prevent.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready, data, today, pruneNotifyState]);
+  }, [ready, data, current, today, pruneNotifyState]);
 
   return useMemo(
-    () => ({ inbox, settings, notifyLog, now, today, hydrated, ready }),
-    [inbox, settings, notifyLog, now, today, hydrated, ready],
+    () => ({ inbox, settings, notifyLog, now, today, hydrated, evaluated: current, ready }),
+    [inbox, settings, notifyLog, now, today, hydrated, current, ready],
   );
 }
 

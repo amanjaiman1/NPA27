@@ -1,6 +1,7 @@
 "use client";
 
-import Link from "next/link";
+import { AppLink as Link } from "./app-link";
+import { warmOverlays } from "./overlays";
 import { usePathname } from "next/navigation";
 import {
   ChevronRight,
@@ -127,11 +128,11 @@ export function NavRail({
       <div className="flex-1" />
 
       <div className="flex flex-col items-center gap-1.5 border-t border-line pt-3">
-        <IconButton label="Search (Ctrl K)" size="lg" onClick={onOpenPalette} className="rounded-2xl">
+        <IconButton label="Search (Ctrl K)" size="lg" onClick={onOpenPalette} onPointerEnter={() => warmOverlays("palette")} onFocus={() => warmOverlays("palette")} className="rounded-2xl">
           <Search className="h-[1.1rem] w-[1.1rem]" />
         </IconButton>
         <NotificationCentre placement="rail" className="h-11 w-11 rounded-2xl" />
-        <IconButton label="Appearance" size="lg" onClick={onOpenAppearance} className="rounded-2xl">
+        <IconButton label="Appearance" size="lg" onClick={onOpenAppearance} onPointerEnter={() => warmOverlays("appearance")} onFocus={() => warmOverlays("appearance")} className="rounded-2xl">
           <Palette className="h-[1.1rem] w-[1.1rem]" />
         </IconButton>
         <RailLink href="/settings" label="Settings" icon={Settings} active={isActivePath(pathname, "/settings")} utility />

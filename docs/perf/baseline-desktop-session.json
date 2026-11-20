@@ -1,0 +1,62 @@
+{
+  "label": "baseline-desktop-session",
+  "at": "2026-11-20T08:13:26.258Z",
+  "runs": 3,
+  "chromium": "159.0.8154.6",
+  "profiles": {
+    "desktop": {
+      "session": {
+        "clean": {
+          "login": 1200,
+          "logoutMs": 461,
+          "reachedWelcome": 1,
+          "feedbackMs": 318,
+          "askedToConfirm": 0,
+          "sessionLeft": 0,
+          "url": "/welcome",
+          "runs": 3
+        },
+        "pending": {
+          "login": 1202,
+          "logoutMs": 670,
+          "reachedWelcome": 1,
+          "feedbackMs": 652,
+          "askedToConfirm": 0,
+          "sessionLeft": 0,
+          "url": "/welcome",
+          "runs": 3
+        },
+        "push": {
+          "login": 1203,
+          "logoutMs": 909,
+          "reachedWelcome": 1,
+          "feedbackMs": 320,
+          "askedToConfirm": 0,
+          "sessionLeft": 0,
+          "url": "/welcome",
+          "runs": 3
+        },
+        "slow": {
+          "login": 1204,
+          "logoutMs": 5217,
+          "reachedWelcome": 1,
+          "feedbackMs": 3632,
+          "askedToConfirm": 0,
+          "sessionLeft": 0,
+          "url": "/welcome",
+          "runs": 3
+        },
+        "unreachable": {
+          "login": 1200,
+          "logoutMs": 8207,
+          "reachedWelcome": 1,
+          "feedbackMs": 7663,
+          "askedToConfirm": 1,
+          "sessionLeft": 0,
+          "url": "/welcome",
+          "runs": 3
+        }
+      }
+    }
+  }
+}

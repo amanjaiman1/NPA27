@@ -1,0 +1,380 @@
+{
+  "label": "baseline-mobile-b",
+  "at": "2026-11-20T08:22:06.425Z",
+  "runs": 3,
+  "chromium": "159.0.8154.6",
+  "profiles": {
+    "mobile": {
+      "interact": {
+        "habit check-in": {
+          "worstMs": 160,
+          "interactions": 1,
+          "longTasks": 1,
+          "longestTask": 126
+        },
+        "habit check-in again": {
+          "worstMs": 128,
+          "interactions": 1,
+          "longTasks": 1,
+          "longestTask": 86
+        },
+        "open the journal composer": {
+          "worstMs": 168,
+          "interactions": 1,
+          "longTasks": 1,
+          "longestTask": 125
+        },
+        "type in the composer": {
+          "worstMs": 64,
+          "interactions": 21,
+          "longTasks": 0,
+          "longestTask": 0
+        },
+        "open search": {
+          "worstMs": 88,
+          "interactions": 2,
+          "longTasks": 0,
+          "longestTask": 0
+        },
+        "type in search": {
+          "worstMs": 48,
+          "interactions": 8,
+          "longTasks": 0,
+          "longestTask": 0
+        },
+        "switch reduce transparency": {
+          "worstMs": 144,
+          "interactions": 1,
+          "longTasks": 1,
+          "longestTask": 104
+        },
+        "switch it back": {
+          "worstMs": 120,
+          "interactions": 1,
+          "longTasks": 1,
+          "longestTask": 98
+        }
+      },
+      "heavy": {
+        "/dashboard": {
+          "url": "/dashboard",
+          "ready": 4605,
+          "readyWall": 4611,
+          "heading": 4605,
+          "ttfb": 151,
+          "fcp": 3524,
+          "lcp": 4644,
+          "lcpElement": "span.hidden.font-brand",
+          "cls": 0,
+          "tbt": 948,
+          "longTasks": 7,
+          "longestTask": 874,
+          "domNodes": 1293,
+          "heapMb": 13.2,
+          "loadEvent": 3294,
+          "requests": 76,
+          "kb": 686,
+          "jsKb": 554,
+          "mediaKb": 0,
+          "supabaseRequests": 4,
+          "supabaseKb": 1,
+          "supabaseCalls": "/rest/v1/rpc/platform_my_announcements /rest/v1/rpc/platform_my_announcements /rest/v1/chronicle_state /rest/v1/chronicle_state",
+          "runs": 3
+        },
+        "/journal": {
+          "url": "/journal",
+          "ready": 4212,
+          "readyWall": 4216,
+          "heading": 4212,
+          "ttfb": 151,
+          "fcp": 3480,
+          "lcp": 4268,
+          "lcpElement": "span.hidden.font-brand",
+          "cls": 0,
+          "tbt": 582,
+          "longTasks": 7,
+          "longestTask": 568,
+          "domNodes": 1842,
+          "heapMb": 19.1,
+          "loadEvent": 3245,
+          "requests": 74,
+          "kb": 673,
+          "jsKb": 551,
+          "mediaKb": 0,
+          "supabaseRequests": 4,
+          "supabaseKb": 1,
+          "supabaseCalls": "/rest/v1/rpc/platform_my_announcements /rest/v1/rpc/platform_my_announcements /rest/v1/chronicle_state /rest/v1/chronicle_state",
+          "runs": 3
+        },
+        "/habits": {
+          "url": "/habits",
+          "ready": 5616,
+          "readyWall": 5619,
+          "heading": 5616,
+          "ttfb": 151,
+          "fcp": 3408,
+          "lcp": 5640,
+          "lcpElement": "span.hidden.font-brand",
+          "cls": 0,
+          "tbt": 2073,
+          "longTasks": 7,
+          "longestTask": 2065,
+          "domNodes": 769,
+          "heapMb": 13.6,
+          "loadEvent": 3172,
+          "requests": 74,
+          "kb": 693,
+          "jsKb": 567,
+          "mediaKb": 0,
+          "supabaseRequests": 4,
+          "supabaseKb": 1,
+          "supabaseCalls": "/rest/v1/rpc/platform_my_announcements /rest/v1/rpc/platform_my_announcements /rest/v1/chronicle_state /rest/v1/chronicle_state",
+          "runs": 3
+        },
+        "/coach": {
+          "url": "/coach",
+          "ready": 5652,
+          "readyWall": 5656,
+          "heading": 5652,
+          "ttfb": 151,
+          "fcp": 3500,
+          "lcp": 5692,
+          "lcpElement": "span.hidden.font-brand",
+          "cls": 0,
+          "tbt": 2029,
+          "longTasks": 6,
+          "longestTask": 2057,
+          "domNodes": 398,
+          "heapMb": 16.4,
+          "loadEvent": 3251,
+          "requests": 77,
+          "kb": 987,
+          "jsKb": 578,
+          "mediaKb": 0,
+          "supabaseRequests": 6,
+          "supabaseKb": 285,
+          "supabaseCalls": "/rest/v1/rpc/platform_my_announcements /rest/v1/rpc/platform_my_announcements /rest/v1/chronicle_state /rest/v1/chronicle_state /rest/v1/rpc/save_chronicle_state /rest/v1/rpc/save_chronicle_state",
+          "runs": 3
+        },
+        "/performance-review": {
+          "url": "/performance-review",
+          "ready": 5793,
+          "readyWall": 5797,
+          "heading": 5793,
+          "ttfb": 151,
+          "fcp": 3428,
+          "lcp": 5848,
+          "lcpElement": "span.hidden.font-brand",
+          "cls": 0,
+          "tbt": 2233,
+          "longTasks": 5,
+          "longestTask": 2110,
+          "domNodes": 5488,
+          "heapMb": 25.1,
+          "loadEvent": 3184,
+          "requests": 77,
+          "kb": 977,
+          "jsKb": 567,
+          "mediaKb": 0,
+          "supabaseRequests": 6,
+          "supabaseKb": 285,
+          "supabaseCalls": "/rest/v1/rpc/platform_my_announcements /rest/v1/rpc/platform_my_announcements /rest/v1/chronicle_state /rest/v1/chronicle_state /rest/v1/chronicle_state /rest/v1/chronicle_state",
+          "runs": 3
+        },
+        "/diary": {
+          "url": "/diary",
+          "ready": 4189,
+          "readyWall": 4192,
+          "heading": 4189,
+          "ttfb": 151,
+          "fcp": 3468,
+          "lcp": 4240,
+          "lcpElement": "span.hidden.font-brand",
+          "cls": 0,
+          "tbt": 588,
+          "longTasks": 6,
+          "longestTask": 592,
+          "domNodes": 1478,
+          "heapMb": 32.2,
+          "loadEvent": 3232,
+          "requests": 79,
+          "kb": 973,
+          "jsKb": 563,
+          "mediaKb": 0,
+          "supabaseRequests": 6,
+          "supabaseKb": 285,
+          "supabaseCalls": "/rest/v1/rpc/platform_my_announcements /rest/v1/rpc/platform_my_announcements /rest/v1/chronicle_state /rest/v1/chronicle_state /rest/v1/chronicle_state /rest/v1/chronicle_state",
+          "runs": 3
+        },
+        "/roadmap": {
+          "url": "/roadmap",
+          "ready": 4119,
+          "readyWall": 4123,
+          "heading": 4119,
+          "ttfb": 151,
+          "fcp": 3480,
+          "lcp": 4164,
+          "lcpElement": "span.hidden.font-brand",
+          "cls": 0,
+          "tbt": 496,
+          "longTasks": 5,
+          "longestTask": 537,
+          "domNodes": 424,
+          "heapMb": 25.5,
+          "loadEvent": 3230,
+          "requests": 77,
+          "kb": 986,
+          "jsKb": 577,
+          "mediaKb": 0,
+          "supabaseRequests": 6,
+          "supabaseKb": 285,
+          "supabaseCalls": "/rest/v1/rpc/platform_my_announcements /rest/v1/rpc/platform_my_announcements /rest/v1/chronicle_state /rest/v1/chronicle_state /rest/v1/chronicle_state /rest/v1/chronicle_state",
+          "runs": 3
+        }
+      },
+      "heavyReload": {
+        "ready": 2033,
+        "heading": 2033,
+        "ttfb": 151,
+        "fcp": 1120,
+        "lcp": 2072,
+        "lcpElement": "span.hidden.font-brand",
+        "cls": 0,
+        "tbt": 788,
+        "longTasks": 5,
+        "longestTask": 807,
+        "domNodes": 1323,
+        "heapMb": 34.5,
+        "requests": 75,
+        "kb": 3,
+        "supabaseRequests": 3,
+        "supabaseKb": 1,
+        "supabaseCalls": "/rest/v1/rpc/platform_my_announcements /rest/v1/chronicle_state",
+        "runs": 3
+      },
+      "heavyInteract": {
+        "habit check-in": {
+          "worstMs": 1752,
+          "interactions": 1,
+          "longTasks": 3,
+          "longestTask": 2027
+        },
+        "habit check-in again": {
+          "worstMs": 1176,
+          "interactions": 1,
+          "longTasks": 1,
+          "longestTask": 1133
+        },
+        "open the journal composer": {
+          "worstMs": 208,
+          "interactions": 1,
+          "longTasks": 1,
+          "longestTask": 157
+        },
+        "type in the composer": {
+          "worstMs": 64,
+          "interactions": 21,
+          "longTasks": 0,
+          "longestTask": 0
+        },
+        "open search": {
+          "worstMs": 80,
+          "interactions": 2,
+          "longTasks": 0,
+          "longestTask": 0
+        },
+        "type in search": {
+          "worstMs": 48,
+          "interactions": 8,
+          "longTasks": 0,
+          "longestTask": 0
+        },
+        "switch reduce transparency": {
+          "worstMs": 184,
+          "interactions": 1,
+          "longTasks": 1,
+          "longestTask": 159
+        },
+        "switch it back": {
+          "worstMs": 168,
+          "interactions": 1,
+          "longTasks": 1,
+          "longestTask": 148
+        }
+      },
+      "session": {
+        "clean": {
+          "login": 4590,
+          "logoutMs": 884,
+          "reachedWelcome": 1,
+          "feedbackMs": 350,
+          "askedToConfirm": 0,
+          "sessionLeft": 0,
+          "url": "/welcome",
+          "runs": 3
+        },
+        "pending": {
+          "login": 4632,
+          "logoutMs": 3050,
+          "reachedWelcome": 1,
+          "feedbackMs": 2645,
+          "askedToConfirm": 0,
+          "sessionLeft": 0,
+          "url": "/welcome",
+          "runs": 3
+        },
+        "push": {
+          "login": 4636,
+          "logoutMs": 1430,
+          "reachedWelcome": 1,
+          "feedbackMs": 333,
+          "askedToConfirm": 0,
+          "sessionLeft": 0,
+          "url": "/welcome",
+          "runs": 3
+        },
+        "slow": {
+          "login": 4585,
+          "logoutMs": 7635,
+          "reachedWelcome": 1,
+          "feedbackMs": 5677,
+          "askedToConfirm": 0,
+          "sessionLeft": 0,
+          "url": "/welcome",
+          "runs": 3
+        },
+        "unreachable": {
+          "login": 4596,
+          "logoutMs": 10619,
+          "reachedWelcome": 1,
+          "feedbackMs": 7855,
+          "askedToConfirm": 1,
+          "sessionLeft": 0,
+          "url": "/welcome",
+          "runs": 3
+        }
+      },
+      "film": {
+        "heading": 1021,
+        "ttfb": 151,
+        "fcp": 1044,
+        "lcp": 1044,
+        "lcpElement": "img[img].object-cover",
+        "cls": 0.019,
+        "tbt": 38,
+        "longTasks": 3,
+        "longestTask": 81,
+        "domNodes": 852,
+        "heapMb": 4.5,
+        "kb20s": 4292,
+        "mediaKb20s": 3814,
+        "requests20s": 47,
+        "video": {
+          "paused": false,
+          "currentTime": 18,
+          "src": "/media/doordie-film-720.mp4"
+        }
+      }
+    }
+  }
+}

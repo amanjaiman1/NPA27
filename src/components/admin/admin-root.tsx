@@ -8,7 +8,7 @@ import { useAuth } from "@/components/auth/auth-provider";
 import { BootScreen, StatusScreen } from "@/components/account/boot-screen";
 import { apiCall, ApiError } from "@/lib/platform/client";
 import { forgetRole, rememberRole } from "@/lib/platform/my-role";
-import { unsubscribeFromPush } from "@/lib/push";
+import { releasePushSubscription } from "@/lib/push";
 import { can, type Actor } from "@/lib/platform/roles";
 import { leaveDemo } from "@/lib/demo/mode";
 import { useAccountUpdates, useAdminUpdates } from "@/components/platform/live-updates";
@@ -26,8 +26,8 @@ const linkClass =
 const quietClass =
   "inline-flex h-11 items-center justify-center gap-2 rounded-full border border-line px-5 text-sm font-semibold text-paper/75 transition-colors hover:border-paper/25 hover:text-paper";
 
-/** How long signing out waits to stop this device's notifications before going anyway. */
-const PUSH_UNSUBSCRIBE_WAIT_MS = 3_000;
+/** How long signing out waits for the server to forget this device's notifications before going anyway. */
+const PUSH_UNSUBSCRIBE_WAIT_MS = 400;
 
 /**
  * The Admin Center's front door. Nothing renders until the server has
@@ -122,15 +122,16 @@ export function AdminRoot({ children }: { children: React.ReactNode }) {
     if (leavingRef.current) return;
     leavingRef.current = true;
     setLeaving(true);
+    router.prefetch("/login");
     const id = auth.user?.id;
-    await Promise.race([
-      unsubscribeFromPush().catch(() => false),
-      new Promise((resolve) => setTimeout(resolve, PUSH_UNSUBSCRIBE_WAIT_MS)),
-    ]);
+    // The request that stops this device's notifications carries the session's
+    // token, so it goes first; the browser's part finishes in the background.
+    const push = releasePushSubscription(auth.accessToken());
+    await Promise.race([push.told, new Promise((resolve) => setTimeout(resolve, PUSH_UNSUBSCRIBE_WAIT_MS))]);
     if (id) forgetRole(id);
     await auth.signOut();
     // The effect above then goes to the sign-in screen.
-  }, [auth]);
+  }, [auth, router]);
 
   const signOutButton = (
     <button type="button" onClick={() => void signOut()} className={quietClass}>

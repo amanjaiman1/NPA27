@@ -1,8 +1,10 @@
 "use client";
 
+import { useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { RefreshCw, WifiOff } from "lucide-react";
 import { useServiceWorker } from "@/lib/pwa";
+import { retryPushRelease } from "@/lib/push";
 import { InstallPrompt } from "./install-prompt";
 import { ThemeColorSync } from "./theme-color-sync";
 import { ThemeModeSync } from "./theme-mode-sync";
@@ -18,6 +20,14 @@ import { ThemeModeSync } from "./theme-mode-sync";
  */
 export function PwaLayer() {
   const { updateReady, applyUpdate, offline } = useServiceWorker();
+
+  // A sign-out on this device that couldn't end its push subscription (the
+  // browser was offline, or closed straight after) finishes the job now, once
+  // the page has settled.
+  useEffect(() => {
+    const id = window.setTimeout(() => void retryPushRelease(), 4_000);
+    return () => window.clearTimeout(id);
+  }, []);
 
   return (
     <>

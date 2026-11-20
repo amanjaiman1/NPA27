@@ -68,10 +68,10 @@ export function RequireAccount({ children }: { children: React.ReactNode }) {
     // A visitor in the demo has no account, and that's fine.
     if (!signedOut || demo !== false) return;
     const next = pathname && pathname !== "/dashboard" ? `next=${encodeURIComponent(pathname)}` : "";
-    if (auth.endedReason === "signedOut") router.replace("/welcome");
+    if (auth.endedReason === "signedOut") router.replace(auth.landing ?? "/welcome");
     else if (auth.endedReason === "ended") router.replace(`/login?ended=1${next ? `&${next}` : ""}`);
     else router.replace(next ? `/login?${next}` : "/welcome");
-  }, [signedOut, demo, auth.endedReason, pathname, router]);
+  }, [signedOut, demo, auth.endedReason, auth.landing, pathname, router]);
 
   const user = !auth.cloudEnabled ? null : auth.status === "signedIn" ? auth.user : auth.status === "loading" ? saved : null;
   // Not asked in the demo: it would use the session of whoever is signed in here.

@@ -4,7 +4,7 @@ import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } fro
 import { usePathname, useRouter } from "next/navigation";
 import { AnimatePresence } from "framer-motion";
 import { useChronicle, useHasHydrated } from "@/lib/store";
-import { useAccount } from "@/components/account/account-session";
+import { useAccount, useSyncStatus } from "@/components/account/account-session";
 import { beginRouteTransition } from "@/components/layout/route-transition";
 import { shouldAutoOpenTour } from "@/lib/tour";
 import { toISODate } from "@/lib/utils";
@@ -32,7 +32,8 @@ export function TourProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const hydrated = useHasHydrated();
-  const { mode, sync } = useAccount();
+  const { mode } = useAccount();
+  const { sync } = useSyncStatus();
   const onboardedAt = useChronicle((s) => s.profile.onboardedAt);
   const tourSeenAt = useChronicle((s) => s.profile.tourSeenAt);
   const updateProfile = useChronicle((s) => s.updateProfile);

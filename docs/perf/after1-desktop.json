@@ -1,0 +1,659 @@
+{
+  "label": "after1-desktop",
+  "at": "2026-11-20T09:11:28.048Z",
+  "runs": 3,
+  "chromium": "159.0.8154.6",
+  "profiles": {
+    "desktop": {
+      "public": {
+        "/": {
+          "url": "/",
+          "ready": 262,
+          "readyWall": 263,
+          "heading": 262,
+          "ttfb": 41,
+          "fcp": 288,
+          "lcp": 288,
+          "lcpElement": "img[img].object-cover",
+          "cls": 0,
+          "tbt": 0,
+          "longTasks": 0,
+          "longestTask": 0,
+          "domNodes": 845,
+          "heapMb": 6.5,
+          "loadEvent": 393,
+          "requests": 58,
+          "kb": 2553,
+          "jsKb": 336,
+          "mediaKb": 2003,
+          "supabaseRequests": 0,
+          "supabaseKb": 0,
+          "supabaseCalls": "",
+          "runs": 3
+        },
+        "/welcome": {
+          "url": "/welcome",
+          "ready": 513,
+          "readyWall": 515,
+          "heading": 513,
+          "ttfb": 41,
+          "fcp": 552,
+          "lcp": 552,
+          "lcpElement": "h1.font-display.text-2xl",
+          "cls": 0,
+          "tbt": 0,
+          "longTasks": 0,
+          "longestTask": 0,
+          "domNodes": 129,
+          "heapMb": 5.4,
+          "loadEvent": 491,
+          "requests": 39,
+          "kb": 463,
+          "jsKb": 341,
+          "mediaKb": 0,
+          "supabaseRequests": 0,
+          "supabaseKb": 0,
+          "supabaseCalls": "",
+          "runs": 3
+        },
+        "/login": {
+          "url": "/login",
+          "ready": 517,
+          "readyWall": 519,
+          "heading": 517,
+          "ttfb": 41,
+          "fcp": 544,
+          "lcp": 544,
+          "lcpElement": "h1.text-[1.35rem].font-semibold",
+          "cls": 0,
+          "tbt": 0,
+          "longTasks": 0,
+          "longestTask": 0,
+          "domNodes": 111,
+          "heapMb": 5.6,
+          "loadEvent": 494,
+          "requests": 39,
+          "kb": 462,
+          "jsKb": 340,
+          "mediaKb": 0,
+          "supabaseRequests": 0,
+          "supabaseKb": 0,
+          "supabaseCalls": "",
+          "runs": 3
+        }
+      },
+      "routes": {
+        "/dashboard": {
+          "url": "/dashboard",
+          "ready": 701,
+          "readyWall": 703,
+          "heading": 701,
+          "ttfb": 41,
+          "fcp": 632,
+          "lcp": 756,
+          "lcpElement": "span.min-w-0.flex-1",
+          "cls": 0.001,
+          "tbt": 0,
+          "longTasks": 0,
+          "longestTask": 0,
+          "domNodes": 1526,
+          "heapMb": 9.7,
+          "loadEvent": 590,
+          "requests": 62,
+          "kb": 620,
+          "jsKb": 501,
+          "mediaKb": 0,
+          "supabaseRequests": 4,
+          "supabaseKb": 1,
+          "supabaseCalls": "/rest/v1/rpc/platform_my_announcements /rest/v1/rpc/platform_my_announcements /rest/v1/chronicle_state /rest/v1/chronicle_state",
+          "runs": 3
+        },
+        "/journal": {
+          "url": "/journal",
+          "ready": 698,
+          "readyWall": 699,
+          "heading": 698,
+          "ttfb": 41,
+          "fcp": 748,
+          "lcp": 752,
+          "lcpElement": "span.min-w-0.flex-1",
+          "cls": 0,
+          "tbt": 0,
+          "longTasks": 1,
+          "longestTask": 70,
+          "domNodes": 2075,
+          "heapMb": 9.1,
+          "loadEvent": 592,
+          "requests": 52,
+          "kb": 530,
+          "jsKb": 432,
+          "mediaKb": 0,
+          "supabaseRequests": 4,
+          "supabaseKb": 1,
+          "supabaseCalls": "/rest/v1/rpc/platform_my_announcements /rest/v1/rpc/platform_my_announcements /rest/v1/chronicle_state /rest/v1/chronicle_state",
+          "runs": 3
+        },
+        "/wellbeing": {
+          "url": "/wellbeing",
+          "ready": 730,
+          "readyWall": 732,
+          "heading": 730,
+          "ttfb": 41,
+          "fcp": 632,
+          "lcp": 788,
+          "lcpElement": "span.min-w-0.flex-1",
+          "cls": 0,
+          "tbt": 0,
+          "longTasks": 1,
+          "longestTask": 92,
+          "domNodes": 1747,
+          "heapMb": 9,
+          "loadEvent": 597,
+          "requests": 55,
+          "kb": 551,
+          "jsKb": 442,
+          "mediaKb": 0,
+          "supabaseRequests": 4,
+          "supabaseKb": 1,
+          "supabaseCalls": "/rest/v1/rpc/platform_my_announcements /rest/v1/rpc/platform_my_announcements /rest/v1/chronicle_state /rest/v1/chronicle_state",
+          "runs": 3
+        },
+        "/goals": {
+          "url": "/goals",
+          "ready": 683,
+          "readyWall": 685,
+          "heading": 683,
+          "ttfb": 41,
+          "fcp": 632,
+          "lcp": 736,
+          "lcpElement": "span.min-w-0.flex-1",
+          "cls": 0,
+          "tbt": 0,
+          "longTasks": 1,
+          "longestTask": 64,
+          "domNodes": 775,
+          "heapMb": 7.8,
+          "loadEvent": 589,
+          "requests": 50,
+          "kb": 506,
+          "jsKb": 410,
+          "mediaKb": 0,
+          "supabaseRequests": 4,
+          "supabaseKb": 1,
+          "supabaseCalls": "/rest/v1/rpc/platform_my_announcements /rest/v1/rpc/platform_my_announcements /rest/v1/chronicle_state /rest/v1/chronicle_state",
+          "runs": 3
+        },
+        "/roadmap": {
+          "url": "/roadmap",
+          "ready": 651,
+          "readyWall": 653,
+          "heading": 651,
+          "ttfb": 41,
+          "fcp": 604,
+          "lcp": 700,
+          "lcpElement": "span.min-w-0.flex-1",
+          "cls": 0,
+          "tbt": 0,
+          "longTasks": 1,
+          "longestTask": 53,
+          "domNodes": 604,
+          "heapMb": 7.7,
+          "loadEvent": 567,
+          "requests": 45,
+          "kb": 505,
+          "jsKb": 410,
+          "mediaKb": 0,
+          "supabaseRequests": 4,
+          "supabaseKb": 1,
+          "supabaseCalls": "/rest/v1/rpc/platform_my_announcements /rest/v1/rpc/platform_my_announcements /rest/v1/chronicle_state /rest/v1/chronicle_state",
+          "runs": 3
+        },
+        "/habits": {
+          "url": "/habits",
+          "ready": 650,
+          "readyWall": 652,
+          "heading": 650,
+          "ttfb": 41,
+          "fcp": 696,
+          "lcp": 700,
+          "lcpElement": "span.min-w-0.flex-1",
+          "cls": 0.001,
+          "tbt": 0,
+          "longTasks": 0,
+          "longestTask": 0,
+          "domNodes": 999,
+          "heapMb": 9.3,
+          "loadEvent": 563,
+          "requests": 53,
+          "kb": 557,
+          "jsKb": 455,
+          "mediaKb": 0,
+          "supabaseRequests": 4,
+          "supabaseKb": 1,
+          "supabaseCalls": "/rest/v1/rpc/platform_my_announcements /rest/v1/rpc/platform_my_announcements /rest/v1/chronicle_state /rest/v1/chronicle_state",
+          "runs": 3
+        },
+        "/revision": {
+          "url": "/revision",
+          "ready": 631,
+          "readyWall": 632,
+          "heading": 631,
+          "ttfb": 41,
+          "fcp": 584,
+          "lcp": 684,
+          "lcpElement": "span.min-w-0.flex-1",
+          "cls": 0.001,
+          "tbt": 0,
+          "longTasks": 0,
+          "longestTask": 0,
+          "domNodes": 1475,
+          "heapMb": 8.2,
+          "loadEvent": 551,
+          "requests": 45,
+          "kb": 483,
+          "jsKb": 387,
+          "mediaKb": 0,
+          "supabaseRequests": 4,
+          "supabaseKb": 1,
+          "supabaseCalls": "/rest/v1/rpc/platform_my_announcements /rest/v1/rpc/platform_my_announcements /rest/v1/chronicle_state /rest/v1/chronicle_state",
+          "runs": 3
+        },
+        "/performance-review": {
+          "url": "/performance-review",
+          "ready": 652,
+          "readyWall": 653,
+          "heading": 652,
+          "ttfb": 41,
+          "fcp": 604,
+          "lcp": 700,
+          "lcpElement": "span.min-w-0.flex-1",
+          "cls": 0,
+          "tbt": 0,
+          "longTasks": 1,
+          "longestTask": 61,
+          "domNodes": 747,
+          "heapMb": 8.5,
+          "loadEvent": 559,
+          "requests": 45,
+          "kb": 496,
+          "jsKb": 400,
+          "mediaKb": 0,
+          "supabaseRequests": 4,
+          "supabaseKb": 1,
+          "supabaseCalls": "/rest/v1/rpc/platform_my_announcements /rest/v1/rpc/platform_my_announcements /rest/v1/chronicle_state /rest/v1/chronicle_state",
+          "runs": 3
+        },
+        "/diary": {
+          "url": "/diary",
+          "ready": 654,
+          "readyWall": 656,
+          "heading": 654,
+          "ttfb": 41,
+          "fcp": 608,
+          "lcp": 700,
+          "lcpElement": "span.min-w-0.flex-1",
+          "cls": 0,
+          "tbt": 0,
+          "longTasks": 0,
+          "longestTask": 0,
+          "domNodes": 504,
+          "heapMb": 7.5,
+          "loadEvent": 574,
+          "requests": 48,
+          "kb": 499,
+          "jsKb": 404,
+          "mediaKb": 0,
+          "supabaseRequests": 4,
+          "supabaseKb": 1,
+          "supabaseCalls": "/rest/v1/rpc/platform_my_announcements /rest/v1/rpc/platform_my_announcements /rest/v1/chronicle_state /rest/v1/chronicle_state",
+          "runs": 3
+        },
+        "/coach": {
+          "url": "/coach",
+          "ready": 673,
+          "readyWall": 675,
+          "heading": 673,
+          "ttfb": 41,
+          "fcp": 624,
+          "lcp": 724,
+          "lcpElement": "span.min-w-0.flex-1",
+          "cls": 0,
+          "tbt": 0,
+          "longTasks": 1,
+          "longestTask": 67,
+          "domNodes": 628,
+          "heapMb": 10.9,
+          "loadEvent": 574,
+          "requests": 69,
+          "kb": 688,
+          "jsKb": 543,
+          "mediaKb": 0,
+          "supabaseRequests": 6,
+          "supabaseKb": 20,
+          "supabaseCalls": "/rest/v1/rpc/platform_my_announcements /rest/v1/rpc/platform_my_announcements /rest/v1/chronicle_state /rest/v1/chronicle_state /rest/v1/rpc/save_chronicle_state /rest/v1/rpc/save_chronicle_state /rest/v1/chronicle_state",
+          "runs": 3
+        },
+        "/settings": {
+          "url": "/settings",
+          "ready": 664,
+          "readyWall": 666,
+          "heading": 664,
+          "ttfb": 41,
+          "fcp": 612,
+          "lcp": 712,
+          "lcpElement": "span.min-w-0.flex-1",
+          "cls": 0.001,
+          "tbt": 0,
+          "longTasks": 0,
+          "longestTask": 0,
+          "domNodes": 1407,
+          "heapMb": 9.1,
+          "loadEvent": 577,
+          "requests": 52,
+          "kb": 525,
+          "jsKb": 409,
+          "mediaKb": 0,
+          "supabaseRequests": 6,
+          "supabaseKb": 20,
+          "supabaseCalls": "/rest/v1/rpc/platform_my_announcements /rest/v1/rpc/platform_my_announcements /rest/v1/chronicle_state /rest/v1/chronicle_state /rest/v1/chronicle_state /rest/v1/chronicle_state",
+          "runs": 3
+        },
+        "/knowledge-graph": {
+          "url": "/knowledge-graph",
+          "ready": 646,
+          "readyWall": 648,
+          "heading": 646,
+          "ttfb": 41,
+          "fcp": 584,
+          "lcp": 704,
+          "lcpElement": "span.min-w-0.flex-1",
+          "cls": 0,
+          "tbt": 0,
+          "longTasks": 1,
+          "longestTask": 62,
+          "domNodes": 1218,
+          "heapMb": 9.2,
+          "loadEvent": 551,
+          "requests": 46,
+          "kb": 510,
+          "jsKb": 395,
+          "mediaKb": 0,
+          "supabaseRequests": 6,
+          "supabaseKb": 20,
+          "supabaseCalls": "/rest/v1/rpc/platform_my_announcements /rest/v1/rpc/platform_my_announcements /rest/v1/chronicle_state /rest/v1/chronicle_state /rest/v1/chronicle_state /rest/v1/chronicle_state",
+          "runs": 3
+        }
+      },
+      "reload": {
+        "ready": 138,
+        "heading": 138,
+        "ttfb": 41,
+        "fcp": 128,
+        "lcp": 188,
+        "lcpElement": "span.min-w-0.flex-1",
+        "cls": 0.001,
+        "tbt": 0,
+        "longTasks": 0,
+        "longestTask": 0,
+        "domNodes": 1549,
+        "heapMb": 18.2,
+        "requests": 60,
+        "kb": 2,
+        "supabaseRequests": 2,
+        "supabaseKb": 1,
+        "supabaseCalls": "/rest/v1/rpc/platform_my_announcements /rest/v1/chronicle_state",
+        "runs": 3
+      },
+      "nav": {
+        "first": {
+          "median": 118,
+          "max": 171,
+          "blocking": 0,
+          "pages": {
+            "/dashboard": {
+              "ms": 31,
+              "longTasks": 0,
+              "blocking": 0
+            },
+            "/journal": {
+              "ms": 40,
+              "longTasks": 0,
+              "blocking": 0
+            },
+            "/wellbeing": {
+              "ms": 118,
+              "longTasks": 0,
+              "blocking": 0
+            },
+            "/goals": {
+              "ms": 29,
+              "longTasks": 0,
+              "blocking": 0
+            },
+            "/roadmap": {
+              "ms": 72,
+              "longTasks": 0,
+              "blocking": 0
+            },
+            "/habits": {
+              "ms": 147,
+              "longTasks": 0,
+              "blocking": 0
+            },
+            "/revision": {
+              "ms": 31,
+              "longTasks": 0,
+              "blocking": 0
+            },
+            "/performance-review": {
+              "ms": 136,
+              "longTasks": 0,
+              "blocking": 0
+            },
+            "/diary": {
+              "ms": 131,
+              "longTasks": 0,
+              "blocking": 0
+            },
+            "/coach": {
+              "ms": 139,
+              "longTasks": 0,
+              "blocking": 0
+            },
+            "/settings": {
+              "ms": 171,
+              "longTasks": 0,
+              "blocking": 0
+            }
+          }
+        },
+        "second": {
+          "median": 26,
+          "max": 42,
+          "blocking": 0,
+          "pages": {
+            "/dashboard": {
+              "ms": 32,
+              "longTasks": 0,
+              "blocking": 0
+            },
+            "/journal": {
+              "ms": 32,
+              "longTasks": 0,
+              "blocking": 0
+            },
+            "/wellbeing": {
+              "ms": 34,
+              "longTasks": 0,
+              "blocking": 0
+            },
+            "/goals": {
+              "ms": 17,
+              "longTasks": 0,
+              "blocking": 0
+            },
+            "/roadmap": {
+              "ms": 20,
+              "longTasks": 0,
+              "blocking": 0
+            },
+            "/habits": {
+              "ms": 25,
+              "longTasks": 0,
+              "blocking": 0
+            },
+            "/revision": {
+              "ms": 23,
+              "longTasks": 0,
+              "blocking": 0
+            },
+            "/performance-review": {
+              "ms": 19,
+              "longTasks": 0,
+              "blocking": 0
+            },
+            "/diary": {
+              "ms": 36,
+              "longTasks": 0,
+              "blocking": 0
+            },
+            "/coach": {
+              "ms": 42,
+              "longTasks": 0,
+              "blocking": 0
+            },
+            "/settings": {
+              "ms": 26,
+              "longTasks": 0,
+              "blocking": 0
+            }
+          }
+        },
+        "requests": 113
+      },
+      "interact": {
+        "habit check-in": {
+          "worstMs": 40,
+          "interactions": 1,
+          "longTasks": 0,
+          "longestTask": 0
+        },
+        "habit check-in again": {
+          "worstMs": 40,
+          "interactions": 1,
+          "longTasks": 0,
+          "longestTask": 0
+        },
+        "open the journal composer": {
+          "worstMs": 128,
+          "interactions": 1,
+          "longTasks": 0,
+          "longestTask": 0
+        },
+        "type in the composer": {
+          "worstMs": 224,
+          "interactions": 21,
+          "longTasks": 0,
+          "longestTask": 0
+        },
+        "open search": {
+          "worstMs": 40,
+          "interactions": 2,
+          "longTasks": 0,
+          "longestTask": 0
+        },
+        "type in search": {
+          "worstMs": 120,
+          "interactions": 8,
+          "longTasks": 0,
+          "longestTask": 0
+        },
+        "switch reduce transparency": {
+          "worstMs": 64,
+          "interactions": 1,
+          "longTasks": 0,
+          "longestTask": 0
+        },
+        "switch it back": {
+          "worstMs": 64,
+          "interactions": 1,
+          "longTasks": 0,
+          "longestTask": 0
+        }
+      },
+      "session": {
+        "clean": {
+          "login": 708,
+          "logoutMs": 394,
+          "reachedWelcome": 1,
+          "feedbackMs": 307,
+          "askedToConfirm": 0,
+          "sessionLeft": 0,
+          "url": "/welcome",
+          "runs": 3
+        },
+        "pending": {
+          "login": 706,
+          "logoutMs": 559,
+          "reachedWelcome": 1,
+          "feedbackMs": 293,
+          "askedToConfirm": 0,
+          "sessionLeft": 0,
+          "url": "/welcome",
+          "runs": 3
+        },
+        "push": {
+          "login": 715,
+          "logoutMs": 411,
+          "reachedWelcome": 1,
+          "feedbackMs": 316,
+          "askedToConfirm": 0,
+          "sessionLeft": 0,
+          "url": "/welcome",
+          "runs": 3
+        },
+        "slow": {
+          "login": 705,
+          "logoutMs": 2535,
+          "reachedWelcome": 1,
+          "feedbackMs": 288,
+          "askedToConfirm": 0,
+          "sessionLeft": 1,
+          "url": "/welcome",
+          "runs": 3
+        },
+        "unreachable": {
+          "login": 713,
+          "logoutMs": 419,
+          "reachedWelcome": 1,
+          "feedbackMs": 318,
+          "askedToConfirm": 0,
+          "sessionLeft": 0,
+          "url": "/welcome",
+          "runs": 3
+        }
+      },
+      "film": {
+        "heading": 266,
+        "ttfb": 41,
+        "fcp": 288,
+        "lcp": 288,
+        "lcpElement": "img[img].object-cover",
+        "cls": 0.124,
+        "tbt": 0,
+        "longTasks": 0,
+        "longestTask": 0,
+        "domNodes": 852,
+        "heapMb": 6.3,
+        "kb20s": 10727,
+        "mediaKb20s": 10177,
+        "requests20s": 57,
+        "video": {
+          "paused": false,
+          "currentTime": 20,
+          "src": "/media/doordie-film.mp4"
+        }
+      }
+    }
+  }
+}

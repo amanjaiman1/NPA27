@@ -1,6 +1,7 @@
 "use client";
 
-import Link from "next/link";
+import { AppLink as Link } from "./app-link";
+import { warmOverlays } from "./overlays";
 import { usePathname } from "next/navigation";
 import { CalendarClock, Command, Palette, PanelLeftClose, Search } from "lucide-react";
 import { isActivePath, navGroups, type NavItem } from "@/lib/nav";
@@ -122,6 +123,8 @@ export function Sidebar({
           <button
             type="button"
             onClick={onOpenPalette}
+            onTouchStart={() => warmOverlays("palette")}
+            onPointerEnter={() => warmOverlays("palette")}
             className="field flex w-full items-center gap-2.5 rounded-xl border border-line bg-paper/[0.03] px-3.5 py-2.5 text-sm text-paper/60 transition-colors hover:text-paper"
           >
             <Search className="h-4 w-4 shrink-0" />
@@ -181,7 +184,7 @@ export function Sidebar({
               <span className="block truncate text-[0.7rem] text-paper/55">Profile and exam</span>
             </span>
           </Link>
-          <IconButton label="Appearance" onClick={onOpenAppearance}>
+          <IconButton label="Appearance" onClick={onOpenAppearance} onTouchStart={() => warmOverlays("appearance")} onPointerEnter={() => warmOverlays("appearance")}>
             <Palette className="h-4 w-4" />
           </IconButton>
         </div>

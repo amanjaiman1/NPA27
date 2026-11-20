@@ -130,6 +130,9 @@ export async function subscribeToPush(): Promise<
 
   const token = await accessToken();
   if (!token) return { ok: false, reason: "not-signed-in" };
+  // Subscribing makes this browser the signed-in account's: a sign-out's
+  // unfinished release of it no longer applies.
+  forgetRelease();
 
   const reg = await serviceWorkerReady();
   if (!reg) return { ok: false, reason: "no-worker" };
@@ -214,24 +217,134 @@ export async function sendTestPush(): Promise<
 export async function unsubscribeFromPush(): Promise<boolean> {
   // This browser's subscription may belong to a real account signed in here: the demo leaves it alone.
   if (isDemo()) return false;
-  const reg = await serviceWorkerReady();
-  const sub = await reg?.pushManager.getSubscription();
+  const sub = await currentSubscription(LOOKUP_WAIT_MS);
   if (!sub) return true;
-
   const token = await accessToken();
-  if (token) {
-    // Told to forget first: if this fails, the row would keep being pushed to a
-    // dead endpoint until the push service reports it gone.
-    await fetch("/api/push/unsubscribe", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
+  // Both at once: the server forgets the device, and the browser ends the
+  // subscription, which also stops pushes to it if the server never hears.
+  const [, unsubscribed] = await Promise.all([
+    token ? tellServerToForget(sub.endpoint, token) : Promise.resolve(false),
+    sub.unsubscribe().catch(() => false),
+  ]);
+  return unsubscribed;
+}
+
+/* ── stopping push when someone signs out ─────────────────────────
+   Signing out must stop this device receiving the account's notifications,
+   and must not wait on the push service or the worker to do it. Two things
+   end a device's pushes, and either is enough:
+     • the server forgets the row (POST /api/push/unsubscribe, which checks
+       the token and deletes only the caller's own row for that endpoint);
+     • the browser ends the subscription, after which every push to that
+       endpoint is refused and the dispatcher deletes the row (404/410).
+   Both start at once. The server request needs the session's token, so it is
+   sent before the session ends; the browser's part carries on in the
+   background. If the browser couldn't end it (offline, the tab closed), the
+   endpoint is remembered on this device and ended the next time the app
+   opens here, unless someone has subscribed this browser again since. */
+
+/** Device-wide: the subscription a sign-out on this browser still has to end. */
+const RELEASE_KEY = "upsc-chronicle-push-release";
+/** How long finding this device's subscription may take before going on without it. */
+const LOOKUP_WAIT_MS = 1_500;
+
+function within<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
+  return new Promise<T>((resolve) => {
+    const timer = setTimeout(() => resolve(fallback), ms);
+    promise.then(
+      (v) => {
+        clearTimeout(timer);
+        resolve(v);
       },
-      body: JSON.stringify({ endpoint: sub.endpoint }),
-    }).catch(() => null);
+      () => {
+        clearTimeout(timer);
+        resolve(fallback);
+      },
+    );
+  });
+}
+
+/**
+ * This device's subscription, if it has one. Asks for the registration that
+ * exists rather than waiting for `serviceWorker.ready`, which never settles
+ * on a page without an active worker.
+ */
+async function currentSubscription(waitMs: number): Promise<PushSubscription | null> {
+  if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) return null;
+  const lookup = (async () => {
+    const reg = await navigator.serviceWorker.getRegistration();
+    return (await reg?.pushManager?.getSubscription()) ?? null;
+  })();
+  return within(lookup, waitMs, null);
+}
+
+function tellServerToForget(endpoint: string, token: string): Promise<boolean> {
+  return fetch("/api/push/unsubscribe", {
+    method: "POST",
+    // Finishes even if the page goes away straight after.
+    keepalive: true,
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ endpoint }),
+  }).then(
+    (res) => res.ok,
+    () => false,
+  );
+}
+
+function rememberRelease(endpoint: string): void {
+  try {
+    localStorage.setItem(RELEASE_KEY, endpoint);
+  } catch {
+    /* storage blocked: the attempt below still runs */
   }
-  return sub.unsubscribe().catch(() => false);
+}
+
+function forgetRelease(endpoint?: string): void {
+  try {
+    if (!endpoint || localStorage.getItem(RELEASE_KEY) === endpoint) localStorage.removeItem(RELEASE_KEY);
+  } catch {
+    /* nothing to forget */
+  }
+}
+
+/**
+ * Stops this device's background notifications for the account signing out.
+ * Returns at once; `told` settles when the server has answered or can't be
+ * reached, and never rejects. `token` is the session's access token, read
+ * before the session ends.
+ */
+export function releasePushSubscription(token: string | null): { told: Promise<void> } {
+  if (isDemo() || !isPushSupported()) return { told: Promise.resolve() };
+  const told = (async () => {
+    const sub = await currentSubscription(LOOKUP_WAIT_MS);
+    if (!sub) return;
+    rememberRelease(sub.endpoint);
+    void sub.unsubscribe().then(
+      (ok) => ok && forgetRelease(sub.endpoint),
+      () => undefined,
+    );
+    if (token) await tellServerToForget(sub.endpoint, token);
+  })().catch(() => undefined);
+  return { told };
+}
+
+/** Ends a subscription a sign-out on this device couldn't. Run once when the app opens. */
+export async function retryPushRelease(): Promise<void> {
+  let pending: string | null = null;
+  try {
+    pending = localStorage.getItem(RELEASE_KEY);
+  } catch {
+    return;
+  }
+  if (!pending || isDemo() || !isPushSupported()) return;
+  const sub = await currentSubscription(5_000);
+  // Gone already, or this browser was subscribed again since (for whoever
+  // subscribed it): nothing of the old account's is left to end.
+  if (!sub || sub.endpoint !== pending) {
+    forgetRelease(pending);
+    return;
+  }
+  if (await sub.unsubscribe().catch(() => false)) forgetRelease(pending);
 }
 
 /**

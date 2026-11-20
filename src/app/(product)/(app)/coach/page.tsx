@@ -49,7 +49,7 @@ import {
   type ChatTurn,
 } from "@/lib/mentor";
 import type { ChronicleData } from "@/lib/types";
-import { buildAnalysis, buildBriefing, buildRecommendations, coachDataOf, visibleRecommendations } from "@/lib/coach";
+import { buildAnalysis, buildBriefing, buildRecommendations, visibleRecommendations, type CoachData } from "@/lib/coach";
 import { AnalysisPanel, BriefingPanel, HistoryPanel, RecommendationsPanel } from "@/components/coach/coach-views";
 import { cn, formatDate, toISODate } from "@/lib/utils";
 import { useNow } from "@/lib/hooks";
@@ -100,16 +100,72 @@ const TABS: { label: string; value: Tab; hint?: string }[] = [
   { label: "History", value: "history", hint: "Past briefings and what you decided" },
 ];
 
+/**
+ * The study record, read slice by slice. Each slice keeps its reference
+ * until that kind of record changes, so the coach rebuilds only when its
+ * records do: reading a notification, the sync's bookkeeping or the theme
+ * no longer recompute every view. The Personal Diary isn't read at all.
+ */
+function useStudyRecord(): CoachData {
+  const profile = useChronicle((s) => s.profile);
+  const accomplished = useChronicle((s) => s.accomplished);
+  const subjects = useChronicle((s) => s.subjects);
+  const journal = useChronicle((s) => s.journal);
+  const mocks = useChronicle((s) => s.mocks);
+  const revisions = useChronicle((s) => s.revisions);
+  const currentAffairs = useChronicle((s) => s.currentAffairs);
+  const mistakes = useChronicle((s) => s.mistakes);
+  const habits = useChronicle((s) => s.habits);
+  const sleep = useChronicle((s) => s.sleep);
+  const exercise = useChronicle((s) => s.exercise);
+  const lifeLog = useChronicle((s) => s.lifeLog);
+  const goals = useChronicle((s) => s.goals);
+  const books = useChronicle((s) => s.books);
+  const milestones = useChronicle((s) => s.milestones);
+  const reviews = useChronicle((s) => s.reviews);
+  const topicLinks = useChronicle((s) => s.topicLinks);
+  const selection = useChronicle((s) => s.selection);
+  const files = useChronicle((s) => s.files);
+  const plans = useChronicle((s) => s.plans);
+  const coach = useChronicle((s) => s.coach);
+  return useMemo(
+    () => ({
+      profile,
+      accomplished,
+      subjects,
+      journal,
+      mocks,
+      revisions,
+      currentAffairs,
+      mistakes,
+      habits,
+      sleep,
+      exercise,
+      lifeLog,
+      goals,
+      books,
+      milestones,
+      reviews,
+      topicLinks,
+      selection,
+      files,
+      plans,
+      coach,
+    }),
+    [profile, accomplished, subjects, journal, mocks, revisions, currentAffairs, mistakes, habits, sleep, exercise, lifeLog, goals, books, milestones, reviews, topicLinks, selection, files, plans, coach],
+  );
+}
+
 export default function CoachPage() {
   const hydrated = useHasHydrated();
-  const state = useChronicle((s) => s);
   const recordBriefing = useChronicle((s) => s.recordCoachBriefing);
   const [tab, setTab] = useState<Tab>("briefing");
   const today = toISODate(useNow(60_000));
 
   // The coach reads the study record only: the Personal Diary is left out
   // here, so nothing below can read it.
-  const coachData = useMemo(() => coachDataOf(state), [state]);
+  const coachData = useStudyRecord();
+  const state = coachData;
   const data = useMemo<ChronicleData>(() => ({ ...coachData, reflections: [] }), [coachData]);
   const ctx = useMemo(() => buildMentorContext(data), [data]);
   const briefing = useMemo(() => mentorBriefing(ctx), [ctx]);

@@ -40,6 +40,7 @@ import {
 } from "@/components/marketing/ui";
 import { SAMPLE_NOTE, SHOTS } from "@/components/marketing/shots";
 import { POSTS, postPath } from "@/content/blog";
+import { SIGNING_OUT_KEY } from "@/lib/sign-out-marker";
 
 export const metadata = pageMetadata(PAGES.home);
 // Reviews and the changelog come from the database: refreshed every five minutes at most.
@@ -61,7 +62,8 @@ export const revalidate = 300;
  */
 const FILM_SCHEMA = filmVideo();
 
-const HOME_REDIRECTS = `try{var h=location.hash;if(/(^|[#&])(access_token|error_description|error_code)=/.test(h)){location.replace((/(^|[#&])type=recovery(&|$)/.test(h)?'/reset-password':'/auth/callback')+h)}else{var s=JSON.parse(localStorage.getItem('upsc-chronicle-auth')||'null');if(s&&s.user&&s.user.id)location.replace('/dashboard')}}catch(e){}`;
+// An account whose sign-out is still finishing on this device (lib/sign-out-marker.ts) isn't signed in.
+const HOME_REDIRECTS = `try{var h=location.hash;if(/(^|[#&])(access_token|error_description|error_code)=/.test(h)){location.replace((/(^|[#&])type=recovery(&|$)/.test(h)?'/reset-password':'/auth/callback')+h)}else{var s=JSON.parse(localStorage.getItem('upsc-chronicle-auth')||'null');if(s&&s.user&&s.user.id&&s.user.id!==localStorage.getItem('${SIGNING_OUT_KEY}'))location.replace('/dashboard')}}catch(e){}`;
 
 const FEATURE_LIST = [
   "Topic-wise UPSC syllabus tracker",

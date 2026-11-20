@@ -221,6 +221,15 @@ export class SyncEngine {
     }
   }
 
+  /**
+   * Whether this device holds anything the cloud doesn't: the local copy
+   * differs from the one both last agreed on, or there has been no agreement
+   * yet this session (a first sync still on its way counts as unsynced).
+   */
+  hasUnsyncedChanges(): boolean {
+    return this.base ? !deepEqual(this.o.store.read(), this.base.data) : true;
+  }
+
   /** Pushes anything pending and waits, up to `timeoutMs`. True when fully in sync. */
   async flush(timeoutMs = 8_000): Promise<boolean> {
     if (this.stopped) return false;
@@ -240,6 +249,17 @@ export class SyncEngine {
     if (this.stopped) return;
     this.setState({ status: "syncing" });
     try {
+      if (!this.base) {
+        // Nothing agreed on this device yet (a fresh browser, or a first sync
+        // still to finish): asking for the version first could never save the
+        // download, it would only add a round trip before it.
+        const doc = await this.o.transport.fetch();
+        this.assertLive();
+        if (!doc) await this.pushLoop(this.o.store.read(), 0);
+        else await this.integrate(doc, true);
+        this.settled();
+        return;
+      }
       const head = await this.o.transport.head();
       this.assertLive();
       const local = this.o.store.read();
@@ -255,15 +275,20 @@ export class SyncEngine {
         if (!doc) await this.pushLoop(this.o.store.read(), 0);
         else await this.integrate(doc, true);
       }
-      this.lastOk = true;
-      this.retryIndex = 0;
-      if (this.legacy) {
-        this.legacy = null;
-        this.o.onLegacySettled?.();
-      }
+      this.settled();
     } catch (e) {
       this.lastOk = false;
       this.fail(e);
+    }
+  }
+
+  /** A cycle that reached the cloud and agreed with it. */
+  private settled(): void {
+    this.lastOk = true;
+    this.retryIndex = 0;
+    if (this.legacy) {
+      this.legacy = null;
+      this.o.onLegacySettled?.();
     }
   }
 
