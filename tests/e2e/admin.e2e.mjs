@@ -1240,7 +1240,8 @@ async function helpScenarios(browser, people) {
     await page.waitForTimeout(800);
     const [b, dock] = [await button.boundingBox(), await page.getByRole("navigation", { name: "Quick access" }).boundingBox()];
     check(b && dock && b.y + b.height <= dock.y && b.x + b.width <= 390, `the button overlaps the dock: ${JSON.stringify({ b, dock })}`);
-    await page.goto(`${APP}/journal`);
+    // /journal opens the Daily Capture form over the page; the journal on its own is /journal/history.
+    await page.goto(`${APP}/journal/history`);
     await button.waitFor();
 
     await button.click();

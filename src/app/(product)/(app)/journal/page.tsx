@@ -7,6 +7,7 @@ import { Loading } from "@/components/ui/loading";
 import { JournalList } from "@/components/journal/journal-list";
 import { CaptureWorkspace } from "@/components/capture/capture-workspace";
 import { AccomplishedModal } from "@/components/celebrate/accomplished-modal";
+import { useAccount } from "@/components/account/account-session";
 import type { JournalCelebration } from "@/components/journal/journal-editor";
 import { daysBetween, toISODate } from "@/lib/utils";
 
@@ -26,15 +27,19 @@ function OpenOnLink({ onOpen }: { onOpen: () => void }) {
  */
 export default function JournalPage() {
   const hydrated = useHasHydrated();
+  const { mode } = useAccount();
   const profile = useChronicle((s) => s.profile);
   const [open, setOpen] = useState<boolean | null>(null);
   const [celebration, setCelebration] = useState<JournalCelebration | null>(null);
 
-  // The journal's own views (?tab=topics|analysis) open without the form over them.
+  // The journal's own views (?tab=topics|analysis) open without the form over
+  // them, and so does the demo, whose guide talks the visitor through the page
+  // first ("Capture today" or the "+" button opens the form).
   useEffect(() => {
-    const tab = new URLSearchParams(window.location.search).get("tab");
-    setOpen(tab !== "topics" && tab !== "analysis");
-  }, []);
+    const params = new URLSearchParams(window.location.search);
+    const tab = params.get("tab");
+    setOpen(tab !== "topics" && tab !== "analysis" && (mode !== "demo" || params.get("new") === "1"));
+  }, [mode]);
 
   const openForm = useCallback(() => setOpen(true), []);
   const closeForm = useCallback(() => {

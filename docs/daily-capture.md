@@ -34,6 +34,12 @@ one bar of liquid glass, joined by links that take the colours of the
 sections they connect (green between finished ones), with light running
 along them; a tinted lens glides to the selected tab.
 
+On a phone the bottom bar is a single "+" button (`CaptureButton` in
+`components/layout/bottom-nav.tsx`) that opens Daily Capture; every other page
+is in the menu at the top left. Until today is logged the button has a soft,
+breathing halo; once it is, it carries a check. In the demo, /journal opens
+without the form so the guide can talk the visitor through it first.
+
 ## No new data
 
 Daily Capture stores nothing of its own. The forms are the same components
