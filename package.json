@@ -21,7 +21,8 @@
     "perf:measure": "node --import tsx scripts/perf/measure.mjs",
     "perf:compute": "tsx scripts/perf/compute-bench.ts",
     "perf:render": "node --import tsx scripts/perf/render-probe.mjs",
-    "perf:bundle": "ANALYZE=json next build && node scripts/perf/bundle-report.mjs --out docs/perf/bundle-latest.json"
+    "perf:bundle": "ANALYZE=json next build && node scripts/perf/bundle-report.mjs --out docs/perf/bundle-latest.json",
+    "perf:nav": "node --import tsx scripts/perf/nav-probe.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.108.1",

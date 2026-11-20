@@ -96,10 +96,9 @@ export function TourProvider({ children }: { children: React.ReactNode }) {
       const first = !useChronicle.getState().profile.tourSeenAt;
       if (first) updateProfile({ tourSeenAt: toISODate(new Date()) });
       if (destination) {
-        // The progress bar ends when the address changes; a link to the page
-        // already open (or a section of it) never changes it.
-        const url = new URL(destination, window.location.href);
-        if (url.pathname !== window.location.pathname || url.search !== window.location.search) beginRouteTransition();
+        // A link to the page already open (or a section of it) changes nothing,
+        // and the progress bar knows it from the destination.
+        beginRouteTransition(destination);
         router.push(destination);
       } else if (first) {
         setHint(true);

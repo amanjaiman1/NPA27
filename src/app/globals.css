@@ -552,7 +552,8 @@
    A thin line along the top of the window while a page change is under way
    (components/layout/route-transition.tsx). It appears only when the change
    takes longer than a glance, never covers the page, and finishes the moment
-   the next page is on screen. Transform and opacity only.
+   the next page is on screen, however long that takes. Transform and opacity
+   only.
    ─────────────────────────────────────────────────────────────────── */
 
 @keyframes route-progress {
@@ -561,6 +562,15 @@
   }
   to {
     transform: scaleX(0.9);
+  }
+}
+/* A long wait keeps creeping, so the bar never looks stuck or finished. */
+@keyframes route-progress-tail {
+  from {
+    transform: scaleX(0.9);
+  }
+  to {
+    transform: scaleX(0.97);
   }
 }
 
@@ -575,9 +585,12 @@
   background: rgb(var(--accent));
   box-shadow: 0 0 10px rgb(var(--accent) / 0.55);
 }
-/* Quick at first, then slower and slower, without ever claiming to be done. */
+/* Quick at first, then slower and slower, without ever claiming to be done.
+   The tail takes over after eight seconds (`forwards` only, so it waits). */
 .route-progress[data-state="loading"] {
-  animation: route-progress 8s cubic-bezier(0.08, 0.7, 0.2, 1) both;
+  animation:
+    route-progress 8s cubic-bezier(0.08, 0.7, 0.2, 1) both,
+    route-progress-tail 40s cubic-bezier(0.2, 0.6, 0.4, 1) 8s forwards;
 }
 .route-progress[data-state="done"] {
   transform: scaleX(1);

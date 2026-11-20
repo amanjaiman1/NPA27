@@ -1,9 +1,14 @@
 import { cn } from "@/lib/utils";
+import { RouteProgressHold } from "@/components/layout/route-transition";
 
 /**
  * The two waits in this app are different events and get different
  * animations, both drawn by CSS so they are on screen the moment the wait
  * begins, with nothing to download or start first.
+ *
+ * Both stand in for a page, so while either is up after a page change the
+ * progress bar along the top keeps going (`RouteProgressHold`): the page
+ * isn't there yet.
  *
  *  1. `BootRing` / `Loading` — a browser refresh or cold start. It has to be
  *     CSS: that wait *ends* at hydration, so a JavaScript player could not
@@ -35,6 +40,7 @@ export function Loading() {
   return (
     <div className="grid min-h-[60dvh] place-items-center">
       <BootRing />
+      <RouteProgressHold />
     </div>
   );
 }
@@ -45,7 +51,8 @@ export function Loading() {
  *
  * Hidden below `lg`, deliberately. On a phone a loader in the middle of the
  * screen read as a hang on a slow connection; the progress bar along the top
- * (`RouteTransition`) says "on its way" there instead.
+ * (`RouteTransition`) says "on its way" there instead, and keeps saying it
+ * for as long as this is up.
  *
  * `hidden lg:grid` rather than a JS width check: a media query costs no
  * hydration and cannot disagree with the server.
@@ -58,6 +65,7 @@ export function PageLoading() {
         <span />
         <span />
       </span>
+      <RouteProgressHold />
     </div>
   );
 }

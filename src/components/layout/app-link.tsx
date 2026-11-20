@@ -86,3 +86,53 @@ export function useIdlePrefetch(paths: readonly string[], delayMs = 2_500) {
     };
   }, [key, delayMs, router]);
 }
+
+/* ── the pages this device opens most ─────────────────────────────
+   Warming every page up front cost a phone a quarter of a megabyte on every
+   load, so only the dock's pages are warmed for everyone. Beyond those, each
+   device learns which pages it opens most, and warms those too: a person who
+   lives in Habits and the Coach finds them as quick as the dock. Only page
+   addresses and counts, in this browser; nothing about what's on them. */
+
+const VISITS_KEY = "doordie-page-visits";
+/** Past this many visits in all, every count halves, so lately counts most. */
+const VISITS_FADE_AT = 200;
+
+function readVisits(): Record<string, number> {
+  try {
+    const raw: unknown = JSON.parse(window.localStorage.getItem(VISITS_KEY) ?? "{}");
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
+    return Object.fromEntries(
+      Object.entries(raw).filter(([, n]) => typeof n === "number" && Number.isFinite(n) && n > 0),
+    ) as Record<string, number>;
+  } catch {
+    return {};
+  }
+}
+
+/** Counts a visit to `path` on this device. */
+export function rememberVisit(path: string): void {
+  try {
+    const counts = readVisits();
+    counts[path] = (counts[path] ?? 0) + 1;
+    if (Object.values(counts).reduce((a, b) => a + b, 0) > VISITS_FADE_AT) {
+      for (const [p, n] of Object.entries(counts)) {
+        if (n >= 2) counts[p] = Math.floor(n / 2);
+        else delete counts[p];
+      }
+    }
+    window.localStorage.setItem(VISITS_KEY, JSON.stringify(counts));
+  } catch {
+    // Storage is blocked: nothing is learned this visit.
+  }
+}
+
+/** Up to `n` of `among` that this device has opened more than once, most first, leaving out `skip`. */
+export function mostVisited(n: number, among: readonly string[], skip: readonly string[] = []): string[] {
+  if (typeof window === "undefined") return [];
+  const counts = readVisits();
+  return among
+    .filter((p) => !skip.includes(p) && (counts[p] ?? 0) >= 2)
+    .sort((a, b) => (counts[b] ?? 0) - (counts[a] ?? 0))
+    .slice(0, n);
+}

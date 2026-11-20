@@ -5,6 +5,18 @@ const nextConfig = {
     // supports it, WebP otherwise.
     formats: ["image/avif", "image/webp"],
   },
+  experimental: {
+    // How long a tab reuses a page it already has from the server before
+    // asking again. Next's defaults are five minutes for a page the app
+    // warmed ahead of time and 30 seconds otherwise, so after a few minutes of
+    // use every page change waited on the network again, which on a phone is
+    // the slow part. Nothing the server sends is personal (each app page is
+    // the same shell for everyone, filled in from the device; the Admin
+    // Center loads its data from its API) and it only changes with a new
+    // build, so pages stay reusable for half an hour, or five minutes for one
+    // that was only opened.
+    staleTimes: { dynamic: 300, static: 1800 },
+  },
   async redirects() {
     return [
       // The Selection Archive is retired. Its stages stay in the account,

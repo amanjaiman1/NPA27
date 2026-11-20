@@ -1,0 +1,31 @@
+{
+  "label": "nav-before-inpage",
+  "profile": "mobile",
+  "dataset": "typical",
+  "serviceWorker": false,
+  "slowCodeMs": 0,
+  "slowDataMs": 0,
+  "at": "2026-11-20T10:39:08.572Z",
+  "passes": {
+    "inPage": [
+      {
+        "path": "/journal",
+        "url": 67,
+        "barShown": null,
+        "barDone": null,
+        "fallback": null,
+        "content": 148,
+        "gap": null
+      },
+      {
+        "path": "/coach",
+        "url": 72,
+        "barShown": null,
+        "barDone": null,
+        "fallback": null,
+        "content": 206,
+        "gap": null
+      }
+    ]
+  }
+}

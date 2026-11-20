@@ -175,10 +175,75 @@ click, as a pointer does; that run and a mobile navigation run are still to do
   icons ≈25 KB) on a 1.6 Mbps link, and the static HTML of app pages is a
   boot screen until JavaScript runs. Replacing framer-motion or rendering the
   shell on the server were out of scope.
-- Navigation with hover/tap input and mobile navigation weren't re-measured
-  after the prefetch change.
+- Navigation on a phone was measured afterwards (section 9). Service-worker
+  start-up time and the first page change after a new deploy (which reloads
+  the whole app) are still unmeasured.
 - Store persistence still serialises the whole snapshot on each change
   (≈5 ms desktop, ≈20 ms mobile for the heavy account). Deferring it would
   widen a cross-tab race and a crash window, so it was left as it is.
 - The React profile was not re-taken after the changes; the interaction and
   TBT numbers above are the evidence.
+
+## 9. Follow-up: the progress bar, and page changes on a phone
+
+Reported from a phone: the bar along the top ran to its end, but the page
+(Journal, and many others) opened a long time after.
+
+**Why.** The bar gave up after eight seconds: a page change that took longer
+lost its bar, and the page arrived later with nothing on screen saying so.
+Reproduced by holding each page's data back nine seconds
+(`npm run perf:nav -- --slow-data 9000`): the bar went at 8.0 s and the
+pages arrived at 9.4–9.6 s, every time. It also finished as soon as the
+address changed, even if what arrived was a stand-in (the route's
+loading.tsx, which phones don't show, or a page still waiting for this
+device's data).
+
+**The bar now** (`components/layout/route-transition.tsx`):
+
+- finishes when the address has changed *and* nothing stands in for the
+  page: the stand-ins (`Loading`, `PageLoading`, `BootScreen`) render
+  `RouteProgressHold`;
+- never gives up while the next page's data or code is still downloading
+  (it counts the router's `_rsc` requests and the code `<script>`/stylesheet
+  elements added to `<head>`) or while a whole new document is loading. It
+  stops only after five seconds with nothing loading and the address
+  unchanged: the tap led nowhere;
+- ignores taps and pushes to the page already open, and back/forward between
+  hashes of one page (Settings' sections), which used to start a bar nothing
+  would finish;
+- keeps creeping after eight seconds (to 97% over 40 s), so a long wait never
+  looks finished.
+
+**Page changes are quicker:**
+
+- Router cache (`next.config.mjs`, `experimental.staleTimes`): a page the
+  tab already has is reused for 30 minutes if it was warmed, five if it was
+  only opened, instead of Next's five minutes and 30 seconds. Safe because
+  nothing the server sends is personal or changes before the next build.
+- Journal days (`journal/[date]`) are built once per date and then served as
+  static pages, instead of a server render for every visit and prefetch.
+- Each device also warms the four pages it opens most from the menu
+  (`mostVisited` in `app-link.tsx`), beside the dock's pages.
+
+Lab results, mobile profiles, typical account (`docs/perf/nav-*.json`):
+
+| Page changes | Before → after |
+| --- | --- |
+| Page data held back 9 s: bar finishes (content at 9.4–9.6 s) | at 8.0 s, 1.4–1.6 s early → **with the page**, within 25 ms of it |
+| Menu pages, first visit, mobile: bar finishes vs page | −33 to +1 ms → −31 to +2 ms (unchanged: already right) |
+| Weaker connection (400 ms, 500 kbps), dock and menu pages after 5 min of use | 397–621 ms → **74–203 ms** |
+| Dock pages in the first minutes | 66–215 ms (unchanged) |
+
+Also run, with no gap between the bar and the page before or after: code
+held back 2.5 s (`nav-before-slowcode.json`), a heavy two-year account on
+the weaker connection (`nav-before-mobile-slow-heavy.json`), and the
+Command Center's own links tapped 35 s after it opened
+(`nav-before-inpage*.json`). In the lab, Next waits for a page's code before
+it changes the address, so a phone mostly sees the eight-second cut-off. The
+reports from a real phone fit that: slow networks, a service worker that has
+to start first, and a whole-app reload on the first page change after each
+deploy can all take that long. The last two weren't measured.
+
+`npm run perf:nav` re-runs all of this: `--profile mobile|mobile-slow|desktop`,
+`--slow-data <ms>`, `--slow-code <ms>`, `--dataset heavy`, `--sw`,
+`--stale` (waits out five minutes and opens every page again).

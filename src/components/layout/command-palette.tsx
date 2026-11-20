@@ -78,9 +78,10 @@ export function CommandPalette({
       tour.open();
       return;
     }
-    // A programmatic push raises no click, so the transition overlay has to be
-    // told explicitly or navigating from the palette shows no feedback at all.
-    beginRouteTransition();
+    // A programmatic push raises no click, so the progress bar has to be told
+    // explicitly or navigating from the palette shows no feedback at all. With
+    // the destination, so choosing the page already open starts nothing.
+    beginRouteTransition(item.href);
     router.push(item.href);
     onClose();
   }
