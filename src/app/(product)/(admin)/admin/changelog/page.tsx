@@ -12,7 +12,7 @@ import { useToast } from "@/components/ui/toast";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { AdminHeader, ErrorPanel, LoadingRows, When, fromLocalInput, toLocalInput } from "@/components/admin/ui";
 import { ChangelogEntryView } from "@/components/platform/changelog-entry";
-import { adminApi, useAdmin } from "@/lib/platform/client";
+import { adminApi, useAdmin, useRefreshAt } from "@/lib/platform/client";
 import { CHANGELOG_CATEGORY, type ChangelogCategory } from "@/lib/platform/content";
 import { FEATURES, FEATURE_KEYS } from "@/lib/features";
 import { slugify } from "@/lib/platform/validate";
@@ -62,6 +62,8 @@ const toDraft = (e: AdminChangelogEntry | null): Draft =>
 
 export default function AdminChangelogPage() {
   const list = useAdmin<{ items: AdminChangelogEntry[] }>("changelog");
+  // A scheduled update shows as published when its date arrives.
+  useRefreshAt(list.data?.items.filter((e) => e.state === "scheduled").map((e) => e.publishedAt) ?? [], list.refresh);
   const [editing, setEditing] = useState<AdminChangelogEntry | "new" | null>(null);
   const [publishing, setPublishing] = useState<AdminChangelogEntry | null>(null);
 

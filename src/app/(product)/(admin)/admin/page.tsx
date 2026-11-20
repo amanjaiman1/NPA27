@@ -11,7 +11,7 @@ import { BarChart } from "@/components/charts/bar-chart";
 import { Sparkline } from "@/components/charts/sparkline";
 import { AdminHeader, ErrorPanel, LoadingRows, Stars, When, actionLabel, ago } from "@/components/admin/ui";
 import { useAdminActor } from "@/components/admin/admin-context";
-import { useAdmin } from "@/lib/platform/client";
+import { useAdmin, useRefreshAt } from "@/lib/platform/client";
 import { FEEDBACK_CATEGORY, FEEDBACK_STATUS } from "@/lib/platform/content";
 import type { Overview } from "@/lib/platform/types";
 
@@ -46,7 +46,9 @@ function Figure({ label, value, hint }: { label: string; value: string; hint?: s
 
 export default function AdminOverviewPage() {
   const { actor, can } = useAdminActor();
-  const { data, error, loading, reload } = useAdmin<Overview>("overview");
+  const { data, error, loading, reload, refresh } = useAdmin<Overview>("overview");
+  // "Live now" and "Scheduled" move on when a scheduled announcement starts.
+  useRefreshAt(data?.announcements?.upcoming.map((u) => u.startsAt) ?? [], refresh);
 
   return (
     <div className="space-y-6">

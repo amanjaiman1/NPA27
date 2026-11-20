@@ -51,6 +51,7 @@ They are all safe to run again.
 7. `supabase/migrations/20261204120000_platform_admin.sql` (the Admin Center)
 8. `supabase/migrations/20261205120000_live_updates.sql` (changes reach open apps at once)
 9. `supabase/migrations/20261210120000_trust_reviews.sql` (the five-step review
+10. `supabase/migrations/20261212120000_live_everywhere.sql` (everything updates by itself)
    form, verification badges, the dashboard invitation, edit history, consent
    history, the public reviews pages and the changelog's new fields)
 
@@ -275,30 +276,33 @@ deleted.
 
 ### Changes reach open apps at once
 
-Publishing, scheduling, editing, unpublishing or archiving an announcement,
-changing the notice in the app or the review settings, answering feedback or
-changing its status, and moderating or replying to a review all show up in
-every open app within a couple of seconds. Nobody has to reload.
+Anything one person changes shows up for everyone else who has it open,
+within a couple of seconds and without reloading:
 
-How: after the change is saved, the server sends one message on a private
-Supabase Realtime channel (`platform-updates`). The message says only which
-areas changed, never what changed or for whom. Each open app then asks the
-database for its own data, as it does when it opens. Only signed-in accounts
-can listen, and only the server can send (the policy is in
-`supabase/migrations/20261205120000_live_updates.sql`). A scheduled
-announcement appears at its start, and an ending one goes, without any
-message: the app times it from the database's clock.
+- **In the Admin Center:** new accounts, sign-ins and suspensions (Users and
+  the Overview), reviews as students send, edit or withdraw them, feedback as
+  it arrives, everything other administrators do (moderation, answers,
+  announcements, the changelog, settings, roles) and the audit log. A form
+  being filled in keeps what's typed; only untouched fields take new values.
+  A review its author edits while a moderator has it open says so, and holds
+  the decision buttons for a moment.
+- **In the app:** announcements and the notice, the team's answers to
+  feedback, review decisions, a role granted or removed, and the account's own
+  data saved on another device. A suspension ends an open session at once.
 
-On the free plan (200 Realtime connections at once, 100 messages a second),
-an app holds a connection only while it's on screen: a tab in the background
-lets go after a minute and catches up when it comes back. Each change is one
-message to each open app, and their reloads are spread over two seconds. If
-Realtime can't be reached or the channel is full, the app works as before: it
-loads announcements when it opens, and again when a tab comes back after 15
-minutes or more.
+How: database triggers (`supabase/migrations/20261212120000_live_everywhere.sql`)
+send one small message through Supabase Realtime for every change, whoever
+made it, Supabase Auth and the SQL Editor included. Each open screen then
+reloads what changed through the routes it always uses. A message names only
+the areas that changed, never what changed or for whom. Three private
+channels: one every signed-in account may join, one only Admin Center roles
+may join, and one per account for that account alone. Nobody can send on them
+from a browser.
 
-Changes made in the SQL Editor aren't announced; open apps see them the next
-time they load.
+On the free plan (200 Realtime connections at once), a page holds a
+connection only while it's on screen: a tab in the background lets go after a
+minute and catches up when it comes back. If Realtime can't be reached, pages
+work as before and load when they open.
 
 ### Changelog
 

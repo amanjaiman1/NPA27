@@ -171,6 +171,11 @@ In the Supabase SQL Editor, run these files in order:
      category. Three new tables, all with row-level security on and no direct
      access. Reviews already published stay published. Until it runs, the
      review form and the public reviews pages have nothing to show.
+   - `20261212120000_live_everywhere.sql`: every change reaches the screens that
+     show it, in the Admin Center and the app, through database triggers and
+     Supabase Realtime (sign-ups, suspensions and SQL Editor changes included).
+     Three private, receive-only channels; no new tables. Until it runs, pages
+     update when they open or come back.
 
 All of them are additive and safe to re-run: nothing is dropped or rewritten, and
 existing data keeps working. A SQL file in the repo does nothing until you run it.
@@ -345,7 +350,7 @@ matters, and it is driven by how often whole snapshots are downloaded:
 - The Admin Center and the app's announcements cost little: one small database
   call when the app opens (announcements, the in-app notice and unread answers to
   feedback together), again when a tab comes back after 15 minutes, and again
-  when the team changes one of them. That last one is a Realtime message with no
+  when anyone changes one of them. That last one is a Realtime message with no
   content: an app holds a Realtime connection only while it's on screen (the free
   plan allows 200 at once), so a tab in the background lets go after a minute.
   No polling. Public pages read published reviews and the changelog
@@ -377,6 +382,8 @@ Usage page stays comfortably inside the plan.
       (Admin Center changes reach open apps at once).
 - [ ] Run `supabase/migrations/20261210120000_trust_reviews.sql` in the SQL Editor
       (the review form, badges, the invitation and the public reviews pages).
+- [ ] Run `supabase/migrations/20261212120000_live_everywhere.sql` in the SQL Editor,
+      after the others (everything, the Admin Center included, updates by itself).
 - [ ] Set `RESEND_API_KEY` and `REPORTS_TO_EMAIL` in Vercel for crash reports and
       feedback (see [Crash reports and feedback](#crash-reports-and-feedback)).
 - [ ] Run `supabase/tests/rls_isolation.sql` and confirm `All isolation checks passed`.

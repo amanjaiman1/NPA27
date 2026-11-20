@@ -12,7 +12,7 @@ import { useToast } from "@/components/ui/toast";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { AdminHeader, ErrorPanel, LoadingRows, When, fromLocalInput, toLocalInput } from "@/components/admin/ui";
 import { AnnouncementBody } from "@/components/platform/announcement-card";
-import { adminApi, useAdmin } from "@/lib/platform/client";
+import { adminApi, useAdmin, useRefreshAt } from "@/lib/platform/client";
 import { ANNOUNCEMENT_CATEGORY, ANNOUNCEMENT_STATE, type AnnouncementCategory, type AnnouncementState } from "@/lib/platform/content";
 import type { AdminAnnouncement, AnnouncementList } from "@/lib/platform/types";
 
@@ -28,6 +28,8 @@ export default function AdminAnnouncementsPage() {
   const list = useAdmin<AnnouncementList>("announcements");
   const [editing, setEditing] = useState<AdminAnnouncement | "new" | null>(null);
   const [publishing, setPublishing] = useState<AdminAnnouncement | null>(null);
+  // Scheduled ones go live, and live ones end, on time on this page too.
+  useRefreshAt(list.data?.items.flatMap((a) => [a.startsAt, a.endsAt]) ?? [], list.refresh);
 
   return (
     <div className="space-y-6">

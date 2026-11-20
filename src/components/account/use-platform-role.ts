@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { opensAdminCenter, type PlatformRole } from "@/lib/platform/roles";
 import { checkRole, knownRole } from "@/lib/platform/my-role";
+import { useAccountUpdates } from "@/components/platform/live-updates";
 
 /**
  * The signed-in account's Admin Center role, to decide whether to show a
@@ -29,6 +30,13 @@ export function usePlatformRole(userId: string | null | undefined): PlatformRole
       live = false;
     };
   }, [userId]);
+  // A role granted, changed or removed shows at once (a live update), not at the next check.
+  useAccountUpdates(userId, ["role"], (p) => {
+    if (!userId) return;
+    void checkRole(userId, p.catchUp ? {} : { maxAgeMs: 0 }).then((r) => {
+      if (r !== undefined) setRole(r);
+    });
+  });
   return role;
 }
 
@@ -71,6 +79,15 @@ export function useAccountKind(userId: string | null): AccountKind {
       if (giveUp) clearTimeout(giveUp);
     };
   }, [userId, remembered]);
+
+  // Made a Super Admin while the app is open: off to the Admin Center at once.
+  // (After a gap in the connection, the remembered answer is used if it's still fresh.)
+  useAccountUpdates(userId, ["role"], (p) => {
+    if (!userId) return;
+    void checkRole(userId, p.catchUp ? {} : { maxAgeMs: 0 }).then((role) => {
+      if (role !== undefined) setAsked({ id: userId, role });
+    });
+  });
 
   if (!userId || !supabase) return "student";
   const answered = asked?.id === userId ? asked : null;

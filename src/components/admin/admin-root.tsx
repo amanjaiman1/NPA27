@@ -11,6 +11,7 @@ import { forgetRole, rememberRole } from "@/lib/platform/my-role";
 import { unsubscribeFromPush } from "@/lib/push";
 import { can, type Actor } from "@/lib/platform/roles";
 import { leaveDemo } from "@/lib/demo/mode";
+import { useAccountUpdates, useAdminUpdates } from "@/components/platform/live-updates";
 import { AdminContext, type AdminContextValue } from "./admin-context";
 import { AdminShell } from "./admin-shell";
 
@@ -83,6 +84,33 @@ export function AdminRoot({ children }: { children: React.ReactNode }) {
     // The role is checked once per account; each page's data is checked on every call.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [auth.cloudEnabled, auth.status, userId]);
+
+  /**
+   * This account's role changed, or a setting that widens what a role may do
+   * (live updates): ask again, quietly. The page stays as it is unless the
+   * answer changes it: new permissions show at once, and a removed role ends
+   * at "No access".
+   */
+  const reconfirm = useCallback(() => {
+    if (!userId) return;
+    apiCall<Actor>("/api/admin/me")
+      .then((actor) => {
+        rememberRole(userId, actor.role);
+        setGate((g) => (g.state === "ready" && JSON.stringify(g.actor) === JSON.stringify(actor) ? g : { state: "ready", actor }));
+      })
+      .catch((e: unknown) => {
+        if (e instanceof ApiError && e.status === 403) {
+          rememberRole(userId, null);
+          setGate({ state: "denied" });
+        } else if (e instanceof ApiError && e.status === 401) {
+          router.replace(`/login?ended=1&next=${encodeURIComponent(pathname || "/admin")}`);
+        }
+        // Offline or a hiccup: keep what's shown.
+      });
+  }, [userId, router, pathname]);
+  const confirmed = gate.state === "ready" || gate.state === "denied";
+  useAccountUpdates(userId, ["role"], reconfirm, confirmed);
+  useAdminUpdates(["access"], reconfirm, gate.state === "ready");
 
   /**
    * Signing out of the Admin Center ends the session on this device, as the

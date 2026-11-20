@@ -22,6 +22,8 @@ import { startCoordinator, type Coordinator, type SyncRole } from "@/lib/sync/co
 import { settleLegacyClaim } from "@/lib/account/legacy";
 import { unsubscribeFromPush } from "@/lib/push";
 import { forgetRole } from "@/lib/platform/my-role";
+import { accountTopic } from "@/lib/platform/live";
+import { subscribeLive } from "@/components/platform/live-updates";
 import {
   activateAccount,
   clearConflicts,
@@ -160,8 +162,20 @@ export function AccountSession({
       coordinator.current = coord;
       if (hasLocalData) setPhase("ready");
 
-      // Look for changes from other devices when the student comes back to the
-      // app, comes back online, and every few minutes while it's on screen.
+      // The moment another device saves this account, look (a live update; the
+      // version says when it's this device's own save). A suspension or deletion
+      // made elsewhere ends the session here too, at once rather than within the
+      // hour its token has left: the refresh is refused and the app signs out.
+      const topic = accountTopic(accountId);
+      cleanups.push(subscribeLive(topic, ["chronicle"], (p) => coord?.checkRemote({ version: p.version ?? null })));
+      cleanups.push(
+        subscribeLive(topic, ["session"], (p) => {
+          if (!p.catchUp) void client.auth.refreshSession().catch(() => undefined);
+        }),
+      );
+
+      // And as before: when the student comes back to the app, comes back
+      // online, and every few minutes while it's on screen.
       let focusTimer: ReturnType<typeof setTimeout> | null = null;
       const onFocus = () => {
         if (document.visibilityState !== "visible") return;

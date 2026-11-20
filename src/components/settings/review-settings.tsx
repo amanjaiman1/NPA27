@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Globe, MessageSquareReply, PenLine, Star } from "lucide-react";
 import { useChronicle } from "@/lib/store";
 import { apiCall, ApiError } from "@/lib/platform/client";
-import { usePlatformUpdates } from "@/components/platform/live-updates";
+import { useAccountUpdates, usePlatformUpdates } from "@/components/platform/live-updates";
 import {
   RATING_LABEL,
   REVIEW_CONSENT_VERSION,
@@ -191,7 +191,7 @@ function OnTheWebsite({ r }: { r: AuthorReview }) {
  * either of which they can change later.
  */
 export function ReviewSettings() {
-  const { mode } = useAccount();
+  const { mode, user } = useAccount();
   const inbox = useInbox();
   const profileName = useChronicle((s) => s.profile.name);
   const confirm = useConfirm();
@@ -218,25 +218,25 @@ export function ReviewSettings() {
     };
   }, [mode, tick]);
 
-  // A moderator decided or replied, or the review settings changed: show it without a reload.
-  // Quietly, keeping what's shown if the call fails, and never under the person's hands.
+  // A moderator decided or replied, this account changed it on another device, or the review
+  // settings changed: show it without a reload. Quietly, keeping what's shown if the call
+  // fails, and never under the person's hands.
   const quiet = useRef({ editing, busy });
   quiet.current = { editing, busy };
-  usePlatformUpdates(
-    ["reviews"],
-    () => {
-      if (quiet.current.editing || quiet.current.busy) return;
-      void apiCall<MyReview>("/api/reviews").then(
-        (d) => {
-          if (quiet.current.editing || quiet.current.busy) return;
-          setData(d);
-          setState("ready");
-        },
-        () => undefined,
-      );
-    },
-    mode === "cloud" && state === "ready",
-  );
+  const reloadQuietly = () => {
+    if (quiet.current.editing || quiet.current.busy) return;
+    void apiCall<MyReview>("/api/reviews").then(
+      (d) => {
+        if (quiet.current.editing || quiet.current.busy) return;
+        setData(d);
+        setState("ready");
+      },
+      () => undefined,
+    );
+  };
+  const listening = mode === "cloud" && state === "ready";
+  useAccountUpdates(user?.id, ["reviews"], reloadQuietly, listening);
+  usePlatformUpdates(["reviews"], reloadQuietly, listening);
 
   // Reviews belong to accounts; without the platform's tables there's nothing to show.
   if (mode !== "cloud" || state === "off") return null;

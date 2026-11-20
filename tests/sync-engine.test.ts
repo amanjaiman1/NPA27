@@ -18,6 +18,8 @@ class FakeCloud {
   row: { data: Snapshot; version: number; updatedAt: string } | null = null;
   online = true;
   fetches = 0;
+  /** Version checks, the cheap "has anything changed?" call. */
+  heads = 0;
   private clock = Date.parse("2026-11-15T10:00:00Z");
 
   private head(): RemoteHead {
@@ -32,6 +34,7 @@ class FakeCloud {
     return {
       head: async () => {
         this.check();
+        this.heads++;
         return this.row ? this.head() : null;
       },
       fetch: async () => {
@@ -227,4 +230,57 @@ test("a stopped engine never applies a late response to the store", async () => 
   release();
   await started;
   assert.deepEqual(device.state, template(), "nothing from the old session landed");
+});
+
+test("a live update about another device's save pulls it; one about this device's own save asks nothing", async () => {
+  const cloud = new FakeCloud();
+  const laptop = new Device(cloud, template(), { pristine: true });
+  await laptop.engine.start();
+  const phone = new Device(cloud, template(), { pristine: true });
+  await phone.engine.start();
+
+  // The phone saves; the message the laptop gets carries the new version.
+  phone.edit((s) => {
+    (s.journal as Day[]).push({ date: "2026-11-16", totalHours: 6 });
+  });
+  await phone.engine.sync();
+  const version = cloud.row!.version;
+  await laptop.engine.checkRemote({ version });
+  assert.deepEqual(days(laptop.state), ["2026-11-16"], "the laptop has the phone's day");
+
+  // The phone gets the message about its own save: not even a version check.
+  const asked = { heads: cloud.heads, fetches: cloud.fetches };
+  await phone.engine.checkRemote({ version });
+  assert.deepEqual({ heads: cloud.heads, fetches: cloud.fetches }, asked, "nothing asked for its own save");
+  // Without a version (a reconnect, a return to the app) it checks, as before.
+  await phone.engine.checkRemote();
+  assert.equal(cloud.heads, asked.heads + 1, "a plain check asks for the version");
+  laptop.engine.stop();
+  phone.engine.stop();
+});
+
+test("a live update that arrives during a sync is checked once the sync is done", async () => {
+  const cloud = new FakeCloud();
+  const laptop = new Device(cloud, template(), { pristine: true });
+  await laptop.engine.start();
+  const phone = new Device(cloud, template(), { pristine: true });
+  await phone.engine.start();
+
+  laptop.edit((s) => {
+    (s.habits as unknown[]).push({ id: "h1", name: "Newspaper" });
+  });
+  const running = laptop.engine.sync();
+  // While the laptop is saving, the phone saves too, and the message about it reaches the laptop.
+  phone.edit((s) => {
+    (s.journal as Day[]).push({ date: "2026-11-17", totalHours: 4 });
+  });
+  await phone.engine.sync();
+  void laptop.engine.checkRemote({ version: cloud.row!.version });
+  await running;
+  // The check deferred until the sync finished runs now; give it a moment.
+  for (let i = 0; i < 20 && !days(laptop.state).includes("2026-11-17"); i++) await new Promise((r) => setTimeout(r, 10));
+  assert.deepEqual(days(laptop.state), ["2026-11-17"], "the phone's day arrived after the laptop's own save");
+  assert.ok(JSON.stringify(cloud.row!.data).includes("Newspaper"), "and the laptop's habit is in the cloud");
+  laptop.engine.stop();
+  phone.engine.stop();
 });

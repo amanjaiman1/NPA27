@@ -13,7 +13,7 @@ import { prepareScreenshot, type Screenshot } from "@/lib/platform/screenshot";
 import type { MyFeedback } from "@/lib/platform/types";
 import { useAccount } from "@/components/account/account-session";
 import { useInbox } from "@/components/platform/inbox";
-import { usePlatformUpdates } from "@/components/platform/live-updates";
+import { useAccountUpdates, usePlatformUpdates } from "@/components/platform/live-updates";
 import { Button } from "@/components/ui/button";
 import { Field, Textarea } from "@/components/ui/form";
 import { Chip } from "@/components/ui/misc";
@@ -118,12 +118,11 @@ function FeedbackForm() {
     };
   }, [cloud]);
 
-  // The team changed a status or answered: the list shows it without a reload. A failed call keeps what's shown.
-  usePlatformUpdates(
-    ["feedback"],
-    () => void apiCall<{ items: MyFeedback[] }>("/api/feedback").then((d) => setHistory(d.items), () => undefined),
-    cloud && center,
-  );
+  // The team changed a status or answered, this account sent something from another device, or an
+  // update it links to was published: the list shows it without a reload. A failed call keeps what's shown.
+  const reloadHistory = () => void apiCall<{ items: MyFeedback[] }>("/api/feedback").then((d) => setHistory(d.items), () => undefined);
+  useAccountUpdates(user?.id, ["feedback"], reloadHistory, cloud && center);
+  usePlatformUpdates(["changelog"], reloadHistory, cloud && center && Boolean(history?.some((f) => f.changelog)));
 
   // The preview is an object URL: let it go when it's replaced or the page closes.
   useEffect(() => () => void (shot && URL.revokeObjectURL(shot.preview)), [shot]);
