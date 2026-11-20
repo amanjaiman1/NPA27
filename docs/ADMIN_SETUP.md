@@ -368,6 +368,23 @@ connection only while it's on screen: a tab in the background lets go after a
 minute and catches up when it comes back. If Realtime can't be reached, pages
 work as before and load when they open.
 
+### Refresh Data
+
+**Refresh Data**, in the header on every page, asks the server again for
+everything on screen at once: the page's lists and figures, an open dialog,
+your own role. It never reloads the page, so search, filters, the page of a
+list, open sections and anything being typed stay as they are. Pressing it
+again while it runs does nothing more. Beside it, the header says when it
+last finished ("Refreshed 18:42:16", your time, to the second); before the
+first press, how old the oldest thing on screen is.
+
+Click that time for the details: each kind of data on screen, updated (and
+whether by Refresh Data, a live update, or opening the page) or not, with
+Retry for what failed. If something fails, what you see stays, and the toast
+names it. Pages that aren't open hold no data, so they load fresh when you
+open them; what your role doesn't include is never asked for. How it works:
+[`admin-refresh.md`](admin-refresh.md).
+
 ### Changelog
 
 Entries are drafts until published. Publish now or on a date; a draft or a
