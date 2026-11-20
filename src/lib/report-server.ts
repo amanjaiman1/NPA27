@@ -1,48 +1,27 @@
 /* ════════════════════════════════════════════════════════════════
-   THE REPORT ROUTE'S WORK
-   Checks a crash report or a message, then emails it to the team through
-   Resend's HTTP API. Kept out of app/api/report/route.ts so the tests can
-   run it with a stand-in for the network, the clock and the account check.
-
-   The address it goes to lives only in the server's environment
-   (REPORTS_TO_EMAIL). It is never sent to the browser or shown on the site.
+   THE CRASH REPORT ROUTE'S WORK
+   Checks a crash report, then hands it to the database
+   (platform_record_crash), where the team reads it in the Admin Center:
+   Feedback → Crash reports. Nothing is emailed. Kept out of
+   app/api/report/route.ts so the tests can run it with a stand-in for the
+   database and the clock.
 
    Limits are kept in this server instance's memory: on a serverless host
    each instance counts on its own, so they slow a flood rather than stop
-   one exactly. The browser sends at most a handful per tab, and Resend's
-   own daily cap is the backstop.
+   one exactly. The browser sends at most a handful per tab, and the
+   database folds repeats of the same crash into one row and holds at most
+   1,000 distinct crashes.
    ════════════════════════════════════════════════════════════════ */
 
-import { LIMITS, composeEmail, parseReport } from "./report";
-
-export const RESEND_ENDPOINT = "https://api.resend.com/emails";
-/** Resend's shared test sender. It only delivers to the Resend account's own address. */
-export const DEFAULT_FROM = "DoOrDie reports <onboarding@resend.dev>";
-
-export interface ReportEnv {
-  apiKey?: string;
-  /** One address, or several separated by commas. */
-  to?: string;
-  from?: string;
-  /** The deployed build, shown in the email. */
-  build?: string;
-}
-
-export interface Caller {
-  id: string;
-  email?: string;
-}
+import { LIMITS, parseReport, type CrashReport } from "./report";
 
 export interface ReportDeps {
-  env: ReportEnv;
-  send: typeof fetch;
-  now: () => number;
   /**
-   * Resolves the request's bearer token to an account. Absent when this
-   * server can't check accounts (no service-role key): messages are then
-   * accepted without one.
+   * Stores the report. Throws an error with `status: 503` when this server
+   * can't store reports (no service-role key, or the migration hasn't run).
    */
-  identify?: (authorisation: string | null) => Promise<Caller | null>;
+  record: (report: CrashReport) => Promise<void>;
+  now: () => number;
 }
 
 const MINUTE = 60_000;
@@ -50,14 +29,9 @@ const HOUR = 60 * MINUTE;
 
 const RULES = {
   /** Crash reports from one address. */
-  crashPerIp: { limit: 6, window: 10 * MINUTE },
-  /** Messages from one account, and from one address. */
-  feedbackPerUser: { limit: 5, window: HOUR },
-  feedbackPerIp: { limit: 10, window: HOUR },
-  /** Every email this instance sends, so a crash on every page can't use up the day's quota. */
-  all: { limit: 40, window: HOUR },
-  /** The same crash on the same page is emailed once an hour. */
-  sameCrash: { limit: 1, window: HOUR },
+  perIp: { limit: 6, window: 10 * MINUTE },
+  /** Everything this instance stores, so a crash on every page of a busy day can't hammer the database. */
+  all: { limit: 300, window: HOUR },
 } as const;
 
 const hits = new Map<string, number[]>();
@@ -75,11 +49,6 @@ function allow(key: string, rule: { limit: number; window: number }, now: number
     for (const [k, times] of hits) if (!times.some((t) => now - t < HOUR)) hits.delete(k);
   }
   return true;
-}
-
-/** Takes back the latest hit, for an email that didn't go out after all. */
-function forget(key: string): void {
-  hits.get(key)?.pop();
 }
 
 /** Tests only: forget every count. */
@@ -135,75 +104,17 @@ export async function handleReport(request: Request, deps: ReportDeps): Promise<
   }
   const parsed = parseReport(body);
   if (!parsed.ok) return json({ error: parsed.error }, 400);
-  const report = parsed.report;
-
-  const to = (deps.env.to ?? "")
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
-  if (!deps.env.apiKey || to.length === 0) {
-    return json({ error: "Reports aren't set up on this server yet." }, 503);
-  }
 
   const now = deps.now();
-  const ip = clientIp(request);
   const tooMany = () => json({ error: "Too many reports. Try again later." }, 429, { "Retry-After": "600" });
+  if (!allow(`ip:${clientIp(request)}`, RULES.perIp, now) || !allow("all", RULES.all, now)) return tooMany();
 
-  let caller: Caller | null = null;
-  if (report.kind === "feedback") {
-    if (deps.identify) {
-      caller = await deps.identify(request.headers.get("authorization"));
-      if (!caller) return json({ error: "Sign in again, then send it." }, 401);
-      if (!allow(`feedback:user:${caller.id}`, RULES.feedbackPerUser, now)) return tooMany();
-    }
-    if (!allow(`feedback:ip:${ip}`, RULES.feedbackPerIp, now)) return tooMany();
-  }
-  // A note is the person asking; only the automatic copies are folded together.
-  const sameKey = report.kind === "crash" && !report.note ? `crash:same:${report.message}|${report.page}` : null;
-  if (report.kind === "crash") {
-    if (!allow(`crash:ip:${ip}`, RULES.crashPerIp, now)) return tooMany();
-    if (sameKey && !allow(sameKey, RULES.sameCrash, now)) return json({ ok: true, skipped: "already reported" });
-  }
-  if (!allow("all", RULES.all, now)) {
-    if (sameKey) forget(sameKey);
-    return tooMany();
-  }
-  const failed = (message: string) => {
-    // Not sent, so the same crash may be tried again.
-    if (sameKey) forget(sameKey);
-    return json({ error: message }, 502);
-  };
-
-  const email = composeEmail(report, {
-    receivedAt: new Date(now).toISOString(),
-    build: deps.env.build,
-    userId: caller?.id,
-    userEmail: caller?.email,
-  });
-
-  let res: Response;
   try {
-    res = await deps.send(RESEND_ENDPOINT, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${deps.env.apiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        from: deps.env.from?.trim() || DEFAULT_FROM,
-        to,
-        subject: email.subject,
-        text: email.text,
-        ...(email.replyTo ? { reply_to: email.replyTo } : {}),
-        tags: [{ name: "kind", value: report.kind }],
-      }),
-      signal: AbortSignal.timeout(10_000),
-    });
-  } catch {
-    return failed("The email service didn't answer. Try again in a minute.");
-  }
-  if (!res.ok) {
-    // Resend's reason goes to the server log, not to the browser.
-    const reason = await res.text().catch(() => "");
-    console.error(`[report] Resend answered ${res.status}: ${reason.slice(0, 300)}`);
-    return failed("The email service turned it down. Try again later.");
+    await deps.record(parsed.report);
+  } catch (e) {
+    if ((e as { status?: unknown } | null)?.status === 503) return json({ error: "Crash reports aren't set up on this server yet." }, 503);
+    console.error("[report] not stored", e instanceof Error ? e.message : e);
+    return json({ error: "The report couldn't be stored. Try again later." }, 502);
   }
   return json({ ok: true });
 }

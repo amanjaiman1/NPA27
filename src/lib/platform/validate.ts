@@ -171,6 +171,23 @@ export function parseFeedbackQuery(params: URLSearchParams): Parsed<{ filters: R
   return ok({ filters: { status, category, priority, q }, ...parsePage(params) });
 }
 
+export const CRASH_STATUSES = ["new", "resolved", "all"] as const;
+export const CRASH_ACTIONS = ["resolve", "reopen", "delete"] as const;
+
+/** The crash list: new, resolved or all, a page at a time. */
+export function parseCrashQuery(params: URLSearchParams): Parsed<{ status: (typeof CRASH_STATUSES)[number]; limit: number; offset: number }> {
+  const status = params.get("status") ?? "new";
+  if (!(CRASH_STATUSES as readonly string[]).includes(status)) return bad("Unknown status.");
+  return ok({ status: status as (typeof CRASH_STATUSES)[number], ...parsePage(params) });
+}
+
+export function parseCrashAction(input: unknown): Parsed<{ action: (typeof CRASH_ACTIONS)[number] }> {
+  const b = asBody(input);
+  if (!b) return bad("Expected JSON.");
+  if (!(CRASH_ACTIONS as readonly unknown[]).includes(b.action)) return bad("Unknown action.");
+  return ok({ action: b.action as (typeof CRASH_ACTIONS)[number] });
+}
+
 export interface AnnouncementFields {
   title: string;
   body: string;
@@ -466,7 +483,6 @@ export function parseReviewFields(input: unknown): Parsed<Record<string, unknown
 export interface FeedbackSubmission {
   category: string;
   message: string;
-  shareEmail: boolean;
   context: Record<string, unknown>;
   screenshot: { type: "image/webp" | "image/png" | "image/jpeg"; bytes: Uint8Array } | null;
 }
@@ -474,7 +490,11 @@ export interface FeedbackSubmission {
 export const SCREENSHOT_MAX_BYTES = 2 * 1024 * 1024;
 const SCREENSHOT_TYPES = ["image/webp", "image/png", "image/jpeg"] as const;
 
-/** Feedback from Settings → Help & feedback, with an optional screenshot as base64. */
+/**
+ * Feedback from Help & feedback, with an optional screenshot as base64.
+ * No email: anything about one in the body (from a tab opened before it was
+ * removed) is ignored, and the team answers in the app.
+ */
 export function parseFeedbackSubmission(input: unknown): Parsed<FeedbackSubmission> {
   const b = asBody(input);
   if (!b) return bad("Expected JSON.");
@@ -500,7 +520,7 @@ export function parseFeedbackSubmission(input: unknown): Parsed<FeedbackSubmissi
     if (!looksLikeImage(bytes, shot.type as (typeof SCREENSHOT_TYPES)[number])) return bad("That file isn't the image it says it is.");
     screenshot = { type: shot.type as (typeof SCREENSHOT_TYPES)[number], bytes };
   }
-  return ok({ category: b.category as string, message, shareEmail: b.shareEmail === true, context, screenshot });
+  return ok({ category: b.category as string, message, context, screenshot });
 }
 
 /** Checks the file's first bytes, so a script can't be stored as a picture. */

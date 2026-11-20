@@ -1,19 +1,17 @@
 import { sameSite } from "@/lib/report-server";
 import { errorResponse, json, PlatformError } from "@/lib/platform/server/errors";
 import { bearerToken, serviceClient, userRpc } from "@/lib/platform/server/rpc";
-import { notifyTeam } from "@/lib/platform/server/notify";
 import { parseFeedbackSubmission } from "@/lib/platform/validate";
-import { FEEDBACK_CATEGORY, type FeedbackCategory } from "@/lib/platform/content";
-import { SITE_URL } from "@/lib/seo/config";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
- * Feedback from Settings → Help & feedback. Stored through the person's own
- * database function (their token, their account only), then emailed to the
- * team if email is set up. A screenshot goes to the private
- * `platform-feedback` bucket under the person's id.
+ * Feedback from Help & feedback, the button at the bottom right of the app.
+ * Stored through the person's own database function (their token, their
+ * account only), straight into the team's Feedback Center in the Admin
+ * Center. Nothing is emailed: the team answers in the app. A screenshot goes
+ * to the private `platform-feedback` bucket under the person's id.
  */
 const ext = { "image/webp": "webp", "image/png": "png", "image/jpeg": "jpg" } as const;
 
@@ -52,11 +50,9 @@ export async function POST(request: Request) {
     if (!parsed.ok) throw new PlatformError(400, "invalid", parsed.error);
     const f = parsed.value;
 
-    const item = await userRpc<{ id: string; userId: string; email: string | null } & Record<string, unknown>>(
-      token,
-      "platform_submit_feedback",
-      { p_fields: { category: f.category, message: f.message, shareEmail: f.shareEmail, context: f.context } },
-    );
+    const item = await userRpc<{ id: string; userId: string } & Record<string, unknown>>(token, "platform_submit_feedback", {
+      p_fields: { category: f.category, message: f.message, context: f.context },
+    });
 
     let screenshot: "stored" | "failed" | null = null;
     if (f.screenshot) {
@@ -69,28 +65,10 @@ export async function POST(request: Request) {
       else console.error(`[feedback] screenshot not stored: ${upload?.error?.message ?? "no storage"}`);
     }
 
-    const label = FEEDBACK_CATEGORY.label[f.category as FeedbackCategory] ?? "Feedback";
-    const emailed = await notifyTeam({
-      subject: `[DoOrDie] ${label}: ${f.message.replace(/\s+/g, " ").slice(0, 60)}`,
-      text: [
-        `${label}, sent from DoOrDie.`,
-        "",
-        `From:       ${item.email ?? "Email not shared"}`,
-        `Account:    ${item.userId}`,
-        ...(Object.keys(f.context).length ? [`Details:    ${JSON.stringify(f.context)}`] : []),
-        ...(screenshot === "stored" ? ["Screenshot: attached in the Admin Center"] : []),
-        "",
-        f.message,
-        "",
-        `Answer it in the Admin Center: ${new URL(`/admin/feedback?id=${item.id}`, SITE_URL).toString()}`,
-      ].join("\n"),
-      replyTo: item.email,
-    });
-
-    const { userId: _userId, email: _email, ...mine } = item;
+    // The account id was only for filing the screenshot.
+    const { userId: _userId, ...mine } = item;
     void _userId;
-    void _email;
-    return json({ data: { ...mine, screenshot, emailed } });
+    return json({ data: { ...mine, screenshot } });
   } catch (e) {
     return errorResponse(e);
   }

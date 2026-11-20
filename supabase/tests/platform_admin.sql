@@ -472,7 +472,8 @@ declare
   i int;
 begin
   f := public.platform_submit_feedback('{"category":"bug","message":"Saving a mock jumps to the top of the page.","shareEmail":true,"context":{"userAgent":"Firefox","screen":"390×844","installed":true,"secret":"dropped"}}');
-  if f ->> 'status' <> 'new' or f ->> 'email' <> 'student@platform-check.invalid' or f ? 'priority' then
+  -- Asking to share the email changes nothing now: feedback never carries one (20261212120000_help_feedback.sql).
+  if f ->> 'status' <> 'new' or f ? 'email' or f ? 'shareEmail' or f ? 'priority' then
     raise exception 'FAIL: submitted feedback came back wrong: %', f;
   end if;
   perform public.test_expect_error($q$select public.platform_submit_feedback('{"category":"praise","message":"Lovely app, thank you"}')$q$, 'platform:invalid%');
@@ -525,7 +526,7 @@ begin
   perform public.platform_admin_add_feedback_note(adm, fid, 'PRIVATE-NOTE: reproduced on Android');
   perform public.platform_admin_respond_feedback(adm, fid, 'Fixed in the next update. Thank you!');
   d := public.platform_admin_update_feedback(adm, fid, '{"status":"resolved","priority":"high"}');
-  if d ->> 'status' <> 'resolved' or d ->> 'resolvedAt' is null or d ->> 'email' <> 'student@platform-check.invalid'
+  if d ->> 'status' <> 'resolved' or d ->> 'resolvedAt' is null or d ? 'email' or d ? 'shareEmail'
      or (d ->> 'noteCount')::int <> 1 then
     raise exception 'FAIL: updating feedback went wrong: %', d;
   end if;

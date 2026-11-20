@@ -24,8 +24,8 @@ function savedChoice(): boolean | null {
   }
 }
 
-// The account's choice about automatic crash reports (Settings → Help &
-// feedback): from the loaded account, else from its saved copy, else null.
+// The account's choice about automatic crash reports (Help & feedback):
+// from the loaded account, else from its saved copy, else null.
 // Registered as this module loads, before anything renders, so an error
 // screen that appears in the app's first moment still reads the right answer.
 setCrashConsentSource(() => {

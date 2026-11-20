@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Image as ImageIcon, Lock, Mail, MessageSquareText, Send } from "lucide-react";
+import Link from "next/link";
+import { Bug, Image as ImageIcon, Lock, MessageSquareText, Send, UserRound } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -13,7 +14,9 @@ import { AdminHeader, ErrorPanel, HistoryList, LoadingRows, Pager, SearchBox, Wh
 import { useAdminActor } from "@/components/admin/admin-context";
 import { adminApi, useAdmin } from "@/lib/platform/client";
 import { FEEDBACK_CATEGORY, FEEDBACK_PRIORITY, FEEDBACK_STATUS, type FeedbackStatus } from "@/lib/platform/content";
-import type { AdminChangelogEntry, AdminFeedback, FeedbackDetail, FeedbackList } from "@/lib/platform/types";
+import type { AdminChangelogEntry, AdminCrash, AdminFeedback, CrashDetail, CrashList, FeedbackDetail, FeedbackList } from "@/lib/platform/types";
+import { CRASH_SOURCE_LABEL } from "@/lib/report";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 
 const STATUS_FILTERS = ["open", "new", "under_review", "planned", "in_progress", "resolved", "closed", "all"] as const;
 type StatusFilter = (typeof STATUS_FILTERS)[number];
@@ -29,7 +32,54 @@ const STATUS_TONE: Record<FeedbackStatus, "warning" | "accent" | "default" | "po
 const PRIORITY_TONE = { low: "ghost", normal: "outline", high: "warning", urgent: "danger" } as const;
 const LIMIT = 25;
 
+type View = "messages" | "crashes";
+
+/**
+ * The Feedback Center: what students send from Help & feedback in the app,
+ * and the crash reports the app sends. Nothing arrives by email; the team
+ * answers here, and the author reads it in the app.
+ */
 export default function AdminFeedbackPage() {
+  const [view, setView] = useState<View>("messages");
+  // How many crash reports are new, for the switch. Read once; the crash view keeps it current.
+  const [newCrashes, setNewCrashes] = useState<number | null>(null);
+  const crashCounts = useAdmin<CrashList>("crashes?status=new&limit=1");
+
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("view") === "crashes") setView("crashes");
+  }, []);
+  useEffect(() => {
+    if (crashCounts.data) setNewCrashes(crashCounts.data.counts.new);
+  }, [crashCounts.data]);
+
+  return (
+    <div className="space-y-6">
+      <AdminHeader
+        icon={MessageSquareText}
+        title="Feedback"
+        description="Bug reports, feature requests, suggestions and questions that students send from Help & feedback in the app, and the crash reports the app sends. Nothing is emailed: answer here, and they read it in the app."
+      />
+      <Segmented
+        label="What to show"
+        options={[
+          { value: "messages", label: "Messages" },
+          { value: "crashes", label: newCrashes ? `Crash reports · ${newCrashes} new` : "Crash reports" },
+        ]}
+        value={view}
+        onChange={(v) => {
+          setView(v);
+          const url = new URL(window.location.href);
+          if (v === "crashes") url.searchParams.set("view", "crashes");
+          else url.searchParams.delete("view");
+          window.history.replaceState(null, "", url);
+        }}
+      />
+      {view === "messages" ? <MessagesView /> : <CrashesView onCounts={(c) => setNewCrashes(c.new)} />}
+    </div>
+  );
+}
+
+function MessagesView() {
   const [status, setStatus] = useState<StatusFilter>("open");
   const [category, setCategory] = useState("");
   const [priority, setPriority] = useState("");
@@ -54,11 +104,6 @@ export default function AdminFeedbackPage() {
 
   return (
     <div className="space-y-6">
-      <AdminHeader
-        icon={MessageSquareText}
-        title="Feedback"
-        description="Bug reports, feature requests, suggestions and anything else students send from Settings. Notes stay private; a response is what the author reads."
-      />
       <Segmented
         label="Status"
         compact
@@ -106,7 +151,7 @@ export default function AdminFeedbackPage() {
       ) : list.data && !list.data.items.length ? (
         <Card className="p-8 text-center">
           <p className="text-sm font-medium text-paper">Nothing here.</p>
-          <p className="mt-1 text-xs text-paper/55">Feedback appears as students send it.</p>
+          <p className="mt-1 text-xs text-paper/55">Messages appear here as soon as students send them from Help &amp; feedback.</p>
         </Card>
       ) : (
         <ul className="space-y-3">{list.data?.items.map((f) => <FeedbackRow key={f.id} item={f} onOpen={() => setOpen(f.id)} />)}</ul>
@@ -234,13 +279,15 @@ function FeedbackDialog({ id, onClose, onChanged }: { id: string | null; onClose
           <div className="grid gap-3 text-xs sm:grid-cols-2">
             <div className="rounded-2xl border border-line p-3.5">
               <p className="mb-1 font-semibold text-paper">From</p>
-              {f.email ? (
-                <a href={`mailto:${f.email}`} className="inline-flex items-center gap-1.5 font-medium text-accent hover:underline">
-                  <Mail className="h-3.5 w-3.5" aria-hidden /> {f.email}
-                </a>
-              ) : (
-                <p className="text-paper/60">Email not shared. Reply here: they read it in Settings.</p>
-              )}
+              <p className="text-paper/60">A signed-in account. Answer below: they read it in Help &amp; feedback, in the app.</p>
+              {can("users.read") ? (
+                <Link
+                  href={`/admin/users?id=${f.userId}`}
+                  className="mt-1.5 inline-flex items-center gap-1.5 font-medium text-accent hover:underline"
+                >
+                  <UserRound className="h-3.5 w-3.5" aria-hidden /> Open the account
+                </Link>
+              ) : null}
               <p className="mt-1 break-all font-mono text-[0.68rem] text-paper/45">{f.userId}</p>
             </div>
             <div className="rounded-2xl border border-line p-3.5">
@@ -290,7 +337,7 @@ function FeedbackDialog({ id, onClose, onChanged }: { id: string | null; onClose
             <h3 id="reply-title" className="text-sm font-semibold text-paper">
               Response to the author
             </h3>
-            <p className="mt-0.5 text-xs text-paper/55">They read it in Settings, then Help &amp; feedback.</p>
+            <p className="mt-0.5 text-xs text-paper/55">They read it in Help &amp; feedback, in the app, and the bell tells them it&apos;s there.</p>
             <Textarea
               value={reply}
               onChange={(e) => setReply(e.target.value)}
@@ -356,6 +403,232 @@ function FeedbackDialog({ id, onClose, onChanged }: { id: string | null; onClose
           <section aria-label="History">
             <p className="eyebrow mb-2">History</p>
             <HistoryList entries={f.history} />
+          </section>
+        </div>
+      )}
+    </Modal>
+  );
+}
+
+/* ── crash reports ─────────────────────────────────────────────── */
+
+const CRASH_FILTERS = ["new", "resolved", "all"] as const;
+type CrashFilter = (typeof CRASH_FILTERS)[number];
+const CRASH_FILTER_LABEL: Record<CrashFilter, string> = { new: "New", resolved: "Resolved", all: "All" };
+
+/**
+ * What the app sent when something broke: one row per distinct crash (the
+ * same error on the same page), with how many times it was reported. No
+ * account, name or email, ever. Kept for 90 days after the last report.
+ */
+function CrashesView({ onCounts }: { onCounts: (counts: CrashList["counts"]) => void }) {
+  const [status, setStatus] = useState<CrashFilter>("new");
+  const [offset, setOffset] = useState(0);
+  const [open, setOpen] = useState<string | null>(null);
+  const list = useAdmin<CrashList>(`crashes?status=${status}&limit=${LIMIT}&offset=${offset}`);
+  const counts = list.data?.counts;
+
+  useEffect(() => {
+    if (counts) onCounts(counts);
+    // The parent's setter is stable enough: this follows the counts only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [counts?.new, counts?.resolved]);
+
+  return (
+    <div className="space-y-6">
+      <Segmented
+        label="Status"
+        compact
+        options={CRASH_FILTERS.map((s) => ({
+          value: s,
+          label: `${CRASH_FILTER_LABEL[s]}${s !== "all" && counts?.[s] ? ` · ${counts[s]}` : ""}`,
+        }))}
+        value={status}
+        onChange={(v) => {
+          setStatus(v);
+          setOffset(0);
+        }}
+      />
+      <ErrorPanel error={list.error} onRetry={list.reload} />
+      {list.loading && !list.data ? (
+        <LoadingRows />
+      ) : list.data && !list.data.items.length ? (
+        <Card className="p-8 text-center">
+          <p className="text-sm font-medium text-paper">{status === "new" ? "No new crash reports." : "Nothing here."}</p>
+          <p className="mt-1 text-xs text-paper/55">
+            When something breaks in the app, the report appears here: the error, the page and the browser, never who it was.
+          </p>
+        </Card>
+      ) : (
+        <ul className="space-y-3">{list.data?.items.map((c) => <CrashRow key={c.id} item={c} onOpen={() => setOpen(c.id)} />)}</ul>
+      )}
+      {list.data && <Pager total={list.data.total} limit={list.data.limit} offset={list.data.offset} onChange={setOffset} />}
+      <CrashDialog id={open} onClose={() => setOpen(null)} onChanged={list.reload} />
+    </div>
+  );
+}
+
+function CrashRow({ item: c, onOpen }: { item: AdminCrash; onOpen: () => void }) {
+  return (
+    <li>
+      <button
+        type="button"
+        onClick={onOpen}
+        className="w-full rounded-2xl border border-line bg-card p-4 text-left shadow-soft transition-all hover:-translate-y-px hover:border-accent/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/45 sm:p-5"
+      >
+        <span className="flex flex-wrap items-center gap-2">
+          <Badge tone={c.status === "new" ? "warning" : "positive"}>{c.status === "new" ? "New" : "Resolved"}</Badge>
+          <Badge tone="outline">
+            {c.reports} {c.reports === 1 ? "report" : "reports"}
+          </Badge>
+          {c.noteCount > 0 && (
+            <span className="inline-flex items-center gap-1 text-[0.7rem] text-paper/55">
+              <MessageSquareText className="h-3 w-3" aria-hidden /> {c.noteCount} {c.noteCount === 1 ? "note" : "notes"}
+            </span>
+          )}
+          <span className="ml-auto text-xs text-paper/45">Last {ago(c.lastSeenAt)}</span>
+        </span>
+        <span className="mt-2.5 line-clamp-2 block break-words font-mono text-[0.8rem] leading-relaxed text-paper/85">{c.message}</span>
+        <span className="mt-1.5 block text-xs text-paper/50">
+          {c.page} · {CRASH_SOURCE_LABEL[c.source]}
+        </span>
+      </button>
+    </li>
+  );
+}
+
+function Fact({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <dt className="text-[0.7rem] font-semibold uppercase tracking-wide text-paper/45">{label}</dt>
+      <dd className="mt-0.5 break-words text-paper/80">{children}</dd>
+    </div>
+  );
+}
+
+function CrashDialog({ id, onClose, onChanged }: { id: string | null; onClose: () => void; onChanged: () => void }) {
+  const toast = useToast();
+  const confirm = useConfirm();
+  const detail = useAdmin<CrashDetail>(id ? `crashes/${id}` : null);
+  const [busy, setBusy] = useState(false);
+  const c = id && detail.data?.id === id ? detail.data : null;
+
+  async function act(action: "resolve" | "reopen" | "delete") {
+    if (!c) return;
+    if (action === "delete") {
+      const ok = await confirm({
+        title: "Delete this crash report?",
+        description: "It goes for good, with its notes. If the same crash happens again, it comes back as a new report.",
+        confirmLabel: "Delete",
+        tone: "danger",
+      });
+      if (!ok) return;
+    }
+    setBusy(true);
+    try {
+      const next = await adminApi.post<CrashDetail | { deleted: true }>(`crashes/${c.id}/action`, { action });
+      onChanged();
+      if ("deleted" in next) {
+        toast({ title: "Crash report deleted" });
+        onClose();
+      } else {
+        detail.set(next);
+        toast({ title: action === "resolve" ? "Marked resolved" : "Reopened" });
+      }
+    } catch (e) {
+      toast({ title: "Not saved", description: e instanceof Error ? e.message : undefined, tone: "error" });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Modal
+      open={Boolean(id)}
+      onClose={onClose}
+      title="Crash report"
+      description={c ? `Reported ${c.reports} ${c.reports === 1 ? "time" : "times"}, last ${ago(c.lastSeenAt)}` : undefined}
+      className="sm:max-w-2xl"
+    >
+      {detail.error && <ErrorPanel error={detail.error} onRetry={detail.reload} />}
+      {!c && !detail.error && <LoadingRows rows={2} />}
+      {c && (
+        <div className="space-y-6">
+          <p className="whitespace-pre-line break-words rounded-2xl border border-line bg-paper/[0.02] p-4 font-mono text-[0.82rem] leading-relaxed text-paper/90">
+            {c.message}
+          </p>
+
+          <dl className="grid gap-3 text-sm sm:grid-cols-2">
+            <Fact label="Page">{c.page}</Fact>
+            <Fact label="Where">{CRASH_SOURCE_LABEL[c.source]}</Fact>
+            <Fact label="First reported">
+              <When at={c.firstSeenAt} />
+            </Fact>
+            <Fact label="Last reported">
+              <When at={c.lastSeenAt} />
+            </Fact>
+            <Fact label="Browser, last time">{c.userAgent ?? "Not known"}</Fact>
+            <Fact label="Version">{c.build ?? "Not known"}</Fact>
+            <Fact label="Signed in, last time">{c.signedIn === null ? "Not known" : c.signedIn ? "Yes" : "No"}</Fact>
+            <Fact label="Online, last time">{c.online === null ? "Not known" : c.online ? "Yes" : "No"}</Fact>
+            {c.digest && <Fact label="Reference">{c.digest}</Fact>}
+          </dl>
+
+          {c.notes.length > 0 && (
+            <section aria-labelledby="crash-notes-title">
+              <h3 id="crash-notes-title" className="text-sm font-semibold text-paper">
+                What people said happened
+              </h3>
+              <p className="mt-0.5 text-xs text-paper/55">Written on the error screen and sent with the report. Not linked to anyone&apos;s account.</p>
+              <ul className="mt-3 space-y-2">
+                {c.notes
+                  .slice()
+                  .reverse()
+                  .map((n, i) => (
+                    <li key={`${n.at}-${i}`} className="rounded-xl border border-line bg-paper/[0.02] px-3.5 py-2.5 text-sm">
+                      <p className="whitespace-pre-line break-words text-paper/85">{n.text}</p>
+                      <p className="mt-1 text-[0.7rem] text-paper/50">
+                        <When at={n.at} />
+                      </p>
+                    </li>
+                  ))}
+              </ul>
+            </section>
+          )}
+
+          {(c.stack || c.componentStack) && (
+            <section aria-label="Stack">
+              <p className="eyebrow mb-2">Stack, last time</p>
+              <pre className="max-h-72 overflow-auto rounded-2xl border border-line bg-paper/[0.03] p-3.5 text-[0.72rem] leading-relaxed text-paper/75">
+                {[c.stack, c.componentStack && `Components:\n${c.componentStack}`].filter(Boolean).join("\n\n")}
+              </pre>
+            </section>
+          )}
+
+          <div className="flex flex-wrap items-center gap-2">
+            {c.status === "new" ? (
+              <Button size="sm" disabled={busy} onClick={() => void act("resolve")}>
+                <Bug className="h-3.5 w-3.5" aria-hidden /> Mark resolved
+              </Button>
+            ) : (
+              <Button size="sm" variant="ghost" disabled={busy} onClick={() => void act("reopen")}>
+                Reopen
+              </Button>
+            )}
+            <Button size="sm" variant="subtle" disabled={busy} onClick={() => void act("delete")} className="text-danger">
+              Delete
+            </Button>
+            {c.status === "resolved" && c.resolvedAt && (
+              <span className="text-xs text-paper/50">
+                Resolved <When at={c.resolvedAt} />
+                {c.resolvedByEmail ? ` by ${c.resolvedByEmail}` : ""}. If it happens again, it comes back as new.
+              </span>
+            )}
+          </div>
+
+          <section aria-label="History">
+            <p className="eyebrow mb-2">History</p>
+            <HistoryList entries={c.history} />
           </section>
         </div>
       )}
