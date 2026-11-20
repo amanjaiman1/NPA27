@@ -1,0 +1,1063 @@
+{
+  "routes": {
+    "/": {
+      "firstLoadKb": 121.3,
+      "chunks": 11,
+      "top": [
+        {
+          "name": "next",
+          "kb": 130.6
+        },
+        {
+          "name": "tailwind-merge",
+          "kb": 8.2
+        },
+        {
+          "name": "app: src/components/marketing",
+          "kb": 7
+        },
+        {
+          "name": "app: src/lib/pwa.ts",
+          "kb": 3.2
+        },
+        {
+          "name": "lucide-react",
+          "kb": 3.1
+        },
+        {
+          "name": "app: src/lib/utils.ts",
+          "kb": 0.9
+        },
+        {
+          "name": "@swc/helpers",
+          "kb": 0.8
+        },
+        {
+          "name": "app: src/lib/demo",
+          "kb": 0.5
+        },
+        {
+          "name": "clsx",
+          "kb": 0.3
+        },
+        {
+          "name": "app: src/app/globals.css",
+          "kb": 0
+        }
+      ]
+    },
+    "/welcome": {
+      "firstLoadKb": 281.1,
+      "chunks": 18,
+      "top": [
+        {
+          "name": "next",
+          "kb": 130.3
+        },
+        {
+          "name": "framer-motion",
+          "kb": 34.4
+        },
+        {
+          "name": "@supabase/auth-js",
+          "kb": 25.2
+        },
+        {
+          "name": "app: src/components/ui",
+          "kb": 10.9
+        },
+        {
+          "name": "app: src/lib/store.ts",
+          "kb": 8.8
+        },
+        {
+          "name": "@supabase/postgrest-js",
+          "kb": 8.8
+        },
+        {
+          "name": "app: src/lib/roadmap.ts",
+          "kb": 8.3
+        },
+        {
+          "name": "tailwind-merge",
+          "kb": 8.2
+        },
+        {
+          "name": "lucide-react",
+          "kb": 7.6
+        },
+        {
+          "name": "app: src/lib/habit-engine.ts",
+          "kb": 6.8
+        },
+        {
+          "name": "@supabase/storage-js",
+          "kb": 6.8
+        },
+        {
+          "name": "app: src/lib/notifications.ts",
+          "kb": 6.3
+        },
+        {
+          "name": "app: src/components/auth",
+          "kb": 6.3
+        },
+        {
+          "name": "@supabase/realtime-js",
+          "kb": 5.9
+        }
+      ]
+    },
+    "/login": {
+      "firstLoadKb": 283.4,
+      "chunks": 18,
+      "top": [
+        {
+          "name": "next",
+          "kb": 130.3
+        },
+        {
+          "name": "framer-motion",
+          "kb": 34.4
+        },
+        {
+          "name": "@supabase/auth-js",
+          "kb": 25.2
+        },
+        {
+          "name": "app: src/components/ui",
+          "kb": 10.9
+        },
+        {
+          "name": "app: src/lib/store.ts",
+          "kb": 8.8
+        },
+        {
+          "name": "@supabase/postgrest-js",
+          "kb": 8.8
+        },
+        {
+          "name": "app: src/lib/roadmap.ts",
+          "kb": 8.3
+        },
+        {
+          "name": "tailwind-merge",
+          "kb": 8.2
+        },
+        {
+          "name": "app: src/components/auth",
+          "kb": 7.7
+        },
+        {
+          "name": "app: src/lib/habit-engine.ts",
+          "kb": 6.8
+        },
+        {
+          "name": "@supabase/storage-js",
+          "kb": 6.8
+        },
+        {
+          "name": "lucide-react",
+          "kb": 6.7
+        },
+        {
+          "name": "app: src/lib/notifications.ts",
+          "kb": 6.3
+        },
+        {
+          "name": "@supabase/realtime-js",
+          "kb": 5.9
+        }
+      ]
+    },
+    "/dashboard": {
+      "firstLoadKb": 394.6,
+      "chunks": 37,
+      "top": [
+        {
+          "name": "next",
+          "kb": 137.8
+        },
+        {
+          "name": "framer-motion",
+          "kb": 35
+        },
+        {
+          "name": "lucide-react",
+          "kb": 30.2
+        },
+        {
+          "name": "app: src/components/ui",
+          "kb": 28.5
+        },
+        {
+          "name": "@supabase/auth-js",
+          "kb": 25.2
+        },
+        {
+          "name": "app: src/components/layout",
+          "kb": 21.7
+        },
+        {
+          "name": "app: src/components/account",
+          "kb": 12.7
+        },
+        {
+          "name": "app: src/lib/store.ts",
+          "kb": 8.8
+        },
+        {
+          "name": "@supabase/postgrest-js",
+          "kb": 8.8
+        },
+        {
+          "name": "app: src/app/(product)/(app)",
+          "kb": 8.7
+        },
+        {
+          "name": "app: src/lib/roadmap.ts",
+          "kb": 8.3
+        },
+        {
+          "name": "tailwind-merge",
+          "kb": 8.2
+        },
+        {
+          "name": "app: src/components/sleep",
+          "kb": 7.7
+        },
+        {
+          "name": "app: src/lib/habit-engine.ts",
+          "kb": 6.8
+        }
+      ]
+    },
+    "/journal": {
+      "firstLoadKb": 390.3,
+      "chunks": 34,
+      "top": [
+        {
+          "name": "next",
+          "kb": 130.3
+        },
+        {
+          "name": "framer-motion",
+          "kb": 35
+        },
+        {
+          "name": "lucide-react",
+          "kb": 26.8
+        },
+        {
+          "name": "@supabase/auth-js",
+          "kb": 25.2
+        },
+        {
+          "name": "app: src/components/ui",
+          "kb": 23.3
+        },
+        {
+          "name": "app: src/components/layout",
+          "kb": 22.5
+        },
+        {
+          "name": "app: src/app/(product)/(app)",
+          "kb": 12
+        },
+        {
+          "name": "app: src/components/account",
+          "kb": 11.9
+        },
+        {
+          "name": "app: src/components/journal",
+          "kb": 10.2
+        },
+        {
+          "name": "app: src/lib/store.ts",
+          "kb": 8.8
+        },
+        {
+          "name": "@supabase/postgrest-js",
+          "kb": 8.8
+        },
+        {
+          "name": "app: src/lib/roadmap.ts",
+          "kb": 8.3
+        },
+        {
+          "name": "tailwind-merge",
+          "kb": 8.2
+        },
+        {
+          "name": "app: src/components/sleep",
+          "kb": 7.7
+        }
+      ]
+    },
+    "/wellbeing": {
+      "firstLoadKb": 380.3,
+      "chunks": 33,
+      "top": [
+        {
+          "name": "next",
+          "kb": 130.3
+        },
+        {
+          "name": "framer-motion",
+          "kb": 35
+        },
+        {
+          "name": "lucide-react",
+          "kb": 26.1
+        },
+        {
+          "name": "@supabase/auth-js",
+          "kb": 25.2
+        },
+        {
+          "name": "app: src/components/ui",
+          "kb": 23.1
+        },
+        {
+          "name": "app: src/components/layout",
+          "kb": 21.7
+        },
+        {
+          "name": "app: src/components/account",
+          "kb": 11.9
+        },
+        {
+          "name": "app: src/app/(product)/(app)",
+          "kb": 10.6
+        },
+        {
+          "name": "app: src/components/sleep",
+          "kb": 10.6
+        },
+        {
+          "name": "app: src/lib/store.ts",
+          "kb": 8.8
+        },
+        {
+          "name": "@supabase/postgrest-js",
+          "kb": 8.8
+        },
+        {
+          "name": "app: src/lib/roadmap.ts",
+          "kb": 8.3
+        },
+        {
+          "name": "tailwind-merge",
+          "kb": 8.2
+        },
+        {
+          "name": "app: src/lib/habit-engine.ts",
+          "kb": 6.8
+        }
+      ]
+    },
+    "/goals": {
+      "firstLoadKb": 377.3,
+      "chunks": 33,
+      "top": [
+        {
+          "name": "next",
+          "kb": 130.5
+        },
+        {
+          "name": "framer-motion",
+          "kb": 34.7
+        },
+        {
+          "name": "lucide-react",
+          "kb": 29.8
+        },
+        {
+          "name": "@supabase/auth-js",
+          "kb": 25.2
+        },
+        {
+          "name": "app: src/components/ui",
+          "kb": 21.9
+        },
+        {
+          "name": "app: src/components/layout",
+          "kb": 21.7
+        },
+        {
+          "name": "app: src/app/(product)/(app)",
+          "kb": 12.6
+        },
+        {
+          "name": "app: src/components/account",
+          "kb": 11.9
+        },
+        {
+          "name": "app: src/lib/store.ts",
+          "kb": 8.8
+        },
+        {
+          "name": "@supabase/postgrest-js",
+          "kb": 8.8
+        },
+        {
+          "name": "app: src/lib/roadmap.ts",
+          "kb": 8.3
+        },
+        {
+          "name": "tailwind-merge",
+          "kb": 8.2
+        },
+        {
+          "name": "app: src/components/sleep",
+          "kb": 7.7
+        },
+        {
+          "name": "app: src/lib/habit-engine.ts",
+          "kb": 6.8
+        }
+      ]
+    },
+    "/roadmap": {
+      "firstLoadKb": 383,
+      "chunks": 32,
+      "top": [
+        {
+          "name": "next",
+          "kb": 130.5
+        },
+        {
+          "name": "framer-motion",
+          "kb": 34.7
+        },
+        {
+          "name": "lucide-react",
+          "kb": 28.4
+        },
+        {
+          "name": "app: src/app/(product)/(app)",
+          "kb": 25.6
+        },
+        {
+          "name": "@supabase/auth-js",
+          "kb": 25.2
+        },
+        {
+          "name": "app: src/components/ui",
+          "kb": 22.9
+        },
+        {
+          "name": "app: src/components/layout",
+          "kb": 21.7
+        },
+        {
+          "name": "app: src/components/account",
+          "kb": 11.9
+        },
+        {
+          "name": "app: src/lib/store.ts",
+          "kb": 8.8
+        },
+        {
+          "name": "@supabase/postgrest-js",
+          "kb": 8.8
+        },
+        {
+          "name": "app: src/lib/roadmap.ts",
+          "kb": 8.3
+        },
+        {
+          "name": "tailwind-merge",
+          "kb": 8.2
+        },
+        {
+          "name": "app: src/components/sleep",
+          "kb": 7.7
+        },
+        {
+          "name": "app: src/lib/habit-engine.ts",
+          "kb": 6.8
+        }
+      ]
+    },
+    "/habits": {
+      "firstLoadKb": 374.4,
+      "chunks": 31,
+      "top": [
+        {
+          "name": "next",
+          "kb": 130.3
+        },
+        {
+          "name": "framer-motion",
+          "kb": 35
+        },
+        {
+          "name": "app: src/components/ui",
+          "kb": 29.3
+        },
+        {
+          "name": "@supabase/auth-js",
+          "kb": 25.2
+        },
+        {
+          "name": "lucide-react",
+          "kb": 23.8
+        },
+        {
+          "name": "app: src/components/layout",
+          "kb": 21.7
+        },
+        {
+          "name": "app: src/app/(product)/(app)",
+          "kb": 14.1
+        },
+        {
+          "name": "app: src/components/account",
+          "kb": 11.9
+        },
+        {
+          "name": "app: src/lib/store.ts",
+          "kb": 8.8
+        },
+        {
+          "name": "@supabase/postgrest-js",
+          "kb": 8.8
+        },
+        {
+          "name": "app: src/lib/roadmap.ts",
+          "kb": 8.3
+        },
+        {
+          "name": "tailwind-merge",
+          "kb": 8.2
+        },
+        {
+          "name": "app: src/components/sleep",
+          "kb": 7.7
+        },
+        {
+          "name": "app: src/lib/habit-engine.ts",
+          "kb": 6.8
+        }
+      ]
+    },
+    "/revision": {
+      "firstLoadKb": 361.7,
+      "chunks": 31,
+      "top": [
+        {
+          "name": "next",
+          "kb": 130.5
+        },
+        {
+          "name": "framer-motion",
+          "kb": 35
+        },
+        {
+          "name": "lucide-react",
+          "kb": 26
+        },
+        {
+          "name": "@supabase/auth-js",
+          "kb": 25.2
+        },
+        {
+          "name": "app: src/components/ui",
+          "kb": 24.5
+        },
+        {
+          "name": "app: src/components/layout",
+          "kb": 21.7
+        },
+        {
+          "name": "app: src/components/account",
+          "kb": 11.9
+        },
+        {
+          "name": "app: src/lib/store.ts",
+          "kb": 8.8
+        },
+        {
+          "name": "@supabase/postgrest-js",
+          "kb": 8.8
+        },
+        {
+          "name": "app: src/lib/roadmap.ts",
+          "kb": 8.3
+        },
+        {
+          "name": "tailwind-merge",
+          "kb": 8.2
+        },
+        {
+          "name": "app: src/components/sleep",
+          "kb": 7.7
+        },
+        {
+          "name": "app: src/lib/habit-engine.ts",
+          "kb": 6.8
+        },
+        {
+          "name": "@supabase/storage-js",
+          "kb": 6.8
+        }
+      ]
+    },
+    "/performance-review": {
+      "firstLoadKb": 373.8,
+      "chunks": 32,
+      "top": [
+        {
+          "name": "next",
+          "kb": 130.5
+        },
+        {
+          "name": "framer-motion",
+          "kb": 35
+        },
+        {
+          "name": "lucide-react",
+          "kb": 27.6
+        },
+        {
+          "name": "app: src/components/ui",
+          "kb": 25.9
+        },
+        {
+          "name": "@supabase/auth-js",
+          "kb": 25.2
+        },
+        {
+          "name": "app: src/components/layout",
+          "kb": 21.7
+        },
+        {
+          "name": "app: src/app/(product)/(app)",
+          "kb": 13.3
+        },
+        {
+          "name": "app: src/components/account",
+          "kb": 11.9
+        },
+        {
+          "name": "app: src/lib/store.ts",
+          "kb": 8.8
+        },
+        {
+          "name": "@supabase/postgrest-js",
+          "kb": 8.8
+        },
+        {
+          "name": "app: src/lib/roadmap.ts",
+          "kb": 8.3
+        },
+        {
+          "name": "tailwind-merge",
+          "kb": 8.2
+        },
+        {
+          "name": "app: src/components/sleep",
+          "kb": 7.7
+        },
+        {
+          "name": "app: src/lib/habit-engine.ts",
+          "kb": 6.8
+        }
+      ]
+    },
+    "/diary": {
+      "firstLoadKb": 376,
+      "chunks": 34,
+      "top": [
+        {
+          "name": "next",
+          "kb": 130.5
+        },
+        {
+          "name": "framer-motion",
+          "kb": 35
+        },
+        {
+          "name": "lucide-react",
+          "kb": 30.6
+        },
+        {
+          "name": "@supabase/auth-js",
+          "kb": 25.2
+        },
+        {
+          "name": "app: src/components/layout",
+          "kb": 21.7
+        },
+        {
+          "name": "app: src/components/ui",
+          "kb": 21.2
+        },
+        {
+          "name": "app: src/components/account",
+          "kb": 11.9
+        },
+        {
+          "name": "app: src/lib/store.ts",
+          "kb": 8.8
+        },
+        {
+          "name": "@supabase/postgrest-js",
+          "kb": 8.8
+        },
+        {
+          "name": "app: src/app/(product)/(app)",
+          "kb": 8.4
+        },
+        {
+          "name": "app: src/lib/roadmap.ts",
+          "kb": 8.3
+        },
+        {
+          "name": "tailwind-merge",
+          "kb": 8.2
+        },
+        {
+          "name": "app: src/components/sleep",
+          "kb": 7.7
+        },
+        {
+          "name": "app: src/lib/habit-engine.ts",
+          "kb": 6.8
+        }
+      ]
+    },
+    "/coach": {
+      "firstLoadKb": 387.7,
+      "chunks": 32,
+      "top": [
+        {
+          "name": "next",
+          "kb": 130.3
+        },
+        {
+          "name": "framer-motion",
+          "kb": 35
+        },
+        {
+          "name": "app: src/components/ui",
+          "kb": 29.4
+        },
+        {
+          "name": "@supabase/auth-js",
+          "kb": 25.2
+        },
+        {
+          "name": "lucide-react",
+          "kb": 23.4
+        },
+        {
+          "name": "app: src/components/layout",
+          "kb": 21.7
+        },
+        {
+          "name": "app: src/app/(product)/(app)",
+          "kb": 17.7
+        },
+        {
+          "name": "app: src/components/account",
+          "kb": 11.9
+        },
+        {
+          "name": "app: src/lib/store.ts",
+          "kb": 8.8
+        },
+        {
+          "name": "@supabase/postgrest-js",
+          "kb": 8.8
+        },
+        {
+          "name": "app: src/lib/roadmap.ts",
+          "kb": 8.3
+        },
+        {
+          "name": "tailwind-merge",
+          "kb": 8.2
+        },
+        {
+          "name": "app: src/components/sleep",
+          "kb": 7.7
+        },
+        {
+          "name": "app: src/lib/habit-engine.ts",
+          "kb": 6.8
+        }
+      ]
+    },
+    "/settings": {
+      "firstLoadKb": 380.8,
+      "chunks": 34,
+      "top": [
+        {
+          "name": "next",
+          "kb": 137.8
+        },
+        {
+          "name": "framer-motion",
+          "kb": 35
+        },
+        {
+          "name": "lucide-react",
+          "kb": 27.4
+        },
+        {
+          "name": "app: src/components/ui",
+          "kb": 26.1
+        },
+        {
+          "name": "@supabase/auth-js",
+          "kb": 25.2
+        },
+        {
+          "name": "app: src/components/layout",
+          "kb": 21.7
+        },
+        {
+          "name": "app: src/components/account",
+          "kb": 11.9
+        },
+        {
+          "name": "app: src/app/(product)/(app)",
+          "kb": 10.5
+        },
+        {
+          "name": "app: src/lib/store.ts",
+          "kb": 8.8
+        },
+        {
+          "name": "@supabase/postgrest-js",
+          "kb": 8.8
+        },
+        {
+          "name": "app: src/lib/roadmap.ts",
+          "kb": 8.3
+        },
+        {
+          "name": "tailwind-merge",
+          "kb": 8.2
+        },
+        {
+          "name": "app: src/components/sleep",
+          "kb": 7.7
+        },
+        {
+          "name": "app: src/lib/habit-engine.ts",
+          "kb": 6.8
+        }
+      ]
+    },
+    "/knowledge-graph": {
+      "firstLoadKb": 367.3,
+      "chunks": 31,
+      "top": [
+        {
+          "name": "next",
+          "kb": 130.3
+        },
+        {
+          "name": "framer-motion",
+          "kb": 34.7
+        },
+        {
+          "name": "@supabase/auth-js",
+          "kb": 25.2
+        },
+        {
+          "name": "app: src/components/ui",
+          "kb": 22.9
+        },
+        {
+          "name": "lucide-react",
+          "kb": 22
+        },
+        {
+          "name": "app: src/components/layout",
+          "kb": 21.7
+        },
+        {
+          "name": "app: src/components/account",
+          "kb": 11.9
+        },
+        {
+          "name": "app: src/lib/store.ts",
+          "kb": 8.8
+        },
+        {
+          "name": "@supabase/postgrest-js",
+          "kb": 8.8
+        },
+        {
+          "name": "app: src/app/(product)/(app)",
+          "kb": 8.6
+        },
+        {
+          "name": "app: src/lib/roadmap.ts",
+          "kb": 8.3
+        },
+        {
+          "name": "tailwind-merge",
+          "kb": 8.2
+        },
+        {
+          "name": "app: src/components/sleep",
+          "kb": 7.7
+        },
+        {
+          "name": "app: src/lib/habit-engine.ts",
+          "kb": 6.8
+        }
+      ]
+    },
+    "/admin": {
+      "firstLoadKb": 307.1,
+      "chunks": 22,
+      "top": [
+        {
+          "name": "next",
+          "kb": 130.5
+        },
+        {
+          "name": "framer-motion",
+          "kb": 34.4
+        },
+        {
+          "name": "@supabase/auth-js",
+          "kb": 25.2
+        },
+        {
+          "name": "app: src/components/ui",
+          "kb": 20.5
+        },
+        {
+          "name": "lucide-react",
+          "kb": 14.3
+        },
+        {
+          "name": "app: src/lib/store.ts",
+          "kb": 8.8
+        },
+        {
+          "name": "@supabase/postgrest-js",
+          "kb": 8.8
+        },
+        {
+          "name": "app: src/lib/roadmap.ts",
+          "kb": 8.3
+        },
+        {
+          "name": "tailwind-merge",
+          "kb": 8.2
+        },
+        {
+          "name": "app: src/components/admin",
+          "kb": 7.3
+        },
+        {
+          "name": "app: src/lib/habit-engine.ts",
+          "kb": 6.8
+        },
+        {
+          "name": "@supabase/storage-js",
+          "kb": 6.8
+        },
+        {
+          "name": "app: src/lib/notifications.ts",
+          "kb": 6.3
+        },
+        {
+          "name": "@supabase/realtime-js",
+          "kb": 5.9
+        }
+      ]
+    }
+  },
+  "packages": {
+    "next": {
+      "kb": 202.3,
+      "chunks": 48
+    },
+    "lucide-react": {
+      "kb": 182.7,
+      "chunks": 57
+    },
+    "react-dom": {
+      "kb": 40.3,
+      "chunks": 1
+    },
+    "framer-motion": {
+      "kb": 39.2,
+      "chunks": 19
+    },
+    "@supabase/auth-js": {
+      "kb": 25.2,
+      "chunks": 2
+    },
+    "@supabase/postgrest-js": {
+      "kb": 8.8,
+      "chunks": 1
+    },
+    "tailwind-merge": {
+      "kb": 8.2,
+      "chunks": 1
+    },
+    "@supabase/storage-js": {
+      "kb": 6.8,
+      "chunks": 1
+    },
+    "@supabase/realtime-js": {
+      "kb": 5.9,
+      "chunks": 1
+    },
+    "d3-force": {
+      "kb": 3.8,
+      "chunks": 1
+    },
+    "@supabase/phoenix": {
+      "kb": 3.5,
+      "chunks": 1
+    },
+    "react": {
+      "kb": 2.9,
+      "chunks": 1
+    },
+    "motion-dom": {
+      "kb": 2.8,
+      "chunks": 1
+    },
+    "@supabase/supabase-js": {
+      "kb": 2.3,
+      "chunks": 1
+    },
+    "zustand": {
+      "kb": 2,
+      "chunks": 1
+    },
+    "d3-quadtree": {
+      "kb": 1.8,
+      "chunks": 1
+    },
+    "scheduler": {
+      "kb": 1.6,
+      "chunks": 1
+    },
+    "@swc/helpers": {
+      "kb": 1.3,
+      "chunks": 2
+    },
+    "iceberg-js": {
+      "kb": 1.1,
+      "chunks": 1
+    },
+    "@supabase/functions-js": {
+      "kb": 1,
+      "chunks": 1
+    }
+  },
+  "appShell": null
+}

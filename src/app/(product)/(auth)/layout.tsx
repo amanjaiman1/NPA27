@@ -8,9 +8,12 @@ import { landingAfterSignIn } from "@/components/auth/landing";
 import { BootScreen } from "@/components/account/boot-screen";
 import { Analytics } from "@/components/marketing/analytics";
 import { leaveDemo } from "@/lib/demo/mode";
+import { useIdlePrefetch } from "@/components/layout/app-link";
 
 /** Pages that must stay reachable while a session exists. */
 const SIGNED_IN_OK = new Set(["/reset-password", "/auth/callback", "/auth/verify"]);
+const WARM_AFTER_SIGN_IN = ["/dashboard"] as const;
+const NOTHING = [] as const;
 
 /**
  * Welcome, sign-in, sign-up and password screens. A signed-in visitor is sent
@@ -28,6 +31,11 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
   // Signing in or up ends the interactive demo in this tab, so the account
   // opens afterwards instead of the sample.
   useEffect(() => leaveDemo(), []);
+
+  // While someone types their details, the app they're about to open loads
+  // quietly, so signing in goes straight to the dashboard instead of waiting
+  // for its code.
+  useIdlePrefetch(pathname === "/login" || pathname === "/signup" ? WARM_AFTER_SIGN_IN : NOTHING, 1_200);
 
   useEffect(() => {
     if (!auth.cloudEnabled) {

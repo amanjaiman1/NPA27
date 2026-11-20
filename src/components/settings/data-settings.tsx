@@ -10,7 +10,7 @@ import { ACCOUNT_FILE_QUOTA, totalFileBytes } from "@/lib/files";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { useConfirmedDownload } from "@/components/ui/confirm-download";
 import { DataBackup } from "@/components/layout/data-backup";
-import { useAccount } from "@/components/account/account-session";
+import { useAccount, useSyncStatus } from "@/components/account/account-session";
 import { describeSync } from "@/components/account/sync-label";
 import { SettingsSection } from "./section";
 
@@ -21,7 +21,8 @@ function formatBytes(n: number): string {
 }
 
 export function DataSettings() {
-  const { mode, sync, syncNow, conflicts, dismissConflicts } = useAccount();
+  const { mode, syncNow, dismissConflicts } = useAccount();
+  const { sync, conflicts } = useSyncStatus();
   const journal = useChronicle((s) => s.journal);
   const files = useChronicle((s) => s.files);
   const removeLegacyAttachments = useChronicle((s) => s.removeLegacyAttachments);

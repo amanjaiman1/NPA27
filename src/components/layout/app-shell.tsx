@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useState } from "react";
+import { Suspense, lazy, useCallback, useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, MotionConfig, motion } from "framer-motion";
 import { Sidebar } from "./sidebar";
@@ -8,8 +8,6 @@ import { NavRail } from "./nav-rail";
 import { RouteTransition } from "./route-transition";
 import { PageTransition } from "./page-transition";
 import { Topbar } from "./topbar";
-import { CommandPalette } from "./command-palette";
-import { AppearanceModal } from "./appearance";
 import { BottomNav } from "./bottom-nav";
 import { FileJanitor } from "@/components/attachments/file-janitor";
 import { NotificationsProvider } from "@/components/notifications/use-notifications";
@@ -21,6 +19,15 @@ import { TeamBanner } from "@/components/platform/team-notices";
 import { DemoBar, DemoChrome, DemoGuide, DemoGuideSpace } from "@/components/demo/demo-chrome";
 import { HelpFeedback } from "@/components/help/help-feedback";
 import { useMatchMedia } from "@/lib/hooks";
+import { essentialNavItems } from "@/lib/nav";
+import { useIdlePrefetch } from "./app-link";
+import { loadAppearance, loadPalette } from "./overlays";
+
+const CommandPalette = lazy(() => loadPalette().then((m) => ({ default: m.CommandPalette })));
+const AppearanceModal = lazy(() => loadAppearance().then((m) => ({ default: m.AppearanceModal })));
+
+/** Warmed in idle time: the Command Center and the four everyday pages (the phone's dock). */
+const WARM_PAGES = ["/dashboard", ...essentialNavItems.map((i) => i.href)];
 
 /** "1" when the person hid the sidebar on a wide screen. Same key as before. */
 const SIDEBAR_KEY = "upsc-chronicle-sidebar";
@@ -48,6 +55,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [appearanceOpen, setAppearanceOpen] = useState(false);
+  // Mounted from their first opening on, so they can animate closed afterwards.
+  const [paletteUsed, setPaletteUsed] = useState(false);
+  const [appearanceUsed, setAppearanceUsed] = useState(false);
+  useEffect(() => {
+    if (paletteOpen) setPaletteUsed(true);
+  }, [paletteOpen]);
+  useEffect(() => {
+    if (appearanceOpen) setAppearanceUsed(true);
+  }, [appearanceOpen]);
   const pathname = usePathname();
   const { accountId, mode, user } = useAccount();
   const demo = mode === "demo";
@@ -56,6 +72,21 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const docked = desktop && wide && !collapsed;
   const sidebarShowing = docked || (desktop && !wide && flyoutOpen);
+  useIdlePrefetch(WARM_PAGES);
+  // Once the page has settled, search and Appearance load quietly too, so even
+  // a first ⌘K opens at once.
+  useEffect(() => {
+    const id = window.setTimeout(() => {
+      const idle = (window as Window & { requestIdleCallback?: (cb: () => void) => number }).requestIdleCallback;
+      const warm = () => {
+        void loadPalette().catch(() => undefined);
+        void loadAppearance().catch(() => undefined);
+      };
+      if (idle) idle(warm);
+      else warm();
+    }, 6_000);
+    return () => window.clearTimeout(id);
+  }, []);
 
   const setCollapsedPref = useCallback((next: boolean) => {
     setCollapsed(next);
@@ -255,8 +286,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <BottomNav onOpenMenu={() => setDrawerOpen(true)} />
             {demo ? <DemoGuide /> : <FileJanitor />}
 
-            <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
-            <AppearanceModal open={appearanceOpen} onClose={() => setAppearanceOpen(false)} />
+            {(paletteOpen || paletteUsed) && (
+              <Suspense fallback={null}>
+                <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
+              </Suspense>
+            )}
+            {(appearanceOpen || appearanceUsed) && (
+              <Suspense fallback={null}>
+                <AppearanceModal open={appearanceOpen} onClose={() => setAppearanceOpen(false)} />
+              </Suspense>
+            )}
           </div>
         </TourProvider>
       </MotionConfig>

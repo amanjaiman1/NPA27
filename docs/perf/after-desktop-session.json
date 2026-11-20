@@ -1,0 +1,88 @@
+{
+  "label": "after-desktop-session",
+  "at": "2026-11-20T09:34:25.779Z",
+  "runs": 3,
+  "chromium": "159.0.8154.6",
+  "profiles": {
+    "desktop": {
+      "session": {
+        "clean": {
+          "login": 715,
+          "logoutMs": 408,
+          "reachedWelcome": 1,
+          "feedbackMs": 320,
+          "askedToConfirm": 0,
+          "sessionLeft": 0,
+          "sessionGoneMs": 0,
+          "url": "/welcome",
+          "runs": 3
+        },
+        "pending": {
+          "login": 715,
+          "logoutMs": 557,
+          "reachedWelcome": 1,
+          "feedbackMs": 293,
+          "askedToConfirm": 0,
+          "sessionLeft": 0,
+          "sessionGoneMs": 0,
+          "url": "/welcome",
+          "runs": 3
+        },
+        "push": {
+          "login": 713,
+          "logoutMs": 417,
+          "reachedWelcome": 1,
+          "feedbackMs": 324,
+          "askedToConfirm": 0,
+          "sessionLeft": 0,
+          "sessionGoneMs": 0,
+          "url": "/welcome",
+          "runs": 3
+        },
+        "slow": {
+          "login": 702,
+          "logoutMs": 1650,
+          "reachedWelcome": 1,
+          "feedbackMs": 303,
+          "askedToConfirm": 0,
+          "sessionLeft": 1,
+          "sessionGoneMs": 2917,
+          "url": "/welcome",
+          "runs": 3
+        },
+        "unreachable": {
+          "login": 711,
+          "logoutMs": 402,
+          "reachedWelcome": 1,
+          "feedbackMs": 302,
+          "askedToConfirm": 0,
+          "sessionLeft": 0,
+          "sessionGoneMs": 0,
+          "url": "/welcome",
+          "runs": 3
+        }
+      },
+      "film": {
+        "heading": 267,
+        "ttfb": 41,
+        "fcp": 300,
+        "lcp": 300,
+        "lcpElement": "img[img].object-cover",
+        "cls": 0,
+        "tbt": 0,
+        "longTasks": 0,
+        "longestTask": 0,
+        "domNodes": 852,
+        "heapMb": 6.9,
+        "kb20s": 10663,
+        "mediaKb20s": 10112,
+        "requests20s": 57,
+        "video": {
+          "paused": false,
+          "currentTime": 20,
+          "src": "/media/doordie-film.mp4"
+        }
+      }
+    }
+  }
+}

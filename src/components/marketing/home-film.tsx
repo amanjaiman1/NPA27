@@ -9,15 +9,20 @@ import { cn } from "@/lib/utils";
 /* ════════════════════════════════════════════════════════════════
    THE FILM THAT OPENS THE HOME PAGE
 
-   It starts by itself, first with sound. Browsers only let sound start on
+   On a computer it starts by itself, once the page has finished loading and
+   the browser is idle, first with sound. Browsers only let sound start on
    its own once a visitor has interacted with a site (Chrome, Safari and
    Firefox all enforce this), so when the browser refuses, the film plays
    muted with captions and shows "Turn sound on". The visitor's first tap,
    click or key press anywhere on the page turns the sound on too, while the
    film is on screen. Muting it is remembered on this device.
 
-   - Nothing downloads before the page decides to play. People who ask for
-     less motion or for data saving get the cover and a play button instead.
+   - Nothing downloads before the film plays, and on a computer it waits for
+     the page: the cover is the page's largest picture, so the page is
+     complete before a byte of the film arrives.
+   - Phones, and people who ask for less motion or for data saving or who are
+     on a slow connection, get the cover and a play button: the film is about
+     8 MB, a lot of a phone's data for something not asked for.
    - Phones get the 720p file (about 8 MB rather than 17 MB).
    - It pauses when scrolled out of view or when the tab is in the
      background, and carries on when it's back.
@@ -65,13 +70,23 @@ export function HomeFilm({ cta }: { cta: React.ReactNode }) {
   const [phase, setPhase] = useState<Phase>("cover");
   const [offerPlay, setOfferPlay] = useState(false);
   const [askSound, setAskSound] = useState(false);
+  /** Captions drawn by the page while the film is silent (see `setMuted`). */
+  const [captionsOn, setCaptionsOn] = useState(false);
+  const [caption, setCaption] = useState("");
 
+  /**
+   * Captions while it's silent; the narration carries it once the sound is on.
+   * The page draws them itself, in a box of fixed size: the browser's own
+   * caption box resizes with every line, and each change counted as a layout
+   * shift (about 0.06 each, 0.12 over a pair of short lines, past the 0.1 a
+   * page should stay under). The track stays "hidden" so its cues still fire.
+   */
   function setMuted(v: HTMLVideoElement, muted: boolean) {
     ourMuted.current = muted;
     v.muted = muted;
-    // Captions while it's silent; the narration carries it once the sound is on.
     const track = v.textTracks[0];
-    if (track) track.mode = muted ? "showing" : "hidden";
+    if (track) track.mode = "hidden";
+    setCaptionsOn(muted);
   }
 
   async function tryPlay(withSound: boolean): Promise<PlayResult> {
@@ -128,25 +143,46 @@ export function HomeFilm({ cta }: { cta: React.ReactNode }) {
     void play(!soundWasTurnedOff());
   }
 
-  // Start on arrival.
+  // Start on arrival: on a computer by itself once the page has loaded; on a
+  // phone, with less motion, data saving or a slow connection, when asked.
   useEffect(() => {
     const v = video.current;
     if (!v) return;
-    if (window.matchMedia("(max-width: 767px)").matches) v.src = FILM.srcSmall;
+    const small = window.matchMedia("(max-width: 767px)").matches;
+    if (small) v.src = FILM.srcSmall;
     const lessMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const saveData = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData === true;
-    if (lessMotion || saveData) {
+    const conn = (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string; downlink?: number } }).connection;
+    const saveData = conn?.saveData === true;
+    const slow = Boolean(conn && (/2g|3g/.test(conn.effectiveType ?? "") || (typeof conn.downlink === "number" && conn.downlink > 0 && conn.downlink < 2)));
+    // An 8 MB film is a lot of a phone's data and of a slow connection: the
+    // cover, with the button, and the film only for those who press it.
+    if (small || lessMotion || saveData || slow) {
       setOfferPlay(true);
       return;
     }
-    const r = frame.current?.getBoundingClientRect();
-    const outOfView = r && (r.bottom < window.innerHeight * 0.3 || r.top > window.innerHeight * 0.7);
-    if (outOfView || document.visibilityState !== "visible") {
-      startWhenSeen.current = true;
-      return;
-    }
-    begin();
-    // begin() only reads refs and setters; running it once on arrival is the point.
+    // On a computer it still starts by itself, but after the page itself has
+    // loaded and the browser is idle, so the film never competes with the text,
+    // the pictures and the code the page needs.
+    let cancelled = false;
+    const go = () => {
+      if (cancelled) return;
+      const r = frame.current?.getBoundingClientRect();
+      const outOfView = r && (r.bottom < window.innerHeight * 0.3 || r.top > window.innerHeight * 0.7);
+      if (outOfView || document.visibilityState !== "visible") {
+        startWhenSeen.current = true;
+        return;
+      }
+      begin();
+    };
+    const idle = (window as Window & { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number }).requestIdleCallback;
+    const afterLoad = () => (idle ? idle(go, { timeout: 2_000 }) : window.setTimeout(go, 300));
+    if (document.readyState === "complete") afterLoad();
+    else window.addEventListener("load", afterLoad, { once: true });
+    return () => {
+      cancelled = true;
+      window.removeEventListener("load", afterLoad);
+    };
+    // begin() only reads refs and setters; deciding once on arrival is the point.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -165,15 +201,32 @@ export function HomeFilm({ cta }: { cta: React.ReactNode }) {
       rememberSound(!v.muted);
       if (!v.muted) setAskSound(false);
       const track = v.textTracks[0];
-      if (track) track.mode = v.muted ? "showing" : "hidden";
+      if (track && track.mode !== "showing") track.mode = "hidden";
+      setCaptionsOn(v.muted && track?.mode === "hidden");
+    };
+    const track = v.textTracks[0];
+    // The cue on screen now, for the page's own caption box.
+    const onCue = () => {
+      const cues = track?.activeCues;
+      const lines: string[] = [];
+      for (let i = 0; cues && i < cues.length; i++) lines.push((cues[i] as VTTCue).text);
+      setCaption(lines.join("\n"));
+    };
+    // Captions switched with the player's own controls: the browser draws them, and the page stops.
+    const onTracks = () => {
+      if (track && track.mode !== "hidden") setCaptionsOn(false);
     };
     v.addEventListener("playing", onPlaying);
     v.addEventListener("ended", onEnded);
     v.addEventListener("volumechange", onVolume);
+    track?.addEventListener("cuechange", onCue);
+    v.textTracks.addEventListener?.("change", onTracks);
     return () => {
       v.removeEventListener("playing", onPlaying);
       v.removeEventListener("ended", onEnded);
       v.removeEventListener("volumechange", onVolume);
+      track?.removeEventListener("cuechange", onCue);
+      v.textTracks.removeEventListener?.("change", onTracks);
     };
   }, []);
 
@@ -278,6 +331,16 @@ export function HomeFilm({ cta }: { cta: React.ReactNode }) {
         >
           <Image src={FILM.poster} alt="" fill priority sizes="(min-width: 1800px) 1800px, 100vw" className="object-cover" />
         </div>
+
+        {/* The captions, in a box that never moves or changes size: only its text changes. */}
+        {captionsOn && phase === "playing" && (
+          <p
+            aria-hidden
+            className="pointer-events-none absolute inset-x-[6%] bottom-[14%] flex h-[3.4em] items-end justify-center whitespace-pre-line text-center text-[clamp(0.8rem,2.2vw,1.35rem)] font-semibold leading-snug text-white [text-shadow:0_1px_3px_rgb(0_0_0/0.95),0_0_2px_rgb(0_0_0/0.95)]"
+          >
+            {caption}
+          </p>
+        )}
 
         {/* Buttons on the cover sit where the film's own end card has its call to action: centred at 81% of the height, below "Plan. Track. Analyze. Improve." */}
         {offerPlay && phase === "cover" && (

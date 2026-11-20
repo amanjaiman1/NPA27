@@ -6,16 +6,19 @@
    postponed or declined). "Later" asks again in two weeks, and the third
    "Later" or a "No thanks" stops asking. Nothing pops up or blocks the page. */
 
-import { useState } from "react";
+import { Suspense, lazy, useState } from "react";
 import { useRouter } from "next/navigation";
 import { MessageSquareHeart, PenLine } from "lucide-react";
 import { useChronicle } from "@/lib/store";
 import { useInbox } from "@/components/platform/inbox";
-import { ReviewWizard } from "@/components/settings/review-wizard";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
+
+/** The five-step form, downloaded when a student chooses to write: most dashboard visits never do. */
+const ReviewWizard = lazy(() => import("@/components/settings/review-wizard").then((m) => ({ default: m.ReviewWizard })));
+const loadWizard = () => void import("@/components/settings/review-wizard");
 
 export function ReviewInvitation({ className }: { className?: string }) {
   const inbox = useInbox();
@@ -23,6 +26,8 @@ export function ReviewInvitation({ className }: { className?: string }) {
   const router = useRouter();
   const name = useChronicle((s) => s.profile.name);
   const [writing, setWriting] = useState(false);
+  /** Mounted from the first "Write a review" on, so closing it still animates. */
+  const [opened, setOpened] = useState(false);
   // Kept while the form is open, so the card doesn't vanish under it.
   if (!inbox || (!inbox.reviewInvite && !writing)) return null;
 
@@ -47,7 +52,14 @@ export function ReviewInvitation({ className }: { className?: string }) {
             </div>
           </div>
           <div className="flex shrink-0 flex-wrap gap-2">
-            <Button onClick={() => setWriting(true)}>
+            <Button
+              onPointerEnter={loadWizard}
+              onFocus={loadWizard}
+              onClick={() => {
+                setOpened(true);
+                setWriting(true);
+              }}
+            >
               <PenLine className="h-4 w-4" aria-hidden /> Write a review
             </Button>
             <Button
@@ -71,6 +83,8 @@ export function ReviewInvitation({ className }: { className?: string }) {
           </div>
         </div>
       </Card>
+      {opened && (
+        <Suspense fallback={null}>
       <ReviewWizard
         open={writing}
         initial={null}
@@ -88,6 +102,8 @@ export function ReviewInvitation({ className }: { className?: string }) {
           });
         }}
       />
+        </Suspense>
+      )}
     </>
   );
 }

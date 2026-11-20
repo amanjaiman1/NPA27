@@ -12,14 +12,20 @@ const FEATURES = [
 ];
 
 export default function WelcomePage() {
-  const [notice, setNotice] = useState<string | null>(null);
+  const [notice, setNotice] = useState<{ tone: "success" | "info"; text: string } | null>(null);
   useEffect(() => {
-    if (queryParam("deleted") === "1") setNotice("Your account and its data have been deleted.");
+    if (queryParam("deleted") === "1") setNotice({ tone: "success", text: "Your account and its data have been deleted." });
+    // Signed out before the cloud confirmed the latest changes: nothing is lost, and the student should know where it is.
+    else if (queryParam("unsynced") === "1")
+      setNotice({
+        tone: "info",
+        text: "You're signed out. Your latest changes hadn't reached the cloud yet, so they're kept in this browser, for your account only, and will sync the next time you sign in here.",
+      });
   }, []);
 
   return (
     <div className="space-y-5">
-      {notice && <AuthMessage tone="success">{notice}</AuthMessage>}
+      {notice && <AuthMessage tone={notice.tone}>{notice.text}</AuthMessage>}
       <div className="rounded-3xl border border-line bg-card p-6 shadow-lift sm:p-7">
         <h1 className="font-display text-2xl font-bold leading-tight tracking-tightest text-paper">
           A personal operating system for the UPSC journey.

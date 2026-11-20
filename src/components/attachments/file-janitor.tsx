@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useChronicle } from "@/lib/store";
-import { useAccount } from "@/components/account/account-session";
+import { useAccount, useSyncStatus } from "@/components/account/account-session";
 import { listStoredObjects, removeStoredPaths } from "@/lib/file-storage";
 import { readKey, writeKey } from "@/lib/account/scope";
 import { toISODate } from "@/lib/utils";
@@ -24,7 +24,8 @@ const SWEEP_MIN_AGE_MS = 48 * 60 * 60 * 1000;
  * Renders nothing.
  */
 export function FileJanitor() {
-  const { mode, accountId, sync } = useAccount();
+  const { mode, accountId } = useAccount();
+  const { sync } = useSyncStatus();
   const trash = useChronicle((s) => s.fileTrash);
   const files = useChronicle((s) => s.files);
   const clearFileTrash = useChronicle((s) => s.clearFileTrash);

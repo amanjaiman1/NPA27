@@ -13,10 +13,11 @@ import { setActiveAccount } from "@/lib/account/scope";
 import { deactivateAccount } from "@/lib/account/session";
 import { exitDemo, loadSampleAccount } from "@/lib/demo/load";
 import { markDemoMounted } from "@/lib/demo/mode";
-import { IDLE, StaticAccountProvider, type AccountContextValue } from "@/components/account/account-session";
+import { IDLE, StaticAccountProvider, type AccountContextValue, type SyncStatusValue } from "@/components/account/account-session";
 import { BootScreen } from "@/components/account/boot-screen";
 
 export const DEMO_ACCOUNT_ID = "demo";
+const DEMO_STATUS: SyncStatusValue = { sync: IDLE, conflicts: [] };
 
 export function DemoSession({ exitTo, children }: { exitTo: string; children: React.ReactNode }) {
   const [ready, setReady] = useState(false);
@@ -40,8 +41,6 @@ export function DemoSession({ exitTo, children }: { exitTo: string; children: Re
       accountId: DEMO_ACCOUNT_ID,
       mode: "demo",
       user: null,
-      sync: IDLE,
-      conflicts: [],
       syncNow: () => undefined,
       flush: async () => true,
       signOut: async () => exitDemo(exitTo),
@@ -52,5 +51,9 @@ export function DemoSession({ exitTo, children }: { exitTo: string; children: Re
   );
 
   if (!ready) return <BootScreen label="Opening the demo…" />;
-  return <StaticAccountProvider value={value}>{children}</StaticAccountProvider>;
+  return (
+    <StaticAccountProvider value={value} status={DEMO_STATUS}>
+      {children}
+    </StaticAccountProvider>
+  );
 }

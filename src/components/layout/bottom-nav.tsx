@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import Link from "next/link";
+import { AppLink as Link } from "./app-link";
 import { usePathname } from "next/navigation";
 import { Menu } from "lucide-react";
 import { essentialNavItems, isActivePath } from "@/lib/nav";

@@ -9,9 +9,9 @@ import {
   useRef,
   useState,
 } from "react";
+import { useRouter } from "next/navigation";
 import { CloudOff, RefreshCw } from "lucide-react";
 import { useAuth, type AccountUser } from "@/components/auth/auth-provider";
-import { useConfirm } from "@/components/ui/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabase";
 import { SyncEngine, type SyncState } from "@/lib/sync/engine";
@@ -20,7 +20,7 @@ import { createBaseStore } from "@/lib/sync/base-store";
 import { chronicleStoreAdapter } from "@/lib/sync/store-adapter";
 import { startCoordinator, type Coordinator, type SyncRole } from "@/lib/sync/coordinator";
 import { settleLegacyClaim } from "@/lib/account/legacy";
-import { unsubscribeFromPush } from "@/lib/push";
+import { releasePushSubscription } from "@/lib/push";
 import { forgetRole } from "@/lib/platform/my-role";
 import { accountTopic } from "@/lib/platform/live";
 import { subscribeLive } from "@/components/platform/live-updates";
@@ -53,23 +53,69 @@ export interface SyncView extends SyncState {
   role: SyncRole | "local";
 }
 
+/**
+ * Who is signed in and what can be done with the session. Stable for the
+ * whole session: nothing in it changes when a change is saved, so the app
+ * shell and every page that reads it don't re-render on each save.
+ */
 export interface AccountContextValue {
   accountId: string;
   mode: AccountMode;
   user: AccountUser | null;
-  sync: SyncView;
-  conflicts: ConflictRecord[];
   syncNow: () => void;
   /** Pushes pending changes; true when everything is in the cloud. */
   flush: (timeoutMs?: number) => Promise<boolean>;
-  /** Syncs, then signs out and clears this browser's copy of the account. */
+  /**
+   * Signs out of this device at once: a last save for a moment, then the
+   * session ends and the welcome screen opens. Anything the cloud hasn't
+   * confirmed stays in this browser, for this account only, and syncs at the
+   * next sign-in here.
+   */
   signOut: () => Promise<void>;
   /** For account deletion: stop everything and wipe this browser's copy. */
   endAfterDeletion: () => Promise<void>;
   dismissConflicts: () => void;
 }
 
+/**
+ * The sync status and the edits that clashed between devices. Changes on
+ * every save (pending, syncing, synced), so it has a context of its own,
+ * read only by what shows it.
+ */
+export interface SyncStatusValue {
+  sync: SyncView;
+  conflicts: ConflictRecord[];
+}
+
 const AccountContext = createContext<AccountContextValue | null>(null);
+const SyncStatusContext = createContext<SyncStatusValue | null>(null);
+
+/**
+ * How long signing out waits for a last save before going anyway. On an
+ * ordinary connection a save is well inside it; on a slow or broken one the
+ * changes stay on this device (they're already saved here) and sync at the
+ * next sign-in, rather than holding the student on a waiting screen.
+ */
+export const SIGN_OUT_SYNC_WAIT_MS = 1_000;
+/** How long signing out waits for the browser to forget the last-synced copy. */
+const SIGN_OUT_ERASE_WAIT_MS = 400;
+
+/** `promise`'s value, or `fallback` once `ms` have passed. Never rejects. */
+function within<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
+  return new Promise<T>((resolve) => {
+    const timer = setTimeout(() => resolve(fallback), ms);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      () => {
+        clearTimeout(timer);
+        resolve(fallback);
+      },
+    );
+  });
+}
 
 export const IDLE: SyncView = {
   status: "idle",
@@ -96,7 +142,7 @@ export function AccountSession({
   children: React.ReactNode;
 }) {
   const auth = useAuth();
-  const confirm = useConfirm();
+  const router = useRouter();
   const [phase, setPhase] = useState<Phase>("loading");
   const [sync, setSync] = useState<SyncView>(IDLE);
   const [conflicts, setConflicts] = useState<ConflictRecord[]>([]);
@@ -215,32 +261,59 @@ export function AccountSession({
     [mode],
   );
 
+  /**
+   * Signing out, in the order that keeps accounts apart and the student
+   * moving:
+   *
+   *   1. At once: the app gives way to "Signing out…", so nothing more can be
+   *      edited, and a second press does nothing. The welcome screen is
+   *      fetched meanwhile, so it opens the moment the session ends.
+   *   2. Everything already edited is in this browser, under this account's
+   *      own key (the store writes on every change), whatever the network does.
+   *   3. One last save, given SIGN_OUT_SYNC_WAIT_MS. Alongside it, this
+   *      device's background notifications are stopped: the request carries
+   *      this session's token, so it has to go before the session ends.
+   *   4. Sync stops and the account is unloaded: writes off and storage
+   *      detached first, then memory cleared (lib/account/session.ts).
+   *   5. The session ends on this device (AuthProvider.signOut, bounded too),
+   *      and the welcome screen opens.
+   *   6. The rest happens in the background: the browser forgets its push
+   *      subscription, and this browser's copy of the account goes once the
+   *      cloud confirmed it has everything. If it didn't, the copy stays,
+   *      for this account only, and syncs at the next sign-in here; the
+   *      welcome screen says so.
+   */
+  const leaving = useRef(false);
   const signOut = useCallback(async () => {
-    const synced = await flush(8_000);
-    if (!synced) {
-      const go = await confirm({
-        title: "Some changes haven't synced yet",
-        description:
-          "They stay saved in this browser, for your account only, and sync the next time you sign in here. Sign out anyway?",
-        confirmLabel: "Sign out",
-        tone: "default",
-      });
-      if (!go) return;
-    }
+    if (leaving.current) return;
+    leaving.current = true;
     setPhase("leaving");
-    // While the session is still valid: stop this device receiving this
-    // account's notifications.
-    await unsubscribeFromPush().catch(() => false);
+    router.prefetch("/welcome");
+    const startedAt = Date.now();
+    const push = releasePushSubscription(auth.accessToken());
+    const saving = within(flush(SIGN_OUT_SYNC_WAIT_MS), SIGN_OUT_SYNC_WAIT_MS + 100, false);
+    // The save and the push request share one wait. The push request is short;
+    // if the connection is too slow for it, the browser's own unsubscribe
+    // (already under way) still ends this device's notifications.
+    const pushed = await saving;
+    await within(push.told, Math.max(0, SIGN_OUT_SYNC_WAIT_MS - (Date.now() - startedAt)), undefined);
+    // Nothing left to send counts as synced, but only when this tab's own
+    // engine can say so: a tab that follows another can't, and keeps its copy.
+    const synced = pushed || coordinator.current?.hasUnsyncedChanges() === false;
+    // A save that couldn't finish in time says the connection is slow: then the
+    // auth server isn't waited on for long either (it finishes in the background).
+    const slow = Date.now() - startedAt >= SIGN_OUT_SYNC_WAIT_MS;
     coordinator.current?.stop();
     coordinator.current = null;
     deactivateAccount();
     // The remembered Admin Center role goes either way; unsynced data stays.
     forgetRole(accountId);
-    if (synced) await eraseAccountFromDevice(accountId);
-    await auth.signOut();
-  }, [accountId, auth, confirm, flush]);
+    if (synced) await within(eraseAccountFromDevice(accountId), SIGN_OUT_ERASE_WAIT_MS, undefined);
+    await auth.signOut({ landing: synced ? "/welcome" : "/welcome?unsynced=1", waitMs: slow ? 300 : undefined });
+  }, [accountId, auth, flush, router]);
 
   const endAfterDeletion = useCallback(async () => {
+    leaving.current = true;
     setPhase("leaving");
     coordinator.current?.stop();
     coordinator.current = null;
@@ -249,24 +322,17 @@ export function AccountSession({
     await auth.signOut();
   }, [accountId, auth]);
 
+  const dismissConflicts = useCallback(() => {
+    clearConflicts(accountId);
+    setConflicts([]);
+  }, [accountId]);
+  const syncNow = useCallback(() => coordinator.current?.syncNow(), []);
+
   const value = useMemo<AccountContextValue>(
-    () => ({
-      accountId,
-      mode,
-      user,
-      sync,
-      conflicts,
-      syncNow: () => coordinator.current?.syncNow(),
-      flush,
-      signOut,
-      endAfterDeletion,
-      dismissConflicts: () => {
-        clearConflicts(accountId);
-        setConflicts([]);
-      },
-    }),
-    [accountId, mode, user, sync, conflicts, flush, signOut, endAfterDeletion],
+    () => ({ accountId, mode, user, syncNow, flush, signOut, endAfterDeletion, dismissConflicts }),
+    [accountId, mode, user, syncNow, flush, signOut, endAfterDeletion, dismissConflicts],
   );
+  const status = useMemo<SyncStatusValue>(() => ({ sync, conflicts }), [sync, conflicts]);
 
   if (phase === "leaving") return <BootScreen label="Signing out…" />;
   if (phase === "loading") return <BootScreen label="Loading your chronicle…" />;
@@ -295,7 +361,11 @@ export function AccountSession({
     );
   }
 
-  return <AccountContext.Provider value={value}>{children}</AccountContext.Provider>;
+  return (
+    <AccountContext.Provider value={value}>
+      <SyncStatusContext.Provider value={status}>{children}</SyncStatusContext.Provider>
+    </AccountContext.Provider>
+  );
 }
 
 export function useAccount(): AccountContextValue {
@@ -304,11 +374,30 @@ export function useAccount(): AccountContextValue {
   return ctx;
 }
 
+/** The sync status and recorded clashes. Re-renders on every save: read it only where it's shown. */
+export function useSyncStatus(): SyncStatusValue {
+  const ctx = useContext(SyncStatusContext);
+  if (!ctx) throw new Error("useSyncStatus must be used within an AccountSession");
+  return ctx;
+}
+
 /**
  * An account context with no account behind it, for the interactive demo
  * (components/demo/demo-session.tsx): the pages read it exactly as they read
  * a real one, and nothing in it can sync, save or sign anyone out.
  */
-export function StaticAccountProvider({ value, children }: { value: AccountContextValue; children: React.ReactNode }) {
-  return <AccountContext.Provider value={value}>{children}</AccountContext.Provider>;
+export function StaticAccountProvider({
+  value,
+  status,
+  children,
+}: {
+  value: AccountContextValue;
+  status: SyncStatusValue;
+  children: React.ReactNode;
+}) {
+  return (
+    <AccountContext.Provider value={value}>
+      <SyncStatusContext.Provider value={status}>{children}</SyncStatusContext.Provider>
+    </AccountContext.Provider>
+  );
 }

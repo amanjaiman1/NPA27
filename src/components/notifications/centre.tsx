@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { Suspense, lazy, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
@@ -25,7 +25,8 @@ import {
 import { useInbox } from "@/components/platform/inbox";
 import { TeamSection, useTeamUnreadCount } from "@/components/platform/team-notices";
 import { useNotifications } from "./use-notifications";
-import { SettingsPane } from "./settings-pane";
+/** The settings tab, loaded when it's first opened: most visits to the bell never do. */
+const SettingsPane = lazy(() => import("./settings-pane").then((m) => ({ default: m.SettingsPane })));
 
 /** How long "later" is, per priority. Urgent things come back sooner. */
 const SNOOZE_DAYS: Record<Priority, number> = {
@@ -258,7 +259,9 @@ function Panel({ onClose, placement }: { onClose: () => void; placement: Popover
 
         <div className="no-scrollbar flex-1 overflow-y-auto px-4 py-4">
           {tab === "settings" ? (
-            <SettingsPane settings={settings} />
+            <Suspense fallback={<div className="h-40 animate-pulse rounded-2xl bg-paper/[0.04]" aria-busy="true" />}>
+              <SettingsPane settings={settings} />
+            </Suspense>
           ) : inbox.items.length === 0 && teamUnread === 0 ? (
             <div className="flex flex-col items-center justify-center px-4 py-12 text-center">
               <div className="mb-4 grid h-12 w-12 place-items-center rounded-full bg-paper/[0.06] text-accent">

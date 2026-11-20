@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 import { ROLE_LABEL, type PlatformRole } from "@/lib/platform/roles";
 import { Avatar } from "@/components/ui/avatar";
 import type { PopoverPlacement } from "@/components/notifications/centre";
-import { useAccount } from "./account-session";
+import { useAccount, useSyncStatus } from "./account-session";
 import { describeSync } from "./sync-label";
 import { usePlatformRole } from "./use-platform-role";
 
@@ -30,7 +30,8 @@ const TONE_DOT = {
 export function AccountMenu({ placement = "bar" }: { placement?: PopoverPlacement } = {}) {
   const [open, setOpen] = useState(false);
   const mounted = useMounted();
-  const { user, mode, sync } = useAccount();
+  const { user, mode } = useAccount();
+  const { sync } = useSyncStatus();
   const profileName = useChronicle((s) => s.profile.name);
   const name = profileName || user?.name || "Your account";
   const status = describeSync(sync, mode);
@@ -79,7 +80,8 @@ function Panel({
   placement: PopoverPlacement;
   role: PlatformRole | null;
 }) {
-  const { user, mode, sync, syncNow, signOut } = useAccount();
+  const { user, mode, syncNow, signOut } = useAccount();
+  const { sync } = useSyncStatus();
   const status = describeSync(sync, mode);
 
   useEffect(() => {

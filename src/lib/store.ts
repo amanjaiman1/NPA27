@@ -1834,8 +1834,19 @@ export const useChronicle = create<ChronicleState>()(
        * object persisted before a new option existed gains the new default
        * instead of leaving it `undefined`.
        */
-      updateNotifySettings: (patch) =>
-        set((s) => ({ notify: withNotifyDefaults({ ...s.notify, ...patch }) })),
+      updateNotifySettings: (patch) => {
+        const s = get();
+        const notify = withNotifyDefaults({ ...s.notify, ...patch });
+        // Nothing new (the check after every load, for one): no set at all,
+        // since any set, even an empty one, writes the whole store to storage.
+        const current = (s.notify ?? {}) as unknown as Record<string, unknown>;
+        const same = (Object.keys(notify) as (keyof NotifySettings)[]).every((k) =>
+          Array.isArray(notify[k])
+            ? Array.isArray(current[k]) && (current[k] as unknown[]).join("\u0000") === (notify[k] as unknown[]).join("\u0000")
+            : current[k] === notify[k],
+        );
+        if (!same) set({ notify });
+      },
 
       markNoticeRead: (id) =>
         set((s) =>

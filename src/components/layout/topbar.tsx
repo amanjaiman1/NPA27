@@ -1,6 +1,7 @@
 "use client";
 
-import Link from "next/link";
+import { AppLink as Link } from "./app-link";
+import { warmOverlays } from "./overlays";
 import { CalendarClock, Command, Menu, Plus, Search } from "lucide-react";
 import { Logo } from "./logo";
 import { AccountMenu } from "@/components/account/account-menu";
@@ -57,6 +58,8 @@ export function Topbar({
           <button
             type="button"
             onClick={onOpenPalette}
+            onPointerEnter={() => warmOverlays("palette")}
+            onFocus={() => warmOverlays("palette")}
             aria-keyshortcuts="Control+K Meta+K"
             className="group flex h-11 min-w-0 max-w-[44rem] flex-1 items-center gap-3 rounded-[1rem] px-3.5 text-left text-paper/60 transition-colors hover:bg-[var(--nav-hover)] hover:text-paper"
           >
@@ -87,7 +90,7 @@ export function Topbar({
 
         {!desktop && (
           <>
-            <IconButton label="Search" onClick={onOpenPalette}>
+            <IconButton label="Search" onClick={onOpenPalette} onTouchStart={() => warmOverlays("palette")}>
               <Search className="h-5 w-5" />
             </IconButton>
             <TourButton variant="icon" />

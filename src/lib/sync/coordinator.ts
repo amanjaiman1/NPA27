@@ -27,6 +27,11 @@ type Message =
 export interface Coordinator {
   role(): SyncRole;
   flush(timeoutMs?: number): Promise<boolean>;
+  /**
+   * Whether this device holds changes the cloud hasn't confirmed. Only the
+   * syncing tab can say: null in a tab that follows another.
+   */
+  hasUnsyncedChanges(): boolean | null;
   /** Looks for another device's changes. `version`: what a live update says the cloud is at. */
   checkRemote(hint?: { version?: number | null }): void;
   syncNow(): void;
@@ -113,6 +118,7 @@ export function startCoordinator(o: CoordinatorOptions): Coordinator {
 
   return {
     role: () => role,
+    hasUnsyncedChanges: () => (role === "leader" && engine ? engine.hasUnsyncedChanges() : null),
     flush(timeoutMs = 8_000) {
       if (role === "leader" && engine) return engine.flush(timeoutMs);
       if (!channel) return Promise.resolve(false);

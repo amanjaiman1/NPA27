@@ -17,7 +17,11 @@
     "seo:audit": "node scripts/seo-audit.mjs",
     "seo:suggest": "node scripts/seo-suggest.mjs",
     "seo:screenshots": "tsx scripts/seo-screenshots.ts",
-    "seo:og": "node scripts/seo-og-image.mjs"
+    "seo:og": "node scripts/seo-og-image.mjs",
+    "perf:measure": "node --import tsx scripts/perf/measure.mjs",
+    "perf:compute": "tsx scripts/perf/compute-bench.ts",
+    "perf:render": "node --import tsx scripts/perf/render-probe.mjs",
+    "perf:bundle": "ANALYZE=json next build && node scripts/perf/bundle-report.mjs --out docs/perf/bundle-latest.json"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.108.1",
@@ -35,6 +39,7 @@
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.16",
+    "@next/bundle-analyzer": "14.2.35",
     "@types/d3-force": "^3.0.10",
     "@types/node": "^20",
     "@types/react": "^18",

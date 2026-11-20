@@ -58,4 +58,18 @@ const nextConfig = {
   },
 };
 
-export default nextConfig;
+/**
+ * Bundle analysis, for `npm run perf:bundle` (docs/performance-bundle-analysis.md).
+ * Off unless asked for: ANALYZE=1 writes a treemap to .next/analyze/client.html,
+ * ANALYZE=json the same as data. Production builds never load the analyzer.
+ */
+const analyze = process.env.ANALYZE;
+const withAnalyzer = analyze
+  ? (await import("@next/bundle-analyzer")).default({
+      enabled: true,
+      openAnalyzer: false,
+      analyzerMode: analyze === "json" ? "json" : "static",
+    })
+  : (config) => config;
+
+export default withAnalyzer(nextConfig);

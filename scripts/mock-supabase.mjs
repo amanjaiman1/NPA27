@@ -22,6 +22,7 @@
  */
 
 import { createServer } from "node:http";
+import { gzipSync } from "node:zlib";
 import { createHash, createHmac, randomUUID, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import { readFileSync, readdirSync } from "node:fs";
 import { join, dirname } from "node:path";
@@ -224,8 +225,16 @@ const CORS = {
   "Access-Control-Expose-Headers": "*",
 };
 function send(res, status, body) {
+  const text = body === undefined ? "" : JSON.stringify(body);
+  // Supabase's gateway compresses JSON, so a snapshot crosses the network
+  // compressed; the mock does the same, so measurements see realistic sizes.
+  if (res.acceptsGzip && text.length > 1024) {
+    res.writeHead(status, { ...CORS, "Content-Type": "application/json", "Content-Encoding": "gzip", Vary: "Accept-Encoding" });
+    res.end(gzipSync(text));
+    return;
+  }
   res.writeHead(status, { ...CORS, "Content-Type": "application/json" });
-  res.end(body === undefined ? "" : JSON.stringify(body));
+  res.end(text);
 }
 
 async function rawBody(req) {
@@ -730,6 +739,7 @@ function acceptWebSocket(req, socket) {
 
 const server = createServer(async (req, res) => {
   const url = new URL(req.url, `http://localhost:${PORT}`);
+  res.acceptsGzip = /\bgzip\b/.test(String(req.headers["accept-encoding"] ?? ""));
   if (req.method === "OPTIONS") return send(res, 204);
   try {
     if (url.pathname.startsWith("/auth/v1")) return await handleAuth(req, res, url);
