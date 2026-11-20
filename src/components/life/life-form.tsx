@@ -18,7 +18,6 @@ import {
 } from "@/lib/life-entry";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Field, Input, Select } from "@/components/ui/form";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { useToast } from "@/components/ui/toast";
@@ -240,7 +239,7 @@ export function LifeFields({
     );
 
   const tracking = (
-    <div className={cn("flex flex-wrap items-center justify-between gap-2 rounded-xl border border-line px-3.5 py-2.5", page ? "bg-card" : "bg-paper/[0.02]")}>
+    <div className={cn("flex flex-wrap items-center justify-between gap-2 rounded-xl border border-line px-3.5 py-2.5", page ? "bg-paper/[0.03]" : "bg-paper/[0.02]")}>
       <p className="min-w-0 flex-1 text-[0.75rem] text-paper/65">You track {trackedNames.length ? trackedNames.join(", ") : "nothing yet"}.</p>
       <button type="button" onClick={onChooseFields} className="inline-flex items-center gap-1.5 text-[0.75rem] font-semibold text-accent hover:underline">
         <SlidersHorizontal className="h-3.5 w-3.5" /> Change
@@ -273,19 +272,19 @@ export function LifeFields({
     return (
       <div className="space-y-5" data-testid="life-form">
         {tracking}
-        <div className="grid items-start gap-5 md:grid-cols-2">
+        <div className="divide-y divide-line">
           {groups.map((g) => (
-            <Card key={g.title} className={cn("p-5 sm:p-6", g.title === "Sleep" && "md:col-span-2")}>
+            <div key={g.title} className="py-6 first:pt-2">
               <Group icon={g.icon} title={g.title}>
                 {groupBody(g)}
               </Group>
-            </Card>
+            </div>
           ))}
+          <div className="space-y-6 py-6">
+            {note}
+            {files}
+          </div>
         </div>
-        <Card className="space-y-6 p-5 sm:p-6">
-          {note}
-          {files}
-        </Card>
       </div>
     );
   }

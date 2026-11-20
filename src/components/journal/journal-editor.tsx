@@ -91,7 +91,7 @@ function RatingRow({
 
 /* ── the page layout (Daily Capture) ───────────────────────────── */
 
-/** The two things a day is mostly about: a large card that leads the page. */
+/** The two things a day is mostly about: the sections that lead the form. */
 function HeroCard({
   icon: Icon,
   title,
@@ -106,11 +106,10 @@ function HeroCard({
   children: React.ReactNode;
 }) {
   return (
-    <section className="relative min-w-0 overflow-hidden rounded-3xl border border-line bg-card p-5 shadow-soft sm:p-6">
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-accent/[0.08] to-transparent" aria-hidden />
-      <header className="relative mb-5 flex items-start justify-between gap-4">
+    <section className="min-w-0">
+      <header className="mb-5 flex items-start justify-between gap-4">
         <div className="flex min-w-0 items-center gap-3">
-          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-accent/15 text-accent" aria-hidden>
+          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-accent/15 text-accent ring-1 ring-accent/20" aria-hidden>
             <Icon className="h-5 w-5" />
           </span>
           <div className="min-w-0">
@@ -120,12 +119,12 @@ function HeroCard({
         </div>
         {aside}
       </header>
-      <div className="relative space-y-4">{children}</div>
+      <div className="space-y-4">{children}</div>
     </section>
   );
 }
 
-/** Everything else: a quieter card with a small heading. */
+/** Everything else: a quieter section with a small heading. */
 function PlainCard({
   icon: Icon,
   title,
@@ -140,7 +139,7 @@ function PlainCard({
   className?: string;
 }) {
   return (
-    <section className={cn("min-w-0 rounded-2xl border border-line bg-card p-5 shadow-soft", className)}>
+    <section className={cn("min-w-0", className)}>
       <header className="mb-3.5 flex items-center justify-between gap-3">
         <h3 className="flex items-center gap-2 text-[0.88rem] font-semibold tracking-snugg text-paper">
           <Icon className="h-4 w-4 text-accent" aria-hidden /> {title}
@@ -776,12 +775,12 @@ export function JournalFields({
   );
 
   const moreDetails = (
-    <section className={cn("rounded-2xl border border-line", page && "bg-card shadow-soft")}>
+    <section className={cn(!page && "rounded-2xl border border-line")}>
       <button
         type="button"
         onClick={() => setMore((m) => !m)}
         aria-expanded={more}
-        className={cn("flex w-full items-center justify-between gap-3 text-left", page ? "px-5 py-4 sm:px-6" : "px-4 py-3")}
+        className={cn("flex w-full items-center justify-between gap-3 text-left", page ? "-mx-2 rounded-xl px-2 py-3 hover:bg-paper/[0.03]" : "px-4 py-3")}
       >
         <span>
           <span className="block text-[0.78rem] font-semibold text-paper/80">More details</span>
@@ -790,7 +789,7 @@ export function JournalFields({
         <ChevronDown className={cn("h-4 w-4 shrink-0 text-paper/45 transition-transform", more && "rotate-180")} />
       </button>
       {more && (
-        <div className={cn("space-y-6 border-t border-line pb-4 pt-4", page ? "px-5 sm:px-6" : "px-4")}>
+        <div className={cn("space-y-6 border-t border-line pb-4 pt-4", page ? "" : "px-4")}>
           <Section title="Wins">
             <ListEditor items={draft.wins ?? []} onChange={(wins) => patch({ wins })} placeholder="What went well?" />
           </Section>
@@ -837,10 +836,13 @@ export function JournalFields({
   if (page) {
     const topicCount = draft.completedTopics?.length ?? 0;
     return (
-      <div className="space-y-5">
+      <div className="divide-y divide-line">
         {/* What the day was mostly about, first and largest. */}
-        <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1.08fr)_minmax(0,1fr)]">
+        <div className="grid items-start gap-6 pb-7 xl:grid-cols-[minmax(0,1.08fr)_minmax(0,1fr)] xl:gap-0 xl:divide-x xl:divide-line">
+          <div className="min-w-0 xl:pr-7">
           <StudyCard draft={draft} patch={patch} subjects={subjects} journal={journal} target={profile.dailyHourTarget} />
+          </div>
+          <div className="min-w-0 border-t border-line pt-6 xl:border-t-0 xl:pl-7 xl:pt-0">
           <HeroCard
             icon={BookOpenCheck}
             title="Topics completed"
@@ -878,14 +880,15 @@ export function JournalFields({
               </label>
             )}
           </HeroCard>
+          </div>
         </div>
 
         {/* Then the rest of the day, quieter. */}
-        <div className="grid items-start gap-5 lg:grid-cols-2">
-          <PlainCard icon={RotateCcw} title="Revision" aside={draft.revisionSessions?.length ? `${draft.revisionSessions.length} done` : undefined}>
+        <div className="grid items-start gap-6 py-7 lg:grid-cols-2 lg:gap-0 lg:divide-x lg:divide-line">
+          <PlainCard className="lg:pr-7" icon={RotateCcw} title="Revision" aside={draft.revisionSessions?.length ? `${draft.revisionSessions.length} done` : undefined}>
             <RevisionPicker date={draft.date} sessions={draft.revisionSessions ?? []} onChange={(revisionSessions) => patch({ revisionSessions })} />
           </PlainCard>
-          <PlainCard icon={Smile} title="How the day felt">
+          <PlainCard className="border-t border-line pt-6 lg:border-t-0 lg:pl-7 lg:pt-0" icon={Smile} title="How the day felt">
             <div className="grid grid-cols-1 gap-x-5 gap-y-3 sm:grid-cols-2">
               <RatingRow label="Mood" value={draft.mood} onChange={(v) => patch({ mood: v })} labels={MOOD_LABELS} />
               <RatingRow label="Energy" value={draft.energy} onChange={(v) => patch({ energy: v })} labels={ENERGY_LABELS} />
@@ -895,7 +898,7 @@ export function JournalFields({
           </PlainCard>
         </div>
 
-        <PlainCard icon={PenLine} title="Reflection">
+        <PlainCard className="py-7" icon={PenLine} title="Reflection">
           <div className="space-y-2.5">
             <Input
               value={draft.highlights ?? ""}
@@ -915,8 +918,8 @@ export function JournalFields({
           </div>
         </PlainCard>
 
-        <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,20rem)]">
-          <PlainCard icon={Paperclip} title="Files" aside={draft.fileIds?.length ? `${draft.fileIds.length}` : undefined}>
+        <div className="grid items-start gap-6 py-7 lg:grid-cols-[minmax(0,1fr)_minmax(0,19rem)] lg:gap-0 lg:divide-x lg:divide-line">
+          <PlainCard className="lg:pr-7" icon={Paperclip} title="Files" aside={draft.fileIds?.length ? `${draft.fileIds.length}` : undefined}>
             <AttachmentTray
               entryDate={draft.date}
               otherDates={isEdit && draft.date !== base.date ? [base.date] : undefined}
@@ -928,13 +931,13 @@ export function JournalFields({
               onBusyChange={editor.onBusyChange}
             />
           </PlainCard>
-          <PlainCard icon={Sunrise} title="Morning check-in">
+          <PlainCard className="border-t border-line pt-6 lg:border-t-0 lg:pl-7 lg:pt-0" icon={Sunrise} title="Morning check-in">
             {sleepLine}
             <p className="mt-2 text-[0.7rem] text-paper/45">Wake-up and bedtime are recorded in the Life tab.</p>
           </PlainCard>
         </div>
 
-        {moreDetails}
+        <div className="pt-3">{moreDetails}</div>
       </div>
     );
   }

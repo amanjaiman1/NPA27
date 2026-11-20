@@ -14,7 +14,6 @@ import {
   type HabitToday,
   type TodaySummary,
 } from "@/lib/habit-engine";
-import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/misc";
 import { RadialProgress } from "@/components/ui/progress";
 import { HabitBar, habitIcon, useTimeFormat } from "@/components/habits/habit-ui";
@@ -79,7 +78,7 @@ export function HabitTab({
 
   return (
     <div className="space-y-5">
-      <Card className="flex flex-wrap items-center gap-4 p-4 sm:p-5">
+      <div className="flex flex-wrap items-center gap-4 border-b border-line pb-5">
         <RadialProgress
           value={summary.percent ?? 0}
           tone={summary.percent === 100 ? "positive" : "accent"}
@@ -109,16 +108,16 @@ export function HabitTab({
         <Link href="/habits" className="inline-flex items-center gap-1 text-[0.78rem] font-semibold text-accent hover:underline">
           My Habits <ArrowUpRight className="h-3.5 w-3.5" aria-hidden />
         </Link>
-      </Card>
+      </div>
 
       {manual.length > 0 && (
         <section aria-labelledby="habits-manual">
           <h2 id="habits-manual" className="mb-2 px-1 text-[0.78rem] font-semibold tracking-snugg text-paper/75">
             Check these off
           </h2>
-          <Card className="px-4 sm:px-5">
+          <div>
             <ul className="divide-y divide-line">{manual.map(row)}</ul>
-          </Card>
+          </div>
         </section>
       )}
       {connected.length > 0 && (
@@ -126,9 +125,9 @@ export function HabitTab({
           <h2 id="habits-connected" className="mb-2 px-1 text-[0.78rem] font-semibold tracking-snugg text-paper/75">
             Filled in from your records
           </h2>
-          <Card className="px-4 sm:px-5">
+          <div>
             <ul className="divide-y divide-line">{connected.map(row)}</ul>
-          </Card>
+          </div>
         </section>
       )}
     </div>

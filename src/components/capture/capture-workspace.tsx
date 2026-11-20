@@ -83,15 +83,6 @@ interface SectionView {
   done: boolean | null;
 }
 
-const BADGE: Record<SectionState, string> = {
-  empty: "bg-paper/[0.06] text-paper/55",
-  progress: "bg-warning/15 text-warning",
-  complete: "bg-positive/15 text-positive",
-  unsaved: "bg-accent/15 text-accent",
-  error: "bg-danger/15 text-danger",
-  na: "bg-paper/[0.06] text-paper/45",
-};
-
 const DOT: Record<SectionState, string> = {
   empty: "bg-paper/25",
   progress: "bg-warning",
@@ -701,9 +692,9 @@ export function CaptureWorkspace({
         footer={footer}
       >
         <div className="space-y-4">
-          <div className="rounded-2xl border border-line p-1.5">
+          <div>
             <WeekStrip date={date} today={today} logged={loggedDays} waiting={waitingDays} onPick={changeDate} />
-            <div className="mt-1.5 flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5 border-t border-line px-2 pb-0.5 pt-2">
+            <div className="mt-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5 px-1.5">
               <SaveStatus saving={saving} anyDirty={anyDirty} outcome={outcome} failures={failures} mode={mode} sync={sync} onRetry={() => (anyDirty ? void saveAll() : syncNow())} />
               <div className="flex items-center gap-2.5" role="group" aria-label={date === today ? "Today's progress" : "Progress for this day"}>
                 <div className="flex gap-1" aria-hidden>
@@ -747,8 +738,8 @@ export function CaptureWorkspace({
             </Notice>
           )}
 
-          {/* The tabs stay in view while the form scrolls. */}
-          <div className="sticky top-0 z-10 -mx-5 border-b border-line bg-card px-5 pb-3 pt-1">
+          {/* The tabs float in view while the form scrolls under the glass. */}
+          <div className="sticky top-0 z-10 -mx-3 bg-gradient-to-b from-card from-45% to-transparent px-3 pb-2 pt-1">
             <CaptureTabs section={section} onSelect={selectSection} views={views} />
           </div>
 
@@ -948,52 +939,20 @@ function WeekStrip({
   );
 }
 
-const RING: Record<SectionState, string> = {
-  empty: "text-paper/25",
+const FIGURE: Record<SectionState, string> = {
+  empty: "text-paper/50",
   progress: "text-warning",
   complete: "text-positive",
   unsaved: "text-accent",
   error: "text-danger",
-  na: "text-paper/20",
+  na: "text-paper/40",
 };
 
-/** A tab's icon inside a ring that fills with the section's progress, and a mark for its state. */
-function ProgressRing({ value, state, children }: { value: number; state: SectionState; children: React.ReactNode }) {
-  const r = 17;
-  const c = 2 * Math.PI * r;
-  const v = Math.max(0, Math.min(1, value));
-  return (
-    <span className="relative grid h-11 w-11 shrink-0 place-items-center">
-      <svg viewBox="0 0 40 40" className="absolute inset-0 h-full w-full -rotate-90" aria-hidden>
-        <circle cx="20" cy="20" r={r} fill="none" strokeWidth="3" className="stroke-paper/10" />
-        <motion.circle
-          cx="20"
-          cy="20"
-          r={r}
-          fill="none"
-          strokeWidth="3"
-          strokeLinecap="round"
-          stroke="currentColor"
-          strokeDasharray={c}
-          className={cn("transition-colors duration-300", RING[state])}
-          initial={false}
-          animate={{ strokeDashoffset: c * (1 - v) }}
-          transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-        />
-      </svg>
-      {children}
-      {state === "complete" && (
-        <span className="absolute -bottom-0.5 -right-0.5 grid h-[1.05rem] w-[1.05rem] place-items-center rounded-full bg-card text-positive shadow-soft ring-1 ring-positive/40" aria-hidden>
-          <Check className="h-2.5 w-2.5" strokeWidth={3.2} />
-        </span>
-      )}
-      {(state === "unsaved" || state === "error") && (
-        <span className={cn("absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full ring-2 ring-card", state === "error" ? "bg-danger" : "bg-accent")} aria-hidden />
-      )}
-    </span>
-  );
-}
-
+/**
+ * The four tabs as one bar of liquid glass: the selected tab is a lens of
+ * tinted glass that glides along it, each tab shows its figure, and a mark on
+ * the icon says whether the section is done, unsaved or failed.
+ */
 function CaptureTabs({
   section,
   onSelect,
@@ -1040,7 +999,7 @@ function CaptureTabs({
       role="tablist"
       aria-label="Daily Capture sections"
       onKeyDown={onKeyDown}
-      className="grid grid-cols-4 gap-1 rounded-2xl border border-line bg-paper/[0.025] p-1"
+      className="lg-clear relative isolate grid grid-cols-4 rounded-full border border-line p-1.5"
     >
       {SECTIONS.map((s, i) => {
         const active = section === s.id;
@@ -1059,54 +1018,38 @@ function CaptureTabs({
             aria-controls={`capture-panel-${s.id}`}
             aria-keyshortcuts={String(i + 1)}
             tabIndex={active ? 0 : -1}
-            title={`${s.label}: ${v.text} (key ${i + 1})`}
+            title={`${s.label}: ${v.text}`}
             onClick={() => onSelect(s.id)}
             className={cn(
-              "group relative flex min-w-0 flex-col items-center gap-1 rounded-xl px-1 pb-2.5 pt-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/45 sm:flex-row sm:gap-3 sm:px-3 sm:py-2.5",
-              active ? "text-paper" : "text-paper/60 hover:bg-paper/[0.04] hover:text-paper",
+              "group relative flex min-w-0 flex-col items-center gap-0.5 rounded-full bg-transparent px-1 py-2 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/45 sm:py-2.5",
+              active ? "text-accent" : "text-paper/65 hover:text-paper",
             )}
           >
             {active && (
               <motion.span
-                layoutId="capture-tab"
-                className="absolute inset-0 rounded-xl border border-line bg-card shadow-soft"
-                transition={{ type: "spring", bounce: 0.14, duration: 0.45 }}
-                aria-hidden
-              />
-            )}
-            {active && (
-              <motion.span
-                layoutId="capture-tab-bar"
-                className="absolute inset-x-5 bottom-1 h-[3px] rounded-full bg-gradient-to-r from-accent/40 via-accent to-accent/40"
-                transition={{ type: "spring", bounce: 0.14, duration: 0.45 }}
+                layoutId="capture-lens"
+                className="lg-lens absolute inset-0 -z-10 rounded-full"
+                transition={{ type: "spring", stiffness: 420, damping: 34, mass: 0.9 }}
                 aria-hidden
               />
             )}
             <span className="relative">
-              <ProgressRing value={v.progress} state={v.state}>
-                <Icon
-                  className={cn("h-[1.05rem] w-[1.05rem] transition-transform duration-300", active ? "scale-110 text-accent" : "text-paper/55 group-hover:text-paper/80")}
-                  aria-hidden
-                />
-              </ProgressRing>
-            </span>
-            <span className="relative flex min-w-0 flex-col items-center sm:flex-1 sm:items-start">
-              <span className="max-w-full truncate text-[0.72rem] font-semibold tracking-snugg sm:text-[0.9rem]">{s.label}</span>
-              <span className="mt-0.5 hidden max-w-full items-center gap-1.5 truncate text-[0.7rem] text-paper/55 sm:flex">
-                <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", DOT[v.state])} aria-hidden />
-                <span className="truncate">{v.text}</span>
-              </span>
-              <span className={cn("tabular mt-1 rounded-full px-1.5 py-px text-[0.6rem] font-semibold sm:hidden", BADGE[v.state])}>{v.badge}</span>
-            </span>
-            <kbd
-              className={cn(
-                "relative hidden h-5 min-w-[1.25rem] place-items-center rounded-md border px-1 font-sans text-[0.62rem] font-semibold lg:grid",
-                active ? "border-accent/35 text-accent" : "border-line text-paper/40",
+              <Icon
+                className={cn("h-[1.35rem] w-[1.35rem] transition-transform duration-300 sm:h-6 sm:w-6", active ? "scale-105" : "group-hover:-translate-y-px")}
+                strokeWidth={active ? 2.2 : 1.9}
+                aria-hidden
+              />
+              {v.state === "complete" && (
+                <span className="absolute -right-1.5 -top-1 grid h-3.5 w-3.5 place-items-center rounded-full bg-positive text-card ring-2 ring-card" aria-hidden>
+                  <Check className="h-2 w-2" strokeWidth={4} />
+                </span>
               )}
-              aria-hidden
-            >
-              {i + 1}
-            </kbd>
+              {(v.state === "unsaved" || v.state === "error") && (
+                <span className={cn("absolute -right-1 -top-0.5 h-2.5 w-2.5 rounded-full ring-2 ring-card", v.state === "error" ? "bg-danger" : "bg-accent")} aria-hidden />
+              )}
+            </span>
+            <span className={cn("max-w-full truncate text-[0.74rem] font-semibold tracking-snugg sm:text-[0.86rem]", active ? "text-paper" : "")}>{s.label}</span>
+            <span className={cn("tabular max-w-full truncate text-[0.62rem] font-medium sm:text-[0.68rem]", FIGURE[v.state])}>{v.badge}</span>
             <span className="sr-only">, {v.text}</span>
           </button>
         );
