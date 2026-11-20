@@ -349,7 +349,7 @@ export default function JournalPage() {
                             onPointerEnter={() => router.prefetch(`/journal/${e.date}`)}
                             onPointerDown={() => router.prefetch(`/journal/${e.date}`)}
                             onClick={() => {
-                              beginRouteTransition();
+                              beginRouteTransition(`/journal/${e.date}`);
                               router.push(`/journal/${e.date}`);
                             }}
                             className="group cursor-pointer p-4 sm:p-5"

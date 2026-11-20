@@ -102,7 +102,7 @@ begin
     user_fn := f.proname in ('platform_my_role', 'platform_my_review', 'platform_submit_review', 'platform_set_review_consent',
       'platform_withdraw_review', 'platform_delete_my_review', 'platform_submit_feedback', 'platform_attach_feedback_screenshot',
       'platform_my_feedback', 'platform_mark_feedback_seen', 'platform_my_announcements', 'platform_mark_announcement',
-      'platform_mark_announcements_read', 'platform_review_invite', 'platform_mark_active');
+      'platform_mark_announcements_read', 'platform_review_invite', 'platform_mark_active', 'platform_mark_presence');
     if has_function_privilege('anon', f.oid, 'execute') <> public_fn then
       raise exception 'FAIL: anon execute on % is wrong', f.proname;
     end if;

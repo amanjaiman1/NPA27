@@ -4,6 +4,7 @@ import { ConfirmProvider } from "@/components/ui/confirm-dialog";
 import { ToastProvider } from "@/components/ui/toast";
 import { PwaLayer } from "@/components/pwa/pwa-layer";
 import { CrashReporter } from "@/components/feedback/crash-reporter";
+import { PresenceReporter } from "@/components/platform/presence";
 
 /**
  * The private side: the app (`(app)`) and its sign-in screens (`(auth)`).
@@ -15,7 +16,8 @@ import { CrashReporter } from "@/components/feedback/crash-reporter";
  * The account provider lives here rather than in the root layout, so the
  * public pages never download Supabase or the app's state. Both groups share
  * this layout, which keeps one provider mounted from sign-in through to the
- * dashboard.
+ * dashboard. So does the presence reporter ("Last visit" in Admin → Users):
+ * moving between the app and the Admin Center is one visit.
  */
 export const metadata: Metadata = {
   title: { absolute: "DoOrDie — Your Preparation, Documented" },
@@ -30,6 +32,7 @@ export default function ProductLayout({ children }: { children: React.ReactNode 
           {children}
           <PwaLayer />
           <CrashReporter />
+          <PresenceReporter />
         </ToastProvider>
       </ConfirmProvider>
     </AuthProvider>

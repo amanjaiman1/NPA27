@@ -15,6 +15,7 @@ the app for real.
 | `npm run perf:compute` | The pure calculations (notifications, habits, coach, reviews, persistence) over a typical and a heavy account | printed table |
 | `npm run perf:render -- --label <name>` | React commits and components rendered per interaction, from a profiling build | `docs/perf/render-<name>.json` |
 | `npm run perf:bundle` | Builds with the bundle analyzer and reports each route's first-load JavaScript by package | `docs/perf/bundle-latest.json` |
+| `npm run perf:nav -- --no-build --label <name>` | Page changes as a person sees them: for each tap on the dock, the menu and in-page links, when the progress bar appeared and finished, when the address changed and when the page's heading was on screen | `docs/perf/<name>.json` |
 | `node --import tsx scripts/perf/lighthouse.mjs --label <name>` | Lighthouse, mobile and desktop presets (needs `lighthouse` installed; see below) | `docs/perf/lighthouse-<name>.json` |
 
 Useful `perf:measure` flags: `--no-build` (reuse the last mock build),
@@ -22,6 +23,14 @@ Useful `perf:measure` flags: `--no-build` (reuse the last mock build),
 `--only public,routes,heavy,reload,nav,logout,interact,film`,
 `--variants clean,pending,push,slow,unreachable`. `npx playwright install
 chromium` once.
+
+`perf:nav` flags: `--profile mobile|mobile-slow|desktop` (*mobile-slow* is
+the mobile profile on 400 ms RTT and 500 kbps), `--dataset typical|heavy`,
+`--slow-data <ms>` and `--slow-code <ms>` (hold every page-data or page-code
+response back that long), `--sw` (let the service worker run), `--stale`
+(wait out Next's old five-minute window and open every page again),
+`--in-page-only`. Its **gap** column is the page's heading time minus the
+bar's finish: positive means the bar finished before the page was there.
 
 ## Conditions
 

@@ -58,6 +58,9 @@ export const adminApi = {
   del: <T>(path: string, body: unknown = {}) => apiCall<T>(`/api/admin/${path}`, { method: "DELETE", body }),
 };
 
+/** The least time between two reloads for visits (live update area "activity"). */
+const ACTIVITY_GAP_MS = 4_000;
+
 export interface Loaded<T> {
   data: T | null;
   error: ApiError | null;
@@ -130,7 +133,11 @@ export function useAdmin<T>(path: string | null, options: { live?: readonly Live
   const reload = useCallback(() => setTick((t) => t + 1), []);
   const refresh = useCallback(() => fetchNow(true), [fetchNow]);
   const areas = options.live === false ? [] : (options.live ?? (path ? adminAreasFor(path) : []));
-  useAdminUpdates(areas, refresh, Boolean(path) && areas.length > 0);
+  const changes = areas.filter((a) => a !== "activity");
+  useAdminUpdates(changes, refresh, Boolean(path) && changes.length > 0);
+  // Visits starting and ending: as many as there are people coming and
+  // going, so one reload for every few seconds of them at most.
+  useAdminUpdates(["activity"], refresh, Boolean(path) && areas.includes("activity"), ACTIVITY_GAP_MS);
   return { data, error, loading, reload, refresh, set: setData };
 }
 

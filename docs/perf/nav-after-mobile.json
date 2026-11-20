@@ -1,0 +1,269 @@
+{
+  "label": "nav-after-mobile",
+  "profile": "mobile",
+  "dataset": "typical",
+  "serviceWorker": false,
+  "slowCodeMs": 0,
+  "slowDataMs": 0,
+  "at": "2026-11-20T11:07:08.783Z",
+  "passes": {
+    "first": [
+      {
+        "path": "/journal",
+        "url": 92,
+        "barShown": null,
+        "barDone": null,
+        "fallback": null,
+        "content": 184,
+        "gap": null
+      },
+      {
+        "path": "/goals",
+        "url": 62,
+        "barShown": null,
+        "barDone": null,
+        "fallback": null,
+        "content": 127,
+        "gap": null
+      },
+      {
+        "path": "/wellbeing",
+        "url": 97,
+        "barShown": null,
+        "barDone": null,
+        "fallback": null,
+        "content": 215,
+        "gap": null
+      },
+      {
+        "path": "/revision",
+        "url": 44,
+        "barShown": null,
+        "barDone": null,
+        "fallback": null,
+        "content": 110,
+        "gap": null
+      },
+      {
+        "path": "/habits",
+        "url": 502,
+        "barShown": 142,
+        "barDone": 594,
+        "fallback": null,
+        "content": 563,
+        "gap": -31
+      },
+      {
+        "path": "/coach",
+        "url": 490,
+        "barShown": 127,
+        "barDone": 565,
+        "fallback": null,
+        "content": 565,
+        "gap": 0
+      },
+      {
+        "path": "/roadmap",
+        "url": 447,
+        "barShown": 137,
+        "barDone": 488,
+        "fallback": null,
+        "content": 489,
+        "gap": 1
+      },
+      {
+        "path": "/diary",
+        "url": 367,
+        "barShown": 127,
+        "barDone": 397,
+        "fallback": null,
+        "content": 398,
+        "gap": 1
+      },
+      {
+        "path": "/performance-review",
+        "url": 419,
+        "barShown": 140,
+        "barDone": 468,
+        "fallback": null,
+        "content": 468,
+        "gap": 0
+      },
+      {
+        "path": "/mocks",
+        "url": 370,
+        "barShown": 137,
+        "barDone": 444,
+        "fallback": null,
+        "content": 446,
+        "gap": 2
+      },
+      {
+        "path": "/subjects",
+        "url": 397,
+        "barShown": 138,
+        "barDone": 465,
+        "fallback": null,
+        "content": 467,
+        "gap": 2
+      },
+      {
+        "path": "/settings",
+        "url": 536,
+        "barShown": 135,
+        "barDone": 640,
+        "fallback": null,
+        "content": 614,
+        "gap": -26
+      },
+      {
+        "path": "/dashboard",
+        "url": 120,
+        "barShown": null,
+        "barDone": null,
+        "fallback": null,
+        "content": 201,
+        "gap": null
+      }
+    ],
+    "second": [
+      {
+        "path": "/journal",
+        "url": 69,
+        "barShown": null,
+        "barDone": null,
+        "fallback": null,
+        "content": 138,
+        "gap": null
+      },
+      {
+        "path": "/goals",
+        "url": 31,
+        "barShown": null,
+        "barDone": null,
+        "fallback": null,
+        "content": 71,
+        "gap": null
+      },
+      {
+        "path": "/wellbeing",
+        "url": 57,
+        "barShown": null,
+        "barDone": null,
+        "fallback": null,
+        "content": 145,
+        "gap": null
+      },
+      {
+        "path": "/revision",
+        "url": 35,
+        "barShown": null,
+        "barDone": null,
+        "fallback": null,
+        "content": 91,
+        "gap": null
+      },
+      {
+        "path": "/habits",
+        "url": 97,
+        "barShown": null,
+        "barDone": null,
+        "fallback": null,
+        "content": 151,
+        "gap": null
+      },
+      {
+        "path": "/coach",
+        "url": 64,
+        "barShown": null,
+        "barDone": null,
+        "fallback": null,
+        "content": 100,
+        "gap": null
+      },
+      {
+        "path": "/roadmap",
+        "url": 56,
+        "barShown": null,
+        "barDone": null,
+        "fallback": null,
+        "content": 97,
+        "gap": null
+      },
+      {
+        "path": "/diary",
+        "url": 79,
+        "barShown": null,
+        "barDone": null,
+        "fallback": null,
+        "content": 115,
+        "gap": null
+      },
+      {
+        "path": "/performance-review",
+        "url": 60,
+        "barShown": null,
+        "barDone": null,
+        "fallback": null,
+        "content": 105,
+        "gap": null
+      },
+      {
+        "path": "/mocks",
+        "url": 62,
+        "barShown": null,
+        "barDone": null,
+        "fallback": null,
+        "content": 128,
+        "gap": null
+      },
+      {
+        "path": "/subjects",
+        "url": 69,
+        "barShown": null,
+        "barDone": null,
+        "fallback": null,
+        "content": 138,
+        "gap": null
+      },
+      {
+        "path": "/settings",
+        "url": 101,
+        "barShown": null,
+        "barDone": null,
+        "fallback": null,
+        "content": 174,
+        "gap": null
+      },
+      {
+        "path": "/dashboard",
+        "url": 99,
+        "barShown": null,
+        "barDone": null,
+        "fallback": null,
+        "content": 179,
+        "gap": null
+      }
+    ],
+    "inPage": [
+      {
+        "path": "/journal",
+        "url": 58,
+        "barShown": null,
+        "barDone": null,
+        "fallback": null,
+        "content": 138,
+        "gap": null
+      },
+      {
+        "path": "/coach",
+        "url": 43,
+        "barShown": null,
+        "barDone": null,
+        "fallback": null,
+        "content": 138,
+        "gap": null
+      }
+    ]
+  }
+}

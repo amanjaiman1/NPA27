@@ -182,10 +182,14 @@ In the Supabase SQL Editor, run these files in order:
      Supabase Realtime (sign-ups, suspensions and SQL Editor changes included).
      Three private, receive-only channels; no new tables. Until it runs, pages
      update when they open or come back.
-   - `20261214120000_last_active.sql`: "Last active" in Admin → Users, to about 5 minutes. One
-     time per account and nothing else, sent by the app at most every 5 minutes
-     and readable only through the Admin Center's functions. Until it runs, the
-     column shows "Not recorded".
+   - `20261214120000_last_active.sql`: the table Admin → Users' visits are kept
+     in, one row of times per account and nothing else, readable only through
+     the Admin Center's functions.
+   - `20261215120000_presence.sql`: "Last visit" in Admin → Users: whether each
+     account is on the site now, when it opened the app and when it left, to
+     the second, updating open Admin screens by itself. The app reports when it
+     comes on screen, once a minute while there, and as it goes off screen.
+     Needs the two before it. Until it runs, the column shows "Not recorded".
 
 All of them are additive and safe to re-run: nothing is dropped or rewritten, and
 existing data keeps working. A SQL file in the repo does nothing until you run it.
@@ -394,8 +398,9 @@ Usage page stays comfortably inside the plan.
       (Help & feedback without email; crash reports in the Admin Center).
 - [ ] Run `supabase/migrations/20261213120000_live_everywhere.sql` in the SQL Editor,
       after the others (everything, the Admin Center included, updates by itself).
-- [ ] Run `supabase/migrations/20261214120000_last_active.sql` in the SQL Editor
-      (last active times in Admin → Users).
+- [ ] Run `supabase/migrations/20261214120000_last_active.sql`, then
+      `supabase/migrations/20261215120000_presence.sql`, in the SQL Editor
+      (Last visit in Admin → Users: opened, left, on the site now).
 - [ ] Run `supabase/tests/rls_isolation.sql` and confirm `All isolation checks passed`.
 - [ ] Set Site URL and the two Redirect URLs in Authentication → URL Configuration.
 - [ ] Configure custom SMTP, or decide to run with "Confirm email" off.

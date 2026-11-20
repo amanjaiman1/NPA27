@@ -23,15 +23,33 @@ export function AdminHeader(props: {
 }
 
 const dateTime = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+const dateTimeSeconds = new Intl.DateTimeFormat("en-GB", {
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+  second: "2-digit",
+});
 const dateOnly = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric" });
 
-/** "19 Nov 2026, 14:05", or just the date. */
-export function When({ at, date = false, fallback = "Never" }: { at: string | null | undefined; date?: boolean; fallback?: string }) {
+/** "19 Nov 2026, 14:05", just the date, or to the second ("19 Nov 2026, 14:05:31"). */
+export function When({
+  at,
+  date = false,
+  seconds = false,
+  fallback = "Never",
+}: {
+  at: string | null | undefined;
+  date?: boolean;
+  seconds?: boolean;
+  fallback?: string;
+}) {
   if (!at) return <span className="text-paper/45">{fallback}</span>;
   const d = new Date(at);
   return (
-    <time dateTime={d.toISOString()} title={dateTime.format(d)}>
-      {(date ? dateOnly : dateTime).format(d)}
+    <time dateTime={d.toISOString()} title={dateTimeSeconds.format(d)}>
+      {(date ? dateOnly : seconds ? dateTimeSeconds : dateTime).format(d)}
     </time>
   );
 }

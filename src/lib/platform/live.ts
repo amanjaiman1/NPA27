@@ -26,7 +26,7 @@
 export const LIVE_EVENT = "changed";
 /** Every signed-in account: announcements, the notice in the app, review settings, the changelog. */
 export const PLATFORM_TOPIC = "platform-updates";
-/** Admin Center roles only: accounts, reviews, feedback, announcements, changelog, settings, access, audit. */
+/** Admin Center roles only: accounts and their visits, reviews, feedback, announcements, changelog, settings, access, audit. */
 export const ADMIN_TOPIC = "platform-admin-updates";
 /** One account only: its synced data, its feedback and review, read state, role and session. */
 export const accountTopic = (userId: string) => `account:${userId}`;
@@ -44,6 +44,7 @@ export const LIVE_AREAS = [
   "chronicle",
   "role",
   "session",
+  "activity",
 ] as const;
 
 /**
@@ -60,6 +61,7 @@ export const LIVE_AREAS = [
  * - `chronicle`: the account's own synced data, saved on another device
  * - `role`: the account's own Admin Center role
  * - `session`: the account was suspended, restored or deleted
+ * - `activity`: an account opened the app, left it, or came back (Users, "Last visit")
  */
 export type LiveArea = (typeof LIVE_AREAS)[number];
 
@@ -101,8 +103,8 @@ export function adminAreasFor(path: string): LiveArea[] {
     case "overview":
       return ["users", "reviews", "feedback", "announcements", "changelog", "audit"];
     case "users":
-      // The list's roles, and one account's review, feedback count and history.
-      return ["users", "access", "reviews", "feedback"];
+      // The list's roles and visits, and one account's review, feedback count and history.
+      return ["users", "access", "reviews", "feedback", "activity"];
     case "reviews":
       return ["reviews"];
     case "feedback":

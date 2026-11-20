@@ -204,8 +204,9 @@ export default function PrivacyPolicyPage() {
             </p>
             <p>
               The few people who run DoOrDie use an admin area that shows, for each account, its email address, when it
-              was created, when it last signed in, when it last used the app (to within about five minutes), whether its
-              email is confirmed, whether it is suspended, and whether it
+              was created, when it last signed in, whether it has the app open right now and, for its latest visit, when
+              it opened the app and when it left (only those times, never what you did), whether its email is
+              confirmed, whether it is suspended, and whether it
               has an admin role, together with the reviews and messages you sent us. It never shows your preparation data
               or anything you wrote in the app. An account can be suspended for abuse, such as spam; the reason is
               recorded, and nothing in the account is deleted. Every action in the admin area is written to a permanent

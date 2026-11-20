@@ -19,8 +19,8 @@ import { TeamBanner } from "@/components/platform/team-notices";
 import { DemoBar, DemoChrome, DemoGuide, DemoGuideSpace } from "@/components/demo/demo-chrome";
 import { HelpFeedback } from "@/components/help/help-feedback";
 import { useMatchMedia } from "@/lib/hooks";
-import { essentialNavItems } from "@/lib/nav";
-import { useIdlePrefetch } from "./app-link";
+import { allNavItems, essentialNavItems } from "@/lib/nav";
+import { mostVisited, rememberVisit, useIdlePrefetch } from "./app-link";
 import { loadAppearance, loadPalette } from "./overlays";
 
 const CommandPalette = lazy(() => loadPalette().then((m) => ({ default: m.CommandPalette })));
@@ -28,6 +28,10 @@ const AppearanceModal = lazy(() => loadAppearance().then((m) => ({ default: m.Ap
 
 /** Warmed in idle time: the Command Center and the four everyday pages (the phone's dock). */
 const WARM_PAGES = ["/dashboard", ...essentialNavItems.map((i) => i.href)];
+/** Every page in the navigation: what's counted, to learn which ones this device opens most. */
+const NAV_PAGES = allNavItems.map((i) => i.href);
+/** And this many more: the ones this device opens most (`mostVisited`). */
+const LEARNED_PAGES = 4;
 
 /** "1" when the person hid the sidebar on a wide screen. Same key as before. */
 const SIDEBAR_KEY = "upsc-chronicle-sidebar";
@@ -72,7 +76,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const docked = desktop && wide && !collapsed;
   const sidebarShowing = docked || (desktop && !wide && flyoutOpen);
-  useIdlePrefetch(WARM_PAGES);
+  useEffect(() => {
+    if (NAV_PAGES.includes(pathname)) rememberVisit(pathname);
+  }, [pathname]);
+  // Read once, as the app opens: the list is the same for the whole visit.
+  const [warmPages] = useState(() => [...WARM_PAGES, ...mostVisited(LEARNED_PAGES, NAV_PAGES, WARM_PAGES)]);
+  useIdlePrefetch(warmPages);
   // Once the page has settled, search and Appearance load quietly too, so even
   // a first ⌘K opens at once.
   useEffect(() => {
