@@ -118,7 +118,8 @@ function UserTable({ page, onOpen }: { page: Page<AccountBrief>; onOpen: (id: st
           <tr>
             <th scope="col" className="px-5 py-3 font-medium">Account</th>
             <th scope="col" className="hidden px-3 py-3 font-medium md:table-cell">Joined</th>
-            <th scope="col" className="hidden px-3 py-3 font-medium lg:table-cell">Last sign-in</th>
+            <th scope="col" className="hidden px-3 py-3 font-medium lg:table-cell">Last active</th>
+            <th scope="col" className="hidden px-3 py-3 font-medium xl:table-cell">Last sign-in</th>
             <th scope="col" className="hidden px-3 py-3 font-medium sm:table-cell">Status</th>
             <th scope="col" className="px-5 py-3 text-right font-medium">
               <span className="sr-only">Actions</span>
@@ -140,6 +141,9 @@ function UserTable({ page, onOpen }: { page: Page<AccountBrief>; onOpen: (id: st
                 <When at={u.createdAt} date />
               </td>
               <td className="hidden whitespace-nowrap px-3 py-3 text-paper/70 lg:table-cell">
+                <When at={u.lastActiveAt} fallback="Not recorded" />
+              </td>
+              <td className="hidden whitespace-nowrap px-3 py-3 text-paper/70 xl:table-cell">
                 <When at={u.lastSignInAt} />
               </td>
               <td className="hidden px-3 py-3 sm:table-cell">
@@ -202,6 +206,9 @@ function UserDialog({ id, onClose, onChanged }: { id: string | null; onClose: ()
             </Detail>
             <Detail label="Email confirmed">
               <When at={u.emailConfirmedAt} fallback="Not yet" />
+            </Detail>
+            <Detail label="Last active">
+              <When at={u.lastActiveAt} fallback="Not recorded" />
             </Detail>
             <Detail label="Last sign-in">
               <When at={u.lastSignInAt} />

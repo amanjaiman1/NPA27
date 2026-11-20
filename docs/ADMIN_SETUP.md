@@ -51,9 +51,10 @@ They are all safe to run again.
 7. `supabase/migrations/20261204120000_platform_admin.sql` (the Admin Center)
 8. `supabase/migrations/20261205120000_live_updates.sql` (changes reach open apps at once)
 9. `supabase/migrations/20261210120000_trust_reviews.sql` (the five-step review
-10. `supabase/migrations/20261213120000_live_everywhere.sql` (everything updates by itself)
    form, verification badges, the dashboard invitation, edit history, consent
    history, the public reviews pages and the changelog's new fields)
+10. `supabase/migrations/20261213120000_live_everywhere.sql` (everything updates by itself)
+11. `supabase/migrations/20261214120000_last_active.sql` (last active times in Users)
 10. `supabase/migrations/20261212120000_help_feedback.sql` (Help & feedback
     without email: feedback never carries an address, and crash reports are
     kept for the team under Feedback → Crash reports)
@@ -150,9 +151,19 @@ Both are refused for the last Super Admin.
 ### Accounts
 
 **Users** lists every account with what's needed to run the platform: email,
-when it joined, when it last signed in, whether its email is confirmed,
-whether it's suspended, and its role. Never anything the person wrote in
-DoOrDie. Search by email or paste an account id.
+when it joined, when it was last active, when it last signed in, whether its
+email is confirmed, whether it's suspended, and its role. Never anything the
+person wrote in DoOrDie. Search by email or paste an account id.
+
+**Last active** is when the account last used the app (opened it, came back
+to it, tapped or typed), accurate to about 5 minutes. It's only a time: the
+app sends it at most every 5 minutes through `platform_mark_active()`, which
+can mark only the signed-in account, and `platform_last_active` keeps one row
+per account that no browser can read and that goes when the account is deleted.
+It doesn't update an open page by itself; it's as of when the page loaded.
+"Not recorded" means the account hasn't used the app since
+`20261214120000_last_active.sql` ran. Last sign-in changes only when someone signs in again, which
+can be weeks apart.
 
 Suspending an account (Admin or Super Admin, with a reason and a length)
 blocks new sign-ins at once through Supabase Auth's ban. A session that's
