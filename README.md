@@ -69,9 +69,9 @@ people. Delete `.env.local` when you're done, and never deploy with it.
 
 | Command | What it checks |
 | --- | --- |
-| `npm test` | Unit tests: the three-way merge, the sync engine with two simulated devices (offline edits, clashes, stale devices), per-account browser storage, the one-time move of pre-account data, the new-account template, attached-file rules, completed topics, Life Dashboard reports and form, goals, the clean-up of data older versions wrote, saving a journal day, sleep times and durations, the three themes (synced, painted before load, and what a theme, palette or Liquid Glass saved by an older version becomes), Reduce transparency as a setting of its own, and the Roadmap (periods across month and year ends, leap years and time zones, progress from activities only, carry forward, duplicate, archive, goal and journal links that change neither, two accounts, two devices), and the Admin Center's roles and permissions, the checks on everything it accepts, its API dispatcher with fake dependencies (every address needs the permission the design gives it, 401s, 403s, cross-site refusals, a failed suspension record lifting the ban again, rate limits), and feature access (everything open, no payment code); the review system (moderation needs a listed reason and never "negative", what a review may carry, the new settings and switches, hiding needs its permission) and the interactive demo (the sample account is the same each time and written nowhere, and nothing that acts for an account reaches the server in demo mode). |
-| `npm run test:db` | Applies `supabase/schema.sql` and every migration (twice, to prove they re-run safely) to a throwaway Postgres with Supabase's roles, then runs `supabase/tests/rls_isolation.sql`, `supabase/tests/platform_admin.sql` (every Admin Center rule the database enforces: who may call what, roles, the last Super Admin, review eligibility and consent, feedback privacy, announcements, the changelog, settings and the append-only audit log) and `supabase/tests/platform_trust.sql` (badges from records only, consent and edit history, the edit policy, the invitation, reasons for taking a review down, story pages, aggregates only from five reviews, nothing private in public answers). |
-| `npm run test:e2e:admin` | 22 scenarios against the mock: the first Super Admin from the setup guide's SQL, the same permissions in TypeScript and the database, roles (never to oneself, never Super Admin from the app, never through a profile or a direct database call), each role's reach, a review from real use to the website and back down, feedback with a screenshot and private notes, announcements and read state, changelog drafts as 404s, suspension blocking sign-in, settings reaching the public site, the audit log (complete, append-only, no private words), the last Super Admin's account; badges from records, a story page, an edit that keeps the approved version up, featuring and hiding; the invitation's Later and No thanks; the Trust Center, the demo page and the reviews page saying only what's true; then the Admin Center in a browser for a student, a Super Admin and a Moderator, on a phone and in all three themes; a student invited on the dashboard writing a review in five steps; and the demo for a visitor and for a signed-in student, whose account it never touches. Builds against the mock like `test:e2e`; `-- --no-build --trust-only` runs just the last three. |
+| `npm test` | Unit tests: the three-way merge, the sync engine with two simulated devices (offline edits, clashes, stale devices), per-account browser storage, the one-time move of pre-account data, the new-account template, attached-file rules, completed topics, Life Dashboard reports and form, goals, the clean-up of data older versions wrote, saving a journal day, sleep times and durations, the three themes (synced, painted before load, and what a theme, palette or Liquid Glass saved by an older version becomes), Reduce transparency as a setting of its own, and the Roadmap (periods across month and year ends, leap years and time zones, progress from activities only, carry forward, duplicate, archive, goal and journal links that change neither, two accounts, two devices), and the Admin Center's roles and permissions, the checks on everything it accepts, its API dispatcher with fake dependencies (every address needs the permission the design gives it, 401s, 403s, cross-site refusals, a failed suspension record lifting the ban again, rate limits), and feature access (everything open, no payment code); the review system (moderation needs a listed reason and never "negative", what a review may carry, the new settings and switches, hiding needs its permission), crash reports (what one may hold, and the route that stores them: same-site only, size caps, a limit per address, and a clear answer when the server can't keep them), and the interactive demo (the sample account is the same each time and written nowhere, and nothing that acts for an account reaches the server in demo mode). |
+| `npm run test:db` | Applies `supabase/schema.sql` and every migration (twice, to prove they re-run safely) to a throwaway Postgres with Supabase's roles, then runs `supabase/tests/rls_isolation.sql`, `supabase/tests/platform_admin.sql` (every Admin Center rule the database enforces: who may call what, roles, the last Super Admin, review eligibility and consent, feedback privacy, announcements, the changelog, settings and the append-only audit log) `supabase/tests/platform_trust.sql` (badges from records only, consent and edit history, the edit policy, the invitation, reasons for taking a review down, story pages, aggregates only from five reviews, nothing private in public answers) and `supabase/tests/platform_help.sql` (feedback never carries an email; crash reports recorded by the server alone, grouped, counted, capped and pruned, seen only by the team, a resolved crash new again when it recurs). |
+| `npm run test:e2e:admin` | 24 scenarios against the mock: the first Super Admin from the setup guide's SQL, the same permissions in TypeScript and the database, roles (never to oneself, never Super Admin from the app, never through a profile or a direct database call), each role's reach, a review from real use to the website and back down, feedback with a screenshot and private notes, announcements and read state, changelog drafts as 404s, suspension blocking sign-in, settings reaching the public site, the audit log (complete, append-only, no private words), the last Super Admin's account; badges from records, a story page, an edit that keeps the approved version up, featuring and hiding; the invitation's Later and No thanks; the Trust Center, the demo page and the reviews page saying only what's true; then the Admin Center in a browser for a student, a Super Admin and a Moderator, on a phone and in all three themes; a student invited on the dashboard writing a review in five steps; the demo for a visitor and for a signed-in student, whose account it never touches; crash reports reaching the Feedback Center, grouped and counted, with nothing about the person; and Help & feedback (no button for visitors, in the demo or in the Admin Center; above the dock on a phone and in the corner on a laptop; a message, with no email, in the Feedback Center at once; the team's answer arriving in the open app). Builds against the mock like `test:e2e`; `-- --no-build --trust-only` runs the review form and the demo alone, and `-- --no-build --help-only` Help & feedback alone. |
 | `npm run test:e2e` | 20 browser scenarios against the mock: two accounts in one browser, the theme following an account with no light flash, a second device, simultaneous edits, direct database access with another account's token, attached files (stored once, linked to a goal without a copy, unreadable by another account, deleted with the last day that holds them), recording, editing and deleting a night's sleep, Reduce transparency (on any theme, painted before load, on a second device, never on another account), Light and Dark frosted and Lavender crisp (synced, painted before load, on a second device), an older device's Blue Glass opening as Light, the Roadmap (empty at first; a year, its months and a week planned by hand; deleting one month; a goal and a journal day linked without changing either; edits from two devices at once; archiving; another account seeing none of it), sign-out, the owner's existing data, a fresh account, account deletion (including its files) and password reset. Needs `npx playwright install chromium` once. It builds the app against the mock, so run `npm run build` again afterwards. |
 | `npm run lint`, `npx tsc --noEmit`, `npm run check:classes` | Lint, types, and the Tailwind opacity guard. |
 
@@ -171,7 +171,13 @@ In the Supabase SQL Editor, run these files in order:
      category. Three new tables, all with row-level security on and no direct
      access. Reviews already published stay published. Until it runs, the
      review form and the public reviews pages have nothing to show.
-   - `20261212120000_live_everywhere.sql`: every change reaches the screens that
+   - `20261212120000_help_feedback.sql`: Help & feedback without email.
+     Feedback stops carrying an email address (the form no longer offers to
+     share one, and neither the author nor the Admin Center is shown one), and
+     crash reports are kept for the team in a new table, one row per distinct
+     crash, readable only through the Admin Center's functions. Until it runs,
+     crash reports aren't kept.
+   - `20261213120000_live_everywhere.sql`: every change reaches the screens that
      show it, in the Admin Center and the app, through database triggers and
      Supabase Realtime (sign-ups, suspensions and SQL Editor changes included).
      Three private, receive-only channels; no new tables. Until it runs, pages
@@ -207,38 +213,36 @@ Vercel → Project → Settings → Environment Variables.
 | `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`, `CRON_SECRET` | see `docs/notifications.md` | Background push (optional) |
 | `NEXT_PUBLIC_SITE_URL` | browser + server | The public site's main address for canonical links, the sitemap and social previews (strongly recommended) |
 | `NEXT_PUBLIC_CONTACT_EMAIL`, `NEXT_PUBLIC_GA_MEASUREMENT_ID`, `NEXT_PUBLIC_BING_SITE_VERIFICATION` | see `docs/SEO_SETUP_GUIDE.md` | Contact address, opt-in analytics, Bing verification (optional) |
-| `RESEND_API_KEY`, `REPORTS_TO_EMAIL` | **server only** | Crash reports and Settings → Help & feedback, emailed through [Resend](https://resend.com) (optional; without them the form says it isn't set up) |
-| `REPORTS_FROM_EMAIL` | **server only** | The sender for those emails. Leave unset to use Resend's test sender, which only delivers to the address the Resend account was created with. |
 
 ### Crash reports and feedback
 
-When a page fails, the app emails a crash report: the error, its stack, the
+Nothing here sends email. Both go to the team in the Admin Center
+(**Feedback**), and the team answers in the app.
+
+**Help & feedback** is a small round button at the bottom right of every page
+of the app, for signed-in accounts only: it isn't on the public site, the
+sign-in screens, the Admin Center, the demo, or a build without accounts. It
+opens a panel to send a bug report, feature request, suggestion, usability
+problem or general message, with an optional screenshot; to read the team's
+answers under Your messages (the bell, and a badge on the button, say when
+there's a new one); and to switch automatic crash reports on or off.
+A message goes through `POST /api/feedback` straight into the Feedback
+Center, as the signed-in account. It carries the account's id and, only if
+"Include technical details" is left on, the browser and window size. It never
+carries an email address.
+
+When a page fails, the app sends a crash report: the error, its stack, the
 page's path (never the query), the browser and the time. It never includes
-the account, a name, or anything written in the app. People can switch these
-off in Settings → Help & feedback, and add a note on the error screen.
-
-The same section has a form for bug reports, feature requests, suggestions,
-usability problems and general feedback, with an optional screenshot. A
-message carries the sender's account id, their email only if they leave
-"Include my email" on (it becomes the reply-to address), and their browser
-and window size only if they leave "Include technical details" on. Once the
-Admin Center migration has run, messages are stored in its Feedback Center
-(`POST /api/feedback`), where the team answers them and the sender sees the
-answer and its status; the email to the team is a notification on top.
-
-Crash reports, and feedback before that migration, go through `POST /api/report`
-(`src/lib/report-server.ts`), which only accepts requests from the site's own
-pages, caps sizes, and limits how many it sends per address, per account and
-per hour. Resend's free plan allows 3,000 emails a month and 100 a day.
-
-To set it up: create a Resend account, make an API key with "Sending access",
-and set `RESEND_API_KEY` and `REPORTS_TO_EMAIL` (where reports go; several
-addresses can be separated by commas) in Vercel. With Resend's test sender,
-`REPORTS_TO_EMAIL` must be the address you signed up to Resend with. To send
-to any address, verify a domain in Resend and set `REPORTS_FROM_EMAIL`, for
-example `DoOrDie <reports@your-domain>`. Redeploy after changing them. The
-address in `REPORTS_TO_EMAIL` stays on the server; it is never sent to the
-browser or shown on the site.
+the account, a name, or anything written in the app. On the error screen the
+person can add a note, sent only if they press Send. Reports go through
+`POST /api/report` (`src/lib/report-server.ts`), which only accepts requests
+from the site's own pages, caps sizes and limits how many come from one
+address, and are stored by the database (`platform_record_crash`, the server's
+alone) as one row per distinct crash, the same error on the same page, with a
+count. They appear under Feedback → Crash reports, are kept for 90 days after
+the last report, and a resolved crash that comes back is marked new again.
+Until the `20261212120000_help_feedback.sql` migration has run, crash reports
+aren't kept and the error screen says so.
 
 ## Admin Center
 
@@ -382,10 +386,10 @@ Usage page stays comfortably inside the plan.
       (Admin Center changes reach open apps at once).
 - [ ] Run `supabase/migrations/20261210120000_trust_reviews.sql` in the SQL Editor
       (the review form, badges, the invitation and the public reviews pages).
-- [ ] Run `supabase/migrations/20261212120000_live_everywhere.sql` in the SQL Editor,
+- [ ] Run `supabase/migrations/20261212120000_help_feedback.sql` in the SQL Editor
+      (Help & feedback without email; crash reports in the Admin Center).
+- [ ] Run `supabase/migrations/20261213120000_live_everywhere.sql` in the SQL Editor,
       after the others (everything, the Admin Center included, updates by itself).
-- [ ] Set `RESEND_API_KEY` and `REPORTS_TO_EMAIL` in Vercel for crash reports and
-      feedback (see [Crash reports and feedback](#crash-reports-and-feedback)).
 - [ ] Run `supabase/tests/rls_isolation.sql` and confirm `All isolation checks passed`.
 - [ ] Set Site URL and the two Redirect URLs in Authentication → URL Configuration.
 - [ ] Configure custom SMTP, or decide to run with "Confirm email" off.

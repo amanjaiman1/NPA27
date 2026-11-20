@@ -51,9 +51,12 @@ They are all safe to run again.
 7. `supabase/migrations/20261204120000_platform_admin.sql` (the Admin Center)
 8. `supabase/migrations/20261205120000_live_updates.sql` (changes reach open apps at once)
 9. `supabase/migrations/20261210120000_trust_reviews.sql` (the five-step review
-10. `supabase/migrations/20261212120000_live_everywhere.sql` (everything updates by itself)
+10. `supabase/migrations/20261213120000_live_everywhere.sql` (everything updates by itself)
    form, verification badges, the dashboard invitation, edit history, consent
    history, the public reviews pages and the changelog's new fields)
+10. `supabase/migrations/20261212120000_help_feedback.sql` (Help & feedback
+    without email: feedback never carries an address, and crash reports are
+    kept for the team under Feedback → Crash reports)
 
 If you use the Supabase CLI, `supabase db push` runs the same migrations.
 
@@ -72,8 +75,11 @@ The Admin Center uses what DoOrDie already needs. Nothing new to add:
 | Variable | Needed for |
 | --- | --- |
 | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Accounts at all |
-| `SUPABASE_SERVICE_ROLE_KEY` | The Admin Center's server routes (they check the caller, then act with this key), suspensions, feedback screenshots. The same key account deletion already uses. Server only, never `NEXT_PUBLIC_` |
-| `RESEND_API_KEY`, `REPORTS_TO_EMAIL` (optional) | An email to the team when feedback arrives. Without them, feedback still lands in the Feedback Center |
+| `SUPABASE_SERVICE_ROLE_KEY` | The Admin Center's server routes (they check the caller, then act with this key), suspensions, feedback screenshots, and storing crash reports. The same key account deletion already uses. Server only, never `NEXT_PUBLIC_` |
+
+Nothing in the Admin Center sends email. If `RESEND_API_KEY`,
+`REPORTS_TO_EMAIL` or `REPORTS_FROM_EMAIL` are still set in Vercel from an
+earlier version, nothing reads them now and they can be deleted.
 
 Without the service-role key, `/admin` says the Admin Center isn't set up.
 
@@ -251,17 +257,38 @@ placeholder or sample reviews anywhere.
 
 ### Feedback
 
-Settings → Help & feedback sends a bug report, feature request, suggestion,
-usability problem or general message, optionally with a screenshot (made
+Students send messages from **Help & feedback**, the small round button at the
+bottom right of every page of the app. It's there for signed-in accounts
+only: not on the public site, the sign-in screens, the Admin Center or the
+demo. They pick what it's about (bug report, feature request, suggestion,
+hard to use, general feedback), write it, and can add a screenshot (made
 smaller and stripped of its metadata on the device, at most 2 MB, stored in
-the private `platform-feedback` bucket). If Resend is set up, the team also
-gets an email with a link to it. Each account can send 10 a day.
+the private `platform-feedback` bucket) and their browser's details. It lands
+in the Feedback Center at once. Each account can send 10 a day.
+
+**Nothing is emailed**, to the team or to anyone else, and a message never
+carries an email address. Answer it here: the author reads the response under
+Your messages in Help & feedback, and the bell and a badge on the button tell
+them it's there. To see who sent it, **Open the account** (Admins and Super
+Admins; the Users page shows the account's email address as usual).
 
 In the Feedback Center, set the status (New, Under review, Planned, In
 progress, Resolved, Closed) and priority, add private notes (never shown to
-the author), write a response (the author sees it in Settings, and the bell
-tells them), and link the item to a changelog entry when it ships. The author
-sees the status and response, never the notes or the priority.
+the author), write a response, and link the item to a changelog entry when it
+ships. The author sees the status and response, never the notes or the
+priority.
+
+**Crash reports** are the Feedback Center's second view. When something
+breaks in the app, it sends the error, the page's path, the browser and the
+time, and a note if the person wrote one on the error screen and pressed
+Send. Never an account, a name, an email or anything written in the app; a
+student can switch automatic reports off in Help & feedback. Each distinct
+crash (the same error on the same page) is one row, with how many times it
+was reported, the latest stack and browser, and the notes. Mark it resolved
+when it's fixed: if it happens again, it comes back as new. Delete it if it's
+noise. Resolving, reopening and deleting are in the audit log. A crash is
+removed 90 days after it was last reported, and at most 1,000 distinct
+crashes are kept, so a flood of made-up errors can't fill the database.
 
 ### Announcements
 
@@ -290,7 +317,7 @@ within a couple of seconds and without reloading:
   feedback, review decisions, a role granted or removed, and the account's own
   data saved on another device. A suspension ends an open session at once.
 
-How: database triggers (`supabase/migrations/20261212120000_live_everywhere.sql`)
+How: database triggers (`supabase/migrations/20261213120000_live_everywhere.sql`)
 send one small message through Supabase Realtime for every change, whoever
 made it, Supabase Auth and the SQL Editor included. Each open screen then
 reloads what changed through the routes it always uses. A message names only
@@ -397,5 +424,7 @@ laptop and a phone.
 | No Admin Center link in the account menu | Reload the tab; the menu checks at most every five minutes |
 | Reviews don't appear on the site | The author didn't allow public display, it isn't published yet, or the display settings are off |
 | No average rating on `/reviews` | Fewer reviews are published than "Reviews before an average" |
+| No Help & feedback button | It's only in the app, for signed-in accounts: not on the public site, the sign-in screens, the Admin Center or the demo |
+| "Crash reports aren't set up" on an error screen, or an empty Crash reports view | The `20261212120000_help_feedback.sql` migration hasn't run, or `SUPABASE_SERVICE_ROLE_KEY` isn't set on the server |
 | A student isn't invited to review | They don't meet the rule yet, already wrote one, said Later in the last 14 days or No thanks, or invitations are off |
 | A badge is missing from a review | The author's records don't support it: badges are worked out when a moderator publishes the review |

@@ -6,7 +6,7 @@
    SQL runs in the SQL Editor), the database sends one small message
    through Supabase Realtime, and every open screen showing that thing
    reloads it by itself. The triggers and the channel policies are in
-   supabase/migrations/20261212120000_live_everywhere.sql.
+   supabase/migrations/20261213120000_live_everywhere.sql.
 
    A message names only the areas that changed (and, for synced data,
    the new version): never content and never another account's id. Each
@@ -108,6 +108,9 @@ export function adminAreasFor(path: string): LiveArea[] {
     case "feedback":
       // Each item's linked update, and the list of updates to link to.
       return ["feedback", "changelog"];
+    case "crashes":
+      // Crash reports, shown in the Feedback Center.
+      return ["feedback"];
     case "announcements":
       // The defaults a new one starts with are settings.
       return ["announcements", "settings"];

@@ -21,6 +21,8 @@ import {
   parseChangelog,
   parseChangelogAction,
   parseFeedbackPatch,
+  parseCrashAction,
+  parseCrashQuery,
   parseFeedbackQuery,
   parseModeration,
   parseNote,
@@ -210,6 +212,32 @@ export const ADMIN_ROUTES: AdminRoute[] = [
       });
       ctx.deps.revalidate([PUBLIC_TAGS.testimonials]);
       return out;
+    },
+  },
+
+  /* ── crash reports (in the Feedback Center) ── */
+  {
+    method: "GET",
+    path: "crashes",
+    permission: "feedback.manage",
+    run: (ctx) => {
+      const q = take(parseCrashQuery(ctx.query));
+      return ctx.deps.rpc("platform_admin_list_crashes", { ...actorArgs(ctx), p_status: q.status, p_limit: q.limit, p_offset: q.offset });
+    },
+  },
+  {
+    method: "GET",
+    path: "crashes/:id",
+    permission: "feedback.manage",
+    run: (ctx) => ctx.deps.rpc("platform_admin_get_crash", { ...actorArgs(ctx), p_id: ctx.params.id }),
+  },
+  {
+    method: "POST",
+    path: "crashes/:id/action",
+    permission: "feedback.manage",
+    run: (ctx) => {
+      const a = take(parseCrashAction(ctx.body));
+      return ctx.deps.rpc("platform_admin_crash_action", { ...actorArgs(ctx), p_id: ctx.params.id, p_action: a.action });
     },
   },
 

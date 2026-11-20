@@ -5,7 +5,8 @@ import { join } from "node:path";
 import { ADMIN_TOPIC, LIVE_AREAS, PLATFORM_TOPIC, accountTopic, adminAreasFor, liveAreasOf, liveVersionOf } from "@/lib/platform/live";
 import { ADMIN_ROUTES } from "@/lib/platform/server/admin-api";
 
-const migration = readFileSync(join(process.cwd(), "supabase/migrations/20261212120000_live_everywhere.sql"), "utf8");
+// Doubled quotes (SQL inside an execute string) read as plain ones.
+const migration = readFileSync(join(process.cwd(), "supabase/migrations/20261213120000_live_everywhere.sql"), "utf8").replace(/''/g, "'");
 
 test("a message is read for area names and a version only", () => {
   assert.deepEqual(liveAreasOf({ areas: ["reviews", "users"] }), ["reviews", "users"]);

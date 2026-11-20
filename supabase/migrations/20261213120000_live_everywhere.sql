@@ -227,6 +227,17 @@ drop trigger if exists platform_live_feedback_notes on public.platform_feedback_
 create trigger platform_live_feedback_notes after insert or update or delete on public.platform_feedback_notes
   for each row execute function public.platform_live_notify('platform-admin-updates', 'feedback,users');
 
+-- Crash reports: the Feedback Center (supabase/migrations/20261212120000_help_feedback.sql).
+do $$
+begin
+  if to_regclass('public.platform_crash_reports') is not null then
+    execute 'drop trigger if exists platform_live_crashes on public.platform_crash_reports';
+    execute 'create trigger platform_live_crashes after insert or update or delete on public.platform_crash_reports
+               for each row execute function public.platform_live_notify(''platform-admin-updates'', ''feedback'')';
+  end if;
+end
+$$;
+
 -- Announcements: every change for the Admin Center; for students, only what
 -- touches a published one (drafts are nobody's business but the team's).
 drop trigger if exists platform_live_announcements on public.platform_announcements;

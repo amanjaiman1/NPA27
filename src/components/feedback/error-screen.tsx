@@ -16,7 +16,7 @@ type Failure = Error & { digest?: string };
 const AUTO_LINE: Partial<Record<SendResult | "sending", string>> = {
   sending: "Sending a crash report…",
   sent: "A crash report went to the team: the error and this page's address, nothing you wrote.",
-  off: "Crash reports are switched off in Settings, so nothing was sent on its own.",
+  off: "Crash reports are switched off in Help & feedback, so nothing was sent on its own.",
   ask: "Send the team a crash report? It holds the error and this page's address, nothing you wrote.",
   unavailable: "Crash reports aren't set up on this server, so nothing was sent.",
   failed: "The crash report couldn't be sent.",

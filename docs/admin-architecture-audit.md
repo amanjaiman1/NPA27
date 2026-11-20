@@ -253,7 +253,11 @@ the app's account deletion also clears the account's screenshots.
   `platform_submit_feedback`) and, if email is configured, also emails the
   team as before. Authors see their items' status and the team's response;
   private notes stay in their own table. At most 10 submissions a day per
-  account, enforced in the database.
+  account, enforced in the database. *Since then
+  (`20261212120000_help_feedback.sql`):* Help & feedback moved out of
+  Settings to a button at the bottom right of the app, nothing is emailed,
+  feedback no longer carries an email address, and crash reports are stored
+  for the team under Feedback → Crash reports instead of being emailed.
 - **Announcements**: published now or scheduled, optional end date, archived
   when done. The app fetches them once when it opens, again when it returns
   to the foreground after 15 minutes, and again when the team changes them:
@@ -387,6 +391,7 @@ Known limits, by design or by platform:
   page links to it.
 - Database size, egress and quota appear only in the Supabase dashboard.
 - Email delivery of feedback (Resend) can't be exercised against the mock;
-  without Resend the Feedback Center still receives everything.
+  without Resend the Feedback Center still receives everything. (Email was
+  later removed altogether; see the note in section 7.)
 - The menu's Admin Center link is checked at most every five minutes per
   tab; `/admin` itself always checks on the server.

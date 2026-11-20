@@ -12,6 +12,7 @@
  *     npm run test:e2e:admin              # builds against the mock, then runs
  *     npm run test:e2e:admin -- --no-build
  *     npm run test:e2e:admin -- --no-build --trust-only   # the review form and the demo only
+ *     npm run test:e2e:admin -- --no-build --help-only    # Help & feedback and crash reports only
  *
  * Everything here is local and thrown away at the end. The build points at
  * the mock, so run `npm run build` again before using the app for real.
@@ -43,6 +44,9 @@ const ENTRY_TITLE = `Faster mocks on phones ${RUN}`;
 const ENTRY_SLUG = `faster-mocks-on-phones-${RUN}`;
 const SUPPORT = `help-${RUN}@doordie.example`;
 const STORY_MARK = `STORY-${RUN}`;
+const CRASH_MARK = `CRASH-${RUN}`;
+const HELP_MARK = `HELP-${RUN}`;
+const HELP_REPLY = `Thanks, the timer is fixed in today's update (${RUN}).`;
 const EDIT_MARK = `EDITED-${RUN}`;
 
 const mockEnv = Object.fromEntries(
@@ -436,7 +440,7 @@ async function apiScenarios(people) {
 
     const list = data(await api(admin.token, "GET", "/api/admin/feedback"));
     const item = list.items.find((f) => f.id === id);
-    check(item && item.email === null && item.shareEmail === false, "the email stays hidden when not shared");
+    check(item && !("email" in item) && !("shareEmail" in item), `the Feedback Center never shows an email address: ${JSON.stringify(item)}`);
     const detail = data(await api(admin.token, "GET", `/api/admin/feedback/${id}`));
     check(detail.screenshotUrl && detail.context.screen === "390×844", "the team sees the screenshot and the details shared");
     const shot = await fetch(new URL(detail.screenshotUrl, MOCK));
@@ -921,11 +925,18 @@ async function browserScenarios(browser, people) {
     await page.getByText("They open in half the time.").waitFor();
     await notCrashed(page, "the Announcements page");
     await page.screenshot({ path: join(SHOTS, "student-announcements.png") });
-    // The team's answer is in Settings, under Help & feedback.
-    await page.goto(`${APP}/settings#feedback`);
-    await page.getByText("Fixed in the next update. Thank you!").waitFor();
+    // The team's answer is in Help & feedback, behind the button at the bottom right.
+    await page.getByRole("button", { name: /^Help & feedback/ }).click();
+    const help = page.getByRole("dialog", { name: "Help & feedback" });
+    await help.getByRole("button", { name: /^Your messages/ }).click();
+    await help.getByText("Fixed in the next update. Thank you!").waitFor();
+    await page.keyboard.press("Escape");
+    await help.waitFor({ state: "detached" });
+    // Settings no longer has a Help & feedback section.
+    await page.goto(`${APP}/settings`);
     await page.getByRole("heading", { name: "Review DoOrDie" }).waitFor();
     await page.getByRole("button", { name: "Write a review" }).waitFor();
+    check(!(await page.getByRole("heading", { name: "Help & feedback" }).count()), "Settings still has a Help & feedback section");
     await notCrashed(page, "Settings");
     await page.screenshot({ path: join(SHOTS, "student-settings.png"), fullPage: true });
     await page.close();
@@ -1165,6 +1176,143 @@ async function trustBrowserScenarios(browser, people) {
   });
 }
 
+/* ── Help & feedback ───────────────────────────────────────────── */
+
+async function helpScenarios(browser, people) {
+  const { owner, mod, s1, s4 } = people;
+  mkdirSync(SHOTS, { recursive: true });
+
+  await scenario("23. Crash reports reach the Admin Center's Feedback Center, grouped and counted, never emailed, with nothing about the person", async () => {
+    const report = (extra = {}, opts) =>
+      api(null, "POST", "/api/report", { kind: "crash", message: `TypeError: ${CRASH_MARK} is undefined`, source: "render", page: "/mocks?id=1", userAgent: "e2e", signedIn: true, online: true, ...extra }, opts);
+    check((await report()).status === 200, "a crash report is accepted");
+    check((await report({ note: "I pressed Save twice.", email: s1.email, userId: s1.id })).status === 200, "one with a note");
+    check((await report({}, { origin: "https://evil.example" })).status === 403, "one from another site is refused");
+    const old = await api(null, "POST", "/api/report", { kind: "feedback", topic: "bug", message: "Saving a mock fails", includeEmail: true });
+    check(old.status === 400 && /Help & feedback/.test(old.body?.error ?? ""), `messages don't go this way: ${JSON.stringify(old.body)}`);
+
+    const list = data(await api(owner.token, "GET", "/api/admin/crashes?status=new"));
+    const item = list.items.find((c) => c.message.includes(CRASH_MARK));
+    check(item && item.reports === 2 && item.page === "/mocks" && item.noteCount === 1 && list.counts.new >= 1, `grouped and counted: ${JSON.stringify(item)}`);
+    const detail = data(await api(owner.token, "GET", `/api/admin/crashes/${item.id}`));
+    check(detail.notes[0]?.text === "I pressed Save twice.", "the note is kept with it");
+    check(!JSON.stringify(detail).includes(s1.email) && !JSON.stringify(detail).includes(s1.id), "nothing about the person is kept");
+
+    check((await api(mod.token, "GET", "/api/admin/crashes")).status === 403, "a Moderator without feedback can't see them");
+    check((await api(s1.token, "GET", "/api/admin/crashes")).status === 403, "nor can a student");
+    check((await rpcAs(s1.token, "platform_record_crash", { p_report: { message: "forged" } })).status >= 400, "a browser can't record one directly");
+    check((await rpcAs(null, "platform_admin_list_crashes", { p_actor: owner.id })).status >= 400, "nor read them");
+
+    check(data(await api(owner.token, "POST", `/api/admin/crashes/${item.id}/action`, { action: "resolve" })).status === "resolved", "resolving");
+    check((await report()).status === 200, "it happens again");
+    check(data(await api(owner.token, "GET", `/api/admin/crashes/${item.id}`)).status === "new", "and is new again");
+    const log = await auditRows(`target_type = 'crash' and target_id = '${item.id}'`);
+    check(log.map((e) => e.action).join(",") === "crash.resolved" && log[0].actor_id === owner.id, `resolving is audited: ${log.map((e) => e.action)}`);
+  });
+
+  await scenario("24. Help & feedback: a round button for signed-in students only, and a message goes straight to the Feedback Center", async () => {
+    // Not for visitors, on the public site or in the demo.
+    const visitor = await (await browser.newContext()).newPage();
+    for (const path of ["/", "/reviews", "/login"]) {
+      // Not "networkidle": the home page's film keeps streaming.
+      await visitor.goto(`${APP}${path}`, { waitUntil: "load" });
+      await visitor.waitForTimeout(1_500);
+      check(!(await visitor.getByTestId("help-feedback-button").count()), `a visitor gets the button on ${path}`);
+    }
+    await visitor.goto(`${APP}/demo`);
+    await visitor.getByRole("button", { name: "Start the demo" }).first().click();
+    await visitor.waitForURL(`${APP}/dashboard`);
+    await visitor.getByRole("button", { name: "Account: Meera. Demo." }).waitFor();
+    await visitor.waitForTimeout(1_500);
+    check(!(await visitor.getByTestId("help-feedback-button").count()), "the demo has the button");
+    await visitor.close();
+
+    // A signed-in student on a phone: the button sits above the dock.
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
+    const page = await ctx.newPage();
+    await signInUi(page, s4.email, "/dashboard");
+    await page.waitForURL(`${APP}/dashboard`);
+    await intoApp(page, s4);
+    const button = page.getByTestId("help-feedback-button");
+    await button.waitFor();
+    await page.waitForTimeout(800);
+    const [b, dock] = [await button.boundingBox(), await page.getByRole("navigation", { name: "Quick access" }).boundingBox()];
+    check(b && dock && b.y + b.height <= dock.y && b.x + b.width <= 390, `the button overlaps the dock: ${JSON.stringify({ b, dock })}`);
+    await page.goto(`${APP}/journal`);
+    await button.waitFor();
+
+    await button.click();
+    const help = page.getByRole("dialog", { name: "Help & feedback" });
+    await help.waitFor();
+    check(!(await help.getByText(/Include my email/i).count()) && !(await help.getByText(s4.email).count()), "the form offers no email");
+    const crashSwitch = help.getByRole("switch", { name: "Send crash reports automatically" });
+    check((await crashSwitch.getAttribute("aria-checked")) === "true", "crash reports start on, in the same panel");
+    await help.getByRole("button", { name: "Bug report" }).click();
+    await help.getByLabel("Your message").fill(`${HELP_MARK}: the timer on Mocks resets when I switch tabs.`);
+    // Closing keeps the draft.
+    await page.keyboard.press("Escape");
+    await help.waitFor({ state: "detached" });
+    await button.click();
+    await help.waitFor();
+    check((await help.getByLabel("Your message").inputValue()).startsWith(HELP_MARK), "the draft is kept while it's closed");
+    await page.screenshot({ path: join(SHOTS, "help-phone-form.png") });
+    await help.getByRole("button", { name: "Send to the team" }).click();
+    await help.getByText("Sent to the team").waitFor();
+    await page.screenshot({ path: join(SHOTS, "help-phone-sent.png") });
+
+    // In the Feedback Center at once, as the account, with no email.
+    const fc = data(await api(owner.token, "GET", "/api/admin/feedback?status=all"));
+    const mine = fc.items.find((f) => f.message.startsWith(HELP_MARK));
+    check(mine && mine.category === "bug" && mine.userId === s4.id && !("email" in mine) && mine.status === "new", `in the Feedback Center: ${JSON.stringify(mine)}`);
+    await help.getByRole("button", { name: "See your messages" }).click();
+    await help.getByText(`${HELP_MARK}: the timer`, { exact: false }).waitFor();
+    await page.keyboard.press("Escape");
+    await help.waitFor({ state: "detached" });
+
+    // The team answers in the Admin Center; the open app shows it on the button, and the panel opens on it.
+    check((await api(owner.token, "PUT", `/api/admin/feedback/${mine.id}/response`, { response: HELP_REPLY })).status === 200, "answering");
+    const answered = page.getByRole("button", { name: /^Help & feedback: the team answered/ });
+    await answered.waitFor({ timeout: 15_000 });
+    await answered.click();
+    await help.getByText(HELP_REPLY).waitFor();
+    await waitFor("the answer marked as read", async () => (await rpcAs(s4.token, "platform_my_announcements")).body.unseenResponses === 0);
+    await page.keyboard.press("Escape");
+    await ctx.close();
+
+    // A laptop: the panel opens in the corner, above the button, which turns into its close button.
+    const wide = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+    const lap = await wide.newPage();
+    await signInUi(lap, s4.email, "/dashboard");
+    await lap.waitForURL(`${APP}/dashboard`);
+    await intoApp(lap, s4);
+    const fab = lap.getByTestId("help-feedback-button");
+    await fab.click();
+    const panel = lap.getByRole("dialog", { name: "Help & feedback" });
+    await panel.waitFor();
+    await lap.waitForTimeout(400);
+    const [p2, f2] = [await panel.boundingBox(), await fab.boundingBox()];
+    check(p2 && f2 && p2.x + p2.width > 1440 - 60 && p2.y + p2.height <= f2.y + 1, `the panel isn't above the button: ${JSON.stringify({ p2, f2 })}`);
+    await lap.screenshot({ path: join(SHOTS, "help-laptop.png") });
+    check((await fab.getAttribute("aria-label")) === "Close Help & feedback", "the button closes it");
+    await fab.click();
+    await panel.waitFor({ state: "detached" });
+    await wide.close();
+
+    // The Admin Center has no button; its Feedback page has the message and the crash reports.
+    const adminPage = await (await browser.newContext({ viewport: { width: 1440, height: 900 } })).newPage();
+    await signInUi(adminPage, owner.email);
+    await adminPage.getByRole("heading", { name: "Overview", level: 1 }).waitFor();
+    await adminPage.goto(`${APP}/admin/feedback`);
+    await adminPage.getByRole("heading", { name: "Feedback", level: 1 }).waitFor();
+    await adminPage.getByRole("button", { name: /^All/ }).click();
+    await adminPage.getByText(`${HELP_MARK}: the timer`, { exact: false }).first().waitFor();
+    await adminPage.getByRole("button", { name: /^Crash reports/ }).click();
+    await adminPage.getByText(CRASH_MARK, { exact: false }).first().click();
+    await adminPage.getByRole("dialog", { name: "Crash report" }).getByText("I pressed Save twice.").waitFor();
+    await adminPage.screenshot({ path: join(SHOTS, "admin-crash-report.png") });
+    check(!(await adminPage.getByTestId("help-feedback-button").count()), "the Admin Center has the button");
+    await adminPage.close();
+
 /* ── live updates ──────────────────────────────────────────────── */
 
 /** Whether a browser has joined `topic` on the mock's Realtime. */
@@ -1175,7 +1323,7 @@ async function liveBrowserScenarios(browser, people) {
   const { owner, admin } = people;
   const s7 = { name: "Student Seven", email: "student.seven@example.com" };
 
-  await scenario("23. The Admin Center updates by itself: a new account, a student's review and feedback, other administrators' changes, settings and the audit log", async () => {
+  await scenario("25. The Admin Center updates by itself: a new account, a student's review and feedback, other administrators' changes, settings and the audit log", async () => {
     const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
     const page = await ctx.newPage();
     let loads = 0;
@@ -1282,13 +1430,20 @@ async function main() {
       s5: await signUpApi("Student Five", "student.five@example.com"),
       s6: await signUpApi("Student Six", "student.six@example.com"),
     };
-    if (process.argv.includes("--trust-only")) {
+    if (process.argv.includes("--help-only")) {
       check((await sql(bootstrapSql(people.owner.id))).ok, "the owner's role");
-      await giveUsage(people.s6);
+      check((await api(people.owner.token, "POST", "/api/admin/access", { email: people.mod.email, role: "moderator" })).status === 200, "the Moderator's role");
     } else {
-      await apiScenarios(people);
-      await browserScenarios(browser, people);
+      if (process.argv.includes("--trust-only")) {
+        check((await sql(bootstrapSql(people.owner.id))).ok, "the owner's role");
+        await giveUsage(people.s6);
+      } else {
+        await apiScenarios(people);
+        await browserScenarios(browser, people);
+      }
+      await trustBrowserScenarios(browser, people);
     }
+    await helpScenarios(browser, people);
     await trustBrowserScenarios(browser, people);
     if (!process.argv.includes("--trust-only")) await liveBrowserScenarios(browser, people);
     console.log(`\nAll ${passed} scenarios passed. Screenshots: ${SHOTS}`);
