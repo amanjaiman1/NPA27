@@ -213,7 +213,7 @@ export function JournalDayView() {
       {/* Top nav */}
       <div className="flex items-center justify-between">
         <Link
-          href="/journal"
+          href="/journal/history"
           className="inline-flex items-center gap-2 text-sm text-paper/50 transition-colors hover:text-paper"
         >
           <ArrowLeft className="h-4 w-4" /> Journal
@@ -287,7 +287,7 @@ export function JournalDayView() {
                   })
                 ) {
                   deleteJournal(entry.date);
-                  router.push("/journal");
+                  router.push("/journal/history");
                 }
               }}
             >

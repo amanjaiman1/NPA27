@@ -255,9 +255,16 @@ interface ChronicleState extends ChronicleData {
   deleteGoal: (id: string) => void;
   setGoalStatus: (id: string, status: GoalStatus) => void;
   /** A hand-tracked goal's new number, kept in its history. */
-  logGoalProgress: (id: string, value: number, note?: string) => void;
-  toggleGoalMilestone: (goalId: string, milestoneId: string) => void;
-  addGoalNote: (goalId: string, text: string) => void;
+  /**
+   * Records a hand-tracked goal's total for a day (today when `date` is
+   * omitted). One reading per day: a second update for the same day replaces
+   * it. The goal's figure follows its latest reading, so a reading for an
+   * earlier day goes into the history without moving it.
+   */
+  logGoalProgress: (id: string, value: number, note?: string, date?: ISODate) => void;
+  /** Ticks a milestone (done on `date`, today when omitted), or unticks it. */
+  toggleGoalMilestone: (goalId: string, milestoneId: string, date?: ISODate) => void;
+  addGoalNote: (goalId: string, text: string, date?: ISODate) => void;
   deleteGoalNote: (goalId: string, noteId: string) => void;
   setGoalJournalDates: (goalId: string, dates: ISODate[]) => void;
 
@@ -1147,23 +1154,26 @@ export const useChronicle = create<ChronicleState>()(
         if (g && g.status !== status) get().upsertGoal({ ...g, status });
       },
 
-      logGoalProgress: (id, value, note) =>
+      logGoalProgress: (id, value, note, day) =>
         set((s) => ({
           goals: s.goals.map((g) => {
             if (g.id !== id) return g;
-            const date = toISODate(new Date());
+            const date = day ?? toISODate(new Date());
             const clean = Math.max(0, Math.round(value * 100) / 100);
             const log = [...(g.progressLog ?? [])];
             // One reading per day: a second update the same day replaces the first.
-            const today = log.findIndex((p) => p.date === date);
-            const entry = { id: today >= 0 ? log[today].id : uid("gp"), date, value: clean, ...(note?.trim() ? { note: note.trim() } : {}) };
-            if (today >= 0) log[today] = entry;
+            const same = log.findIndex((p) => p.date === date);
+            const entry = { id: same >= 0 ? log[same].id : uid("gp"), date, value: clean, ...(note?.trim() ? { note: note.trim() } : {}) };
+            if (same >= 0) log[same] = entry;
             else log.push(entry);
-            return { ...g, current: clean, progressLog: log.slice(-200) };
+            log.sort((a, b) => a.date.localeCompare(b.date));
+            const kept = log.slice(-200);
+            // The figure is the latest reading; an earlier day's only adds history.
+            return { ...g, current: kept[kept.length - 1].value, progressLog: kept };
           }),
         })),
 
-      toggleGoalMilestone: (goalId, milestoneId) =>
+      toggleGoalMilestone: (goalId, milestoneId, date) =>
         set((s) => ({
           goals: s.goals.map((g) =>
             g.id !== goalId
@@ -1177,13 +1187,13 @@ export const useChronicle = create<ChronicleState>()(
                       delete open.doneOn;
                       return open;
                     }
-                    return { ...m, doneOn: toISODate(new Date()) };
+                    return { ...m, doneOn: date ?? toISODate(new Date()) };
                   }),
                 },
           ),
         })),
 
-      addGoalNote: (goalId, text) => {
+      addGoalNote: (goalId, text, date) => {
         const clean = text.trim();
         if (!clean) return;
         set((s) => ({
@@ -1192,7 +1202,7 @@ export const useChronicle = create<ChronicleState>()(
               ? g
               : {
                   ...g,
-                  notes: [...(g.notes ?? []), { id: uid("gn"), date: toISODate(new Date()), text: clean.slice(0, 2000) }],
+                  notes: [...(g.notes ?? []), { id: uid("gn"), date: date ?? toISODate(new Date()), text: clean.slice(0, 2000) }],
                 },
           ),
         }));
