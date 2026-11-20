@@ -10,7 +10,7 @@ import { Analytics } from "@/components/marketing/analytics";
 import { leaveDemo } from "@/lib/demo/mode";
 
 /** Pages that must stay reachable while a session exists. */
-const SIGNED_IN_OK = new Set(["/reset-password", "/auth/callback"]);
+const SIGNED_IN_OK = new Set(["/reset-password", "/auth/callback", "/auth/verify"]);
 
 /**
  * Welcome, sign-in, sign-up and password screens. A signed-in visitor is sent
