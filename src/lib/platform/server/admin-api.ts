@@ -80,6 +80,24 @@ function take<T>(parsed: Parsed<T>): T {
 
 const actorArgs = (ctx: Ctx) => ({ p_actor: ctx.actor.userId });
 
+/** Adds "Last active" (supabase/migrations/20261214120000_last_active.sql) to accounts.
+ *  Best effort: if the lookup fails, say before that migration has run, the accounts
+ *  still load, with lastActiveAt null. */
+async function withLastActive<U extends { id: string }>(ctx: Ctx, users: U[]) {
+  let times: Partial<Record<string, string>> | null = null;
+  if (users.length) {
+    try {
+      times = await ctx.deps.rpc<Partial<Record<string, string>> | null>("platform_admin_last_active", {
+        ...actorArgs(ctx),
+        p_users: users.map((u) => u.id),
+      });
+    } catch {
+      times = null;
+    }
+  }
+  return users.map((u) => ({ ...u, lastActiveAt: times?.[u.id] ?? null }));
+}
+
 export const ADMIN_ROUTES: AdminRoute[] = [
   {
     method: "GET",
@@ -99,22 +117,29 @@ export const ADMIN_ROUTES: AdminRoute[] = [
     method: "GET",
     path: "users",
     permission: "users.read",
-    run: (ctx) => {
+    run: async (ctx) => {
       const q = take(parseUserQuery(ctx.query));
-      return ctx.deps.rpc("platform_admin_list_users", {
+      const page = await ctx.deps.rpc<{ items?: { id: string }[] } | null>("platform_admin_list_users", {
         ...actorArgs(ctx),
         p_search: q.search,
         p_filter: q.filter,
         p_limit: q.limit,
         p_offset: q.offset,
       });
+      return page?.items ? { ...page, items: await withLastActive(ctx, page.items) } : page;
     },
   },
   {
     method: "GET",
     path: "users/:id",
     permission: "users.read",
-    run: (ctx) => ctx.deps.rpc("platform_admin_get_user", { ...actorArgs(ctx), p_user: ctx.params.id }),
+    run: async (ctx) => {
+      const user = await ctx.deps.rpc<{ id: string } | null>("platform_admin_get_user", {
+        ...actorArgs(ctx),
+        p_user: ctx.params.id,
+      });
+      return user?.id ? (await withLastActive(ctx, [user]))[0] : user;
+    },
   },
   {
     method: "POST",

@@ -20,6 +20,9 @@ export interface AccountBrief {
   email: string;
   createdAt: string;
   lastSignInAt: string | null;
+  /** When the account last used the app, to about 5 minutes. Null if it hasn't since
+   *  the last_active migration ran, or if the lookup failed. */
+  lastActiveAt?: string | null;
   emailConfirmedAt: string | null;
   bannedUntil: string | null;
   suspended: boolean;
