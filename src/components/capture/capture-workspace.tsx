@@ -76,6 +76,8 @@ interface SectionView {
   state: SectionState;
   /** The tab's figure: "3h 30m", "5/9", "2", "1/4". */
   badge: string;
+  /** 0–1, from the records: hours against the target, readings, goals touched, habits done. */
+  progress: number;
   text: string;
   /** Counts towards the day's capture; null when the section has nothing to do. */
   done: boolean | null;
@@ -346,6 +348,8 @@ export function CaptureWorkspace({
   /* ── how far the day has got, from the records ──────────────── */
 
   const tracked = useMemo(() => trackedFields(profile.lifeFields, lifeLog), [profile.lifeFields, lifeLog]);
+  const target = profile.dailyHourTarget;
+  const liveHours = useMemo(() => blocks.reduce((a, b) => a + (Number(b.hours) || 0), 0), [blocks]);
   const views = useMemo<Record<CaptureSection, SectionView>>(() => {
     const failed = (s: CaptureSection) => Boolean(outcome?.results[s] && !outcome.results[s]!.ok);
     const lead = (s: CaptureSection, text: string) => (failed(s) && dirty[s] ? `Not saved · ${text}` : dirty[s] ? `Unsaved · ${text}` : text);
@@ -355,6 +359,7 @@ export function CaptureWorkspace({
     const day: SectionView = {
       state: editing("day") ?? (savedEntry ? "complete" : "empty"),
       badge: dirty.day ? "Edited" : savedEntry ? (hours ?? "Saved") : "New",
+      progress: target > 0 ? Math.min(1, liveHours / target) : savedEntry ? 1 : 0,
       text: dirty.day ? lead("day", savedEntry ? "edited" : "new entry") : savedEntry ? (hours ? `Saved · ${hours}` : "Saved") : "Not started",
       done: Boolean(savedEntry) && !dirty.day,
     };
@@ -363,6 +368,7 @@ export function CaptureWorkspace({
     const life: SectionView = {
       state: editing("life") ?? (lifeEd.saved ? "complete" : "empty"),
       badge: `${recorded}/${tracked.length}`,
+      progress: tracked.length ? recorded / tracked.length : 0,
       text: lead("life", `${recorded}/${tracked.length} recorded`),
       done: Boolean(lifeEd.saved) && !dirty.life,
     };
@@ -370,28 +376,31 @@ export function CaptureWorkspace({
     const active = goals.filter((g) => g.status === "Active").length;
     const updated = goals.filter((g) => goalUpdatedOn(g, date)).length;
     const pending = new Set([...goalIdsChanged, ...linkDiff.map((g) => g.id)]).size;
+    const touched = new Set([...goals.filter((g) => goalUpdatedOn(g, date)).map((g) => g.id), ...goalIdsChanged, ...linkDiff.map((g) => g.id)]).size;
     const goalsView: SectionView =
       !dirty.goals && !active && !updated
-        ? { state: "na", badge: "–", text: "No active goals", done: null }
+        ? { state: "na", badge: "–", progress: 0, text: "No active goals", done: null }
         : {
             state: editing("goals") ?? (updated ? "complete" : "empty"),
             badge: dirty.goals ? `${pending}` : `${updated}`,
+            progress: active ? Math.min(1, touched / active) : 1,
             text: dirty.goals ? lead("goals", `${pending} to save`) : updated ? `${updated} updated` : "None updated",
             done: updated > 0 && !dirty.goals,
           };
 
     const { due, done } = habitSummary;
     const habit: SectionView = !due
-      ? { state: editing("habit") ?? "na", badge: "–", text: lead("habit", "Nothing due"), done: null }
+      ? { state: editing("habit") ?? "na", badge: "–", progress: 0, text: lead("habit", "Nothing due"), done: null }
       : {
           state: editing("habit") ?? (done === due ? "complete" : done ? "progress" : "empty"),
           badge: `${done}/${due}`,
+          progress: done / due,
           text: lead("habit", `${done}/${due} done`),
           done: done === due && !dirty.habit,
         };
     return { day, life, goals: goalsView, habit };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [outcome, dirty.day, dirty.life, dirty.goals, dirty.habit, savedEntry, lifeEd.entry, lifeEd.saved, tracked, goals, date, goalIdsChanged, linkDiff, habitSummary]);
+  }, [outcome, dirty.day, dirty.life, dirty.goals, dirty.habit, savedEntry, lifeEd.entry, lifeEd.saved, tracked, goals, date, goalIdsChanged, linkDiff, habitSummary, liveHours, target]);
 
   const applicable = SECTIONS.filter((s) => views[s.id].done !== null).length;
   const captured = SECTIONS.filter((s) => views[s.id].done === true).length;
@@ -666,7 +675,7 @@ export function CaptureWorkspace({
   const footer = (
     <>
       <p className="mr-auto hidden min-w-0 truncate text-[0.76rem] text-paper/55 sm:block">
-        {saving ? "Saving…" : anyDirty ? `Unsaved: ${unsavedNames.join(", ")}` : "Ctrl + S saves all tabs"}
+        {saving ? "Saving…" : anyDirty ? `Unsaved: ${unsavedNames.join(", ")}` : "Keys 1–4 switch tabs · Ctrl + S saves"}
       </p>
       {anyDirty && (
         <Button variant="ghost" onClick={() => void discardAll()} disabled={saving} className="hidden sm:inline-flex">
@@ -739,7 +748,7 @@ export function CaptureWorkspace({
           )}
 
           {/* The tabs stay in view while the form scrolls. */}
-          <div className="sticky top-0 z-10 -mx-5 bg-card px-5 pb-2 pt-1">
+          <div className="sticky top-0 z-10 -mx-5 border-b border-line bg-card px-5 pb-3 pt-1">
             <CaptureTabs section={section} onSelect={selectSection} views={views} />
           </div>
 
@@ -939,6 +948,52 @@ function WeekStrip({
   );
 }
 
+const RING: Record<SectionState, string> = {
+  empty: "text-paper/25",
+  progress: "text-warning",
+  complete: "text-positive",
+  unsaved: "text-accent",
+  error: "text-danger",
+  na: "text-paper/20",
+};
+
+/** A tab's icon inside a ring that fills with the section's progress, and a mark for its state. */
+function ProgressRing({ value, state, children }: { value: number; state: SectionState; children: React.ReactNode }) {
+  const r = 17;
+  const c = 2 * Math.PI * r;
+  const v = Math.max(0, Math.min(1, value));
+  return (
+    <span className="relative grid h-11 w-11 shrink-0 place-items-center">
+      <svg viewBox="0 0 40 40" className="absolute inset-0 h-full w-full -rotate-90" aria-hidden>
+        <circle cx="20" cy="20" r={r} fill="none" strokeWidth="3" className="stroke-paper/10" />
+        <motion.circle
+          cx="20"
+          cy="20"
+          r={r}
+          fill="none"
+          strokeWidth="3"
+          strokeLinecap="round"
+          stroke="currentColor"
+          strokeDasharray={c}
+          className={cn("transition-colors duration-300", RING[state])}
+          initial={false}
+          animate={{ strokeDashoffset: c * (1 - v) }}
+          transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+        />
+      </svg>
+      {children}
+      {state === "complete" && (
+        <span className="absolute -bottom-0.5 -right-0.5 grid h-[1.05rem] w-[1.05rem] place-items-center rounded-full bg-card text-positive shadow-soft ring-1 ring-positive/40" aria-hidden>
+          <Check className="h-2.5 w-2.5" strokeWidth={3.2} />
+        </span>
+      )}
+      {(state === "unsaved" || state === "error") && (
+        <span className={cn("absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full ring-2 ring-card", state === "error" ? "bg-danger" : "bg-accent")} aria-hidden />
+      )}
+    </span>
+  );
+}
+
 function CaptureTabs({
   section,
   onSelect,
@@ -949,6 +1004,25 @@ function CaptureTabs({
   views: Record<CaptureSection, SectionView>;
 }) {
   const refs = useRef<Partial<Record<CaptureSection, HTMLButtonElement | null>>>({});
+  const list = useRef<HTMLDivElement>(null);
+
+  // 1–4 switch tabs, as long as you aren't typing and the key was pressed in this form.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey || e.altKey || e.repeat) return;
+      const t = e.target as HTMLElement | null;
+      if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+      const dialog = list.current?.closest('[role="dialog"]');
+      if (!dialog || !t || !(t === dialog || dialog.contains(t))) return;
+      const n = Number(e.key);
+      if (n >= 1 && n <= SECTIONS.length) {
+        e.preventDefault();
+        onSelect(SECTIONS[n - 1].id);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onSelect]);
 
   function onKeyDown(e: React.KeyboardEvent) {
     const i = SECTIONS.findIndex((s) => s.id === section);
@@ -961,8 +1035,14 @@ function CaptureTabs({
   }
 
   return (
-    <div role="tablist" aria-label="Daily Capture sections" onKeyDown={onKeyDown} className="lg-track grid grid-cols-4 gap-1 rounded-2xl border border-line p-1.5">
-      {SECTIONS.map((s) => {
+    <div
+      ref={list}
+      role="tablist"
+      aria-label="Daily Capture sections"
+      onKeyDown={onKeyDown}
+      className="grid grid-cols-4 gap-1 rounded-2xl border border-line bg-paper/[0.025] p-1"
+    >
+      {SECTIONS.map((s, i) => {
         const active = section === s.id;
         const v = views[s.id];
         const Icon = s.icon;
@@ -977,27 +1057,56 @@ function CaptureTabs({
             id={`capture-tab-${s.id}`}
             aria-selected={active}
             aria-controls={`capture-panel-${s.id}`}
+            aria-keyshortcuts={String(i + 1)}
             tabIndex={active ? 0 : -1}
-            title={v.text}
+            title={`${s.label}: ${v.text} (key ${i + 1})`}
             onClick={() => onSelect(s.id)}
             className={cn(
-              "relative flex min-w-0 flex-col items-center gap-1 rounded-xl px-1 py-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/45 sm:flex-row sm:gap-2.5 sm:px-3.5 sm:py-3",
-              active ? "text-paper" : "text-paper/60 hover:text-paper",
+              "group relative flex min-w-0 flex-col items-center gap-1 rounded-xl px-1 pb-2.5 pt-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/45 sm:flex-row sm:gap-3 sm:px-3 sm:py-2.5",
+              active ? "text-paper" : "text-paper/60 hover:bg-paper/[0.04] hover:text-paper",
             )}
           >
             {active && (
               <motion.span
                 layoutId="capture-tab"
                 className="absolute inset-0 rounded-xl border border-line bg-card shadow-soft"
-                transition={{ type: "spring", bounce: 0.15, duration: 0.4 }}
+                transition={{ type: "spring", bounce: 0.14, duration: 0.45 }}
                 aria-hidden
               />
             )}
-            <Icon className={cn("relative h-[1.1rem] w-[1.1rem] shrink-0", active && "text-accent")} aria-hidden />
-            <span className="relative min-w-0 truncate text-[0.74rem] font-semibold sm:text-[0.88rem]">{s.label}</span>
-            <span className={cn("tabular relative rounded-full px-1.5 py-px text-[0.62rem] font-semibold sm:ml-auto sm:px-2 sm:text-[0.68rem]", BADGE[v.state])}>
-              {v.badge}
+            {active && (
+              <motion.span
+                layoutId="capture-tab-bar"
+                className="absolute inset-x-5 bottom-1 h-[3px] rounded-full bg-gradient-to-r from-accent/40 via-accent to-accent/40"
+                transition={{ type: "spring", bounce: 0.14, duration: 0.45 }}
+                aria-hidden
+              />
+            )}
+            <span className="relative">
+              <ProgressRing value={v.progress} state={v.state}>
+                <Icon
+                  className={cn("h-[1.05rem] w-[1.05rem] transition-transform duration-300", active ? "scale-110 text-accent" : "text-paper/55 group-hover:text-paper/80")}
+                  aria-hidden
+                />
+              </ProgressRing>
             </span>
+            <span className="relative flex min-w-0 flex-col items-center sm:flex-1 sm:items-start">
+              <span className="max-w-full truncate text-[0.72rem] font-semibold tracking-snugg sm:text-[0.9rem]">{s.label}</span>
+              <span className="mt-0.5 hidden max-w-full items-center gap-1.5 truncate text-[0.7rem] text-paper/55 sm:flex">
+                <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", DOT[v.state])} aria-hidden />
+                <span className="truncate">{v.text}</span>
+              </span>
+              <span className={cn("tabular mt-1 rounded-full px-1.5 py-px text-[0.6rem] font-semibold sm:hidden", BADGE[v.state])}>{v.badge}</span>
+            </span>
+            <kbd
+              className={cn(
+                "relative hidden h-5 min-w-[1.25rem] place-items-center rounded-md border px-1 font-sans text-[0.62rem] font-semibold lg:grid",
+                active ? "border-accent/35 text-accent" : "border-line text-paper/40",
+              )}
+              aria-hidden
+            >
+              {i + 1}
+            </kbd>
             <span className="sr-only">, {v.text}</span>
           </button>
         );
