@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Bug, Image as ImageIcon, Lock, MessageSquareText, Send, UserRound } from "lucide-react";
 import { Card } from "@/components/ui/card";
@@ -208,11 +208,23 @@ function FeedbackDialog({ id, onClose, onChanged }: { id: string | null; onClose
   const [reply, setReply] = useState("");
   const [busy, setBusy] = useState(false);
   const f = id && detail.data?.id === id ? detail.data : null;
+  /** The saved response the reply box last took, so a new one from elsewhere replaces it only if untouched. */
+  const savedReply = useRef<string | null>(null);
 
+  // A new item: fresh boxes.
   useEffect(() => {
-    setReply(f?.response ?? "");
+    savedReply.current = null;
+    setReply("");
     setNote("");
-  }, [f?.id, f?.response]);
+  }, [f?.id]);
+  // Its saved response changed (here, or by someone else while it's open): the reply box follows,
+  // unless an answer is being written in it. The private note box is never touched.
+  useEffect(() => {
+    if (!f) return;
+    const next = f.response ?? "";
+    setReply((r) => (savedReply.current === null || r === savedReply.current ? next : r));
+    savedReply.current = next;
+  }, [f]);
 
   async function run(label: string, call: () => Promise<FeedbackDetail | AdminFeedback>) {
     setBusy(true);

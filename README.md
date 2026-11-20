@@ -177,6 +177,11 @@ In the Supabase SQL Editor, run these files in order:
      crash reports are kept for the team in a new table, one row per distinct
      crash, readable only through the Admin Center's functions. Until it runs,
      crash reports aren't kept.
+   - `20261213120000_live_everywhere.sql`: every change reaches the screens that
+     show it, in the Admin Center and the app, through database triggers and
+     Supabase Realtime (sign-ups, suspensions and SQL Editor changes included).
+     Three private, receive-only channels; no new tables. Until it runs, pages
+     update when they open or come back.
 
 All of them are additive and safe to re-run: nothing is dropped or rewritten, and
 existing data keeps working. A SQL file in the repo does nothing until you run it.
@@ -349,7 +354,7 @@ matters, and it is driven by how often whole snapshots are downloaded:
 - The Admin Center and the app's announcements cost little: one small database
   call when the app opens (announcements, the in-app notice and unread answers to
   feedback together), again when a tab comes back after 15 minutes, and again
-  when the team changes one of them. That last one is a Realtime message with no
+  when anyone changes one of them. That last one is a Realtime message with no
   content: an app holds a Realtime connection only while it's on screen (the free
   plan allows 200 at once), so a tab in the background lets go after a minute.
   No polling. Public pages read published reviews and the changelog
@@ -383,6 +388,8 @@ Usage page stays comfortably inside the plan.
       (the review form, badges, the invitation and the public reviews pages).
 - [ ] Run `supabase/migrations/20261212120000_help_feedback.sql` in the SQL Editor
       (Help & feedback without email; crash reports in the Admin Center).
+- [ ] Run `supabase/migrations/20261213120000_live_everywhere.sql` in the SQL Editor,
+      after the others (everything, the Admin Center included, updates by itself).
 - [ ] Run `supabase/tests/rls_isolation.sql` and confirm `All isolation checks passed`.
 - [ ] Set Site URL and the two Redirect URLs in Authentication → URL Configuration.
 - [ ] Configure custom SMTP, or decide to run with "Confirm email" off.

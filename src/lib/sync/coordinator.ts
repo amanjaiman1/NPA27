@@ -21,13 +21,14 @@ type Message =
   | { type: "hello" }
   | { type: "flush"; id: string }
   | { type: "flushed"; id: string; ok: boolean }
-  | { type: "check" }
+  | { type: "check"; version?: number | null }
   | { type: "sync" };
 
 export interface Coordinator {
   role(): SyncRole;
   flush(timeoutMs?: number): Promise<boolean>;
-  checkRemote(): void;
+  /** Looks for another device's changes. `version`: what a live update says the cloud is at. */
+  checkRemote(hint?: { version?: number | null }): void;
   syncNow(): void;
   stop(): void;
 }
@@ -79,7 +80,7 @@ export function startCoordinator(o: CoordinatorOptions): Coordinator {
         if (m.type === "hello") post({ type: "state", state: engine.getState() });
         else if (m.type === "flush")
           void engine.flush().then((ok) => post({ type: "flushed", id: m.id, ok }));
-        else if (m.type === "check") void engine.checkRemote();
+        else if (m.type === "check") void engine.checkRemote({ version: m.version });
         else if (m.type === "sync") void engine.sync();
       } else if (role === "follower") {
         if (m.type === "state") o.onState(m.state);
@@ -129,9 +130,9 @@ export function startCoordinator(o: CoordinatorOptions): Coordinator {
         post({ type: "flush", id });
       });
     },
-    checkRemote() {
-      if (role === "leader") void engine?.checkRemote();
-      else post({ type: "check" });
+    checkRemote(hint) {
+      if (role === "leader") void engine?.checkRemote(hint);
+      else post({ type: "check", version: hint?.version ?? null });
     },
     syncNow() {
       if (role === "leader") void engine?.sync();

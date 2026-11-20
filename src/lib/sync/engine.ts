@@ -116,6 +116,8 @@ export class SyncEngine {
   private unsubscribe: (() => void) | null = null;
   private running: Promise<void> | null = null;
   private rerun = false;
+  /** A check for other devices' changes asked for while a sync was running. */
+  private recheck = false;
   private lastOk = false;
   private debounceTimer: unknown = null;
   private firstPendingAt: number | null = null;
@@ -183,13 +185,29 @@ export class SyncEngine {
       } while (this.rerun && !this.stopped);
     })().finally(() => {
       this.running = null;
+      if (this.recheck && !this.stopped) {
+        this.recheck = false;
+        void this.checkRemote();
+      }
     });
     return this.running.then(() => this.lastOk);
   }
 
-  /** Cheap check for changes made on another device; pulls only if there are some. */
-  async checkRemote(): Promise<void> {
-    if (this.stopped || this.running) return;
+  /**
+   * Cheap check for changes made on another device; pulls only if there are
+   * some. `hint.version` is the version a live update says the cloud is at
+   * now: when this device already has it (the update was about its own
+   * save) there's nothing to ask. A check that arrives during a sync runs
+   * once that sync is done, so a change saved meanwhile isn't missed.
+   */
+  async checkRemote(hint?: { version?: number | null }): Promise<void> {
+    if (this.stopped) return;
+    const known = hint?.version;
+    if (typeof known === "number" && this.base && known <= this.base.version) return;
+    if (this.running) {
+      this.recheck = true;
+      return;
+    }
     if (this.state.pending) {
       await this.sync();
       return;

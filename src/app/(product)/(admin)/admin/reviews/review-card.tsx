@@ -1,8 +1,22 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Activity, Check, CheckCircle2, EyeOff, Globe, Lock, MessageSquareReply, RotateCcw, Sparkles, StarOff, UserRound, XCircle } from "lucide-react";
+import {
+  Activity,
+  Check,
+  CheckCircle2,
+  EyeOff,
+  Globe,
+  Lock,
+  MessageSquareReply,
+  PencilLine,
+  RotateCcw,
+  Sparkles,
+  StarOff,
+  UserRound,
+  XCircle,
+} from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -189,6 +203,9 @@ function Details({ id }: { id: string }) {
   );
 }
 
+/** After the author's edit arrives on screen, how long the decisions wait, so a click meant for the old version can't land on the new one. */
+const READ_FIRST_MS = 2_500;
+
 export function ReviewCard({ review: r, onChanged }: { review: AdminReview; onChanged: () => void }) {
   const toast = useToast();
   const { can } = useAdminActor();
@@ -197,6 +214,32 @@ export function ReviewCard({ review: r, onChanged }: { review: AdminReview; onCh
   const [response, setResponse] = useState(r.response ?? "");
   const u = r.usage;
   const canHide = can("reviews.hide");
+
+  // The official response saved elsewhere (another moderator, live) replaces the box's text
+  // only while nobody is writing in it.
+  const savedResponse = useRef(r.response ?? "");
+  useEffect(() => {
+    const next = r.response ?? "";
+    setResponse((text) => (text === savedResponse.current ? next : text));
+    savedResponse.current = next;
+  }, [r.response]);
+
+  // The author sent a new version while this card was open (a live update): say so, and hold the
+  // decisions for a moment. What a moderator approves is always the version on screen.
+  const shownVersion = useRef(r.submittedAt);
+  const [editedLive, setEditedLive] = useState(false);
+  const [readFirst, setReadFirst] = useState(false);
+  useEffect(() => {
+    if (r.submittedAt === shownVersion.current) return;
+    shownVersion.current = r.submittedAt;
+    setEditedLive(true);
+    setReadFirst(true);
+    // A reason being written was for the version that's gone.
+    setAsk(null);
+    const timer = setTimeout(() => setReadFirst(false), READ_FIRST_MS);
+    return () => clearTimeout(timer);
+  }, [r.submittedAt]);
+  const holding = busy || readFirst;
 
   async function moderate(action: Action, code?: ModerationCode, note?: string) {
     setBusy(true);
@@ -252,6 +295,15 @@ export function ReviewCard({ review: r, onChanged }: { review: AdminReview; onCh
         )}
       </div>
 
+      {editedLive && (
+        <p role="status" className="mt-4 flex items-start gap-2 rounded-xl border border-accent/30 bg-accent/[0.06] px-3.5 py-2.5 text-xs leading-relaxed text-paper/80">
+          <PencilLine className="mt-0.5 h-3.5 w-3.5 shrink-0 text-accent" aria-hidden />
+          <span>
+            <span className="font-semibold text-paper">Edited just now.</span> The author sent a new version while you had this open. What you see is
+            that version; read it before deciding.
+          </span>
+        </p>
+      )}
       {waitingWhileLive && (
         <p className="mt-4 rounded-xl border border-warning/35 bg-warning/10 px-3.5 py-2.5 text-xs leading-relaxed text-paper/80">
           The author edited this. The website still shows the version you approved; this new one replaces it once you publish it.
@@ -346,19 +398,19 @@ export function ReviewCard({ review: r, onChanged }: { review: AdminReview; onCh
             <Button
               size="sm"
               onClick={() => void moderate("publish")}
-              disabled={busy || !r.publicConsent}
+              disabled={holding || !r.publicConsent}
               hint={r.publicConsent ? "Show this version on the website, under the name the author chose." : "Private feedback: the author hasn't agreed to publish it."}
             >
               <CheckCircle2 className="h-4 w-4" aria-hidden /> {waitingWhileLive ? "Publish this version" : "Approve and publish"}
             </Button>
           )}
           {(r.status === "pending" || r.status === "rejected" || r.status === "hidden") && (
-            <Button size="sm" variant="ghost" onClick={() => void moderate("approve")} disabled={busy} hint="Accept it without showing it on the website.">
+            <Button size="sm" variant="ghost" onClick={() => void moderate("approve")} disabled={holding} hint="Accept it without showing it on the website.">
               <Check className="h-4 w-4" aria-hidden /> Approve privately
             </Button>
           )}
           {r.status === "hidden" && canHide && (
-            <Button size="sm" variant="ghost" onClick={() => void moderate("restore")} disabled={busy || !r.publicConsent} hint="Put it back on the website.">
+            <Button size="sm" variant="ghost" onClick={() => void moderate("restore")} disabled={holding || !r.publicConsent} hint="Put it back on the website.">
               <RotateCcw className="h-4 w-4" aria-hidden /> Restore
             </Button>
           )}
@@ -367,7 +419,7 @@ export function ReviewCard({ review: r, onChanged }: { review: AdminReview; onCh
               size="sm"
               variant="ghost"
               onClick={() => void moderate(r.featuredAt ? "unfeature" : "feature")}
-              disabled={busy}
+              disabled={holding}
               hint={r.featuredAt ? "Stop featuring it on the reviews page." : "Feature it at the top of the reviews page, for being detailed and useful."}
             >
               {r.featuredAt ? <StarOff className="h-4 w-4" aria-hidden /> : <Sparkles className="h-4 w-4" aria-hidden />}
@@ -375,12 +427,12 @@ export function ReviewCard({ review: r, onChanged }: { review: AdminReview; onCh
             </Button>
           )}
           {(r.status === "pending" || r.status === "approved") && !r.live && (
-            <Button size="sm" variant="danger" onClick={() => setAsk("reject")} disabled={busy}>
+            <Button size="sm" variant="danger" onClick={() => setAsk("reject")} disabled={holding}>
               <XCircle className="h-4 w-4" aria-hidden /> Reject
             </Button>
           )}
           {r.live && canHide && (
-            <Button size="sm" variant="danger" onClick={() => setAsk("hide")} disabled={busy}>
+            <Button size="sm" variant="danger" onClick={() => setAsk("hide")} disabled={holding}>
               <EyeOff className="h-4 w-4" aria-hidden /> Take off the website
             </Button>
           )}

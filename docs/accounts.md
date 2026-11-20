@@ -84,7 +84,7 @@ else. The browser's copy is wiped too.
 `lib/sync/engine.ts` keeps an account's local snapshot and its cloud row in step:
 
 1. **Check, don't download.** On start, on return to the app, when the connection
-   comes back and every three minutes while visible, it asks only for the row's
+   comes back, every three minutes while visible, and the moment another device saves (a live update),, it asks only for the row's
    `version`. Full data is fetched only when that version differs from the one
    this device last synced.
 2. **Save on top of a known version.** Edits are debounced (2 s, at most 10 s) and

@@ -1312,6 +1312,95 @@ async function helpScenarios(browser, people) {
     await adminPage.screenshot({ path: join(SHOTS, "admin-crash-report.png") });
     check(!(await adminPage.getByTestId("help-feedback-button").count()), "the Admin Center has the button");
     await adminPage.close();
+
+/* ── live updates ──────────────────────────────────────────────── */
+
+/** Whether a browser has joined `topic` on the mock's Realtime. */
+const listening = async (topic) =>
+  (await (await fetch(`${MOCK}/__mock/realtime`)).json()).listening.some((l) => l.topic === topic && l.sockets > 0);
+
+async function liveBrowserScenarios(browser, people) {
+  const { owner, admin } = people;
+  const s7 = { name: "Student Seven", email: "student.seven@example.com" };
+
+  await scenario("25. The Admin Center updates by itself: a new account, a student's review and feedback, other administrators' changes, settings and the audit log", async () => {
+    const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+    const page = await ctx.newPage();
+    let loads = 0;
+    page.on("load", () => loads++);
+    await signInUi(page, owner.email);
+    await page.getByRole("heading", { name: "Overview", level: 1 }).waitFor();
+    const nav = page.getByRole("navigation", { name: "Admin Center" });
+    const go = async (link) => {
+      await nav.getByRole("link", { name: link, exact: true }).click();
+      await page.getByRole("heading", { name: link, level: 1 }).waitFor();
+      await page.waitForLoadState("networkidle");
+    };
+    await waitFor("the Admin Center to listen", () => listening("realtime:platform-admin-updates"));
+    const settled = loads;
+
+    // Someone signs up: Users shows them.
+    await go("Users");
+    Object.assign(s7, await signUpApi(s7.name, s7.email));
+    await page.getByText(s7.email).first().waitFor({ timeout: 10_000 });
+
+    // A student sends a review from the app: it's waiting at once, and goes when another moderator publishes it.
+    await go("Reviews");
+    await giveUsage(s7);
+    const headline = `Live ${RUN}: honest and quick`;
+    const sent = data(
+      await api(s7.token, "POST", "/api/reviews", {
+        rating: 4,
+        headline,
+        body: `${REVIEW_MARK} live: the journal and the revision queue keep my weeks honest.`,
+        features: ["journal"],
+        stage: "prelims",
+        displayName: "Student S.",
+        feedbackConsent: true,
+        publicConsent: true,
+      }),
+    );
+    check(sent?.status === "pending", `the live review was sent: ${JSON.stringify(sent)}`);
+    await page.getByRole("heading", { name: headline }).waitFor({ timeout: 10_000 });
+    check((await sql(`update public.platform_reviews set status = 'approved' where id = '${sent.id}'`)).ok, "another moderator decides on it");
+    await page.getByRole("heading", { name: headline }).waitFor({ state: "detached", timeout: 10_000 });
+
+    // Feedback arrives.
+    await go("Feedback");
+    const message = `LIVE-FEEDBACK-${RUN}: the timer stops when the phone locks.`;
+    const fb = data(await api(s7.token, "POST", "/api/feedback", { category: "bug", message, shareEmail: false, includeDetails: false }));
+    check(fb?.id, `feedback sent: ${JSON.stringify(fb)}`);
+    await page.getByText(message).waitFor({ timeout: 10_000 });
+    // Answered elsewhere: the row says so without a reload.
+    const row = page.getByRole("listitem").filter({ hasText: message });
+    check((await sql(`update public.platform_feedback set response = 'LIVE-ANSWER: fixed today.', response_at = now() where id = '${fb.id}'`)).ok, "an answer saved elsewhere");
+    await row.getByText("Answered").waitFor({ timeout: 10_000 });
+
+    // Settings: a change made elsewhere (the SQL Editor) shows in a field nobody touched here;
+    // a field being edited here keeps its value.
+    await go("Platform settings");
+    const before = data(await api(owner.token, "GET", "/api/admin/settings")).values;
+    const usage = page.getByLabel("Days with records (days)");
+    const sinceFirst = page.getByLabel("Days since first use (days)");
+    await usage.fill("9");
+    const to = Number(before.review_min_days) + 7;
+    check(
+      (await sql(`insert into public.platform_settings (key, value) values ('review_min_days', '${to}'::jsonb) on conflict (key) do update set value = excluded.value`)).ok,
+      "a setting changed in the SQL Editor",
+    );
+    await waitFor("the SQL Editor's change on the open page", async () => (await sinceFirst.inputValue()) === String(to), 10_000);
+    check((await usage.inputValue()) === "9", "the field being edited kept its value");
+    await page.getByRole("button", { name: "Discard" }).first().click();
+    await api(owner.token, "PATCH", "/api/admin/settings", { review_min_days: before.review_min_days });
+
+    // The audit log: another administrator's action appears at the top.
+    await go("Audit log");
+    check((await sql(`insert into public.platform_admin_audit_log (actor_id, actor_role, action, target_type, target_id, reason) values ('${admin.id}', 'admin', 'user.suspended', 'user', '${s7.id}', 'Live audit check')`)).ok, "an entry added elsewhere");
+    await page.getByText("“Live audit check”").waitFor({ timeout: 10_000 });
+    await page.screenshot({ path: join(SHOTS, "live-audit.png") });
+
+    check(loads === settled, `the Admin Center loaded the page again ${loads - settled} time(s)`);
+    await ctx.close();
   });
 }
 
@@ -1355,6 +1444,8 @@ async function main() {
       await trustBrowserScenarios(browser, people);
     }
     await helpScenarios(browser, people);
+    await trustBrowserScenarios(browser, people);
+    if (!process.argv.includes("--trust-only")) await liveBrowserScenarios(browser, people);
     console.log(`\nAll ${passed} scenarios passed. Screenshots: ${SHOTS}`);
   } catch (e) {
     console.log("✗");

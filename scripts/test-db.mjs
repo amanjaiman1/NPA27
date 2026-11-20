@@ -57,6 +57,8 @@ async function main() {
   await db.exec(SUPABASE_SHIM);
   // Supabase Storage's tables and helper, which the attachments migration uses.
   await db.exec(read("supabase/tests/storage_shim.sql"));
+  // Supabase Realtime's messages table and helpers, for the live-update policies and triggers.
+  await db.exec(read("supabase/tests/realtime_shim.sql"));
 
   await db.exec(read("supabase/schema.sql"));
   const migrations = readdirSync(join(root, "supabase/migrations"))
@@ -76,6 +78,7 @@ async function main() {
     ["supabase/tests/platform_admin.sql", "All platform checks passed"],
     ["supabase/tests/platform_trust.sql", "All trust checks passed"],
     ["supabase/tests/platform_help.sql", "All help checks passed"],
+    ["supabase/tests/live_updates.sql", "All live update checks passed"],
   ];
   for (const [file, expected] of checks) {
     const results = await db.exec(read(file));

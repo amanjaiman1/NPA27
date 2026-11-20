@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Segmented } from "@/components/ui/misc";
 import { AdminHeader, ErrorPanel, LoadingRows, When, actionLabel, actorLine, metadataLine } from "@/components/admin/ui";
 import { adminApi, ApiError } from "@/lib/platform/client";
+import { useAdminUpdates } from "@/components/platform/live-updates";
 import type { AuditEntry } from "@/lib/platform/types";
 
 const GROUPS = [
@@ -80,6 +81,39 @@ export default function AdminAuditPage() {
   useEffect(() => {
     void load(null);
   }, [load]);
+
+  /**
+   * A new entry anywhere (a live update): the newest page, quietly, with
+   * what's new put on top and older pages already loaded kept. If more has
+   * happened than one page holds, the log starts again from the top.
+   */
+  const itemsRef = useRef(items);
+  itemsRef.current = items;
+  const prependNew = useCallback(async () => {
+    const p = new URLSearchParams({ limit: String(LIMIT) });
+    if (group) p.set("action", group);
+    if (target) {
+      p.set("targetType", target.type);
+      p.set("targetId", target.id);
+    }
+    const id = latest.current;
+    try {
+      const page = await adminApi.get<{ items: AuditEntry[]; limit: number }>(`audit?${p}`);
+      if (id !== latest.current) return; // a filter changed meanwhile
+      const top = itemsRef.current[0]?.id ?? 0;
+      const fresh = page.items.filter((e) => e.id > top);
+      if (!fresh.length) return;
+      if (!itemsRef.current.length || fresh.length === page.items.length) {
+        setItems(page.items);
+        setMore(page.items.length === page.limit);
+      } else {
+        setItems((prev) => [...fresh, ...prev]);
+      }
+    } catch {
+      /* keep what's shown; the next change or a reload tries again */
+    }
+  }, [group, target]);
+  useAdminUpdates(["audit"], () => void prependNew());
 
   return (
     <div className="space-y-6">

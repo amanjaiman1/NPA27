@@ -24,7 +24,8 @@ import { FEEDBACK_MIN_LENGTH } from "@/lib/report";
 import { apiCall, ApiError } from "@/lib/platform/client";
 import type { MyFeedback } from "@/lib/platform/types";
 import { useInbox } from "@/components/platform/inbox";
-import { usePlatformUpdates } from "@/components/platform/live-updates";
+import { useAccountUpdates, usePlatformUpdates } from "@/components/platform/live-updates";
+import { useAccount } from "@/components/account/account-session";
 import { Modal } from "@/components/ui/modal";
 import { Segmented, Skeleton } from "@/components/ui/misc";
 import { Switch } from "@/components/ui/switch";
@@ -60,6 +61,7 @@ export function HelpFeedback({ enabled, children }: { enabled: boolean; children
 }
 
 function HelpFeedbackOn({ children }: { children: React.ReactNode }) {
+  const { user } = useAccount();
   const inbox = useInbox();
   const unseen = inbox?.unseenResponses ?? 0;
   const unseenRef = useRef(unseen);
@@ -107,7 +109,9 @@ function HelpFeedbackOn({ children }: { children: React.ReactNode }) {
     if (isOpen) loadHistory();
   }, [isOpen, loadHistory]);
   // While it's open, the team's answer or a new status shows up without a reload.
-  usePlatformUpdates(["feedback"], loadHistory, isOpen);
+  // The team answered or changed a status, or this account sent one from another device; or a linked update was published.
+  useAccountUpdates(user?.id, ["feedback"], loadHistory, isOpen);
+  usePlatformUpdates(["changelog"], loadHistory, isOpen);
 
   async function send() {
     const message = draft.message.trim();

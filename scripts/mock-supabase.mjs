@@ -10,9 +10,9 @@
  * auto-confirmed), password reset (the email is printed here instead of sent),
  * the Auth admin calls (read, ban and delete a user; a banned account can't
  * sign in or refresh), reads/saves of `chronicle_state`, any function in
- * `public` through /rest/v1/rpc, Storage, and Realtime broadcast on the one
- * private channel the app uses (the REST endpoints the server sends with,
- * and the WebSocket the browser listens on). Data lives in an
+ * `public` through /rest/v1/rpc, Storage, and Realtime broadcast from the
+ * database on private channels (joins decided by the policies on
+ * realtime.messages, as on Supabase). Data lives in an
  * in-memory Postgres (PGlite) running the real `supabase/schema.sql` and
  * migrations, and every request runs as the caller's role with their JWT
  * claims, so Row Level Security is enforced exactly as on Supabase.
@@ -101,6 +101,8 @@ await db.exec(`
 `);
 // Supabase Storage's tables, so the attachments migration and its policies run.
 await db.exec(read("supabase/tests/storage_shim.sql"));
+// Supabase Realtime's messages table and `realtime.send`, so the live-update triggers and policies run.
+await db.exec(read("supabase/tests/realtime_shim.sql"));
 await db.exec(read("supabase/schema.sql"));
 for (const f of readdirSync(join(root, "supabase/migrations")).filter((f) => f.endsWith(".sql")).sort()) {
   await db.exec(read(join("supabase/migrations", f)));
@@ -109,10 +111,17 @@ for (const f of readdirSync(join(root, "supabase/migrations")).filter((f) => f.e
 /** Object bytes, keyed by `<bucket>/<name>`. Their rows live in storage.objects. */
 const blobs = new Map();
 
-// PGlite has one connection, so requests take turns.
+// PGlite has one connection, so requests take turns. After each one, what the
+// database broadcast (once its transaction committed) goes out over Realtime.
 let queue = Promise.resolve();
 function serial(fn) {
-  const run = queue.then(fn, fn);
+  const run = queue.then(async () => {
+    try {
+      return await fn();
+    } finally {
+      await deliverBroadcasts().catch((e) => console.error("[realtime]", e));
+    }
+  });
   queue = run.catch(() => {});
   return run;
 }
@@ -553,18 +562,56 @@ async function handleStorage(req, res, url) {
 }
 
 /* ── realtime ───────────────────────────────────────────────────────
-   Broadcast only, as the app uses it (src/lib/platform/live.ts). The
-   server sends through the REST endpoints with the service-role key; the
-   browser listens on a WebSocket speaking the Phoenix protocol that
-   realtime-js 2.x speaks (JSON arrays, "2.0.0"). Joining a private topic
-   follows the policy in supabase/migrations/20261205120000_live_updates.sql:
-   a signed-in account may join `platform-updates`, and nothing else;
-   nobody but the service role may send on it. */
+   Broadcast from the database, as the app uses it (src/lib/platform/live.ts):
+   triggers call `realtime.send` (supabase/tests/realtime_shim.sql), and the
+   rows it adds go out, once their transaction has committed, to the
+   WebSockets that joined the topic. The WebSocket speaks the Phoenix
+   protocol realtime-js 2.x speaks (JSON arrays, "2.0.0").
 
-const LIVE_TOPICS = new Set(["platform-updates"]);
+   Joining is decided the way Supabase Realtime decides it: insert a message
+   on the topic, try to read it back as the account (with its token's claims
+   and the topic set), roll back. So the policies on realtime.messages in the
+   migrations are what let anyone in. Private channels only; nobody may send
+   from a browser. */
+
 /** topic -> sockets joined to it, with the join ref each used. */
 const subscribers = new Map();
 let realtimeSent = 0;
+let lastMessageId = 0;
+
+/** Sends what the database broadcast since last time, then forgets it. Runs inside `serial`. */
+async function deliverBroadcasts() {
+  const r = await db.query("select id, topic, event, payload, private from realtime.messages where id > $1 order by id", [lastMessageId]);
+  if (!r.rows.length) return;
+  for (const m of r.rows) {
+    lastMessageId = Math.max(lastMessageId, Number(m.id));
+    if (m.private) deliver(m.topic, m.event, m.payload);
+  }
+  await db.query("delete from realtime.messages where id > 0 and id <= $1", [lastMessageId]);
+}
+
+/** Whether a token's account may read messages on `topic`: Supabase Realtime's own check. */
+function mayJoin(topic, claims) {
+  const role = claims?.role === "authenticated" || claims?.role === "anon" ? claims.role : null;
+  if (!role) return Promise.resolve(false);
+  return serial(async () => {
+    await db.exec("begin");
+    try {
+      const row = await db.query(
+        "insert into realtime.messages (topic, extension, event, payload, private) values ($1, 'broadcast', 'join', '{}'::jsonb, true) returning id",
+        [topic],
+      );
+      await db.exec(`set local role ${role}`);
+      await db.query("select set_config('request.jwt.claims', $1, true), set_config('realtime.topic', $2, true)", [JSON.stringify(claims), topic]);
+      const seen = await db.query("select count(*)::int as n from realtime.messages where id = $1", [row.rows[0].id]);
+      return seen.rows[0].n === 1;
+    } catch {
+      return false;
+    } finally {
+      await db.exec("rollback");
+    }
+  });
+}
 
 function wsFrame(text) {
   const data = Buffer.from(text);
@@ -609,14 +656,15 @@ function onRealtimeMessage(socket, raw) {
   if (topic === "phoenix" && event === "heartbeat") return reply("ok");
   if (event === "phx_join") {
     const name = String(topic).replace(/^realtime:/, "");
-    const claims = verify(payload?.access_token);
-    const isPrivate = payload?.config?.private === true;
-    if (!isPrivate || !LIVE_TOPICS.has(name) || claims?.role !== "authenticated") {
-      return reply("error", { reason: "Unauthorized: You do not have permissions to read from this Channel topic: " + name });
-    }
-    if (!subscribers.has(topic)) subscribers.set(topic, new Map());
-    subscribers.get(topic).set(socket, joinRef);
-    return reply("ok", { postgres_changes: [] });
+    const refused = () => reply("error", { reason: "Unauthorized: You do not have permissions to read from this Channel topic: " + name });
+    if (payload?.config?.private !== true) return refused();
+    void mayJoin(name, verify(payload?.access_token)).then((ok) => {
+      if (!ok) return refused();
+      if (!subscribers.has(topic)) subscribers.set(topic, new Map());
+      subscribers.get(topic).set(socket, joinRef);
+      reply("ok", { postgres_changes: [] });
+    });
+    return;
   }
   if (event === "phx_leave") {
     subscribers.get(topic)?.delete(socket);
@@ -680,21 +728,6 @@ function acceptWebSocket(req, socket) {
   socket.on("error", gone);
 }
 
-/** POST /realtime/v1/api/broadcast[/<topic>/events/<event>], as Supabase's REST broadcast. */
-async function handleRealtime(req, res, url) {
-  if (req.method !== "POST") return send(res, 404, { error: "not found" });
-  if (verify(req.headers.apikey)?.role !== "service_role") return send(res, 401, { message: "Only the server may send on this channel" });
-  const one = url.pathname.match(/^\/realtime\/v1\/api\/broadcast\/([^/]+)\/events\/([^/]+)$/);
-  const messages = one
-    ? [{ topic: decodeURIComponent(one[1]), event: decodeURIComponent(one[2]), payload: await body(req), private: url.searchParams.get("private") === "true" }]
-    : url.pathname === "/realtime/v1/api/broadcast"
-      ? ((await body(req)).messages ?? [])
-      : null;
-  if (!messages) return send(res, 404, { error: "not found" });
-  for (const m of messages) if (m.private === true && LIVE_TOPICS.has(m.topic)) deliver(m.topic, m.event, m.payload);
-  return send(res, 202);
-}
-
 const server = createServer(async (req, res) => {
   const url = new URL(req.url, `http://localhost:${PORT}`);
   if (req.method === "OPTIONS") return send(res, 204);
@@ -702,9 +735,8 @@ const server = createServer(async (req, res) => {
     if (url.pathname.startsWith("/auth/v1")) return await handleAuth(req, res, url);
     if (url.pathname.startsWith("/rest/v1")) return await handleRest(req, res, url);
     if (url.pathname.startsWith("/storage/v1")) return await handleStorage(req, res, url);
-    if (url.pathname.startsWith("/realtime/v1/api/broadcast")) return await handleRealtime(req, res, url);
     if (url.pathname === "/__mock/realtime") {
-      // Tests only: who is listening, and how many messages went out.
+      // Tests only: who is listening on which topic, and how many messages went out.
       const listening = [...subscribers].map(([topic, joined]) => ({ topic, sockets: joined.size }));
       return send(res, 200, { listening, sent: realtimeSent });
     }

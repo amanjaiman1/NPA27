@@ -5,8 +5,9 @@
    Announcements, the app-wide notice, "the team answered your
    feedback" and whether to invite a review, for the signed-in account. One database call when the app
    opens, then again:
-   - the moment the team changes any of them in the Admin Center (a live
-     update, see live-updates.ts);
+   - the moment the team changes any of them, or this account reads,
+     dismisses or answers one on another device (a live update, see
+     live-updates.ts);
    - when a scheduled announcement starts or a running one ends, timed by
      the database's clock;
    - when the tab comes back after 15 minutes or more.
@@ -18,7 +19,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import type { MyAnnouncement, MyAnnouncements } from "@/lib/platform/types";
-import { usePlatformUpdates } from "./live-updates";
+import { useAccountUpdates, usePlatformUpdates } from "./live-updates";
 
 const REFRESH_AFTER = 15 * 60_000;
 /** A scheduled change is reloaded a moment after it happens, spread so every app doesn't ask at once. */
@@ -114,9 +115,12 @@ export function PlatformInbox({ userId, children }: { userId: string | null; chi
     };
   }, [userId, load]);
 
-  // The team changed an announcement, the notice or an answer to feedback, or the review
-  // settings (which decide the invitation to review): show it now.
-  usePlatformUpdates(["announcements", "notice", "feedback", "reviews"], () => void load(), Boolean(userId));
+  // The team published or changed an announcement, the notice, or the review settings
+  // (which decide the invitation to review): show it now.
+  usePlatformUpdates(["announcements", "notice", "reviews"], () => void load(), Boolean(userId));
+  // This account's own: the team answered its feedback, its review moved on, or it read,
+  // dismissed or answered something on another device.
+  useAccountUpdates(userId, ["announcements", "feedback", "reviews"], () => void load(), Boolean(userId));
 
   const patch = useCallback((ids: string[] | "all", fields: Partial<MyAnnouncement>) => {
     setState((s) => ({ ...s, items: s.items.map((a) => (ids === "all" || ids.includes(a.id) ? { ...a, ...fields } : a)) }));
