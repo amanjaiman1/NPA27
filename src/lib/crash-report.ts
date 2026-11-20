@@ -5,14 +5,16 @@
    screen, which stands in for the whole site, loads with every public page,
    and those pages must stay free of both.
 
-   Whether reports may go on their own is the account's choice (Settings →
-   Help & feedback). The app hands this module a way to read it
+   Whether reports may go on their own is the account's choice (Help &
+   feedback, the button at the bottom right of the app). The app hands this
+   module a way to read it
    (`setCrashConsentSource`, in components/feedback/crash-reporter.tsx).
    Where the choice can't be read (a public page, or nothing saved in this
    browser yet), a signed-in person is asked instead of reported on.
 
    What goes out is described in lib/report.ts: the error and the page's
-   path, never an account, a name or anything written in the app.
+   path, never an account, a name or anything written in the app. It is
+   kept for the team in the Admin Center, never emailed.
    ════════════════════════════════════════════════════════════════ */
 
 import { LIMITS, cleanPath, isNoise, type CrashReport, type CrashSource } from "./report";
@@ -29,8 +31,8 @@ const ASKED_CAP = 3;
  * - `off`: the account switched automatic reports off.
  * - `ask`: someone is signed in but their choice can't be read here, so nothing went on its own.
  * - `skipped`: not worth sending (not the app's fault, already sent, too many, or local development).
- * - `unavailable`: the server has no email set up.
- * - `failed`: the network or the email service failed.
+ * - `unavailable`: this server can't keep reports (not set up).
+ * - `failed`: the network or the server failed.
  */
 export type SendResult = "sent" | "off" | "ask" | "skipped" | "unavailable" | "failed";
 

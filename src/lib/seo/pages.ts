@@ -166,7 +166,7 @@ export const PAGES = {
     description:
       "How to reach DoOrDie with a question, a bug report or a feature request, and how to manage your account and data yourself.",
     kind: "company",
-    updated: "2026-11-19",
+    updated: "2026-11-20",
   },
   privacy: {
     path: "/privacy-policy",
@@ -175,7 +175,7 @@ export const PAGES = {
     description:
       "What DoOrDie collects, why, where it is stored, who processes it, and how to export or delete your data.",
     kind: "legal",
-    updated: "2026-11-19",
+    updated: "2026-11-20",
   },
   terms: {
     path: "/terms",
@@ -202,7 +202,7 @@ export const PAGES = {
     description:
       "How DoOrDie works, who it is for, how each account's data is kept private, what is available today, how reviews are verified, and how to reach the team.",
     kind: "company",
-    updated: "2026-11-19",
+    updated: "2026-11-20",
   },
   demo: {
     path: "/demo",

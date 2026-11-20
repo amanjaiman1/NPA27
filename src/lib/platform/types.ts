@@ -201,12 +201,11 @@ export interface MyFeedback {
   changelog: ChangelogLink | null;
 }
 
+/** What the team sees of a message. Never an email address: the team answers in the app. */
 export interface AdminFeedback extends Omit<MyFeedback, "responseSeen"> {
   userId: string;
   priority: FeedbackPriority;
   context: { userAgent?: string; screen?: string; installed?: boolean };
-  shareEmail: boolean;
-  email: string | null;
   screenshotPath: string | null;
   noteCount: number;
 }
@@ -226,6 +225,41 @@ export interface FeedbackDetail extends AdminFeedback {
 
 export interface FeedbackList extends Page<AdminFeedback> {
   counts: Partial<Record<FeedbackStatus, number>>;
+}
+
+export type CrashStatus = "new" | "resolved";
+
+/** One distinct crash (the same error on the same page), as the Admin Center lists it. No account, ever. */
+export interface AdminCrash {
+  id: string;
+  message: string;
+  source: "render" | "root" | "window" | "promise";
+  page: string;
+  /** How many times it was reported. */
+  reports: number;
+  status: CrashStatus;
+  firstSeenAt: string;
+  lastSeenAt: string;
+  resolvedAt: string | null;
+  noteCount: number;
+  signedIn: boolean | null;
+  online: boolean | null;
+  userAgent: string | null;
+  build: string | null;
+}
+
+export interface CrashDetail extends AdminCrash {
+  stack: string | null;
+  componentStack: string | null;
+  digest: string | null;
+  /** What people wrote on the error screen when they pressed Send, oldest first. */
+  notes: { at: string; text: string }[];
+  resolvedByEmail: string | null;
+  history: HistoryEntry[];
+}
+
+export interface CrashList extends Page<AdminCrash> {
+  counts: Record<CrashStatus, number>;
 }
 
 export interface AdminAnnouncement {

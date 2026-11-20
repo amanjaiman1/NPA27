@@ -121,8 +121,9 @@ const feedback = (extra: Record<string, unknown> = {}) => ({ category: "bug", me
 test("feedback needs a known category and a real message", () => {
   assert.equal(errorOf(parseFeedbackSubmission(feedback({ category: "problem" }))), "Choose what the message is about.");
   assert.match(errorOf(parseFeedbackSubmission(feedback({ message: "short" }))) ?? "", /at least 10 characters/);
+  // No email goes with a message any more, whatever an old tab asks for: the team answers in the app.
   const ok = parseFeedbackSubmission(feedback({ shareEmail: true }));
-  assert.ok(ok.ok && ok.value.shareEmail === true && ok.value.screenshot === null);
+  assert.ok(ok.ok && !("shareEmail" in ok.value) && ok.value.screenshot === null);
 });
 
 test("technical details are kept only when the person switched them on, and only the known ones", () => {

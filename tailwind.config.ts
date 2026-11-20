@@ -122,6 +122,11 @@ const config: Config = {
           "70%": { boxShadow: "0 0 0 8px rgb(var(--accent)/0)" },
           "100%": { boxShadow: "0 0 0 0 rgb(var(--accent)/0)" },
         },
+        // The Help & feedback button's halo: a soft ring that grows and fades.
+        "help-halo": {
+          "0%": { transform: "scale(1)", opacity: "0.55" },
+          "70%,100%": { transform: "scale(1.85)", opacity: "0" },
+        },
         marquee: {
           "0%": { transform: "translateX(0)" },
           "100%": { transform: "translateX(-50%)" },
@@ -147,6 +152,9 @@ const config: Config = {
         "scale-in": "scale-in 0.4s cubic-bezier(0.22,1,0.36,1) both",
         shimmer: "shimmer 2.5s linear infinite",
         "pulse-ring": "pulse-ring 2s cubic-bezier(0.4,0,0.6,1) infinite",
+        // A few times when the button appears; for as long as a team answer is unread.
+        "help-halo": "help-halo 2.8s cubic-bezier(0.22,1,0.36,1) 1.2s 3 both",
+        "help-halo-loop": "help-halo 2.4s cubic-bezier(0.22,1,0.36,1) infinite",
         marquee: "marquee 40s linear infinite",
         "bloom-float": "bloom-float 22s ease-in-out infinite",
         "bloom-float-2": "bloom-float-2 26s ease-in-out infinite",

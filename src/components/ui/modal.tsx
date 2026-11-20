@@ -31,6 +31,7 @@ export function Modal({
   footer,
   className,
   ariaLabel,
+  placement = "center",
 }: {
   open: boolean;
   onClose: () => void;
@@ -41,6 +42,12 @@ export function Modal({
   children: React.ReactNode;
   footer?: React.ReactNode;
   className?: string;
+  /**
+   * `corner`: from a small screen up, it opens at the bottom right, just above
+   * the floating button that opened it, over a lighter scrim. On a phone it's
+   * the usual sheet either way.
+   */
+  placement?: "center" | "corner";
 }) {
   const mounted = useMounted();
   const panel = useRef<HTMLDivElement>(null);
@@ -114,14 +121,22 @@ export function Modal({
     <AnimatePresence>
       {open && (
         <motion.div
-          className="fixed inset-0 z-50 flex items-end justify-center p-0 sm:items-center sm:p-4"
+          className={cn(
+            "fixed inset-0 z-50 flex items-end justify-center p-0",
+            placement === "corner"
+              ? "sm:items-end sm:justify-end sm:pb-[calc(var(--bottom-nav-h,0px)+var(--help-fab-space,0px)+1.25rem)] sm:pr-5"
+              : "sm:items-center sm:p-4",
+          )}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.15 }}
         >
           <div
-            className="absolute inset-0 bg-scrim/45 backdrop-blur-md"
+            className={cn(
+              "absolute inset-0",
+              placement === "corner" ? "bg-scrim/45 backdrop-blur-md sm:bg-scrim/15 sm:backdrop-blur-[2px]" : "bg-scrim/45 backdrop-blur-md",
+            )}
             onClick={onClose}
           />
           <motion.div
@@ -130,12 +145,13 @@ export function Modal({
             role="dialog"
             aria-modal="true"
             aria-label={ariaLabel ?? title}
-            initial={{ opacity: 0, scale: 0.98, y: 16 }}
+            initial={{ opacity: 0, scale: placement === "corner" ? 0.94 : 0.98, y: 16 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.98, y: 8 }}
+            exit={{ opacity: 0, scale: placement === "corner" ? 0.94 : 0.98, y: 8 }}
             transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
             className={cn(
               "glass-on-scrim relative flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-3xl border border-line bg-card shadow-lift focus:outline-none sm:max-w-lg sm:rounded-3xl",
+              placement === "corner" && "sm:max-h-[min(44rem,calc(100dvh-var(--bottom-nav-h,0px)-var(--help-fab-space,0px)-2.5rem))] sm:origin-bottom-right",
               className,
             )}
           >

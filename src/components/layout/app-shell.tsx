@@ -19,6 +19,7 @@ import { FeatureAccessScope, FeatureGate } from "@/components/features/feature-a
 import { PlatformInbox } from "@/components/platform/inbox";
 import { TeamBanner } from "@/components/platform/team-notices";
 import { DemoBar, DemoChrome, DemoGuide, DemoGuideSpace } from "@/components/demo/demo-chrome";
+import { HelpFeedback } from "@/components/help/help-feedback";
 import { useMatchMedia } from "@/lib/hooks";
 
 /** "1" when the person hid the sidebar on a wide screen. Same key as before. */
@@ -50,6 +51,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { accountId, mode, user } = useAccount();
   const demo = mode === "demo";
+  // Help & feedback is for signed-in accounts: not the demo, not a build without accounts.
+  const help = mode === "cloud";
 
   const docked = desktop && wide && !collapsed;
   const sidebarShowing = docked || (desktop && !wide && flyoutOpen);
@@ -121,6 +124,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     // account may open (lib/features.ts) and what the team has sent it.
     <FeatureAccessScope accountId={accountId}>
     <PlatformInbox userId={mode === "cloud" ? (user?.id ?? null) : null}>
+    <HelpFeedback enabled={help}>
     <DemoChrome>
     <NotificationsProvider>
       <MotionConfig reducedMotion="user">
@@ -242,6 +246,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     <FeatureGate>{children}</FeatureGate>
                   </PageTransition>
                   {demo && <DemoGuideSpace />}
+                  {/* Room at the end of the page, so the Help & feedback button never covers the last line. */}
+                  {help && <div aria-hidden className="h-12 shrink-0 lg:h-8" />}
                 </div>
               </main>
             </div>
@@ -256,6 +262,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </MotionConfig>
     </NotificationsProvider>
     </DemoChrome>
+    </HelpFeedback>
     </PlatformInbox>
     </FeatureAccessScope>
   );

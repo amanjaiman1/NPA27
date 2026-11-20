@@ -15,6 +15,7 @@ const GROUPS = [
   { value: "user.", label: "Accounts" },
   { value: "review.", label: "Reviews" },
   { value: "feedback.", label: "Feedback" },
+  { value: "crash.", label: "Crash reports" },
   { value: "announcement.", label: "Announcements" },
   { value: "changelog.", label: "Changelog" },
   { value: "setting.", label: "Settings" },

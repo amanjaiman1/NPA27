@@ -65,7 +65,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
           <MotionConfig reducedMotion="user">
             <div
               aria-live="polite"
-              className="pointer-events-none fixed inset-x-0 bottom-[calc(var(--bottom-nav-h,0px)+0.75rem)] z-[75] flex flex-col items-center gap-2 px-3 sm:inset-x-auto sm:right-5 sm:items-end lg:bottom-5"
+              className="pointer-events-none fixed inset-x-0 bottom-[calc(var(--bottom-nav-h,0px)+var(--help-fab-space,0px)+0.75rem)] z-[75] flex flex-col items-center gap-2 px-3 sm:inset-x-auto sm:right-5 sm:items-end lg:bottom-[calc(var(--help-fab-space,0px)+1.25rem)]"
             >
               <AnimatePresence initial={false}>
                 {items.map((t) => (

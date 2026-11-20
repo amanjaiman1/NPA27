@@ -33,7 +33,7 @@ export default function PrivacyPolicyPage() {
               <li>We use it only to run DoOrDie for you. We do not sell it, advertise with it, or share it for marketing.</li>
               <li>You can download all of it, or delete your account and all of it, from Settings at any time.</li>
               <li>
-                If a page breaks, the app emails us a crash report with technical details only, never anything you wrote.
+                If a page breaks, the app sends us a crash report with technical details only, never anything you wrote.
                 You can switch that off.
               </li>
               <li>Analytics, if it is switched on, only runs on the public pages and only if you agree.</li>
@@ -45,8 +45,8 @@ export default function PrivacyPolicyPage() {
             <p>
               DoOrDie (&ldquo;we&rdquo;, &ldquo;us&rdquo;) is an independent web app for organising UPSC
               preparation. This policy covers the DoOrDie website and app. You can reach us through the{" "}
-              <Link href={PAGES.contact.path}>contact page</Link>, or from Settings, then Help &amp; feedback, in the
-              app.
+              <Link href={PAGES.contact.path}>contact page</Link>, or with the Help &amp; feedback button at the bottom
+              right of the app.
             </p>
 
             <h2 id="collect">What we collect</h2>
@@ -87,23 +87,25 @@ export default function PrivacyPolicyPage() {
             </p>
             <h3>Crash reports</h3>
             <p>
-              If a page fails, the app sends us a crash report by email: the error message and its technical trace, the
+              If a page fails, the app sends us a crash report: the error message and its technical trace, the
               page&apos;s address without anything after a question mark, your browser&apos;s name and version, the time,
               whether you were online and whether you were signed in. It never includes your account, your name, your email
-              address or anything you entered. Reports are on unless you switch them off in Settings, then Help &amp;
-              feedback. On the error screen you can also write a note about what happened; it is sent only if you press
-              Send.
+              address or anything you entered. It is stored in our database, where the people who run DoOrDie read it in
+              the admin area; it is not emailed. Reports of the same error on the same page are kept together, with how
+              many times it happened. Reports are on unless you switch them off in Help &amp; feedback. On the error
+              screen you can also write a note about what happened; it is sent only if you press Send, and it is kept with
+              the report, not with your account.
             </p>
             <h3>Messages you send us</h3>
             <p>
-              If you write to us from Settings, then Help &amp; feedback, we store your message, the category you picked
-              and your account&apos;s id, so we can look into it and answer you in the app. Your email address is included
-              only if you leave &ldquo;Include my email&rdquo; on. Your browser, window size and whether the app is
+              If you write to us with the Help &amp; feedback button in the app, we store your message, the category you
+              picked and your account&apos;s id, so we can look into it and answer you in the app. Your email address is
+              not sent with it, and nothing about it is emailed to anyone. Your browser, window size and whether the app is
               installed are included only if you leave &ldquo;Include technical details&rdquo; on. If you attach a
               screenshot, your device makes it smaller and saves it again first, which removes details such as the camera
               and location, and it is kept in private storage that only the team can open. We also keep the status we give
               your message, our answer, and notes the team writes for itself while working on it. You see the status and our
-              answer; the notes stay with the team. We may also get an email telling us your message arrived.
+              answer; the notes stay with the team.
             </p>
             <h3>Reviews</h3>
             <p>
@@ -180,7 +182,8 @@ export default function PrivacyPolicyPage() {
                 <strong>Vercel:</strong> hosting for the website and the app&apos;s server functions.
               </li>
               <li>
-                <strong>Resend:</strong> sending account emails, and delivering crash reports and your messages to us.
+                <strong>Resend:</strong> sending account emails, such as confirming your address or resetting your
+                password.
               </li>
               <li>
                 <strong>Your browser&apos;s push service</strong> (for example Google, Apple, Microsoft or Mozilla):
@@ -235,8 +238,8 @@ export default function PrivacyPolicyPage() {
                 <strong>Stop notifications:</strong> turn them off in Settings or in your browser.
               </li>
               <li>
-                <strong>Stop crash reports:</strong> switch off &ldquo;Send crash reports automatically&rdquo; in Settings,
-                then Help &amp; feedback.
+                <strong>Stop crash reports:</strong> switch off &ldquo;Send crash reports automatically&rdquo; in Help
+                &amp; feedback, the button at the bottom right of the app.
               </li>
               <li>
                 <strong>Your review:</strong> in Settings, then Review DoOrDie, take it off the website at any time,
@@ -256,9 +259,8 @@ export default function PrivacyPolicyPage() {
             <p>
               Your account and preparation data are kept for as long as your account exists, and deleted when you delete
               it. Copies on your own devices stay until you sign out or clear your browser&apos;s data. Your reviews and
-              messages are kept until you delete them or your account, and we delete a message if you ask. Crash reports,
-              and the emails that tell us a message arrived, are kept only as long as we need them to fix the problem or
-              answer you. The log of admin actions is kept as a security record; it holds account ids rather than your
+              messages are kept until you delete them or your account, and we delete a message if you ask. A crash report
+              is deleted 90 days after that error was last reported, or sooner once the problem is fixed. The log of admin actions is kept as a security record; it holds account ids rather than your
               writing, and once an account is deleted its email address no longer appears in it. Our providers may keep
               technical logs and backups for a limited time under their own policies.
             </p>

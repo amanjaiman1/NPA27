@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { AppNoticeBar } from "./app-notice";
 import { ANNOUNCEMENT_ICON } from "./announcement-card";
 import { useInbox } from "./inbox";
+import { useHelpFeedback } from "@/components/help/help-feedback";
 
 /** What the bell adds for the team: unread announcements, and one line for new answers to feedback. */
 export function useTeamUnreadCount(): number {
@@ -82,6 +83,7 @@ export function TeamBanner() {
 /** "From the team" at the top of the notification centre. Nothing when there's nothing new. */
 export function TeamSection({ onNavigate }: { onNavigate: () => void }) {
   const inbox = useInbox();
+  const help = useHelpFeedback();
   if (!inbox || (!inbox.unread.length && !inbox.unseenResponses)) return null;
   return (
     <section aria-label="From the team">
@@ -110,21 +112,24 @@ export function TeamSection({ onNavigate }: { onNavigate: () => void }) {
             </Link>
           );
         })}
-        {inbox.unseenResponses > 0 && (
-          <Link
-            href="/settings#feedback"
-            onClick={onNavigate}
-            className="flex items-start gap-3 rounded-2xl border border-line bg-paper/[0.02] px-3.5 py-3 transition-colors hover:bg-paper/[0.05]"
+        {inbox.unseenResponses > 0 && help && (
+          <button
+            type="button"
+            onClick={() => {
+              onNavigate();
+              help.open("messages");
+            }}
+            className="flex w-full items-start gap-3 rounded-2xl border border-line bg-paper/[0.02] px-3.5 py-3 text-left transition-colors hover:bg-paper/[0.05]"
           >
             <MessageSquareReply className="mt-0.5 h-4 w-4 shrink-0 text-accent" aria-hidden />
             <span className="min-w-0 flex-1">
               <span className="block text-sm font-medium text-paper">
                 {inbox.unseenResponses === 1 ? "The team answered your feedback" : `The team answered ${inbox.unseenResponses} of your messages`}
               </span>
-              <span className="mt-0.5 block text-xs text-paper/55">Read it in Settings, under Help &amp; feedback.</span>
+              <span className="mt-0.5 block text-xs text-paper/55">Read it in Help &amp; feedback.</span>
             </span>
             <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-accent" aria-label="Unread" />
-          </Link>
+          </button>
         )}
       </div>
     </section>
