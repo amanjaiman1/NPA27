@@ -12,10 +12,23 @@ import { useToast } from "@/components/ui/toast";
 import { AdminHeader, ErrorPanel, HistoryList, LoadingRows, Pager, ReasonDialog, SearchBox, When } from "@/components/admin/ui";
 import { useAdminActor } from "@/components/admin/admin-context";
 import { adminApi, useAdmin } from "@/lib/platform/client";
+import type { ViewReport } from "@/lib/platform/admin-refresh";
 import { ROLE_LABEL } from "@/lib/platform/roles";
 import { REVIEW_STATUS } from "@/lib/platform/content";
 import { SUSPENSION_LENGTHS } from "@/lib/platform/validate";
-import type { AccountBrief, Page, Presence, UserDetail } from "@/lib/platform/types";
+import type { AccountBrief, Page, Presence, UserDetail, UserPage, VisitsStatus } from "@/lib/platform/types";
+
+/** Visit times come with every answer here: how they fared, for Refresh Data's status panel. */
+function visitsReport(answer: { visits?: VisitsStatus } | null): ViewReport {
+  switch (answer?.visits) {
+    case "not_set_up":
+      return { also: { visits: { state: "unavailable", problem: "Run supabase/migrations/20261215120000_presence.sql to record visits." } } };
+    case "failed":
+      return { also: { visits: { state: "failed", problem: "Visit times couldn't be loaded. Account details are up to date." } } };
+    default:
+      return { also: { visits: { state: "updated" } } };
+  }
+}
 
 const FILTERS = [
   { value: "all", label: "All" },
@@ -152,7 +165,7 @@ export default function AdminUsersPage() {
     if (q) p.set("q", q);
     return `users?${p}`;
   }, [q, filter, offset]);
-  const list = useAdmin<Page<AccountBrief>>(path);
+  const list = useAdmin<UserPage>(path, { report: visitsReport });
   useRefreshWhenVisitsMayEnd(list.data?.items.map((u) => u.presence) ?? [], list.refresh);
 
   return (
@@ -265,7 +278,7 @@ function Detail({ label, children }: { label: string; children: React.ReactNode 
 function UserDialog({ id, onClose, onChanged }: { id: string | null; onClose: () => void; onChanged: () => void }) {
   const { actor, can } = useAdminActor();
   const toast = useToast();
-  const user = useAdmin<UserDetail>(id ? `users/${id}` : null);
+  const user = useAdmin<UserDetail>(id ? `users/${id}` : null, { report: visitsReport });
   const [ask, setAsk] = useState<"suspend" | "restore" | null>(null);
   const [length, setLength] = useState<string>("indefinite");
   const u = id && user.data?.id === id ? user.data : null;

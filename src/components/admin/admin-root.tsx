@@ -6,7 +6,8 @@ import { usePathname, useRouter } from "next/navigation";
 import { CloudOff, LogOut, ShieldOff } from "lucide-react";
 import { useAuth } from "@/components/auth/auth-provider";
 import { BootScreen, StatusScreen } from "@/components/account/boot-screen";
-import { apiCall, ApiError } from "@/lib/platform/client";
+import { adminApi, apiCall, ApiError, useAdminView } from "@/lib/platform/client";
+import { noteAdminLoad, resetAdminRefresh } from "@/lib/platform/admin-refresh";
 import { forgetRole, rememberRole } from "@/lib/platform/my-role";
 import { releasePushSubscription } from "@/lib/push";
 import { can, type Actor } from "@/lib/platform/roles";
@@ -41,8 +42,13 @@ export function AdminRoot({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [gate, setGate] = useState<Gate>({ state: "checking" });
   const [leaving, setLeaving] = useState(false);
+  /** "Try again" on the error screen: the same check, without reloading the page. */
+  const [attempt, setAttempt] = useState(0);
   const leavingRef = useRef(false);
   const userId = auth.status === "signedIn" ? auth.user?.id : null;
+
+  // Refresh Data's record belongs to one session: another account, or none, starts it afresh.
+  useEffect(() => () => resetAdminRefresh(), [userId]);
 
   // An administrator acts as themselves: opening the Admin Center ends the
   // interactive demo in this tab. First, before anything below asks the API.
@@ -64,6 +70,7 @@ export function AdminRoot({ children }: { children: React.ReactNode }) {
         if (!live) return;
         // What the server confirmed is what this browser remembers, so the app routes this account correctly.
         rememberRole(userId, actor.role);
+        noteAdminLoad("role", "opened");
         setGate({ state: "ready", actor });
       })
       .catch((e: unknown) => {
@@ -83,34 +90,48 @@ export function AdminRoot({ children }: { children: React.ReactNode }) {
     };
     // The role is checked once per account; each page's data is checked on every call.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [auth.cloudEnabled, auth.status, userId]);
+  }, [auth.cloudEnabled, auth.status, userId, attempt]);
 
   /**
-   * This account's role changed, or a setting that widens what a role may do
-   * (live updates): ask again, quietly. The page stays as it is unless the
-   * answer changes it: new permissions show at once, and a removed role ends
-   * at "No access".
+   * Asks the server again, quietly: this account's role changed, or a
+   * setting that widens what a role may do (live updates), or Refresh Data.
+   * The page stays as it is unless the answer changes it: new permissions
+   * show at once, and a removed role ends at "No access". Rejects when the
+   * question couldn't be answered, keeping what's shown.
    */
-  const reconfirm = useCallback(() => {
-    if (!userId) return;
-    apiCall<Actor>("/api/admin/me")
-      .then((actor) => {
+  const confirmRole = useCallback(
+    async (get: <T>(path: string) => Promise<T> = (path) => adminApi.get(path)) => {
+      if (!userId) return;
+      try {
+        const actor = await get<Actor>("me");
         rememberRole(userId, actor.role);
         setGate((g) => (g.state === "ready" && JSON.stringify(g.actor) === JSON.stringify(actor) ? g : { state: "ready", actor }));
-      })
-      .catch((e: unknown) => {
+      } catch (e) {
         if (e instanceof ApiError && e.status === 403) {
           rememberRole(userId, null);
           setGate({ state: "denied" });
         } else if (e instanceof ApiError && e.status === 401) {
           router.replace(`/login?ended=1&next=${encodeURIComponent(pathname || "/admin")}`);
         }
-        // Offline or a hiccup: keep what's shown.
-      });
-  }, [userId, router, pathname]);
+        throw e;
+      }
+    },
+    [userId, router, pathname],
+  );
+  // Offline or a hiccup on a live update: keep what's shown.
+  const reconfirm = useCallback(
+    () =>
+      void confirmRole().then(
+        () => noteAdminLoad("role", "live"),
+        () => undefined,
+      ),
+    [confirmRole],
+  );
   const confirmed = gate.state === "ready" || gate.state === "denied";
   useAccountUpdates(userId, ["role"], reconfirm, confirmed);
   useAdminUpdates(["access"], reconfirm, gate.state === "ready");
+  // Your role takes part in Refresh Data like any page's data.
+  useAdminView(gate.state === "ready" ? "role" : null, "me", (ctx) => confirmRole(ctx.get));
 
   /**
    * Signing out of the Admin Center ends the session on this device, as the
@@ -162,7 +183,7 @@ export function AdminRoot({ children }: { children: React.ReactNode }) {
   if (gate.state === "error") {
     return (
       <StatusScreen icon={CloudOff} title={gate.status === 503 ? "Not set up yet" : "Couldn't open the Admin Center"} body={gate.message}>
-        <button type="button" onClick={() => window.location.reload()} className={linkClass}>
+        <button type="button" onClick={() => setAttempt((a) => a + 1)} className={linkClass}>
           Try again
         </button>
         {signOutButton}

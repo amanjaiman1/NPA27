@@ -6,7 +6,8 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Segmented } from "@/components/ui/misc";
 import { AdminHeader, ErrorPanel, LoadingRows, When, actionLabel, actorLine, metadataLine } from "@/components/admin/ui";
-import { adminApi, ApiError } from "@/lib/platform/client";
+import { adminApi, toApiError, useAdminView, type ApiError } from "@/lib/platform/client";
+import { createResponseOrder, mergeNewestPage, noteAdminLoad, noteAdminLoadFailed } from "@/lib/platform/admin-refresh";
 import { useAdminUpdates } from "@/components/platform/live-updates";
 import type { AuditEntry } from "@/lib/platform/types";
 
@@ -23,6 +24,9 @@ const GROUPS = [
 ] as const;
 type Group = (typeof GROUPS)[number]["value"];
 const LIMIT = 50;
+/** How long the log waits for a page before it says it couldn't load. */
+const LOAD_TIMEOUT_MS = 20_000;
+type AuditPage = { items: AuditEntry[]; limit: number };
 const TARGET_WORD: Record<string, string> = {
   user: "Account",
   review: "Review",
@@ -45,17 +49,19 @@ export default function AdminAuditPage() {
   const [group, setGroup] = useState<Group>("");
   // The page mounts only in the browser, once the Admin Center has confirmed a role.
   const [target, setTarget] = useState(targetFromUrl);
-  const [items, setItems] = useState<AuditEntry[]>([]);
-  const [more, setMore] = useState(false);
+  /** What's shown, and whether there are older entries to load: changed together, from the latest state. */
+  const [log, setLog] = useState<{ items: AuditEntry[]; more: boolean }>({ items: [], more: false });
+  const { items, more } = log;
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<ApiError | null>(null);
+  /** Bumped by every load from the top or further down: only the latest one's answer shows. */
   const latest = useRef(0);
+  /** Bumped when the filters change: nothing asked for the old ones shows. */
+  const filters = useRef(0);
 
-  const load = useCallback(
-    async (before: number | null) => {
-      const id = ++latest.current;
-      setLoading(true);
-      setError(null);
+  /** The log's address for the filters chosen, from `before` (an entry id) down. */
+  const pathFor = useCallback(
+    (before: number | null) => {
       const p = new URLSearchParams({ limit: String(LIMIT) });
       if (group) p.set("action", group);
       if (target) {
@@ -63,57 +69,85 @@ export default function AdminAuditPage() {
         p.set("targetId", target.id);
       }
       if (before) p.set("before", String(before));
-      try {
-        const page = await adminApi.get<{ items: AuditEntry[]; limit: number }>(`audit?${p}`);
-        if (id !== latest.current) return;
-        setItems((prev) => (before ? [...prev, ...page.items] : page.items));
-        setMore(page.items.length === page.limit);
-      } catch (e) {
-        if (id !== latest.current) return;
-        setError(e instanceof ApiError ? e : new ApiError(500, "error", "Something went wrong."));
-      } finally {
-        if (id === latest.current) setLoading(false);
-      }
+      return `audit?${p}`;
     },
     [group, target],
   );
 
+  /**
+   * Answers for the top of the log, whoever asked (opening, Retry, a live
+   * update, Refresh Data): the newest request's shows, whichever arrives first.
+   */
+  const [topOrder] = useState(createResponseOrder);
+
+  const load = useCallback(
+    async (before: number | null) => {
+      const id = ++latest.current;
+      const n = before ? 0 : topOrder.begin();
+      setLoading(true);
+      setError(null);
+      try {
+        const page = await adminApi.get<AuditPage>(pathFor(before), { timeoutMs: LOAD_TIMEOUT_MS });
+        if (id !== latest.current) return;
+        if (!before && !topOrder.take(n)) return; // a newer answer for the top is already showing
+        setLog((prev) => ({
+          items: before ? [...prev.items, ...page.items.filter((e) => !prev.items.some((x) => x.id === e.id))] : page.items,
+          more: page.items.length === page.limit,
+        }));
+        if (!before) noteAdminLoad("audit", "opened");
+      } catch (e) {
+        if (id !== latest.current || (!before && topOrder.superseded(n))) return;
+        const err = toApiError(e);
+        setError(err);
+        // Only the top of the log failing means it isn't up to date; older entries just didn't load.
+        if (!before) noteAdminLoadFailed("audit", err);
+      } finally {
+        if (id === latest.current) setLoading(false);
+      }
+    },
+    [pathFor, topOrder],
+  );
+
   useEffect(() => {
+    filters.current++;
     void load(null);
   }, [load]);
 
   /**
-   * A new entry anywhere (a live update): the newest page, quietly, with
-   * what's new put on top and older pages already loaded kept. If more has
-   * happened than one page holds, the log starts again from the top.
+   * The newest page again, quietly (a live update, or Refresh Data): its
+   * entries replace their shown copies, what's new goes on top, and older
+   * pages already loaded stay where they are. If more has happened than one
+   * page holds, the log starts again from the top. Resolves once it's on
+   * screen (or a newer answer is); rejects with the failure, keeping what's
+   * shown.
    */
-  const itemsRef = useRef(items);
-  itemsRef.current = items;
-  const prependNew = useCallback(async () => {
-    const p = new URLSearchParams({ limit: String(LIMIT) });
-    if (group) p.set("action", group);
-    if (target) {
-      p.set("targetType", target.type);
-      p.set("targetId", target.id);
-    }
-    const id = latest.current;
-    try {
-      const page = await adminApi.get<{ items: AuditEntry[]; limit: number }>(`audit?${p}`);
-      if (id !== latest.current) return; // a filter changed meanwhile
-      const top = itemsRef.current[0]?.id ?? 0;
-      const fresh = page.items.filter((e) => e.id > top);
-      if (!fresh.length) return;
-      if (!itemsRef.current.length || fresh.length === page.items.length) {
-        setItems(page.items);
-        setMore(page.items.length === page.limit);
-      } else {
-        setItems((prev) => [...fresh, ...prev]);
+  const refreshTop = useCallback(
+    async (get: <T>(path: string) => Promise<T>) => {
+      const asked = filters.current;
+      const n = topOrder.begin();
+      let page: AuditPage;
+      try {
+        page = await get<AuditPage>(pathFor(null));
+      } catch (e) {
+        if (asked !== filters.current || topOrder.superseded(n)) return; // something newer is showing
+        throw e;
       }
-    } catch {
-      /* keep what's shown; the next change or a reload tries again */
-    }
-  }, [group, target]);
-  useAdminUpdates(["audit"], () => void prependNew());
+      if (asked !== filters.current || !topOrder.take(n)) return; // other filters, or a newer answer, are showing
+      setLog((prev) => {
+        const merged = mergeNewestPage(prev.items, page.items, page.limit);
+        return { items: merged.items, more: merged.restart ? page.items.length === page.limit : prev.more };
+      });
+      setError(null);
+    },
+    [pathFor, topOrder],
+  );
+  useAdminUpdates(["audit"], () => {
+    refreshTop((path) => adminApi.get(path, { timeoutMs: LOAD_TIMEOUT_MS })).then(
+      () => noteAdminLoad("audit", "live"),
+      () => undefined, // keep what's shown; the next change or a refresh tries again
+    );
+  });
+  useAdminView("audit", pathFor(null), (ctx) => refreshTop(ctx.get));
 
   return (
     <div className="space-y-6">
