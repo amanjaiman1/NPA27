@@ -1312,6 +1312,8 @@ async function helpScenarios(browser, people) {
     await adminPage.screenshot({ path: join(SHOTS, "admin-crash-report.png") });
     check(!(await adminPage.getByTestId("help-feedback-button").count()), "the Admin Center has the button");
     await adminPage.close();
+  });
+}
 
 /* ── live updates ──────────────────────────────────────────────── */
 
@@ -1444,8 +1446,7 @@ async function main() {
       await trustBrowserScenarios(browser, people);
     }
     await helpScenarios(browser, people);
-    await trustBrowserScenarios(browser, people);
-    if (!process.argv.includes("--trust-only")) await liveBrowserScenarios(browser, people);
+    if (!process.argv.includes("--trust-only") && !process.argv.includes("--help-only")) await liveBrowserScenarios(browser, people);
     console.log(`\nAll ${passed} scenarios passed. Screenshots: ${SHOTS}`);
   } catch (e) {
     console.log("✗");
